@@ -1,5 +1,4 @@
 local lpeg = require("lpeg")
-local pp = require("pp")
 
 lpeg.locale(lpeg)
 
@@ -13,12 +12,12 @@ local space = lpeg.space
 -- error message auxiliary functions
 
 -- trim
-local function trim(s)
+local function trim (s)
   return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
 -- gets line number and column number
-local function lineno(s, i)
+local function lineno (s, i)
   if i == 1 then return 1,1 end
   local n,lastline = 0,""
   s = s:sub(1,i) .. "\n"
@@ -30,7 +29,7 @@ local function lineno(s, i)
 end
 
 -- creates an error message for the input string
-local function errormsg(s, t)
+local function errormsg (s, t)
   local i = t.ffp or 1
   local lineno,colno = lineno(s,i)
   local u = lpeg.match(C((1 - space)^0), s, i)
@@ -48,13 +47,13 @@ local function errormsg(s, t)
 end
 
 -- aborts with an error message
-local function report_error(s, i, t)
+local function report_error (s, i, t)
   print(errormsg(s, t))
   os.exit(1)
 end
 
 -- sets the farthest failure position and the expected tokens
-local function setffp(s, i, t, n)
+local function setffp (s, i, t, n)
   if not t.ffp or i > t.ffp then
     t.ffp = i
     t.list = {} ; t.list[n] = n
@@ -68,54 +67,54 @@ local function setffp(s, i, t, n)
   return false
 end
 
-local function updateffp(name)
+local function updateffp (name)
   return Cmt(Carg(1) * Cc(name), setffp)
 end
 
 -- regular combinators and auxiliary functions
 
-local function token(pat, name)
+local function token (pat, name)
   return pat * V"Skip" + updateffp(name) * P(false)
 end
 
-local function symb(str)
+local function symb (str)
   return token (P(str), str)
 end
 
-local function kw(str)
+local function kw (str)
   return token (P(str) * -V"idRest", str)
 end
 
-local function taggedCap(tag, pat)
+local function taggedCap (tag, pat)
   return Ct(Cg(Cc(tag), "tag") * pat)
 end
 
-local function unaryop(op, e)
+local function unaryop (op, e)
   return { tag = op, [1] = e }
 end
 
-local function binaryop(e1, op, e2)
+local function binaryop (e1, op, e2)
   if not op then return e1 end
   return { tag = op, [1] = e1, [2] = e2 }
 end
 
-local function chainl(pat, sep, a)
+local function chainl (pat, sep, a)
   return Cf(pat * Cg(sep * pat)^0, binaryop) + a
 end
 
-local function chainl1(pat, sep)
+local function chainl1 (pat, sep)
   return Cf(pat * Cg(sep * pat)^0, binaryop)
 end
 
-local function sepby(pat, sep, tag)
+local function sepby (pat, sep, tag)
   return taggedCap(tag, (pat * (sep * pat)^0)^-1)
 end
 
-local function sepby1(pat, sep, tag)
+local function sepby1 (pat, sep, tag)
   return taggedCap(tag, pat * (sep * pat)^0)
 end
 
-local function expl2varl(s, i, el)
+local function expl2varl (s, i, el)
   local vl = {}
   for k,v in ipairs(el) do
     if v.tag == "ExpVar" then
@@ -127,7 +126,7 @@ local function expl2varl(s, i, el)
   return true,vl
 end
 
-local function fix_str(str)
+local function fix_str (str)
   str = string.gsub(str, "\\a", "\a")
   str = string.gsub(str, "\\b", "\b")
   str = string.gsub(str, "\\f", "\f")
@@ -147,16 +146,16 @@ end
 
 local G = { V"Lua",
   -- parser
-  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + Cmt(Carg(1),  report_error);
+  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
   Var = taggedCap("VarID", token(V"Name","Name"));
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
-  Field = (Cc(function(t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
+  Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
             (Ct(symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
              Ct(taggedCap("ExpStr", token(V"Name","Name")) * symb("=") * V"Expr"))) +
-          Cc(function(t, e) local i = #t[1]+1; t[1][i] = e ; return t end) *
+          Cc(function (t, e) local i = #t[1]+1; t[1][i] = e ; return t end) *
              Ct(V"Expr");
   FieldList = (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1 /
               function (...)
@@ -343,21 +342,24 @@ local G = { V"Lua",
   Shebang = P"#" * (P(1) - P"\n")^0 * P"\n";
 }
 
-local function getcontents(filename)
+local function getcontents (filename)
   file = assert(io.open(filename, "r"))
   contents = file:read("*a")
   file:close()
   return contents
 end
 
-if #arg ~= 1 then
-  print ("Usage: lua lua.lua <file>")
-  os.exit(1)
+local function parse (filename)
+  local errorinfo = { filename = filename }
+  local input = getcontents(filename)
+  lpeg.setmaxstack(1000)
+  local ast = lpeg.match(G, input, nil, errorinfo)
+  if not ast then
+    return nil,errormsg(input, errorinfo)
+  end
+  return ast
 end
 
-local errorinfo = { filename = arg[1] }
-local input = getcontents(arg[1])
-lpeg.setmaxstack(1000)
-local ast = lpeg.match(G, input, nil, errorinfo)
-
-os.exit(0)
+return {
+  parse = parse,
+}

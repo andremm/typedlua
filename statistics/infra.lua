@@ -1,7 +1,7 @@
 
 local LOG = "infra.log"
 
-local function mkdir(dir_name)
+local function mkdir (dir_name)
   assert(type(dir_name) == "string")
   local MKDIR = string.format("mkdir -p %s >> %s 2>&1", dir_name, LOG)
   local ret = os.execute(MKDIR)
@@ -10,7 +10,7 @@ local function mkdir(dir_name)
   end
 end
 
-local function cleandir(dir_name)
+local function cleandir (dir_name)
   assert(type(dir_name) == "string")
   local RM = string.format("rm -rf %s >> %s 2>&1", dir_name, LOG)
   local ret = os.execute(RM)
@@ -19,7 +19,7 @@ local function cleandir(dir_name)
   end
 end
 
-local function rsync(host_name, dir_name)
+local function rsync (host_name, dir_name)
   assert(type(host_name) == "string")
   assert(type(dir_name) == "string")
   local RSYNC = string.format("rsync -av %s %s >> %s 2>&1", host_name, dir_name, LOG)
@@ -29,7 +29,7 @@ local function rsync(host_name, dir_name)
   end
 end
 
-local function luarocks_unpack(repo_dir, unpack_dir)
+local function luarocks_unpack (repo_dir, unpack_dir)
   assert(type(repo_dir) == "string")
   assert(type(unpack_dir) == "string")
   local manifest = repo_dir .. "/manifest"
@@ -43,13 +43,13 @@ local function luarocks_unpack(repo_dir, unpack_dir)
   end
 end
 
-local function build_luac_list(unpack_dir, luac_list)
+local function build_luac_list (unpack_dir, luac_list)
   assert(type(unpack_dir) == "string")
   assert(type(luac_list) == "string")
   local file = assert(io.open(luac_list, "w"))
-  local FIND = string.format("find %s -name '*.lua' | sed 's/ /\\\\ /'", unpack_dir)
+  local FIND = string.format("find %s -name '*.lua'", unpack_dir)
   for dotlua in io.popen(FIND):lines() do
-    local ret = os.execute(string.format("luac %s >> %s 2>&1", dotlua, LOG))
+    local ret = os.execute(string.format("luac '%s' >> %s 2>&1", dotlua, LOG))
     if ret then
       file:write(dotlua .. "\n")
     end
