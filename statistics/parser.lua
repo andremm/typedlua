@@ -173,8 +173,8 @@ local G = { V"Lua",
   NameList = sepby1(token(V"Name","Name"), symb(","));
   ExpList = sepby1(V"Expr", symb(","));
   FuncArgs = symb("(") * (V"ExpList" + Ct(Cc())) * symb(")") +
-             V"Constructor" +
-             taggedCap("ExpStr", token(V"String","String"));
+             V"Constructor" / function (c) return {c} end +
+             taggedCap("ExpStr", token(V"String","String")) / function (s) return {s} end;
   Expr = V"SubExpr_1";
   SubExpr_1 = chainl1(V"SubExpr_2", V"OrOp");
   SubExpr_2 = chainl1(V"SubExpr_3", V"AndOp");
