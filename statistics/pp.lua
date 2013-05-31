@@ -124,7 +124,9 @@ print_exp = function (e)
     print_exp(e[1])
     io.write(")")
     print_explist(e[2])
-  elseif e.tag == "ExpAdd" or
+  elseif e.tag == "ExpAnd" or
+         e.tag == "ExpOr" or
+         e.tag == "ExpAdd" or
          e.tag == "ExpSub" or
          e.tag == "ExpMul" or
          e.tag == "ExpDiv" or
