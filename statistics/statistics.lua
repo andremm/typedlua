@@ -2,7 +2,7 @@
 local parser = require "parser"
 local pp = require "pp"
 
-sizep = 0
+number_of_functions = 0
 anonymousf = 0
 globalf = 0
 localf = 0
@@ -10,12 +10,12 @@ result = {}
 
 local count_block, count_stm
 local count_exp, count_var
-local count_explist
+local count_explist, count_varlist
 local count_fieldlist
 
 local check_block, check_stm
 local check_exp, check_var
-local check_explist
+local check_explist, check_varlist
 local check_fieldlist
 
 count_fieldlist = function (fieldlist)
@@ -50,10 +50,21 @@ check_explist = function (explist, func_name, func_id)
   end
 end
 
+count_varlist = function (varlist)
+  for k,v in ipairs(varlist) do
+    count_var(v)
+  end
+end
+
+check_varlist = function (varlist, func_name, func_id)
+  for k,v in ipairs(varlist) do
+    check_var(v, func_name, func_id)
+  end
+end
+
 count_var = function (var)
   -- VarID ID
   if var.tag == "VarID" then
-    --if var[1] == "type" then print(var[1]) end
   -- VarIndex Exp Exp
   elseif var.tag == "VarIndex" then
     count_exp(var[1])
@@ -83,7 +94,7 @@ count_exp = function (exp)
     count_var(exp[1])
   -- ExpFunction ([ID],IsVarArg) Stm 
   elseif exp.tag == "ExpFunction" then
-    sizep = sizep + 1
+    number_of_functions = number_of_functions + 1
     anonymousf = anonymousf + 1
     count_stm(exp[2])
   -- ExpTableConstructor [Exp] {[Exp] [Exp]}
@@ -135,7 +146,7 @@ check_exp = function (exp, func_name, func_id)
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
   elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Stm
-    result.sizep = result.sizep + 1
+    result.number_of_functions = result.number_of_functions + 1
     result.anonymousf = result.anonymousf + 1
     check_stm(exp[2], func_name, func_id)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
@@ -201,12 +212,12 @@ count_stm = function (stm)
     count_stm(stm[3])
   -- StmLocalFunction ID ([ID],IsVarArg) Stm
   elseif stm.tag == "StmLocalFunction" then
-    sizep = sizep + 1
+    number_of_functions = number_of_functions + 1
     localf = localf + 1
     count_stm(stm[3])
   -- StmFunction FuncName ([ID],IsVarArg) Stm
   elseif stm.tag == "StmFunction" then
-    sizep = sizep + 1
+    number_of_functions = number_of_functions + 1
     globalf = globalf + 1
     count_stm(stm[3])
   -- StmLabel ID
@@ -217,6 +228,7 @@ count_stm = function (stm)
   elseif stm.tag == "StmBreak" then
   -- StmAssign [Var] [Exp]
   elseif stm.tag == "StmAssign" then
+    count_varlist(stm[1])
     count_explist(stm[2])
   -- StmLocalVar [ID] [Exp]
   elseif stm.tag == "StmLocalVar" then
@@ -254,17 +266,18 @@ check_stm = function (stm, func_name, func_id)
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
-    result.sizep = result.sizep + 1
+    result.number_of_functions = result.number_of_functions + 1
     result.globalf = result.globalf + 1
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction ID ParList Stm
-    result.sizep = result.sizep + 1
+    result.number_of_functions = result.number_of_functions + 1
     result.localf = result.localf + 1
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmLabel" or -- StmLabel ID
          stm.tag == "StmGoTo" or -- StmGoTo ID
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    check_varlist(stm[1], func_name, func_id)
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
     check_explist(stm[2], func_name, func_id)
@@ -296,30 +309,30 @@ check_block = function (block, func_name, func_id)
 end
 
 local function count (ast)
-  sizep = 0
+  number_of_functions = 0
   anonymousf = 0
   globalf = 0
   localf = 0
   count_block(ast)
-  print("sizep", sizep)
-  print("anonymous", anonymousf)
-  print("global", globalf)
-  print("local", localf)
-  if sizep ~= anonymousf + globalf + localf then
+  print("number_of_functions", number_of_functions)
+  --print("anonymous", anonymousf)
+  --print("global", globalf)
+  --print("local", localf)
+  if number_of_functions ~= anonymousf + globalf + localf then
     error("number of functions does not match")
   end
 end
 
 local function init_result ()
   result = {}
-  result.sizep = 0
+  result.number_of_functions = 0
   result.anonymousf = 0
   result.globalf = 0
   result.localf = 0
 end
 
 local function print_result ()
-  print("sizep", result.sizep)
+  print("number_of_functions", result.number_of_functions)
   print("anonymous", result.anonymousf)
   print("global", result.globalf)
   print("local", result.localf)
@@ -327,8 +340,21 @@ end
 
 local function count_recon ()
   local sum = result.anonymousf + result.globalf + result.localf
-  if result.sizep ~= sum then
+  if result.number_of_functions ~= sum then
     error("number of functions does not match")
+  end
+end
+
+local function luac_recon (filename)
+  local sum = 0
+  local CMD = "luac -l '%s' | grep 'slots,' | cut -d',' -f6 | cut -d' ' -f2"
+  local LUAC = string.format(CMD, filename)
+  for i in io.popen(LUAC):lines() do
+    sum = sum + i
+  end
+  os.remove("luac.out")
+  if result.number_of_functions ~= sum then
+    error("number of functions does not match with luac")
   end
 end
 
@@ -346,7 +372,8 @@ local function generate (filename)
     error(errormsg)
   end
   check(ast)
-  return ast
+  luac_recon(filename)
+  return result
 end
 
 return {
