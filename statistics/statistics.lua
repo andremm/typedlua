@@ -18,6 +18,21 @@ local check_exp, check_var
 local check_explist, check_varlist
 local check_fieldlist
 
+local function new_func_def (func_type)
+  result.number_of_functions = result.number_of_functions + 1
+  if func_type == "anonymous" then
+    result.anonymousf = result.anonymousf + 1
+  elseif func_type == "global" then
+    result.globalf = result.globalf + 1
+  elseif func_type == "local" then
+    result.localf = result.localf + 1
+  else
+    error("func_type '" .. func_type .. "' not known")
+  end
+  local n = result.number_of_functions
+  result[n] = {}
+end
+
 count_fieldlist = function (fieldlist)
   for k,v in ipairs(fieldlist[1]) do
     count_exp(v[1])
@@ -146,9 +161,8 @@ check_exp = function (exp, func_name, func_id)
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
   elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Stm
-    result.number_of_functions = result.number_of_functions + 1
-    result.anonymousf = result.anonymousf + 1
-    check_stm(exp[2], func_name, func_id)
+    new_func_def("anonymous")
+    check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
@@ -246,7 +260,7 @@ end
 
 check_stm = function (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
-    check_block(stm)
+    check_block(stm, func_name, func_id)
   elseif stm.tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
@@ -266,13 +280,11 @@ check_stm = function (stm, func_name, func_id)
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
-    result.number_of_functions = result.number_of_functions + 1
-    result.globalf = result.globalf + 1
-    check_stm(stm[3], func_name, func_id)
+    new_func_def("global")
+    check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction ID ParList Stm
-    result.number_of_functions = result.number_of_functions + 1
-    result.localf = result.localf + 1
-    check_stm(stm[3], func_name, func_id)
+    new_func_def("local")
+    check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLabel" or -- StmLabel ID
          stm.tag == "StmGoTo" or -- StmGoTo ID
          stm.tag == "StmBreak" then
@@ -282,6 +294,22 @@ check_stm = function (stm, func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
+    local explist_size = #stm[1]
+    if explist_size == 0 then
+    elseif explist_size == 1 then
+    else
+      if stm[1][1].tag == "ExpNil" then
+        if not result[func_id].ret_nil_se then
+          result[func_id].ret_nil_se = true
+          result.ret_nil_se = result.ret_nil_se + 1
+        end
+      elseif stm[1][1].tag == "ExpFalse" then
+        if not result[func_id].ret_false_se then
+          result[func_id].ret_false_se = true
+          result.ret_false_se = result.ret_false_se + 1
+        end
+      end
+    end
     check_explist(stm[1], func_name, func_id)
   elseif stm.tag == "StmCall" then -- StmCall Exp
     check_exp(stm[1], func_name, func_id)
@@ -315,9 +343,9 @@ local function count (ast)
   localf = 0
   count_block(ast)
   print("number_of_functions", number_of_functions)
-  --print("anonymous", anonymousf)
-  --print("global", globalf)
-  --print("local", localf)
+  print("anonymous", anonymousf)
+  print("global", globalf)
+  print("local", localf)
   if number_of_functions ~= anonymousf + globalf + localf then
     error("number of functions does not match")
   end
@@ -329,6 +357,8 @@ local function init_result ()
   result.anonymousf = 0
   result.globalf = 0
   result.localf = 0
+  result.ret_nil_se = 0
+  result.ret_false_se = 0
 end
 
 local function print_result ()
@@ -336,6 +366,8 @@ local function print_result ()
   print("anonymous", result.anonymousf)
   print("global", result.globalf)
   print("local", result.localf)
+  print("ret_nil_se", result.ret_nil_se)
+  print("ret_false_se", result.ret_false_se)
 end
 
 local function count_recon ()
