@@ -162,6 +162,20 @@ check_exp = function (exp, func_name, func_id)
     check_var(exp[1], func_name, func_id)
   elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Stm
     new_func_def("anonymous")
+    local id = result.number_of_functions
+    if #exp[1] > 0 then
+      if exp[1][1] == "self" then
+        if not result[id].method then
+          result[id].method = true
+          result.number_of_methods = result.number_of_methods + 1
+        end
+      elseif exp[1][1] == "this" then
+        if not result[id].method then
+          result[id].method = true
+          result.number_of_methods = result.number_of_methods + 1
+        end
+      end
+    end
     check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     check_fieldlist(exp[1], func_name, func_id)
@@ -305,6 +319,28 @@ check_stm = function (stm, func_name, func_id)
     check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
     new_func_def("global")
+    if stm[1].tag == "Method" then
+      local id = result.number_of_functions
+      if not result[id].method then
+        result[id].method = true
+        result.number_of_methods = result.number_of_methods + 1
+      end
+    elseif stm[1].tag == "Function" then
+      local id = result.number_of_functions
+      if #stm[2] > 0 then
+        if stm[2][1] == "self" then
+          if not result[id].method then
+            result[id].method = true
+            result.number_of_methods = result.number_of_methods + 1
+          end
+        elseif stm[2][1] == "this" then
+          if not result[id].method then
+            result[id].method = true
+            result.number_of_methods = result.number_of_methods + 1
+          end
+        end
+      end
+    end
     check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction ID ParList Stm
     new_func_def("local")
@@ -389,6 +425,7 @@ local function init_result ()
   result.use_type = 0
   result.use_setmetatable = 0
   result.use_getmetatable = 0
+  result.number_of_methods = 0
 end
 
 local function print_result ()
@@ -401,6 +438,7 @@ local function print_result ()
   print("use_type", result.use_type)
   print("use_setmetatable", result.use_setmetatable)
   print("use_getmetatable", result.use_getmetatable)
+  print("number_of_methods", result.number_of_methods)
 end
 
 local function count_recon ()
