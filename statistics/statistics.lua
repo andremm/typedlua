@@ -44,12 +44,29 @@ count_fieldlist = function (fieldlist)
 end
 
 check_fieldlist = function (fieldlist, func_name, func_id)
+  local id = func_id
   for k,v in ipairs(fieldlist[1]) do
     check_exp(v[1], func_name, func_id)
+    -- statistics of the use of function declaration as table field
+    if v[1].tag == "ExpFunction" then
+      id = id + 1
+      if not result[id].table_field then
+        result[id].table_field = true
+        result.table_field = result.table_field + 1
+      end
+    end
   end
   for k,v in ipairs(fieldlist[2]) do
+    -- statistics of the use of function declaration as table field
     check_exp(v[1], func_name, func_id)
     check_exp(v[2], func_name, func_id)
+    if v[2].tag == "ExpFunction" then
+      id = id + 1
+      if not result[id].table_field then
+        result[id].table_field = true
+        result.table_field = result.table_field + 1
+      end
+    end
   end
 end
 
@@ -321,12 +338,19 @@ check_stm = function (stm, func_name, func_id)
     new_func_def("global")
     if stm[1].tag == "Method" then
       local id = result.number_of_functions
+      -- statistics of the use of method definition
       if not result[id].method then
         result[id].method = true
         result.number_of_methods = result.number_of_methods + 1
       end
+      -- statistics of the use of function declaration as table field
+      if not result[id].table_field then
+        result[id].table_field = true
+        result.table_field = result.table_field + 1
+      end
     elseif stm[1].tag == "Function" then
       local id = result.number_of_functions
+      -- statistics of the use of method definition
       if #stm[2] > 0 then
         if stm[2][1] == "self" then
           if not result[id].method then
@@ -337,6 +361,13 @@ check_stm = function (stm, func_name, func_id)
           if not result[id].method then
             result[id].method = true
             result.number_of_methods = result.number_of_methods + 1
+          end
+        end
+        -- statistics of the use of function declaration as table field
+        if #stm[2] > 1 then
+          if not result[id].table_field then
+            result[id].table_field = true
+            result.table_field = result.table_field + 1
           end
         end
       end
@@ -426,6 +457,7 @@ local function init_result ()
   result.use_setmetatable = 0
   result.use_getmetatable = 0
   result.number_of_methods = 0
+  result.table_field = 0
 end
 
 local function print_result ()
@@ -439,6 +471,7 @@ local function print_result ()
   print("use_setmetatable", result.use_setmetatable)
   print("use_getmetatable", result.use_getmetatable)
   print("number_of_methods", result.number_of_methods)
+  print("table_field", result.table_field)
 end
 
 local function count_recon ()
