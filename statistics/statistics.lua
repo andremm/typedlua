@@ -2,11 +2,11 @@
 local parser = require "parser"
 local pp = require "pp"
 
-number_of_functions = 0
-anonymousf = 0
-globalf = 0
-localf = 0
-result = {}
+local number_of_functions = 0
+local anonymousf = 0
+local globalf = 0
+local localf = 0
+local result = {}
 
 local count_block, count_stm
 local count_exp, count_var
@@ -87,7 +87,7 @@ count_var = function (var)
   end
 end
 
-check_var = function (var)
+check_var = function (var, func_name, func_id)
   if var.tag == "VarID" then -- VarID ID
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
     check_exp(var[1], func_name, func_id)
@@ -169,6 +169,30 @@ check_exp = function (exp, func_name, func_id)
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[3], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    if func_id ~= 0 then
+      if exp[1].tag == "ExpVar" and exp[1][1].tag == "VarID" then
+        -- statistics of the use of type
+        local fname = exp[1][1][1]
+        if fname == "type" then
+          if not result[func_id].use_type then
+            result[func_id].use_type = true
+            result.use_type = result.use_type + 1
+          end
+        -- statistics of the use of setmetatable
+        elseif fname == "setmetatable" then
+          if not result[func_id].use_setmetatable then
+            result[func_id].use_setmetatable = true
+            result.use_setmetatable = result.use_setmetatable + 1
+          end
+        -- statistics of the use of getmetatable
+        elseif fname == "getmetatable" then
+          if not result[func_id].use_getmetatable then
+            result[func_id].use_getmetatable = true
+            result.use_getmetatable = result.use_getmetatable + 1
+          end
+        end
+      end
+    end
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpAdd" or -- ExpAdd Exp Exp 
@@ -294,19 +318,22 @@ check_stm = function (stm, func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
-    local explist_size = #stm[1]
-    if explist_size == 0 then
-    elseif explist_size == 1 then
-    else
-      if stm[1][1].tag == "ExpNil" then
-        if not result[func_id].ret_nil_se then
-          result[func_id].ret_nil_se = true
-          result.ret_nil_se = result.ret_nil_se + 1
-        end
-      elseif stm[1][1].tag == "ExpFalse" then
-        if not result[func_id].ret_false_se then
-          result[func_id].ret_false_se = true
-          result.ret_false_se = result.ret_false_se + 1
+    -- statistics of the use of return
+    if func_id ~= 0 then
+      local explist_size = #stm[1]
+      if explist_size == 0 then
+      elseif explist_size == 1 then
+      else
+        if stm[1][1].tag == "ExpNil" then
+          if not result[func_id].ret_nil_se then
+            result[func_id].ret_nil_se = true
+            result.ret_nil_se = result.ret_nil_se + 1
+          end
+        elseif stm[1][1].tag == "ExpFalse" then
+          if not result[func_id].ret_false_se then
+            result[func_id].ret_false_se = true
+            result.ret_false_se = result.ret_false_se + 1
+          end
         end
       end
     end
@@ -359,6 +386,9 @@ local function init_result ()
   result.localf = 0
   result.ret_nil_se = 0
   result.ret_false_se = 0
+  result.use_type = 0
+  result.use_setmetatable = 0
+  result.use_getmetatable = 0
 end
 
 local function print_result ()
@@ -368,6 +398,9 @@ local function print_result ()
   print("local", result.localf)
   print("ret_nil_se", result.ret_nil_se)
   print("ret_false_se", result.ret_false_se)
+  print("use_type", result.use_type)
+  print("use_setmetatable", result.use_setmetatable)
+  print("use_getmetatable", result.use_getmetatable)
 end
 
 local function count_recon ()
