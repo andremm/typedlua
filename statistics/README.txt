@@ -13,3 +13,5 @@ How many functions use setmetatable and getmetatable ?
 
 How the table constructor is used (empty, only static keys, only dynamic keys,
                                    both static and dynamic keys) ?
+
+How the indexing of tables is used (function call or something else) ?

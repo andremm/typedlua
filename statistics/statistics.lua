@@ -17,6 +17,8 @@ local check_block, check_stm
 local check_exp, check_var
 local check_explist, check_varlist
 local check_fieldlist
+local check_varindex_in_exp, check_varindex_in_explist
+local check_varindex_in_var, check_varindex_in_varlist
 
 local function new_func_def (func_type)
   result.number_of_functions = result.number_of_functions + 1
@@ -31,12 +33,6 @@ local function new_func_def (func_type)
   end
   local n = result.number_of_functions
   result[n] = {}
-end
-
-local function new_table_const ()
-  result.number_of_constructs = result.number_of_constructs + 1
-  local n = result.number_of_constructs
-  if not result[n] then result[n] = {} end
 end
 
 count_fieldlist = function (fieldlist)
@@ -153,6 +149,41 @@ check_var = function (var, func_name, func_id)
   end
 end
 
+check_varindex_in_exp = function (exp, where)
+  if exp.tag == "ExpVar" and
+     exp[1].tag == "VarIndex" then
+    result.varindex = result.varindex + 1
+    if where == "call" then
+      result.varindex_function_call = result.varindex_function_call + 1
+    else
+      result.varindex_somewhere_else = result.varindex_somewhere_else + 1
+    end
+  end
+end
+
+check_varindex_in_explist = function (explist, where)
+  for k,v in ipairs(explist) do
+    check_varindex_in_exp(v, where)
+  end
+end
+
+check_varindex_in_var = function (var, where)
+  if var.tag == "VarIndex" then
+    result.varindex = result.varindex + 1
+    if where == "call" then
+      result.varindex_function_call = result.varindex_function_call + 1
+    else
+      result.varindex_somewhere_else = result.varindex_somewhere_else + 1
+    end
+  end
+end
+
+check_varindex_in_varlist = function (varlist, where)
+  for k,v in ipairs(varlist) do
+    check_varindex_in_var(v, where)
+  end
+end
+
 count_exp = function (exp)
   if exp.tag == "ExpNil" or
      exp.tag == "ExpFalse" or
@@ -236,9 +267,12 @@ check_exp = function (exp, func_name, func_id)
     end
     check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
-    new_table_const()
+    result.number_of_constructs = result.number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
+    result.varindex = result.varindex + 1
+    result.varindex_function_call = result.varindex_function_call + 1
+    check_varindex_in_explist(exp[3], "se")
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[3], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
@@ -266,6 +300,8 @@ check_exp = function (exp, func_name, func_id)
         end
       end
     end
+    check_varindex_in_exp(exp[1], "call")
+    check_varindex_in_explist(exp[2], "se")
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpAdd" or -- ExpAdd Exp Exp 
@@ -283,11 +319,14 @@ check_exp = function (exp, func_name, func_id)
          exp.tag == "ExpGE" or -- ExpGE Exp Exp
          exp.tag == "ExpAnd" or -- ExpGE Exp Exp
          exp.tag == "ExpOr" then -- ExpOr Exp Exp
+    check_varindex_in_exp(exp[1], "se")
+    check_varindex_in_exp(exp[2], "se")
     check_exp(exp[1], func_name, func_id)
     check_exp(exp[2], func_name, func_id)
   elseif exp.tag == "ExpNot" or -- ExpNot Exp
          exp.tag == "ExpMinus" or -- ExpMinus Exp
          exp.tag == "ExpLen" then -- ExpLen Exp
+    check_varindex_in_exp(exp[1], "se")
     check_exp(exp[1], func_name, func_id)
   else
     error("expecting an expression, but got a " .. exp.tag)
@@ -359,18 +398,24 @@ check_stm = function (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
     check_block(stm, func_name, func_id)
   elseif stm.tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
+    check_varindex_in_exp(stm[1], "se")
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmWhile" then -- StmWhile Exp Stm
+    check_varindex_in_exp(stm[1], "se")
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
   elseif stm.tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
+    check_varindex_in_exp(stm[2], "se")
+    check_varindex_in_exp(stm[3], "se")
+    check_varindex_in_exp(stm[4], "se")
     check_exp(stm[2], func_name, func_id)
     check_exp(stm[3], func_name, func_id)
     check_exp(stm[4], func_name, func_id)
     check_stm(stm[5], func_name, func_id)
   elseif stm.tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
+    check_varindex_in_explist(stm[2], "se")
     check_explist(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
@@ -422,11 +467,15 @@ check_stm = function (stm, func_name, func_id)
          stm.tag == "StmGoTo" or -- StmGoTo ID
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    check_varindex_in_varlist(stm[1], "se")
+    check_varindex_in_explist(stm[2], "se")
     check_varlist(stm[1], func_name, func_id)
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
+    check_varindex_in_explist(stm[2], "se")
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
+    check_varindex_in_explist(stm[1], "se")
     -- statistics of the use of return
     if func_id ~= 0 then
       local explist_size = #stm[1]
@@ -448,6 +497,7 @@ check_stm = function (stm, func_name, func_id)
     end
     check_explist(stm[1], func_name, func_id)
   elseif stm.tag == "StmCall" then -- StmCall Exp
+    check_varindex_in_exp(stm[1], "call")
     check_exp(stm[1], func_name, func_id)
   else
     error("expecting a statement, but got a " .. stm.tag)
@@ -505,6 +555,9 @@ local function init_result ()
   result.only_static = 0
   result.only_dynamic = 0
   result.static_and_dynamic = 0
+  result.varindex = 0
+  result.varindex_function_call = 0
+  result.varindex_somewhere_else = 0
 end
 
 local function print_result ()
@@ -524,6 +577,9 @@ local function print_result ()
   print("only_static", result.only_static)
   print("only_dynamic", result.only_dynamic)
   print("static_and_dynamic", result.static_and_dynamic)
+  print("varindex", result.varindex)
+  print("varindex_function_call", result.varindex_function_call)
+  print("varindex_somewhere_else", result.varindex_somewhere_else)
 end
 
 local function count_recon ()
@@ -535,6 +591,10 @@ local function count_recon ()
         result.only_dynamic + result.static_and_dynamic
   if result.number_of_constructs ~= sum then
     error("number of table constructs does not match")
+  end
+  sum = result.varindex_function_call + result.varindex_somewhere_else
+  if result.varindex ~= sum then
+    error("number of varindex usage does not match")
   end
 end
 
