@@ -33,6 +33,12 @@ local function new_func_def (func_type)
   result[n] = {}
 end
 
+local function new_table_const ()
+  result.number_of_constructs = result.number_of_constructs + 1
+  local n = result.number_of_constructs
+  if not result[n] then result[n] = {} end
+end
+
 count_fieldlist = function (fieldlist)
   for k,v in ipairs(fieldlist[1]) do
     count_exp(v[1])
@@ -45,6 +51,41 @@ end
 
 check_fieldlist = function (fieldlist, func_name, func_id)
   local id = func_id
+  local only_static,only_dynamic = true,true
+  -- statistics of the use of table constructs
+  if #fieldlist[1] == 0 and #fieldlist[2] == 0 then
+    result.empty_construct = result.empty_construct + 1
+  elseif #fieldlist[1] > 0 and #fieldlist[2] == 0 then
+    result.only_static = result.only_static + 1
+  elseif #fieldlist[1] == 0 and #fieldlist[2] > 0 then
+    for k,v in ipairs(fieldlist[2]) do
+      if v[1].tag == "ExpFunctionCall" or v[1].tag == "ExpMethodCall" then
+        only_static = false
+      else
+        only_dynamic = false
+      end
+    end
+    if only_static then
+      result.only_static = result.only_static + 1
+    elseif only_dynamic then
+      result.only_dynamic = result.only_dynamic + 1
+    else
+      result.static_and_dynamic = result.static_and_dynamic + 1
+    end
+  elseif #fieldlist[1] > 0 and #fieldlist[2] > 0 then
+    only_dynamic = false
+    for k,v in ipairs(fieldlist[2]) do
+      if v[1].tag == "ExpFunctionCall" or v[1].tag == "ExpMethodCall" then
+        only_static = false
+      end
+    end
+    if only_static then
+      result.only_static = result.only_static + 1
+    else
+      result.static_and_dynamic = result.static_and_dynamic + 1
+    end
+  end
+
   for k,v in ipairs(fieldlist[1]) do
     check_exp(v[1], func_name, func_id)
     -- statistics of the use of function declaration as table field
@@ -195,6 +236,7 @@ check_exp = function (exp, func_name, func_id)
     end
     check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
+    new_table_const()
     check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
     check_exp(exp[1], func_name, func_id)
@@ -458,6 +500,11 @@ local function init_result ()
   result.use_getmetatable = 0
   result.number_of_methods = 0
   result.table_field = 0
+  result.number_of_constructs = 0
+  result.empty_construct = 0
+  result.only_static = 0
+  result.only_dynamic = 0
+  result.static_and_dynamic = 0
 end
 
 local function print_result ()
@@ -472,12 +519,22 @@ local function print_result ()
   print("use_getmetatable", result.use_getmetatable)
   print("number_of_methods", result.number_of_methods)
   print("table_field", result.table_field)
+  print("number_of_constructs", result.number_of_constructs)
+  print("empty_construct", result.empty_construct)
+  print("only_static", result.only_static)
+  print("only_dynamic", result.only_dynamic)
+  print("static_and_dynamic", result.static_and_dynamic)
 end
 
 local function count_recon ()
   local sum = result.anonymousf + result.globalf + result.localf
   if result.number_of_functions ~= sum then
     error("number of functions does not match")
+  end
+  sum = result.empty_construct + result.only_static +
+        result.only_dynamic + result.static_and_dynamic
+  if result.number_of_constructs ~= sum then
+    error("number of table constructs does not match")
   end
 end
 

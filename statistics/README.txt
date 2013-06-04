@@ -10,3 +10,6 @@ How many functions use "return nil,'something else'" or
                        "return false,'something else'" ?
 
 How many functions use setmetatable and getmetatable ?
+
+How the table constructor is used (empty, only static keys, only dynamic keys,
+                                   both static and dynamic keys) ?
