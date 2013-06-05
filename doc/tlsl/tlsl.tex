@@ -1,0 +1,537 @@
+\documentclass[12pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+\title{Typing Lua Standard Libraries}
+
+\author{André Murbach Maidl}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Notation}
+
+\begin{itemize}
+\item I am using ? to mark the parameters that I am still not
+sure about their types.
+\item I am using Any to denote the \textit{dynamic} type
+(also known as the unknown type).
+\item I am using the notation [A] to denote the type Table.
+\item I am using the operators * and + to denote the repetition
+of a certain type. The * means zero or more repetitions while +
+means one or more repetitions.
+\item Usually, Lua functions accept extra parameters which are
+simply discarded.
+I am using a star ($\star$) to mark the functions that do not
+follow this behavior.
+That is, the functions that do not accept extra parameters.
+\end{itemize}
+
+\newpage
+
+\textbf{TODO}
+
+\begin{enumerate}
+\item Still need to type: \textbf{basic}, \textbf{coroutine},
+\textbf{io}, \textbf{os}, and \textbf{debug}.
+\item What is the return type of \textbf{require}?
+\item Confirm the types of \textbf{table} functions.
+\item How should I deal with the automatic coercion between
+strings and numbers?
+That is, for all functions of the Lua standard libraries,
+when an input parameter is of type String, actually, this
+parameter is (String $\cup$ Number).
+The same conversion happens when an input parameter is of type
+Number.
+However, Lua throws a type error when the conversion is not
+possible.
+\item How to denote the type of VarArg (...)?
+\item How to denote the dynamic types Function, Thread, and UserData?
+\item Should I include in this documentation functions like
+file:f() from the \textbf{io} library?
+\item It looks like the \textbf{debug} functions are the only ones
+that perform the type checking from the last argument to the first
+one.
+Is there any reason for that?
+\end{enumerate}
+
+\newpage
+
+\section{Basic}
+
+\subsection{assert (v [, message])}
+
+\subsection{collectgarbage ([opt [, arg]])}
+
+\subsection{dofile ([filename])}
+
+\subsection{error (message [, level])}
+
+\subsection{getmetatable (object)}
+
+\subsection{ipairs (t)}
+
+\subsection{load (ld [, source [, mode [, env]]])}
+
+\subsection{loadfile ([filename [, mode [, env]]])}
+
+\subsection{next (table [, index])}
+
+\subsection{pairs (t)}
+
+\subsection{pcall (f [, arg1, ···])}
+
+\subsection{print (···)}
+
+\subsection{rawequal (v1, v2)}
+
+\subsection{rawget (table, index)}
+
+\subsection{rawlen (v)}
+
+\subsection{rawset (table, index, value)}
+
+\subsection{select (index, ···)}
+
+\subsection{setmetatable (table, metatable)}
+
+\subsection{tonumber (e [, base])}
+
+\subsection{tostring (v)}
+
+\subsection{type (v)}
+
+\subsection{xpcall (f, msgh [, arg1, ···])}
+
+\newpage
+
+\section{Coroutine}
+
+\subsection{coroutine.create (f)}
+
+\subsection{coroutine.resume (co [, val1, ···])}
+
+\subsection{coroutine.running ()}
+
+\subsection{coroutine.status (co)}
+
+\subsection{coroutine.wrap (f)}
+
+\subsection{coroutine.yield (···)}
+
+\newpage
+
+\section{Modules}
+
+\subsection{require (modname)}
+
+String $\rightarrow$ ?
+
+The function \textbf{require} returns exactly the same value that is
+returned by loading \textbf{modname}.
+However, if the returned value is \textbf{nil}, this value is
+converted to \textbf{true}.
+The parameter \textbf{modname} can be a number, provided that exists
+a Lua file with this name.
+
+\newpage
+
+\section{String}
+
+\subsection{string.byte (s [, i [, j]])}
+
+String $\times$
+(Number $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+Number$^+$
+
+\subsection{string.char (···)}
+
+Number$^*$ $\rightarrow$ String
+
+\subsection{string.dump (function)}
+
+Function $\rightarrow$ String
+
+\subsection{string.find (s, pattern [, init [, plain]])}
+
+String $\times$ String $\times$
+(Number $\cup$ Nil) $\times$
+(Boolean $\cup$ Nil) $\rightarrow$
+(Number $\times$ Number) $\cup$ Nil
+
+\subsection{string.format (formatstring, ···)}
+
+String $\times$ Any$^*$ $\rightarrow$ String
+
+\subsection{string.gmatch (s, pattern)}
+
+String $\times$ String $\rightarrow$ Function
+
+\subsection{string.gsub (s, pattern, repl [, n])}
+
+String $\times$
+String $\times$
+(String $\cup$ [A] $\cup$ Function) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+(String $\times$ Number)
+
+\subsection{string.len (s)}
+
+String $\rightarrow$ Number
+
+\subsection{string.lower (s)}
+
+String $\rightarrow$ String
+
+\subsection{string.match (s, pattern [, init])}
+
+String $\times$
+String $\times$
+(Number $\cup$ Nil) $\rightarrow$
+String$^+$ $\cup$ Nil
+
+\subsection{string.rep (s, n [, sep])}
+
+String $\times$
+Number $\times$
+(String $\cup$ Nil) $\rightarrow$
+String
+
+\subsection{string.reverse (s)}
+
+String $\rightarrow$ String
+
+\subsection{string.sub (s, i [, j])}
+
+String $\times$
+Number $\times$
+(Number $\cup$ Nil) $\rightarrow$
+String
+
+\subsection{string.upper (s)}
+
+String $\rightarrow$ String
+
+\newpage
+
+\section{Table}
+
+\subsection{table.concat (list [, sep [, i [, j]]])}
+
+[A] $\times$
+(String $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+String
+
+The table should be a list containing only strings and numbers.
+So, should I use [String $\cup$ Number] instead of [A]?
+
+\subsection{table.insert (list, [pos,] value)$^\star$}
+
+[A] $\times$ ((Number $\times$ A) $\cup$ A) $\rightarrow$ Void
+
+This function does not accept/discard extra parameters.
+Perhaps due to the fact that the parameter \textbf{pos} is optional.
+If \textbf{value} is Void, the function inserts \textbf{pos} in the
+\textbf{list}, that is, the type is [A] $\times$ A.
+If \textbf{value} is Nil, the function does not insert \textbf{pos}
+in the \textbf{list}, that is, the type is
+[A] $\times$ Number $\times$ A, but the element is not inserted in
+the list because A is actually Nil.
+
+\subsection{table.pack (···)}
+
+Any$^*$ $\rightarrow$ [A]
+
+Even though \textbf{table.pack} gets any number of parameters of
+any type, the Nil type generates a hole in the returned table.
+
+\subsection{table.remove (list [, pos])}
+
+[A] $\times$ (Number $\cup$ Nil) $\rightarrow$ (A $\cup$ Nil)
+
+The return type depends on the type of the element that is removed
+from the list.
+
+\subsection{table.sort (list [, comp])}
+
+[A] $\times$ (Function $\cup$ Nil) $\rightarrow$ Void
+
+\subsection{table.unpack (list [, i [, j]])}
+
+[A] $\times$
+(Number $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+(A $\cup$ Nil)$^*$
+
+The return type depends on the type of the elements that are stored in
+the list.
+
+\newpage
+
+\section{Mathematical}
+
+\subsection{math.abs (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.acos (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.asin (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.atan (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.atan2 (y, x)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{math.ceil (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.cos (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.cosh (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.deg (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.exp (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.floor (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.fmod (x, y)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{math.frexp (x)}
+
+Number $\rightarrow$ (Number $\times$ Number)
+
+\subsection{math.ldexp (m, e)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{math.log (x [, base])}
+
+Number $\times$
+(Number $\cup$ Nil) $\rightarrow$
+Number
+
+\subsection{math.max (x, ···)}
+
+Number$^+$ $\rightarrow$ Number
+
+\subsection{math.min (x, ···)}
+
+Number$^+$ $\rightarrow$ Number
+
+\subsection{math.modf (x)}
+
+Number $\rightarrow$ (Number $\times$ Number)
+
+\subsection{math.pow (x, y)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{math.rad (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.random ([m [, n]])$^\star$}
+
+Number $\cup$ (Number $\times$ Number) $\cup$ Void $\rightarrow$
+Number
+
+This function does not accept Nil as its only parameter,
+although the parameter passing is optional.
+This function does not accept/discard extra parameters.
+
+\subsection{math.randomseed (x)}
+
+Number $\rightarrow$ Void
+
+\subsection{math.sin (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.sinh (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.sqrt (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.tan (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{math.tanh (x)}
+
+Number $\rightarrow$ Number
+
+\newpage
+
+\section{Bitwise}
+
+\subsection{bit32.arshift (x, disp)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{bit32.band (···)}
+
+Number$^*$ $\rightarrow$ Number
+
+\subsection{bit32.bnot (x)}
+
+Number $\rightarrow$ Number
+
+\subsection{bit32.bor (···)}
+
+Number$^*$ $\rightarrow$ Number
+
+\subsection{bit32.btest (···)}
+
+Number$^*$ $\rightarrow$ Boolean
+
+\subsection{bit32.bxor (···)}
+
+Number$^*$ $\rightarrow$ Number
+
+\subsection{bit32.extract (n, field [, width])}
+
+Number $\times$ Number $\times$
+(Number $\cup$ Nil) $\rightarrow$
+Number
+
+\subsection{bit32.replace (n, v, field [, width])}
+
+Number $\times$ Number $\times$ Number $\times$
+(Number $\cup$ Nil) $\rightarrow$
+Number
+
+\subsection{bit32.lrotate (x, disp)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{bit32.lshift (x, disp)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{bit32.rrotate (x, disp)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\subsection{bit32.rshift (x, disp)}
+
+Number $\times$ Number $\rightarrow$ Number
+
+\newpage
+
+\section{I/O}
+
+\subsection{io.close ([file])}
+
+\subsection{io.flush ()}
+
+\subsection{io.input ([file])}
+
+\subsection{io.lines ([filename ···])}
+
+\subsection{io.open (filename [, mode])}
+
+\subsection{io.output ([file])}
+
+\subsection{io.popen (prog [, mode])}
+
+\subsection{io.read (···)}
+
+\subsection{io.tmpfile ()}
+
+\subsection{io.type (obj)}
+
+\subsection{io.write (···)}
+
+\newpage
+
+\section{O.S.}
+
+\subsection{os.clock ()}
+
+\subsection{os.date ([format [, time]])}
+
+\subsection{os.difftime (t2, t1)}
+
+\subsection{os.execute ([command])}
+
+\subsection{os.exit ([code [, close]])}
+
+\subsection{os.getenv (varname)}
+
+\subsection{os.remove (filename)}
+
+\subsection{os.rename (oldname, newname)}
+
+\subsection{os.setlocale (locale [, category])}
+
+\subsection{os.time ([table])}
+
+\subsection{os.tmpname ()}
+
+\newpage
+
+\section{Debug}
+
+\subsection{debug.debug ()}
+
+\subsection{debug.gethook ([thread])}
+
+\subsection{debug.getinfo ([thread,] f [, what])}
+
+\subsection{debug.getlocal ([thread,] f, local)}
+
+\subsection{debug.getmetatable (value)}
+
+\subsection{debug.getregistry ()}
+
+\subsection{debug.getupvalue (f, up)}
+
+\subsection{debug.getuservalue (u)}
+
+\subsection{debug.sethook ([thread,] hook, mask [, count])}
+
+\subsection{debug.setlocal ([thread,] level, local, value)}
+
+\subsection{debug.setmetatable (value, table)}
+
+\subsection{debug.setupvalue (f, up, value)}
+
+\subsection{debug.setuservalue (udata, value)}
+
+\subsection{debug.traceback ([thread,] [message [, level]])}
+
+\subsection{debug.upvalueid (f, n)}
+
+\subsection{debug.upvaluejoin (f1, n1, f2, n2)}
+
+\end{document}
