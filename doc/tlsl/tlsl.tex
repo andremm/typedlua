@@ -35,9 +35,11 @@ That is, the functions that do not accept extra parameters.
 
 \begin{enumerate}
 \item Still need to type: \textbf{basic}, \textbf{coroutine},
-\textbf{io}, \textbf{os}, and \textbf{debug}.
+and \textbf{debug}.
 \item What is the return type of \textbf{require}?
 \item Confirm the types of \textbf{table} functions.
+\item Should I use Void when the function can be called without any
+parameters? Does (Type $\cup$ Nil) have the equivalent meaning?
 \item How should I deal with the automatic coercion between
 strings and numbers?
 That is, for all functions of the Lua standard libraries,
@@ -51,6 +53,8 @@ possible.
 \item How to denote the dynamic types Function, Thread, and UserData?
 \item Should I include in this documentation functions like
 file:f() from the \textbf{io} library?
+For instance, \textbf{io.close(nil)} is not ok, but
+\textbf{file:close(nil)} is ok.
 \item It looks like the \textbf{debug} functions are the only ones
 that perform the type checking from the last argument to the first
 one.
@@ -452,25 +456,63 @@ Number $\times$ Number $\rightarrow$ Number
 
 \subsection{io.close ([file])}
 
+(UserData $\cup$ Void) $\rightarrow$
+(Boolean $\cup$ ((Nil $\cup$ Boolean) $\times$ String $\times$ (Nil $\cup$ Number)))
+
+Returns (Nil $\cup$ Boolean) $\times$ String $\times$ Number when
+the file handled is created with \textbf{io.popen}.
+
 \subsection{io.flush ()}
+
+Void $\rightarrow$ Boolean
 
 \subsection{io.input ([file])}
 
+(String $\cup$ UserData $\cup$ Nil $\cup$ Void) $\rightarrow$
+UserData
+
 \subsection{io.lines ([filename ···])}
+
+(String $\cup$ Nil $\cup$ Void) $\rightarrow$ Function
 
 \subsection{io.open (filename [, mode])}
 
+String $\times$ (String $\cup$ Nil) $\rightarrow$
+UserData $\cup$ (Nil $\times$ String $\times$ Number)
+
 \subsection{io.output ([file])}
+
+(String $\cup$ UserData $\cup$ Nil $\cup$ Void) $\rightarrow$
+UserData
 
 \subsection{io.popen (prog [, mode])}
 
+String $\times$ (String $\cup$ Nil) $\rightarrow$
+UserData $\cup$ (Nil $\times$ String $\times$ Number)
+
 \subsection{io.read (···)}
+
+(String $\cup$ Number)* $\rightarrow$
+Nil $\cup$ (String $\cup$ Number $\cup$ Nil)* 
+
+This function has a weird behavior: you can run 
+\textbf{io.read(1,``2'',``3'')}, but you cannot run 
+\textbf{io.read(``1'',``2'',``3'')}.
+That is, the first parameter must be a string when it is given.
 
 \subsection{io.tmpfile ()}
 
+Void $\rightarrow$ UserData
+
 \subsection{io.type (obj)}
 
+Any $\rightarrow$
+(Nil $\cup$ String)
+
 \subsection{io.write (···)}
+
+(String $\cup$ Number)* $\rightarrow$
+(UserData $\cup$ (Nil $\times$ String $\times$ Number))
 
 \newpage
 
@@ -478,25 +520,73 @@ Number $\times$ Number $\rightarrow$ Number
 
 \subsection{os.clock ()}
 
+Void $\rightarrow$ Number
+
 \subsection{os.date ([format [, time]])}
+
+(String $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+(String $\cup$ [A])
+
+Returns a table when \textbf{format} equals ``\textbf{*t}''.
 
 \subsection{os.difftime (t2, t1)}
 
+Number $\times$ (Number $\cup$ Nil) $\rightarrow$
+Number
+
+Returns \textbf{t2} when \textbf{t1} is not given.
+
 \subsection{os.execute ([command])}
+
+(String $\cup$ Nil $\cup$ Void) $\rightarrow$
+(Boolean $\cup$ ((Boolean $\cup$ Nil) $\times$ String $\times$ Number))
+
+Returns just a Boolean when \textbf{command} is Nil or Void.
+This Boolean means whether there is a shell available.
+Returns Boolean $\times$ String $\times$ Number when \textbf{command}
+terminated successfully.
+Returns Nil $\times$ String $\times$ Number when \textbf{command}
+did not terminate sucessfully.
 
 \subsection{os.exit ([code [, close]])}
 
+Void $\cup$
+((Number $\cup$ Boolean $\cup$ Nil) $\times$
+(Number $\cup$ Boolean $\cup$ Nil)) $\rightarrow$
+Number
+
+Returns a Number to the shell.
+It looks like \textbf{close} accepts any type.
+
 \subsection{os.getenv (varname)}
+
+String $\rightarrow$ (String $\cup$ Nil)
 
 \subsection{os.remove (filename)}
 
+String $\rightarrow$
+(Boolean $\cup$ (Nil $\times$ String $\times$ Number))
+
 \subsection{os.rename (oldname, newname)}
+
+String $\times$ String $\rightarrow$
+(Boolean $\cup$ (Nil $\times$ String $\times$ Number))
 
 \subsection{os.setlocale (locale [, category])}
 
+Void $\cup$
+((String $\cup$ Nil) $\times$
+(String $\cup$ Nil)) $\rightarrow$
+(String $\cup$ Nil)
+
 \subsection{os.time ([table])}
 
+Void $\cup$ [A] $\cup$ Nil $\rightarrow$ Number
+
 \subsection{os.tmpname ()}
+
+Void $\rightarrow$ String
 
 \newpage
 
