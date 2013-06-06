@@ -34,8 +34,7 @@ That is, the functions that do not accept extra parameters.
 \textbf{TODO}
 
 \begin{enumerate}
-\item Still need to type: \textbf{basic}, \textbf{coroutine},
-and \textbf{debug}.
+\item Still need to type: \textbf{debug}.
 \item Does Any include Nil or Void?
 \item What is the return type of \textbf{require}?
 \item Confirm the types of \textbf{table} functions.
@@ -214,15 +213,27 @@ Any $\times$ Any+ $\rightarrow$
 
 \subsection{coroutine.create (f)}
 
+Function $\rightarrow$ Thread
+
 \subsection{coroutine.resume (co [, val1, ···])}
+
+Thread $\times$ Any* $\rightarrow$ (Boolean $\times$ Any*)
 
 \subsection{coroutine.running ()}
 
+Void $\rightarrow$ (Thread $\times$ Boolean)
+
 \subsection{coroutine.status (co)}
+
+Thread $\rightarrow$ String
 
 \subsection{coroutine.wrap (f)}
 
+Functin $\rightarrow$ Function 
+
 \subsection{coroutine.yield (···)}
+
+Any* $\rightarrow$ Void
 
 \newpage
 
