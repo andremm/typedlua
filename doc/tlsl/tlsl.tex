@@ -36,6 +36,7 @@ That is, the functions that do not accept extra parameters.
 \begin{enumerate}
 \item Still need to type: \textbf{basic}, \textbf{coroutine},
 and \textbf{debug}.
+\item Does Any include Nil or Void?
 \item What is the return type of \textbf{require}?
 \item Confirm the types of \textbf{table} functions.
 \item Should I use Void when the function can be called without any
@@ -67,47 +68,145 @@ Is there any reason for that?
 
 \subsection{assert (v [, message])}
 
+((Boolean $\cup$ Nil) $\times$ (String $\cup$ Nil)) $\cup$
+(Any $\times$ Any*) $\rightarrow$
+Void $\cup$ Any+
+
+When \textbf{v} is \textbf{nil} or \textbf{false}, \textbf{assert}
+shows de error \textbf{message}.
+Otherwise, \textbf{assert} returns \textbf{v} and all the extra
+parameters.
+The typing of this function should be refined.
+
 \subsection{collectgarbage ([opt [, arg]])}
+
+(String $\cup$ Nil) $\times$
+(Number $\cup$ Nil) $\rightarrow$
+Number $\cup$ (Number $\times$ Number) $\cup$ Boolean
+
+The return type depends on the type of \textbf{opt}:
+\begin{itemize}
+\item Nil $\rightarrow$ Number
+\item \textbf{collect} $\rightarrow$ Number
+\item \textbf{stop} $\rightarrow$ Number
+\item \textbf{restart} $\rightarrow$ Number
+\item \textbf{count} $\rightarrow$ (Number $\times$ Number)
+\item \textbf{step} $\rightarrow$ Boolean
+\item \textbf{setpause} $\rightarrow$ Number
+\item \textbf{setstepmul} $\rightarrow$ Number
+\item \textbf{isrunning} $\rightarrow$ Boolean
+\item \textbf{generational} $\rightarrow$ Number
+\item \textbf{incremental} $\rightarrow$ Number
+\end{itemize}
 
 \subsection{dofile ([filename])}
 
+(String $\cup$ Nil $\cup$ Void) $\rightarrow$ Any*
+
 \subsection{error (message [, level])}
+
+Void $\cup$
+((Number $\cup$ Boolean $\cup$ Nil) $\times$
+(Number $\cup$ Boolean $\cup$ Nil)) $\rightarrow$
+Void
 
 \subsection{getmetatable (object)}
 
+Any $\rightarrow$ Nil $\cup$ [A]
+
 \subsection{ipairs (t)}
+
+[A] $\rightarrow$ (Function $\times$ [A] $\times$ Number)
+
+What happens when \textbf{t} has a metamethod \textbf{\_\_ipairs}?
 
 \subsection{load (ld [, source [, mode [, env]]])}
 
+(Function $\cup$ String) $\times$
+(String $\cup$ Nil) $\times$
+(String $\cup$ Nil) $\times$
+Any $\rightarrow$
+Function $\cup$ (Nil $\times$ String)
+
 \subsection{loadfile ([filename [, mode [, env]]])}
+
+Void $\cup$
+(String $\cup$ Nil) $\cup$
+(String $\cup$ Nil) $\cup$
+Any $\rightarrow$
+Function $\cup$ (Nil $\times$ String)
 
 \subsection{next (table [, index])}
 
+[A] $\times$ Any $\rightarrow$
+Nil $\cup$ (Any $\cup$ Any)
+
 \subsection{pairs (t)}
+
+[A] $\rightarrow$ (Function $\times$ [A] $\times$ Nil)
 
 \subsection{pcall (f [, arg1, ···])}
 
+Any+ $\rightarrow$
+(Boolean $\times$ Any*) $\cup$
+(Boolean $\times$ String)
+
 \subsection{print (···)}
+
+Any $\rightarrow$ Void
 
 \subsection{rawequal (v1, v2)}
 
+Any $\times$ Any $\rightarrow$ Boolean
+
 \subsection{rawget (table, index)}
+
+[A] $\times$ Any $\rightarrow$ Any
 
 \subsection{rawlen (v)}
 
+([A] $\cup$ String) $\rightarrow$ Number
+
 \subsection{rawset (table, index, value)}
+
+[A] $\times$ Any $\times$ Any $\rightarrow$ [A]
+
+Even though \textbf{rawset} does not generate the regular type error
+message when \textbf{index} is Nil, it generates an error message in
+this case.
 
 \subsection{select (index, ···)}
 
+Number $\times$ Any* $\rightarrow$ Void $\cup$ Any*
+
+The result is Void when \textbf{index} does not exist in the list.
+When \textbf{index} is the string `\texttt{\#}', the typing is:
+
+String $\times$ Any* $\rightarrow$ Number
+
 \subsection{setmetatable (table, metatable)}
+
+[A] $\times$ (Nil $\cup$ [A])
+
+Even though \textbf{metatable} can be Nil, it is not optional.
 
 \subsection{tonumber (e [, base])}
 
+String $\times$ (Number $\times$ Nil) $\rightarrow$ Number
+
 \subsection{tostring (v)}
+
+Any $\rightarrow$ String
 
 \subsection{type (v)}
 
+Any $\rightarrow$ String
+
 \subsection{xpcall (f, msgh [, arg1, ···])}
+
+Any $\times$ Any+ $\rightarrow$
+(Boolean $\times$ Any*) $\cup$
+(Boolean $\times$ String)
 
 \newpage
 
@@ -554,9 +653,8 @@ did not terminate sucessfully.
 Void $\cup$
 ((Number $\cup$ Boolean $\cup$ Nil) $\times$
 (Number $\cup$ Boolean $\cup$ Nil)) $\rightarrow$
-Number
+Void
 
-Returns a Number to the shell.
 It looks like \textbf{close} accepts any type.
 
 \subsection{os.getenv (varname)}
