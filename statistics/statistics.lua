@@ -1,4 +1,6 @@
 
+local M = {}
+
 local parser = require "parser"
 local pp = require "pp"
 
@@ -8,19 +10,7 @@ local globalf = 0
 local localf = 0
 local result = {}
 
-local count_block, count_stm
-local count_exp, count_var
-local count_explist, count_varlist
-local count_fieldlist
-
-local check_block, check_stm
-local check_exp, check_var
-local check_explist, check_varlist
-local check_fieldlist
-local check_varindex_in_exp, check_varindex_in_explist
-local check_varindex_in_var, check_varindex_in_varlist
-
-local function new_func_def (func_type)
+function M.new_func_def (func_type)
   result.number_of_functions = result.number_of_functions + 1
   if func_type == "anonymous" then
     result.anonymousf = result.anonymousf + 1
@@ -35,17 +25,17 @@ local function new_func_def (func_type)
   result[n] = {}
 end
 
-count_fieldlist = function (fieldlist)
+function M.count_fieldlist (fieldlist)
   for k,v in ipairs(fieldlist[1]) do
-    count_exp(v[1])
+    M.count_exp(v[1])
   end
   for k,v in ipairs(fieldlist[2]) do
-    count_exp(v[1])
-    count_exp(v[2])
+    M.count_exp(v[1])
+    M.count_exp(v[2])
   end
 end
 
-check_fieldlist = function (fieldlist, func_name, func_id)
+function M.check_fieldlist (fieldlist, func_name, func_id)
   local id = func_id
   local only_static,only_dynamic = true,true
   -- statistics of the use of table constructs
@@ -83,7 +73,7 @@ check_fieldlist = function (fieldlist, func_name, func_id)
   end
 
   for k,v in ipairs(fieldlist[1]) do
-    check_exp(v[1], func_name, func_id)
+    M.check_exp(v[1], func_name, func_id)
     -- statistics of the use of function declaration as table field
     if v[1].tag == "ExpFunction" then
       id = id + 1
@@ -95,8 +85,8 @@ check_fieldlist = function (fieldlist, func_name, func_id)
   end
   for k,v in ipairs(fieldlist[2]) do
     -- statistics of the use of function declaration as table field
-    check_exp(v[1], func_name, func_id)
-    check_exp(v[2], func_name, func_id)
+    M.check_exp(v[1], func_name, func_id)
+    M.check_exp(v[2], func_name, func_id)
     if v[2].tag == "ExpFunction" then
       id = id + 1
       if not result[id].table_field then
@@ -107,49 +97,49 @@ check_fieldlist = function (fieldlist, func_name, func_id)
   end
 end
 
-count_explist = function (explist)
+function M.count_explist (explist)
   for k,v in ipairs(explist) do
-    count_exp(v)
+    M.count_exp(v)
   end
 end
 
-check_explist = function (explist, func_name, func_id)
+function M.check_explist (explist, func_name, func_id)
   for k,v in ipairs(explist) do
-    check_exp(v, func_name, func_id)
+    M.check_exp(v, func_name, func_id)
   end
 end
 
-count_varlist = function (varlist)
+function M.count_varlist (varlist)
   for k,v in ipairs(varlist) do
-    count_var(v)
+    M.count_var(v)
   end
 end
 
-check_varlist = function (varlist, func_name, func_id)
+function M.check_varlist (varlist, func_name, func_id)
   for k,v in ipairs(varlist) do
-    check_var(v, func_name, func_id)
+    M.check_var(v, func_name, func_id)
   end
 end
 
-count_var = function (var)
+function M.count_var (var)
   -- VarID ID
   if var.tag == "VarID" then
   -- VarIndex Exp Exp
   elseif var.tag == "VarIndex" then
-    count_exp(var[1])
-    count_exp(var[2])
+    M.count_exp(var[1])
+    M.count_exp(var[2])
   end
 end
 
-check_var = function (var, func_name, func_id)
+function M.check_var (var, func_name, func_id)
   if var.tag == "VarID" then -- VarID ID
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
-    check_exp(var[1], func_name, func_id)
-    check_exp(var[2], func_name, func_id)
+    M.check_exp(var[1], func_name, func_id)
+    M.check_exp(var[2], func_name, func_id)
   end
 end
 
-check_varindex_in_exp = function (exp, where)
+function M.check_varindex_in_exp (exp, where)
   if exp.tag == "ExpVar" and
      exp[1].tag == "VarIndex" then
     result.varindex = result.varindex + 1
@@ -161,13 +151,13 @@ check_varindex_in_exp = function (exp, where)
   end
 end
 
-check_varindex_in_explist = function (explist, where)
+function M.check_varindex_in_explist (explist, where)
   for k,v in ipairs(explist) do
-    check_varindex_in_exp(v, where)
+    M.check_varindex_in_exp(v, where)
   end
 end
 
-check_varindex_in_var = function (var, where)
+function M.check_varindex_in_var (var, where)
   if var.tag == "VarIndex" then
     result.varindex = result.varindex + 1
     if where == "call" then
@@ -178,13 +168,13 @@ check_varindex_in_var = function (var, where)
   end
 end
 
-check_varindex_in_varlist = function (varlist, where)
+function M.check_varindex_in_varlist (varlist, where)
   for k,v in ipairs(varlist) do
-    check_varindex_in_var(v, where)
+    M.check_varindex_in_var(v, where)
   end
 end
 
-count_exp = function (exp)
+function M.count_exp (exp)
   if exp.tag == "ExpNil" or
      exp.tag == "ExpFalse" or
      exp.tag == "ExpTrue" or
@@ -195,23 +185,23 @@ count_exp = function (exp)
   elseif exp.tag == "ExpStr" then
   -- ExpVar Var
   elseif exp.tag == "ExpVar" then
-    count_var(exp[1])
+    M.count_var(exp[1])
   -- ExpFunction ([ID],IsVarArg) Stm 
   elseif exp.tag == "ExpFunction" then
     number_of_functions = number_of_functions + 1
     anonymousf = anonymousf + 1
-    count_stm(exp[2])
+    M.count_stm(exp[2])
   -- ExpTableConstructor [Exp] {[Exp] [Exp]}
   elseif exp.tag == "ExpTableConstructor" then
-    count_fieldlist(exp[1])
+    M.count_fieldlist(exp[1])
   -- ExpMethodCall Exp ID [Exp]
   elseif exp.tag == "ExpMethodCall" then
-    count_exp(exp[1])
-    count_explist(exp[3])
+    M.count_exp(exp[1])
+    M.count_explist(exp[3])
   -- ExpFunctionCall Exp [Exp]
   elseif exp.tag == "ExpFunctionCall" then
-    count_exp(exp[1])
-    count_explist(exp[2])
+    M.count_exp(exp[1])
+    M.count_explist(exp[2])
   -- ExpBin Exp Exp
   elseif exp.tag == "ExpAnd" or
          exp.tag == "ExpOr" or
@@ -228,19 +218,19 @@ count_exp = function (exp)
          exp.tag == "ExpLE" or
          exp.tag == "ExpGT" or
          exp.tag == "ExpGE" then
-    count_exp(exp[1])
-    count_exp(exp[2])
+    M.count_exp(exp[1])
+    M.count_exp(exp[2])
   -- ExpUn Exp
   elseif exp.tag == "ExpNot" or
          exp.tag == "ExpMinus" or
          exp.tag == "ExpLen" then
-    count_exp(exp[1])
+    M.count_exp(exp[1])
   else
     error("expecting an expression, but got a " .. exp.tag)
   end
 end
 
-check_exp = function (exp, func_name, func_id)
+function M.check_exp (exp, func_name, func_id)
   if exp.tag == "ExpNil" or
      exp.tag == "ExpFalse" or
      exp.tag == "ExpTrue" or
@@ -248,9 +238,9 @@ check_exp = function (exp, func_name, func_id)
      exp.tag == "ExpNum" or -- ExpNum Double
      exp.tag == "ExpStr" then -- ExpStr String
   elseif exp.tag == "ExpVar" then -- ExpVar Var
-    check_var(exp[1], func_name, func_id)
+    M.check_var(exp[1], func_name, func_id)
   elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Stm
-    new_func_def("anonymous")
+    M.new_func_def("anonymous")
     local id = result.number_of_functions
     if #exp[1] > 0 then
       if exp[1][1] == "self" then
@@ -265,16 +255,16 @@ check_exp = function (exp, func_name, func_id)
         end
       end
     end
-    check_stm(exp[2], func_name, result.number_of_functions)
+    M.check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     result.number_of_constructs = result.number_of_constructs + 1
-    check_fieldlist(exp[1], func_name, func_id)
+    M.check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
     result.varindex = result.varindex + 1
     result.varindex_function_call = result.varindex_function_call + 1
-    check_varindex_in_explist(exp[3], "se")
-    check_exp(exp[1], func_name, func_id)
-    check_explist(exp[3], func_name, func_id)
+    M.check_varindex_in_explist(exp[3], "se")
+    M.check_exp(exp[1], func_name, func_id)
+    M.check_explist(exp[3], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     if func_id ~= 0 then
       if exp[1].tag == "ExpVar" and exp[1][1].tag == "VarID" then
@@ -300,10 +290,10 @@ check_exp = function (exp, func_name, func_id)
         end
       end
     end
-    check_varindex_in_exp(exp[1], "call")
-    check_varindex_in_explist(exp[2], "se")
-    check_exp(exp[1], func_name, func_id)
-    check_explist(exp[2], func_name, func_id)
+    M.check_varindex_in_exp(exp[1], "call")
+    M.check_varindex_in_explist(exp[2], "se")
+    M.check_exp(exp[1], func_name, func_id)
+    M.check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpAdd" or -- ExpAdd Exp Exp 
          exp.tag == "ExpSub" or -- ExpSub Exp Exp
          exp.tag == "ExpMul" or -- ExpMul Exp Exp
@@ -319,57 +309,57 @@ check_exp = function (exp, func_name, func_id)
          exp.tag == "ExpGE" or -- ExpGE Exp Exp
          exp.tag == "ExpAnd" or -- ExpGE Exp Exp
          exp.tag == "ExpOr" then -- ExpOr Exp Exp
-    check_varindex_in_exp(exp[1], "se")
-    check_varindex_in_exp(exp[2], "se")
-    check_exp(exp[1], func_name, func_id)
-    check_exp(exp[2], func_name, func_id)
+    M.check_varindex_in_exp(exp[1], "se")
+    M.check_varindex_in_exp(exp[2], "se")
+    M.check_exp(exp[1], func_name, func_id)
+    M.check_exp(exp[2], func_name, func_id)
   elseif exp.tag == "ExpNot" or -- ExpNot Exp
          exp.tag == "ExpMinus" or -- ExpMinus Exp
          exp.tag == "ExpLen" then -- ExpLen Exp
-    check_varindex_in_exp(exp[1], "se")
-    check_exp(exp[1], func_name, func_id)
+    M.check_varindex_in_exp(exp[1], "se")
+    M.check_exp(exp[1], func_name, func_id)
   else
     error("expecting an expression, but got a " .. exp.tag)
   end
 end
 
-count_stm = function (stm)
+function M.count_stm (stm)
   -- StmBlock [Stm]
   if stm.tag == "StmBlock" then
-    count_block(stm)
+    M.count_block(stm)
   -- StmIfElse Exp Stm Stm
   elseif stm.tag == "StmIfElse" then
-    count_exp(stm[1])
-    count_stm(stm[2])
-    count_stm(stm[3])
+    M.count_exp(stm[1])
+    M.count_stm(stm[2])
+    M.count_stm(stm[3])
   -- StmWhile Exp Stm
   elseif stm.tag == "StmWhile" then
-    count_exp(stm[1])
-    count_stm(stm[2])
+    M.count_exp(stm[1])
+    M.count_stm(stm[2])
   -- StmRepeat Stm Exp
   elseif stm.tag == "StmRepeat" then
-    count_stm(stm[1])
-    count_exp(stm[2])
+    M.count_stm(stm[1])
+    M.count_exp(stm[2])
   -- StmForNum ID Exp Exp Exp Stm
   elseif stm.tag == "StmForNum" then
-    count_exp(stm[2])
-    count_exp(stm[3])
-    count_exp(stm[4])
-    count_stm(stm[5])
+    M.count_exp(stm[2])
+    M.count_exp(stm[3])
+    M.count_exp(stm[4])
+    M.count_stm(stm[5])
   -- StmForGen [ID] [Exp] Stm
   elseif stm.tag == "StmForGen" then
-    count_explist(stm[2])
-    count_stm(stm[3])
+    M.count_explist(stm[2])
+    M.count_stm(stm[3])
   -- StmLocalFunction ID ([ID],IsVarArg) Stm
   elseif stm.tag == "StmLocalFunction" then
     number_of_functions = number_of_functions + 1
     localf = localf + 1
-    count_stm(stm[3])
+    M.count_stm(stm[3])
   -- StmFunction FuncName ([ID],IsVarArg) Stm
   elseif stm.tag == "StmFunction" then
     number_of_functions = number_of_functions + 1
     globalf = globalf + 1
-    count_stm(stm[3])
+    M.count_stm(stm[3])
   -- StmLabel ID
   elseif stm.tag == "StmLabel" then
   -- StmGoTo ID
@@ -378,51 +368,51 @@ count_stm = function (stm)
   elseif stm.tag == "StmBreak" then
   -- StmAssign [Var] [Exp]
   elseif stm.tag == "StmAssign" then
-    count_varlist(stm[1])
-    count_explist(stm[2])
+    M.count_varlist(stm[1])
+    M.count_explist(stm[2])
   -- StmLocalVar [ID] [Exp]
   elseif stm.tag == "StmLocalVar" then
-    count_explist(stm[2])
+    M.count_explist(stm[2])
   -- StmRet [Exp]
   elseif stm.tag == "StmRet" then
-    count_explist(stm[1])
+    M.count_explist(stm[1])
   -- StmCall Exp
   elseif stm.tag == "StmCall" then
-    count_exp(stm[1])
+    M.count_exp(stm[1])
   else
     error("expecting a statement, but got a " .. stm.tag)
   end
 end
 
-check_stm = function (stm, func_name, func_id)
+function M.check_stm (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
-    check_block(stm, func_name, func_id)
+    M.check_block(stm, func_name, func_id)
   elseif stm.tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
-    check_varindex_in_exp(stm[1], "se")
-    check_exp(stm[1], func_name, func_id)
-    check_stm(stm[2], func_name, func_id)
-    check_stm(stm[3], func_name, func_id)
+    M.check_varindex_in_exp(stm[1], "se")
+    M.check_exp(stm[1], func_name, func_id)
+    M.check_stm(stm[2], func_name, func_id)
+    M.check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmWhile" then -- StmWhile Exp Stm
-    check_varindex_in_exp(stm[1], "se")
-    check_exp(stm[1], func_name, func_id)
-    check_stm(stm[2], func_name, func_id)
+    M.check_varindex_in_exp(stm[1], "se")
+    M.check_exp(stm[1], func_name, func_id)
+    M.check_stm(stm[2], func_name, func_id)
   elseif stm.tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
-    check_varindex_in_exp(stm[2], "se")
-    check_varindex_in_exp(stm[3], "se")
-    check_varindex_in_exp(stm[4], "se")
-    check_exp(stm[2], func_name, func_id)
-    check_exp(stm[3], func_name, func_id)
-    check_exp(stm[4], func_name, func_id)
-    check_stm(stm[5], func_name, func_id)
+    M.check_varindex_in_exp(stm[2], "se")
+    M.check_varindex_in_exp(stm[3], "se")
+    M.check_varindex_in_exp(stm[4], "se")
+    M.check_exp(stm[2], func_name, func_id)
+    M.check_exp(stm[3], func_name, func_id)
+    M.check_exp(stm[4], func_name, func_id)
+    M.check_stm(stm[5], func_name, func_id)
   elseif stm.tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
-    check_varindex_in_explist(stm[2], "se")
-    check_explist(stm[2], func_name, func_id)
-    check_stm(stm[3], func_name, func_id)
+    M.check_varindex_in_explist(stm[2], "se")
+    M.check_explist(stm[2], func_name, func_id)
+    M.check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
-    check_stm(stm[1], func_name, func_id)
-    check_exp(stm[2], func_name, func_id)
+    M.check_stm(stm[1], func_name, func_id)
+    M.check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
-    new_func_def("global")
+    M.new_func_def("global")
     if stm[1].tag == "Method" then
       local id = result.number_of_functions
       -- statistics of the use of method definition
@@ -459,23 +449,23 @@ check_stm = function (stm, func_name, func_id)
         end
       end
     end
-    check_stm(stm[3], func_name, result.number_of_functions)
+    M.check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction ID ParList Stm
-    new_func_def("local")
-    check_stm(stm[3], func_name, result.number_of_functions)
+    M.new_func_def("local")
+    M.check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLabel" or -- StmLabel ID
          stm.tag == "StmGoTo" or -- StmGoTo ID
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
-    check_varindex_in_varlist(stm[1], "se")
-    check_varindex_in_explist(stm[2], "se")
-    check_varlist(stm[1], func_name, func_id)
-    check_explist(stm[2], func_name, func_id)
+    M.check_varindex_in_varlist(stm[1], "se")
+    M.check_varindex_in_explist(stm[2], "se")
+    M.check_varlist(stm[1], func_name, func_id)
+    M.check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
-    check_varindex_in_explist(stm[2], "se")
-    check_explist(stm[2], func_name, func_id)
+    M.check_varindex_in_explist(stm[2], "se")
+    M.check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
-    check_varindex_in_explist(stm[1], "se")
+    M.check_varindex_in_explist(stm[1], "se")
     -- statistics of the use of return
     if func_id ~= 0 then
       local explist_size = #stm[1]
@@ -495,30 +485,30 @@ check_stm = function (stm, func_name, func_id)
         end
       end
     end
-    check_explist(stm[1], func_name, func_id)
+    M.check_explist(stm[1], func_name, func_id)
   elseif stm.tag == "StmCall" then -- StmCall Exp
-    check_varindex_in_exp(stm[1], "call")
-    check_exp(stm[1], func_name, func_id)
+    M.check_varindex_in_exp(stm[1], "call")
+    M.check_exp(stm[1], func_name, func_id)
   else
     error("expecting a statement, but got a " .. stm.tag)
   end
 end
 
-count_block = function (block)
+function M.count_block (block)
   if block.tag ~= "StmBlock" then
     error("expecting a block, but got a " .. block.tag)
   end
   for k,v in ipairs(block) do
-    count_stm(v)
+    M.count_stm(v)
   end
 end
 
-check_block = function (block, func_name, func_id)
+function M.check_block (block, func_name, func_id)
   if block.tag ~= "StmBlock" then
     error("expecting a block, but got a " .. block.tag)
   end
   for k,v in ipairs(block) do
-    check_stm(v, func_name, func_id)
+    M.check_stm(v, func_name, func_id)
   end
 end
 
@@ -527,7 +517,7 @@ local function count (ast)
   anonymousf = 0
   globalf = 0
   localf = 0
-  count_block(ast)
+  M.count_block(ast)
   print("number_of_functions", number_of_functions)
   print("anonymous", anonymousf)
   print("global", globalf)
@@ -613,7 +603,7 @@ end
 
 local function check (ast)
   init_result()
-  check_block(ast, "main", 0)
+  M.check_block(ast, "main", 0)
   print_result()
   count_recon()
 end
