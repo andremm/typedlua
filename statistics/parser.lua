@@ -196,7 +196,7 @@ local G = { V"Lua",
               V"Constructor" +
               V"SuffixedExp";
   SuffixedExp = Cf(V"PrimaryExp" * (
-                  taggedCap("DotIndex", symb(".") * taggedCap("ExpVar", V"Var")) +
+                  taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name","Name"))) +
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
                   taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name","Name") * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
