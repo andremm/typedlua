@@ -582,6 +582,7 @@ local function print_result ()
   print("varindex", result.varindex)
   print("varindex_function_call", result.varindex_function_call)
   print("varindex_somewhere_else", result.varindex_somewhere_else)
+  print("ret", result.ret)
 end
 
 local function count_recon ()
@@ -616,6 +617,9 @@ end
 local function check (ast)
   init_result()
   check_block(ast, "main", 0)
+  if #ast > 0 and ast[#ast].tag == "StmRet" then
+    result.ret = #ast[#ast][1]
+  end
   print_result()
   count_recon()
 end
