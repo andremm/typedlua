@@ -43,11 +43,49 @@ local function luarocks_unpack (repo_dir, unpack_dir)
   end
 end
 
+local function grep_v_dirs (unpack_dir)
+  assert(type(unpack_dir) == "string")
+  local str = ""
+  local dirs = { "doc", "docs", "test", "tests" }
+  for k,v in ipairs(dirs) do
+    str = string.format("%s|grep -v '%s/[^/]*/[^/]*/%s/'", str, unpack_dir, v)
+  end
+  return str
+end
+
+local function get_moon_projects (unpack_dir)
+  assert(type(unpack_dir) == "string")
+  local FIND = "find %s -name '*.%s'"
+  local dotlua = {}
+  local moon_projects = {}
+  for i in io.popen(string.format(FIND, unpack_dir, "lua")):lines() do
+    dotlua[i] = true
+  end
+  for i in io.popen(string.format(FIND, unpack_dir, "moon")):lines() do
+    local luafile = string.gsub(i, ".moon", ".lua")
+    if dotlua[luafile] then
+      local p = string.gsub(luafile, unpack_dir .. '/[^/]*/([^/]*)/.*', '%1')
+      if not moon_projects[p] then moon_projects[p] = true end
+    end
+  end
+  return moon_projects
+end
+
+local function grep_v_moon_projects (unpack_dir)
+  assert(type(unpack_dir) == "string")
+  local str = ""
+  for k,v in pairs(get_moon_projects(unpack_dir)) do
+    str = string.format("%s|grep -v '/%s/'", str, k)
+  end
+  return str
+end
+
 local function build_luac_list (unpack_dir, luac_list)
   assert(type(unpack_dir) == "string")
   assert(type(luac_list) == "string")
   local file = assert(io.open(luac_list, "w"))
-  local FIND = string.format("find %s -name '*.lua'", unpack_dir)
+  local FIND = string.format("find %s -name '*.lua' %s %s",
+    unpack_dir, grep_v_dirs(unpack_dir), grep_v_moon_projects(unpack_dir))
   for dotlua in io.popen(FIND):lines() do
     local ret = os.execute(string.format("luac '%s' >> %s 2>&1", dotlua, LOG))
     if ret then
