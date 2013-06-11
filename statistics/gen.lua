@@ -1,13 +1,33 @@
 
 local statistics = require "statistics"
 
-if #arg ~= 1 then
-  print("Usage: gen.lua <filename>")
+local function help ()
+  print("Usage: gen.lua <opt> <filename>")
+  print("--csv", "prints in csv style")
+  print("--help", "prints this message")
+  print("--log", "prints in the old style log")
+end
+
+if #arg ~= 2 then
+  help()
   os.exit(1)
 end
 
-filename = arg[1]
+local opt = arg[1]
+local filename = arg[2]
 
-statistics.generate(filename)
+if opt ~= "--csv" and opt ~= "--log" then
+  help()
+  os.exit(1)
+end
+
+local result = statistics.generate(filename)
+
+if opt == "--csv" then
+  statistics.print_header()
+  statistics.print_result(filename, result)
+elseif opt == "--log" then
+  statistics.log_result(filename, result)
+end
 
 os.exit(0)
