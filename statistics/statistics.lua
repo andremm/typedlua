@@ -19,8 +19,6 @@ local check_block, check_stm
 local check_exp, check_var
 local check_explist, check_varlist
 local check_fieldlist
-local check_varindex_in_exp, check_varindex_in_explist
-local check_varindex_in_var, check_varindex_in_varlist
 
 local function new_func_def (func_type)
   result.number_of_functions = result.number_of_functions + 1
@@ -42,10 +40,9 @@ local function new_func_def (func_type)
   result[n].static_and_dynamic = 0
   result[n].varindex = 0
   result[n].varindex_literal = 0
+  result[n].varindex_literal_fc = 0
   result[n].varindex_non_literal = 0
-  result[n].old_varindex = 0
-  result[n].varindex_function_call = 0
-  result[n].varindex_somewhere_else = 0
+  result[n].varindex_non_literal_fc = 0
   if func_type == "anonymous" then
     result[n].func_type = "A"
   elseif func_type == "global" then
@@ -159,59 +156,31 @@ count_var = function (var)
   end
 end
 
+local function is_literal (tag)
+  if tag == "ExpNil" or
+     tag == "ExpFalse" or
+     tag == "ExpTrue" or
+     tag == "ExpNum" or
+     tag == "ExpStr" or
+     tag == "ExpFunction" then
+    return true
+  end
+  return false
+end
+
 check_var = function (var, func_name, func_id)
   if var.tag == "VarID" then -- VarID ID
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
     local tag = var[2].tag
-    if tag == "ExpNil" or
-       tag == "ExpFalse" or
-       tag == "ExpTrue" or
-       tag == "ExpNum" or
-       tag == "ExpStr" or
-       tag == "ExpFunction" then
+   if is_literal(var[2].tag) then
       result[func_id].varindex_literal = result[func_id].varindex_literal + 1
     else
       result[func_id].varindex_non_literal = result[func_id].varindex_non_literal + 1
     end
     check_exp(var[1], func_name, func_id)
     check_exp(var[2], func_name, func_id)
-  end
-end
-
-check_varindex_in_exp = function (exp, where, func_id)
-  if exp.tag == "ExpVar" and
-     exp[1].tag == "VarIndex" then
-    result[func_id].old_varindex = result[func_id].old_varindex + 1
-    if where == "call" then
-      result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
-    else
-      result[func_id].varindex_somewhere_else = result[func_id].varindex_somewhere_else + 1
-    end
-  end
-end
-
-check_varindex_in_explist = function (explist, where, func_id)
-  for k,v in ipairs(explist) do
-    check_varindex_in_exp(v, where, func_id)
-  end
-end
-
-check_varindex_in_var = function (var, where, func_id)
-  if var.tag == "VarIndex" then
-    result[func_id].old_varindex = result[func_id].old_varindex + 1
-    if where == "call" then
-      result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
-    else
-      result[func_id].varindex_somewhere_else = result[func_id].varindex_somewhere_else + 1
-    end
-  end
-end
-
-check_varindex_in_varlist = function (varlist, where, func_id)
-  for k,v in ipairs(varlist) do
-    check_varindex_in_var(v, where, func_id)
   end
 end
 
@@ -293,9 +262,10 @@ check_exp = function (exp, func_name, func_id)
     result[func_id].number_of_constructs = result[func_id].number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
-    result[func_id].old_varindex = result[func_id].old_varindex + 1
-    result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
-    check_varindex_in_explist(exp[3], "se", func_id)
+    -- statistics of the use of table indexing
+    result[func_id].varindex = result[func_id].varindex + 1
+    result[func_id].varindex_literal = result[func_id].varindex_literal + 1
+    result[func_id].varindex_literal_fc = result[func_id].varindex_literal_fc + 1
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[3], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
@@ -317,8 +287,14 @@ check_exp = function (exp, func_name, func_id)
         result[func_id].use_getmetatable = 1
       end
     end
-    check_varindex_in_exp(exp[1], "call", func_id)
-    check_varindex_in_explist(exp[2], "se", func_id)
+    -- statistics of the use of table indexing
+    if exp[1].tag == "ExpVar" and exp[1][1].tag == "VarIndex" then
+      if is_literal(exp[1][1][2].tag) then
+        result[func_id].varindex_literal_fc = result[func_id].varindex_literal_fc + 1
+      else
+        result[func_id].varindex_non_literal_fc = result[func_id].varindex_non_literal_fc + 1
+      end
+    end
     check_exp(exp[1], func_name, func_id)
     check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpAdd" or -- ExpAdd Exp Exp 
@@ -336,14 +312,11 @@ check_exp = function (exp, func_name, func_id)
          exp.tag == "ExpGE" or -- ExpGE Exp Exp
          exp.tag == "ExpAnd" or -- ExpGE Exp Exp
          exp.tag == "ExpOr" then -- ExpOr Exp Exp
-    check_varindex_in_exp(exp[1], "se", func_id)
-    check_varindex_in_exp(exp[2], "se", func_id)
     check_exp(exp[1], func_name, func_id)
     check_exp(exp[2], func_name, func_id)
   elseif exp.tag == "ExpNot" or -- ExpNot Exp
          exp.tag == "ExpMinus" or -- ExpMinus Exp
          exp.tag == "ExpLen" then -- ExpLen Exp
-    check_varindex_in_exp(exp[1], "se", func_id)
     check_exp(exp[1], func_name, func_id)
   else
     error("expecting an expression, but got a " .. exp.tag)
@@ -415,24 +388,18 @@ check_stm = function (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
     check_block(stm, func_name, func_id)
   elseif stm.tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
-    check_varindex_in_exp(stm[1], "se", func_id)
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmWhile" then -- StmWhile Exp Stm
-    check_varindex_in_exp(stm[1], "se", func_id)
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
   elseif stm.tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
-    check_varindex_in_exp(stm[2], "se", func_id)
-    check_varindex_in_exp(stm[3], "se", func_id)
-    check_varindex_in_exp(stm[4], "se", func_id)
     check_exp(stm[2], func_name, func_id)
     check_exp(stm[3], func_name, func_id)
     check_exp(stm[4], func_name, func_id)
     check_stm(stm[5], func_name, func_id)
   elseif stm.tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
-    check_varindex_in_explist(stm[2], "se", func_id)
     check_explist(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
@@ -440,14 +407,13 @@ check_stm = function (stm, func_name, func_id)
     check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
     new_func_def("global")
+    local id = result.number_of_functions
     if stm[1].tag == "Method" then
-      local id = result.number_of_functions
       -- statistics of the use of method definition
       result[id].is_method = 1
       -- statistics of the use of function declaration as table field
       result[id].table_field = 1
     elseif stm[1].tag == "Function" then
-      local id = result.number_of_functions
       -- statistics of the use of method definition
       if #stm[2] > 0 then
         if stm[2][1] == "self" or stm[2][1] == "this" then
@@ -467,15 +433,11 @@ check_stm = function (stm, func_name, func_id)
          stm.tag == "StmGoTo" or -- StmGoTo ID
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
-    check_varindex_in_varlist(stm[1], "se", func_id)
-    check_varindex_in_explist(stm[2], "se", func_id)
     check_varlist(stm[1], func_name, func_id)
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
-    check_varindex_in_explist(stm[2], "se", func_id)
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
-    check_varindex_in_explist(stm[1], "se", func_id)
     -- statistics of the use of return
     local explist_size = #stm[1]
     if explist_size > 1 then
@@ -487,7 +449,6 @@ check_stm = function (stm, func_name, func_id)
     end
     check_explist(stm[1], func_name, func_id)
   elseif stm.tag == "StmCall" then -- StmCall Exp
-    check_varindex_in_exp(stm[1], "call", func_id)
     check_exp(stm[1], func_name, func_id)
   else
     error("expecting a statement, but got a " .. stm.tag)
@@ -553,10 +514,9 @@ local function count_recon ()
   result.static_and_dynamic = 0
   result.varindex = 0
   result.varindex_literal = 0
+  result.varindex_literal_fc = 0
   result.varindex_non_literal = 0
-  result.old_varindex = 0
-  result.varindex_function_call = 0
-  result.varindex_somewhere_else = 0
+  result.varindex_non_literal_fc = 0
   result.number_of_constructs = 0
   result.ret = result[0].ret
   for i=0,result.number_of_functions do
@@ -586,10 +546,9 @@ local function count_recon ()
     result.static_and_dynamic = result.static_and_dynamic + result[i].static_and_dynamic
     result.varindex = result.varindex + result[i].varindex
     result.varindex_literal = result.varindex_literal + result[i].varindex_literal
+    result.varindex_literal_fc = result.varindex_literal_fc + result[i].varindex_literal_fc
     result.varindex_non_literal = result.varindex_non_literal + result[i].varindex_non_literal
-    result.old_varindex = result.old_varindex + result[i].old_varindex
-    result.varindex_function_call = result.varindex_function_call + result[i].varindex_function_call
-    result.varindex_somewhere_else = result.varindex_somewhere_else + result[i].varindex_somewhere_else
+    result.varindex_non_literal_fc = result.varindex_non_literal_fc + result[i].varindex_non_literal_fc
   end
   local sum = result.anonymousf + result.globalf + result.localf
   if result.number_of_functions ~= sum then
@@ -653,7 +612,8 @@ function statistics.print_header ()
   io.write("number_of_constructs,")
   io.write("empty_construct,only_static,only_dynamic,static_and_dynamic,")
   io.write("varindex,")
-  io.write("varindex_literal,varindex_non_literal,")
+  io.write("varindex_literal,varindex_literal_fc,")
+  io.write("varindex_non_literal,varindex_non_literal_fc,")
   io.write("\n")
 end
 
@@ -689,7 +649,9 @@ function statistics.print_result (filename, result)
     io.write(string.format("%d,", result[i].static_and_dynamic))
     io.write(string.format("%d,", result[i].varindex))
     io.write(string.format("%d,", result[i].varindex_literal))
+    io.write(string.format("%d,", result[i].varindex_literal_fc))
     io.write(string.format("%d,", result[i].varindex_non_literal))
+    io.write(string.format("%d,", result[i].varindex_non_literal_fc))
     io.write("\n")
   end
 end
@@ -731,10 +693,9 @@ function statistics.log_result (filename, result)
   print("static_and_dynamic", result.static_and_dynamic)
   print("varindex", result.varindex)
   print("varindex_literal", result.varindex_literal)
+  print("varindex_literal_fc", result.varindex_literal_fc)
   print("varindex_non_literal", result.varindex_non_literal)
-  print("old_varindex", result.old_varindex)
-  print("varindex_function_call", result.varindex_function_call)
-  print("varindex_somewhere_else", result.varindex_somewhere_else)
+  print("varindex_non_literal_fc", result.varindex_non_literal_fc)
   print("ret", result.ret)
 end
 
