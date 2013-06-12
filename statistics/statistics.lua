@@ -41,6 +41,9 @@ local function new_func_def (func_type)
   result[n].only_dynamic = 0
   result[n].static_and_dynamic = 0
   result[n].varindex = 0
+  result[n].varindex_literal = 0
+  result[n].varindex_non_literal = 0
+  result[n].old_varindex = 0
   result[n].varindex_function_call = 0
   result[n].varindex_somewhere_else = 0
   if func_type == "anonymous" then
@@ -159,6 +162,19 @@ end
 check_var = function (var, func_name, func_id)
   if var.tag == "VarID" then -- VarID ID
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
+    -- statistics of the use of table indexing
+    result[func_id].varindex = result[func_id].varindex + 1
+    local tag = var[2].tag
+    if tag == "ExpNil" or
+       tag == "ExpFalse" or
+       tag == "ExpTrue" or
+       tag == "ExpNum" or
+       tag == "ExpStr" or
+       tag == "ExpFunction" then
+      result[func_id].varindex_literal = result[func_id].varindex_literal + 1
+    else
+      result[func_id].varindex_non_literal = result[func_id].varindex_non_literal + 1
+    end
     check_exp(var[1], func_name, func_id)
     check_exp(var[2], func_name, func_id)
   end
@@ -167,7 +183,7 @@ end
 check_varindex_in_exp = function (exp, where, func_id)
   if exp.tag == "ExpVar" and
      exp[1].tag == "VarIndex" then
-    result[func_id].varindex = result[func_id].varindex + 1
+    result[func_id].old_varindex = result[func_id].old_varindex + 1
     if where == "call" then
       result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
     else
@@ -184,7 +200,7 @@ end
 
 check_varindex_in_var = function (var, where, func_id)
   if var.tag == "VarIndex" then
-    result[func_id].varindex = result[func_id].varindex + 1
+    result[func_id].old_varindex = result[func_id].old_varindex + 1
     if where == "call" then
       result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
     else
@@ -277,7 +293,7 @@ check_exp = function (exp, func_name, func_id)
     result[func_id].number_of_constructs = result[func_id].number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
-    result[func_id].varindex = result[func_id].varindex + 1
+    result[func_id].old_varindex = result[func_id].old_varindex + 1
     result[func_id].varindex_function_call = result[func_id].varindex_function_call + 1
     check_varindex_in_explist(exp[3], "se", func_id)
     check_exp(exp[1], func_name, func_id)
@@ -535,10 +551,13 @@ local function count_recon ()
   result.only_static = 0
   result.only_dynamic = 0
   result.static_and_dynamic = 0
+  result.varindex = 0
+  result.varindex_literal = 0
+  result.varindex_non_literal = 0
+  result.old_varindex = 0
   result.varindex_function_call = 0
   result.varindex_somewhere_else = 0
   result.number_of_constructs = 0
-  result.varindex = 0
   result.ret = result[0].ret
   for i=0,result.number_of_functions do
     if result[i].func_type == "A" then
@@ -566,6 +585,9 @@ local function count_recon ()
     result.only_dynamic = result.only_dynamic + result[i].only_dynamic
     result.static_and_dynamic = result.static_and_dynamic + result[i].static_and_dynamic
     result.varindex = result.varindex + result[i].varindex
+    result.varindex_literal = result.varindex_literal + result[i].varindex_literal
+    result.varindex_non_literal = result.varindex_non_literal + result[i].varindex_non_literal
+    result.old_varindex = result.old_varindex + result[i].old_varindex
     result.varindex_function_call = result.varindex_function_call + result[i].varindex_function_call
     result.varindex_somewhere_else = result.varindex_somewhere_else + result[i].varindex_somewhere_else
   end
@@ -581,7 +603,7 @@ local function count_recon ()
   if result.number_of_constructs ~= sum then
     error("number of table constructs does not match")
   end
-  sum = result.varindex_function_call + result.varindex_somewhere_else
+  sum = result.varindex_literal + result.varindex_non_literal
   if result.varindex ~= sum then
     error("number of varindex usage does not match")
   end
@@ -630,6 +652,8 @@ function statistics.print_header ()
   io.write("use_setmetatable,use_getmetatable,")
   io.write("number_of_constructs,")
   io.write("empty_construct,only_static,only_dynamic,static_and_dynamic,")
+  io.write("varindex,")
+  io.write("varindex_literal,varindex_non_literal,")
   io.write("\n")
 end
 
@@ -663,6 +687,9 @@ function statistics.print_result (filename, result)
     io.write(string.format("%d,", result[i].only_static))
     io.write(string.format("%d,", result[i].only_dynamic))
     io.write(string.format("%d,", result[i].static_and_dynamic))
+    io.write(string.format("%d,", result[i].varindex))
+    io.write(string.format("%d,", result[i].varindex_literal))
+    io.write(string.format("%d,", result[i].varindex_non_literal))
     io.write("\n")
   end
 end
@@ -703,6 +730,9 @@ function statistics.log_result (filename, result)
   print("only_dynamic", result.only_dynamic)
   print("static_and_dynamic", result.static_and_dynamic)
   print("varindex", result.varindex)
+  print("varindex_literal", result.varindex_literal)
+  print("varindex_non_literal", result.varindex_non_literal)
+  print("old_varindex", result.old_varindex)
   print("varindex_function_call", result.varindex_function_call)
   print("varindex_somewhere_else", result.varindex_somewhere_else)
   print("ret", result.ret)
