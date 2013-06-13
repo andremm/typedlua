@@ -10,11 +10,6 @@ local globalf = 0
 local localf = 0
 local result = {}
 
-local count_block, count_stm
-local count_exp, count_var
-local count_explist, count_varlist
-local count_fieldlist
-
 local check_block, check_stm
 local check_exp, check_var
 local check_explist, check_varlist
@@ -53,16 +48,6 @@ local function new_func_def (func_type)
     result[n].func_type = "M"
   else
     error("func_type '" .. func_type .. "' not known")
-  end
-end
-
-count_fieldlist = function (fieldlist)
-  for k,v in ipairs(fieldlist[1]) do
-    count_exp(v[1])
-  end
-  for k,v in ipairs(fieldlist[2]) do
-    count_exp(v[1])
-    count_exp(v[2])
   end
 end
 
@@ -122,37 +107,15 @@ check_fieldlist = function (fieldlist, func_name, func_id)
   end
 end
 
-count_explist = function (explist)
-  for k,v in ipairs(explist) do
-    count_exp(v)
-  end
-end
-
 check_explist = function (explist, func_name, func_id)
   for k,v in ipairs(explist) do
     check_exp(v, func_name, func_id)
   end
 end
 
-count_varlist = function (varlist)
-  for k,v in ipairs(varlist) do
-    count_var(v)
-  end
-end
-
 check_varlist = function (varlist, func_name, func_id)
   for k,v in ipairs(varlist) do
     check_var(v, func_name, func_id)
-  end
-end
-
-count_var = function (var)
-  -- VarID ID
-  if var.tag == "VarID" then
-  -- VarIndex Exp Exp
-  elseif var.tag == "VarIndex" then
-    count_exp(var[1])
-    count_exp(var[2])
   end
 end
 
@@ -181,62 +144,6 @@ check_var = function (var, func_name, func_id)
     end
     check_exp(var[1], func_name, func_id)
     check_exp(var[2], func_name, func_id)
-  end
-end
-
-count_exp = function (exp)
-  if exp.tag == "ExpNil" or
-     exp.tag == "ExpFalse" or
-     exp.tag == "ExpTrue" or
-     exp.tag == "ExpDots" then
-  -- ExpNum Double
-  elseif exp.tag == "ExpNum" then
-  -- ExpStr String
-  elseif exp.tag == "ExpStr" then
-  -- ExpVar Var
-  elseif exp.tag == "ExpVar" then
-    count_var(exp[1])
-  -- ExpFunction ([ID],IsVarArg) Stm 
-  elseif exp.tag == "ExpFunction" then
-    number_of_functions = number_of_functions + 1
-    anonymousf = anonymousf + 1
-    count_stm(exp[2])
-  -- ExpTableConstructor [Exp] {[Exp] [Exp]}
-  elseif exp.tag == "ExpTableConstructor" then
-    count_fieldlist(exp[1])
-  -- ExpMethodCall Exp ID [Exp]
-  elseif exp.tag == "ExpMethodCall" then
-    count_exp(exp[1])
-    count_explist(exp[3])
-  -- ExpFunctionCall Exp [Exp]
-  elseif exp.tag == "ExpFunctionCall" then
-    count_exp(exp[1])
-    count_explist(exp[2])
-  -- ExpBin Exp Exp
-  elseif exp.tag == "ExpAnd" or
-         exp.tag == "ExpOr" or
-         exp.tag == "ExpAdd" or
-         exp.tag == "ExpSub" or
-         exp.tag == "ExpMul" or
-         exp.tag == "ExpDiv" or
-         exp.tag == "ExpMod" or
-         exp.tag == "ExpPow" or
-         exp.tag == "ExpConcat" or
-         exp.tag == "ExpNE" or
-         exp.tag == "ExpEQ" or
-         exp.tag == "ExpLT" or
-         exp.tag == "ExpLE" or
-         exp.tag == "ExpGT" or
-         exp.tag == "ExpGE" then
-    count_exp(exp[1])
-    count_exp(exp[2])
-  -- ExpUn Exp
-  elseif exp.tag == "ExpNot" or
-         exp.tag == "ExpMinus" or
-         exp.tag == "ExpLen" then
-    count_exp(exp[1])
-  else
-    error("expecting an expression, but got a " .. exp.tag)
   end
 end
 
@@ -323,67 +230,6 @@ check_exp = function (exp, func_name, func_id)
   end
 end
 
-count_stm = function (stm)
-  -- StmBlock [Stm]
-  if stm.tag == "StmBlock" then
-    count_block(stm)
-  -- StmIfElse Exp Stm Stm
-  elseif stm.tag == "StmIfElse" then
-    count_exp(stm[1])
-    count_stm(stm[2])
-    count_stm(stm[3])
-  -- StmWhile Exp Stm
-  elseif stm.tag == "StmWhile" then
-    count_exp(stm[1])
-    count_stm(stm[2])
-  -- StmRepeat Stm Exp
-  elseif stm.tag == "StmRepeat" then
-    count_stm(stm[1])
-    count_exp(stm[2])
-  -- StmForNum ID Exp Exp Exp Stm
-  elseif stm.tag == "StmForNum" then
-    count_exp(stm[2])
-    count_exp(stm[3])
-    count_exp(stm[4])
-    count_stm(stm[5])
-  -- StmForGen [ID] [Exp] Stm
-  elseif stm.tag == "StmForGen" then
-    count_explist(stm[2])
-    count_stm(stm[3])
-  -- StmLocalFunction ID ([ID],IsVarArg) Stm
-  elseif stm.tag == "StmLocalFunction" then
-    number_of_functions = number_of_functions + 1
-    localf = localf + 1
-    count_stm(stm[3])
-  -- StmFunction FuncName ([ID],IsVarArg) Stm
-  elseif stm.tag == "StmFunction" then
-    number_of_functions = number_of_functions + 1
-    globalf = globalf + 1
-    count_stm(stm[3])
-  -- StmLabel ID
-  elseif stm.tag == "StmLabel" then
-  -- StmGoTo ID
-  elseif stm.tag == "StmGoTo" then
-  -- StmBreak
-  elseif stm.tag == "StmBreak" then
-  -- StmAssign [Var] [Exp]
-  elseif stm.tag == "StmAssign" then
-    count_varlist(stm[1])
-    count_explist(stm[2])
-  -- StmLocalVar [ID] [Exp]
-  elseif stm.tag == "StmLocalVar" then
-    count_explist(stm[2])
-  -- StmRet [Exp]
-  elseif stm.tag == "StmRet" then
-    count_explist(stm[1])
-  -- StmCall Exp
-  elseif stm.tag == "StmCall" then
-    count_exp(stm[1])
-  else
-    error("expecting a statement, but got a " .. stm.tag)
-  end
-end
-
 check_stm = function (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
     check_block(stm, func_name, func_id)
@@ -455,15 +301,6 @@ check_stm = function (stm, func_name, func_id)
   end
 end
 
-count_block = function (block)
-  if block.tag ~= "StmBlock" then
-    error("expecting a block, but got a " .. block.tag)
-  end
-  for k,v in ipairs(block) do
-    count_stm(v)
-  end
-end
-
 check_block = function (block, func_name, func_id)
   if block.tag ~= "StmBlock" then
     error("expecting a block, but got a " .. block.tag)
@@ -473,28 +310,13 @@ check_block = function (block, func_name, func_id)
   end
 end
 
-local function count (ast)
-  number_of_functions = 0
-  anonymousf = 0
-  globalf = 0
-  localf = 0
-  count_block(ast)
-  print("number_of_functions", number_of_functions)
-  print("anonymous", anonymousf)
-  print("global", globalf)
-  print("local", localf)
-  if number_of_functions ~= anonymousf + globalf + localf then
-    error("number of functions does not match")
-  end
-end
-
 local function init_result ()
   result = {}
   result.number_of_functions = -1
   new_func_def("main")
 end
 
-local function count_recon ()
+local function result_recon ()
   result.anonymousf = 0
   result.globalf = 0
   result.localf = 0
@@ -587,7 +409,7 @@ local function check (ast)
   if #ast > 0 and ast[#ast].tag == "StmRet" then
     result[0].ret = #ast[#ast][1]
   end
-  count_recon()
+  result_recon()
 end
 
 function statistics.generate (filename)
