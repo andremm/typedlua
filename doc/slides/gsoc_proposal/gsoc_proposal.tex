@@ -1,0 +1,156 @@
+\documentclass{beamer}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usecolortheme{dove}
+
+\begin{document}
+
+\title{Typed Lua}
+\subtitle{Google Summer of Code Proposal}
+\author{André Murbach Maidl}
+\institute[PUC-Rio]{LabLua\\PUC-Rio}
+\date{}
+
+\frame{\titlepage}
+
+\section{Static Typing X Dynamic Typing}
+\begin{frame}
+\frametitle{Static Typing X Dynamic Typing}
+\begin{itemize}
+\item Static Typing
+\begin{itemize}
+\item Better documentation
+\item Error detection at compile time
+\item More efficient program execution
+\end{itemize}
+\item Dynamic Typing
+\begin{itemize}
+\item Faster adaptation to changing requirements
+\item Quicker development
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\subsection{Multiple languages to build large softwares}
+\begin{frame}
+\frametitle{Multiple languages to build large softwares}
+\begin{itemize}
+\item Prototype using a dynamically typed language
+\item Rewrite it in a statically typed language
+\end{itemize}
+\end{frame}
+
+\section{Gradual Typing}
+\begin{frame}
+\frametitle{Gradual Typing}
+\begin{itemize}
+\item The choice between static and dynamic typing in the same language
+\item Use type annotations where static typing is needed
+\item Avoid type annotations where dynamic typing is sufficient
+\item No rewriting after prototyping phase
+\item The programmer can gradually migrate to static typing
+\begin{itemize}
+\item Specially in module boundaries
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\subsection{Gradual Typing and Dynamically Typed Languages}
+\begin{frame}
+\frametitle{Gradual Typing and Dynamically Typed Languages}
+\begin{itemize}
+\item Dart and TypeScript
+\begin{itemize}
+\item New languages derived from JavaScript
+\item Both target JavaScript
+\item Both are designed with a gradual typing system
+\end{itemize}
+\item Typed Scheme, Typed Racket, and core.typed
+\begin{itemize}
+\item Gradual typing extensions to Scheme, Racket, and Clojure
+\end{itemize}
+\item Perl
+\item Python
+\item Ruby
+\end{itemize}
+\end{frame}
+
+\section{Typed Lua}
+\begin{frame}
+\frametitle{Typed Lua}
+\begin{itemize}
+\item A proposal to design a gradual type system for Lua
+\begin{itemize}
+\item Should be simple enough to preserve existent Lua idioms
+\end{itemize}
+\item Superset of Lua
+\begin{itemize}
+\item Type annotations
+\item Compile-time type checking
+\item Classes
+\item Interfaces
+\item Modules
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Typed Lua}
+\begin{itemize}
+\item Lua X OO programming and modules
+\begin{itemize}
+\item It is possible to write OO code in Lua
+\item It is possible to split Lua code into modules
+\item Does not set policies on how these features should behave
+\item Due to its use as an embedded and extension language
+\end{itemize}
+\item Typed Lua intended usa is as an application language
+\item So the policies for OO and modules should be part of the language
+\item The gradual type system should also enforce these policies
+\end{itemize}
+\end{frame}
+
+\subsection{Related Work}
+\begin{frame}
+\frametitle{Related Work}
+\begin{itemize}
+\item Some Lua projets implement parts of what is being proposed
+\item However, none of them implement type checking along with OO programming
+\item LuaInspect
+\begin{itemize}
+\item A tool that performs code analysis
+\item For instance, flagging undeclared identifiers
+\item It does not try to analyse OO code
+\item It does not perform type checking
+\end{itemize}
+\item MetaLua and MoonScript
+\begin{itemize}
+\item Both support some sort of OO programming
+\item However, both of them do not perform compile-time type checking
+\end{itemize}
+\item Tidal Lock
+\begin{itemize}
+\item A prototype of a gradual type system for Lua
+\item It is not typing the common OO idioms used by Lua programmers
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\subsection{Conclusions}
+\begin{frame}
+\frametitle{Conclusions}
+\begin{itemize}
+\item We expect to deliver a tool that helps Lua community
+\begin{itemize}
+\item Allowing better documentation through a gradual type system
+\item Enabling the definition of structured types using interfaces and classes
+\item Offering compile-time type checking with OO programming style
+\item Further integrate Typed Lua to text editors and IDEs
+\item Allowing autocompletion and flagging type errors
+\end{itemize}
+\item Typed Lua will compile to Lua preserving existent idioms
+\end{itemize}
+\end{frame}
+
+\end{document}
