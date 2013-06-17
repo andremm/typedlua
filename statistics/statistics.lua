@@ -521,4 +521,87 @@ function statistics.log_result (filename, result)
   print("ret", result.ret)
 end
 
+function statistics.init_merge ()
+  local merge = {}
+  merge.number_of_files = 0
+  merge.number_of_functions = 0
+  merge.anonymousf = 0
+  merge.globalf = 0
+  merge.localf = 0
+  merge.ret_nil_se = 0
+  merge.ret_false_se = 0
+  merge.use_type = 0
+  merge.type_id = 0
+  merge.type_other = 0
+  merge.use_setmetatable = 0
+  merge.use_getmetatable = 0
+  merge.number_of_methods = 0
+  merge.table_field = 0
+  merge.number_of_constructs = 0
+  merge.empty_construct = 0
+  merge.only_static = 0
+  merge.only_dynamic = 0
+  merge.static_and_dynamic = 0
+  merge.varindex = 0
+  merge.varindex_literal = 0
+  merge.varindex_literal_fc = 0
+  merge.varindex_non_literal = 0
+  merge.varindex_non_literal_fc = 0
+  merge.ret = 0
+  return merge
+end
+
+function statistics.merge (result, merge)
+  merge.number_of_files = merge.number_of_files + 1
+  merge.number_of_functions = merge.number_of_functions + result.number_of_functions
+  merge.anonymousf = merge.anonymousf + result.anonymousf
+  merge.globalf = merge.globalf + result.globalf
+  merge.localf = merge.localf + result.globalf
+  merge.ret_nil_se = merge.ret_nil_se + result.ret_nil_se
+  merge.ret_false_se = merge.ret_false_se + result.ret_false_se
+  merge.use_type = merge.use_type + result.use_type
+  merge.use_setmetatable = merge.use_setmetatable + result.use_setmetatable
+  merge.use_getmetatable = merge.use_getmetatable + result.use_getmetatable
+  merge.number_of_methods = merge.number_of_methods + result.number_of_methods
+  merge.table_field = merge.table_field + result.table_field
+  merge.number_of_constructs = merge.number_of_constructs + result.number_of_constructs
+  merge.empty_construct = merge.empty_construct + result.empty_construct
+  merge.only_static = merge.only_static + result.only_static
+  merge.only_dynamic = merge.only_dynamic + result.only_dynamic
+  merge.static_and_dynamic = merge.static_and_dynamic + result.static_and_dynamic
+  merge.varindex = merge.varindex + result.varindex
+  merge.varindex_literal = merge.varindex_literal + result.varindex_literal
+  merge.varindex_literal_fc = merge.varindex_literal_fc + result.varindex_literal_fc
+  merge.varindex_non_literal = merge.varindex_non_literal + result.varindex_non_literal
+  merge.varindex_non_literal_fc = merge.varindex_non_literal_fc + result.varindex_non_literal_fc
+  if result.ret then merge.ret = merge.ret + 1 end
+end
+
+function statistics.log_merge (merge)
+  print("MERGED RESULTS")
+  print("number_of_files", merge.number_of_files)
+  print("number_of_functions", merge.number_of_functions)
+  print("anonymous", merge.anonymousf)
+  print("global", merge.globalf)
+  print("local", merge.localf)
+  print("ret_nil_se", merge.ret_nil_se)
+  print("ret_false_se", merge.ret_false_se)
+  print("use_type", merge.use_type)
+  print("use_setmetatable", merge.use_setmetatable)
+  print("use_getmetatable", merge.use_getmetatable)
+  print("number_of_methods", merge.number_of_methods)
+  print("table_field", merge.table_field)
+  print("number_of_constructs", merge.number_of_constructs)
+  print("empty_construct", merge.empty_construct)
+  print("only_static", merge.only_static)
+  print("only_dynamic", merge.only_dynamic)
+  print("static_and_dynamic", merge.static_and_dynamic)
+  print("varindex", merge.varindex)
+  print("varindex_literal", merge.varindex_literal)
+  print("varindex_literal_fc", merge.varindex_literal_fc)
+  print("varindex_non_literal", merge.varindex_non_literal)
+  print("varindex_non_literal_fc", merge.varindex_non_literal_fc)
+  print("ret", merge.ret)
+end
+
 return statistics
