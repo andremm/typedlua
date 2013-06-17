@@ -66,13 +66,20 @@
 \item Both target JavaScript
 \item Both are designed with a gradual typing system
 \end{itemize}
-\item Typed Scheme, Typed Racket, and core.typed
+\item Typed Scheme, Typed Racket, core.typed, and StrongRuby
 \begin{itemize}
-\item Gradual typing extensions to Scheme, Racket, and Clojure
+\item Gradual typing extensions to Scheme, Racket, Clojure, and Ruby
 \end{itemize}
-\item Perl
+\item Perl 6
+\begin{itemize}
+\item Not compatible with Perl 5
+\end{itemize}
 \item Python
-\item Ruby
+\begin{itemize}
+\item gradual (package)
+\item Run-time type checking semantics of gradual typing
+\item Works only on Python 3
+\end{itemize}
 \end{itemize}
 \end{frame}
 
@@ -84,7 +91,7 @@
 \begin{itemize}
 \item Should be simple enough to preserve existent Lua idioms
 \end{itemize}
-\item Superset of Lua
+\item A superset of Lua
 \begin{itemize}
 \item Type annotations
 \item Compile-time type checking
@@ -105,7 +112,7 @@
 \item Does not set policies on how these features should behave
 \item Due to its use as an embedded and extension language
 \end{itemize}
-\item Typed Lua intended usa is as an application language
+\item Typed Lua intended use is as an application language
 \item So the policies for OO and modules should be part of the language
 \item The gradual type system should also enforce these policies
 \end{itemize}
@@ -115,13 +122,13 @@
 \begin{frame}
 \frametitle{Related Work}
 \begin{itemize}
-\item Some Lua projets implement parts of what is being proposed
+\item Some Lua projects implement parts of what is being proposed
 \item However, none of them implement type checking along with OO programming
 \item LuaInspect
 \begin{itemize}
 \item A tool that performs code analysis
 \item For instance, flagging undeclared identifiers
-\item It does not try to analyse OO code
+\item It does not try to analyze OO code
 \item It does not perform type checking
 \end{itemize}
 \item MetaLua and MoonScript
