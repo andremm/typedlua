@@ -556,7 +556,7 @@ function statistics.merge (result, merge)
   merge.number_of_functions = merge.number_of_functions + result.number_of_functions
   merge.anonymousf = merge.anonymousf + result.anonymousf
   merge.globalf = merge.globalf + result.globalf
-  merge.localf = merge.localf + result.globalf
+  merge.localf = merge.localf + result.localf
   merge.ret_nil_se = merge.ret_nil_se + result.ret_nil_se
   merge.ret_false_se = merge.ret_false_se + result.ret_false_se
   merge.use_type = merge.use_type + result.use_type
