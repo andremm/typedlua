@@ -15,8 +15,7 @@
 \section{Syntax}
 
 \begin{align*}
-T ::= \; & brand\\
-& integer\\
+T ::= \; & integer\\
 & string\\
 & true\\
 & false\\
@@ -25,20 +24,16 @@ T ::= \; & brand\\
 & String\\
 & Boolean\\
 & Nil\\
-& Void\\
 & Object\\
-& T_1 \times ... \times T_n\\
-& T*\\
 & T_1 \rightarrow T_2\\
 & T_1 \cup T_2\\
 & T_1 \cap T_2\\
-& \{ T_1:U_1, ..., T_n:U_n, \\
-& \_\_add, \_\_sub, \_\_mul, \_\_div, \_\_mod, \_\_pow, \_\_concat, \\
-& \_\_unm, \_\_len, \\
-& \_\_eq, \_\_lt, \_\_le, \\
-& \_\_call \}\\
+& \{ T_1:U_1, ..., T_n:U_n, brand \}\\
 & X\\
 & \mu X.T\\
+V ::= \; & T*\\
+& T \times V\\
+& ()
 \end{align*}
 
 \section{Subtyping}
