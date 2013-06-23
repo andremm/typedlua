@@ -192,6 +192,9 @@ check_exp = function (exp, func_name, func_id)
       -- statistics of the use of getmetatable
       elseif fname == "getmetatable" then
         result[func_id].use_getmetatable = 1
+      -- statistics of the use of module
+      elseif fname == "module" and func_id == 0 then
+        result.calling_module = true
       end
     end
     -- statistics of the use of table indexing
@@ -519,6 +522,7 @@ function statistics.log_result (filename, result)
   print("varindex_non_literal", result.varindex_non_literal)
   print("varindex_non_literal_fc", result.varindex_non_literal_fc)
   print("ret", result.ret)
+  print("calling_module", result.calling_module)
 end
 
 function statistics.init_merge ()
@@ -548,6 +552,8 @@ function statistics.init_merge ()
   merge.varindex_non_literal = 0
   merge.varindex_non_literal_fc = 0
   merge.ret = 0
+  merge.calling_module = 0
+  merge.module_and_ret = 0
   return merge
 end
 
@@ -579,6 +585,10 @@ function statistics.merge (result, merge)
   merge.varindex_non_literal = merge.varindex_non_literal + result.varindex_non_literal
   merge.varindex_non_literal_fc = merge.varindex_non_literal_fc + result.varindex_non_literal_fc
   if result.ret then merge.ret = merge.ret + 1 end
+  if result.calling_module then merge.calling_module = merge.calling_module + 1 end
+  if result.ret and result.calling_module then
+    merge.module_and_ret = merge.module_and_ret + 1
+  end
 end
 
 function statistics.log_merge (merge)
@@ -606,6 +616,8 @@ function statistics.log_merge (merge)
   print("varindex_non_literal", merge.varindex_non_literal)
   print("varindex_non_literal_fc", merge.varindex_non_literal_fc)
   print("ret", merge.ret)
+  print("calling_module", merge.calling_module)
+  print("module_and_ret", merge.module_and_ret)
 end
 
 return statistics
