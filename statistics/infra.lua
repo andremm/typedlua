@@ -43,6 +43,10 @@ local function luarocks_unpack (repo_dir, unpack_dir)
   end
 end
 
+local function grep_v_test ()
+  return "|grep -v '/[^/]*test[^/]*.lua'"
+end
+
 local function grep_v_dirs (unpack_dir)
   assert(type(unpack_dir) == "string")
   local str = ""
@@ -84,8 +88,8 @@ local function build_luac_list (unpack_dir, luac_list)
   assert(type(unpack_dir) == "string")
   assert(type(luac_list) == "string")
   local file = assert(io.open(luac_list, "w"))
-  local FIND = string.format("find %s -name '*.lua' %s %s",
-    unpack_dir, grep_v_dirs(unpack_dir), grep_v_moon_projects(unpack_dir))
+  local FIND = string.format("find %s -name '*.lua' %s %s %s",
+    unpack_dir, grep_v_dirs(unpack_dir), grep_v_moon_projects(unpack_dir), grep_v_test())
   for dotlua in io.popen(FIND):lines() do
     local ret = os.execute(string.format("luac '%s' >> %s 2>&1", dotlua, LOG))
     if ret then

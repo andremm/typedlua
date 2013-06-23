@@ -560,8 +560,12 @@ function statistics.merge (result, merge)
   merge.ret_nil_se = merge.ret_nil_se + result.ret_nil_se
   merge.ret_false_se = merge.ret_false_se + result.ret_false_se
   merge.use_type = merge.use_type + result.use_type
-  merge.use_setmetatable = merge.use_setmetatable + result.use_setmetatable
-  merge.use_getmetatable = merge.use_getmetatable + result.use_getmetatable
+  if result.use_setmetatable > 0 then
+    merge.use_setmetatable = merge.use_setmetatable + 1
+  end
+  if result.use_getmetatable > 0 then
+    merge.use_getmetatable = merge.use_getmetatable + 1
+  end
   merge.number_of_methods = merge.number_of_methods + result.number_of_methods
   merge.table_field = merge.table_field + result.table_field
   merge.number_of_constructs = merge.number_of_constructs + result.number_of_constructs
