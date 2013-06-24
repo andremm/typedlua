@@ -7,4 +7,4 @@ gsoc_proposal.pdf: gsoc_proposal.tex
 	pdflatex gsoc_proposal.tex
 
 clean:
-	rm -f *.aux *.log *.blg *.bbl *.nav *.out *.snm *.toc
+	rm -f *.aux *.bbl *.blg *.log *.nav *.out *.snm *.vrb *.toc
