@@ -50,19 +50,43 @@ S \; <: \; S
 \frac{S \; <: \; U \;\;\; U\;  <: \; T}{S \; <: \; T}
 \end{align}
 
+\subsection{Constants}
+
+\[
+integer <: Number \; (\textit{S-INT})
+\]
+
+\[
+string <: String \; (\textit{S-LIT})
+\]
+
+\[
+true <: Boolean \; (\textit{S-TRUE})
+\]
+
+\[
+false <: Boolean \; (\textit{S-FALSE})
+\]
+
+\subsection{Object (Top)}
+
+\[
+T <: Object \; (\textit{S-OBJ})
+\]
+
+\subsection{Functions}
+
+\[
+\frac{T_{1} <: S_{1} \;\;\; S_{2} <: T_{2}}
+     {S_{1} \rightarrow S_{2} \; <: \; T_{1} \rightarrow T_{2}} \; (\textit{S-FUNC})
+\]
+
 \subsection{Tables}
 
 \[
 \{T_{i}:U_{i} \; ^{i \in 1..n+m}\} \;
 <: \;
-\{T_{i}:U_{i} \; ^{i \in 1..n}\} \; (\textbf{width})
-\]
-
-\[
-\frac{\textbf{for each} \; i \; S_{i} \; <: \; U_{i}}
-     {\{T_{i}:S_{i} \; ^{i \in 1..n}\}
-       <:
-       \{T_{i}:U_{i} \; ^{i \in 1..n}\}} \; (\textbf{depth})
+\{T_{i}:U_{i} \; ^{i \in 1..n}\} \; (\textit{S-TAB1})
 \]
 
 \[
@@ -71,137 +95,94 @@ S \; <: \; S
        \{V_{j}:U_{j} \; ^{j \in 1..n}\}}
      {\{T_{i}:S_{i} \; ^{i \in 1..n}\}
        <:
-       \{V_{j}:U_{j} \; ^{j \in 1..n}\}} \; (\textbf{permutation})
-\]
-
-\subsubsection{Width}
-
-\[
-\{x:Number\} \; <: \; \{x:Number\}
-\]
-\[
-\{x:Number, \; y:String\} \; <: \; \{x:Number\}
-\]
-\[
-\{x:\{a:Number\}, \; y:\{b:String\}\} \;
-\not<: \;
-\{x:\{a:Number\}, \; y:\{\}\}
-\]
-\[
-\{x:Number, \; y:String\} \; \not<: \; \{y:String\}
-\]
-
-\subsubsection{Depth}
-
-\[
-\{x:\{a:Number\}, \; y:\{b:String\}\} \;
-<: \;
-\{x:\{a:Number\}, \; y:\{\}\}
-\]
-
-\subsubsection{Permutation}
-
-\[
-\{x:Number, \; y:String\} \; <: \; \{y:String\}
-\]
-
-\subsection{Functions}
-
-\[
-\frac{S_{1} <: T_{1} \;\;\; S_{2} <: T_{2}}
-     {S_{1} \rightarrow S_{2} \; <: \; T_{1} \rightarrow T_{2}}
-\]
-
-\subsection{Object (Top)}
-
-\[
-S <: Object
-\]
-
-\subsection{Product}
-
-\[
-\frac{S_{1} <: T_{1} \;\;\; S_{2} <: T_{2}}
-     {S_{1} \times S_{2} \; <: \; T_{1} \times T_{2}}
-\]
-
-\[
-\frac{S_{1} <: T_{1} \; ... \; S_{n} <: T_{n}}
-     {S_{1} \times ... \times S_{n} \; <: \; T_{1} \times ... \times T_{n}} \; (???)
-\]
-
-\subsection{Vararg (...)}
-
-\[
-Void <: {T*} \; (???)
-\]
-
-\[
-\frac{S <: T}
-     {S <: {T*}}
-\]
-
-\[
-\frac{S_{1} <: T_{1} \; ... \; S_{n} <: T_{n}}
-     {S_{1} \times ... \times S_{n} <: {T*}}
-\]
-
-\subsection{Base Types}
-
-\[
-Number <: Number
-\]
-\[
-String <: String
-\]
-\[
-Boolean <: Boolean
-\]
-\[
-Nil <: Nil
+       \{V_{j}:U_{j} \; ^{j \in 1..n}\}} \; (\textit{S-TAB2})
 \]
 
 \subsection{Union}
 
 \[
-T_{1} \cup T_{2} <: T_{1}
+T_{1} <: T_{1} \cup T_{2} \; (\textit{S-UNION1})
 \]
+
 \[
-T_{1} \cup T_{2} <: T_{2}
+T_{2} <: T_{1} \cup T_{2} \; (\textit{S-UNION2})
 \]
+
 \[
-\frac{S <: T_{1}}
-     {S <: T_{1} \cup T_{2}}
-\]
-\[
-\frac{S <: T_{2}}
-     {S <: T_{1} \cup T_{2}}
+\frac{S_{1} <: T\;\;\; S_{2} <: T}
+     {S_{1} \cup S_{2} <: T} \; (\textit{S-UNION3})
 \]
 
 \subsection{Intersection}
 
 \[
-T_{1} \cap T_{2} <: T_{1}
+T_{1} \cap T_{2} <: T_{1} \; (\textit{S-INTER1})
 \]
+
 \[
-T_{1} \cap T_{2} <: T_{2}
+T_{1} \cap T_{2} <: T_{2} \; (\textit{S-INTER2})
 \]
+
 \[
 \frac{S <: T_{1} \;\;\; S <: T_{2}}
-     {S <: T_{1} \cap T_{2}}
+     {S <: T_{1} \cap T_{2}} \; (\textit{S-INTER3})
+\]
+
+\subsection{Product}
+
+\[
+\frac{T_{1} <: T_{2} \;\;\; V_{1} <: V_{2}}
+     {T_{1} \times V_{1} \; <: \; T_{2} \times V_{2}} \; (\textit{S-PROD1})
+\]
+
+\subsection{Vararg (...)}
+
+\[
+\frac{T_{1}* \; <: \; T_{2}*}
+     {T_{1} \; <: \; T_{2}} \; (\textit{S-VARARG1})
+\]
+
+\[
+T* \; <: \; T \cup Nil \times {T*} \; (\textit{S-VARARG2})
 \]
 
 \subsection{Recursive Types}
 
 \[
-\frac{Y <: X \;\;\; S <: T}
-     {\mu Y.S \; <: \mu X.T} \; (???)
+\frac{S <: T[X \mapsto Y]}
+     {\mu Y.S <: \mu X.T} \; (\textit{S-REC})
 \]
 
-\subsection{Dynamic Type}
+\subsection{Trash}
+
+\begin{align*}
+V ::= \; & Void\\
+& T\\
+& T*\\
+& T \times V
+\end{align*}
 
 \[
-T <: Any
+Void <: Nil \; (\textit{S-VOID1})
+\]
+
+\[
+Void <: T_{1} \times Void (\textit{S-VOID2)}
+\]
+
+\[
+\frac{Void <: T \;\;\; Void <: V}
+     {Void <: T \times V} \; (\textit{S-VOID3})
+\]
+
+\[
+\frac{T_{1} <: T_{2} \;\;\; V_{1} <: V_{2}}
+     {T_{1} \times V_{1} <: T_{2} \times V_{2}} \; (\textit{S-PROD1})
+\]
+
+\[
+\frac{S_{1} <: T_{1} \;\;\; S_{2} \times Void <: Void}
+     {S_{1} \times S_{2} \times Void <: T_{1} \times Void} \; (\textit{S-PROD2})
 \]
 
 \end{document}
