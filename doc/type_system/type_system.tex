@@ -185,4 +185,192 @@ Void <: T_{1} \times Void (\textit{S-VOID2)}
      {S_{1} \times S_{2} \times Void <: T_{1} \times Void} \; (\textit{S-PROD2})
 \]
 
+\section{Typing Rules}
+
+\subsection{Syntax}
+
+\begin{align*}
+e ::= \; & nil\\
+| & \; false\\
+| & \; true\\
+| & \; {...}\\
+| & \; n\\
+| & \; s\\
+| & \; v\\
+| & \; func \; b\\
+| & \; \{fl\}\\
+| & \; id(e,el)\\
+| & \; e(el)\\
+| & \; e + e\\
+| & \; e - e\\
+| & \; e \times e\\
+| & \; e \div e\\
+| & \; e \bmod e\\
+| & \; e \otimes e\\
+| & \; e \oplus e\\
+| & \; e \not= e\\
+| & \; e = e\\
+| & \; e < e\\
+| & \; e \le e\\
+| & \; e > e\\
+| & \; e \ge e\\
+| & \; e \land e\\
+| & \; e \lor e\\
+| & \; \lnot \; e\\
+| & \; - e\\
+| & \; \# \; e\\
+\end{align*}
+
+\subsection{Expressions}
+
+\[
+nil : Nil \; (\textit{T-NIL})
+\]
+
+\[
+false : Boolean \; (\textit{T-FALSE})
+\]
+
+\[
+true : Boolean \; (\textit{T-TRUE})
+\]
+
+\[
+{...} : Any \; (\textit{T-VARARG})
+\]
+
+\[
+n : Number \; (\textit{T-NUMBER})
+\]
+
+\[
+s : String \; (\textit{T-STRING})
+\]
+
+\[
+func \; b : Any \; (\textit{T-ANONFUNC})
+\]
+
+\[
+\{fl\} : Any \; (\textit{T-TABLECONST})
+\]
+
+\[
+id(e,el) : Any \; (\textit{T-METHCALL})
+\]
+
+\[
+e(el) : Any \; (\textit{T-FUNCCALL})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} + e_{2} : Number} \; (\textit{T-ADD})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} - e_{2} : Number} \; (\textit{T-SUB})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \times e_{2} : Number} \; (\textit{T-MUL})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \div e_{2} : Number} \; (\textit{T-DIV})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \bmod e_{2} : Number} \; (\textit{T-MOD})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \otimes e_{2} : Number} \; (\textit{T-POW})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} \oplus e_{2} : String} \; (\textit{T-CONCAT})
+\]
+
+\[
+\frac{e_{1}:T \;\;\; e_{2}:T}
+     {e_{1} \not= e_{2} : Boolean} \; (\textit{T-NE})
+\]
+
+\[
+\frac{e_{1}:T \;\;\; e_{2}:T}
+     {e_{1} = e_{2} : Boolean} \; (\textit{T-EQ})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT1})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT2})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE1})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE2})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT1})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT2})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE1})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE2})
+\]
+
+\[
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
+     {e_{1} \land e_{2} : T_{1} \cup T_{2}} \; (\textit{T-AND})
+\]
+
+\[
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
+     {e_{1} \lor e_{2} : T_{1} \cup T_{2}} \; (\textit{T-OR})
+\]
+
+\[
+\frac{e : T}
+     {\lnot \; e : Boolean} \; (\textit{T-NOT})
+\]
+
+\[
+\frac{e : Number}
+     {- \; e : Number} \; (\textit{T-MINUS})
+\]
+
+\[
+\frac{e : String}
+     {\# \; e : Number} \; (\textit{T-LEN})
+\]
+
 \end{document}
