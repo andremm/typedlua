@@ -51,37 +51,17 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Gradual Typing Example}
-\begin{verbatim}
-local function div (x, y)
-  if y == 0 then
-    return nil,"division by zero"
-  end
-  return x / y
-end
-
-local function div (x:Number, y:Number) -> Any
-  if y == 0 then
-    return nil,"division by zero"
-  end
-  return x / y
-end
-\end{verbatim}
-\end{frame}
-
-\subsection{The levels of Gradual Typing}
 \begin{frame}
-\frametitle{The levels of Gradual Typing}
+\frametitle{Gradual Typing}
 \begin{itemize}
 \item The programmer can gradually migrate to static typing
 \item Specially in module boundaries
 \begin{enumerate}
-\item The programmer write modules that use only dynamic typing.
+\item The programmer writes modules that use only dynamic typing.
 \item The programmer creates an interface to type a module that
 is written using only dynamic typing. This module is not
 type checked, but the code that uses this module is.
-\item The programmer write modules that use only static typing.
+\item The programmer writes modules that use only static typing.
 \end{enumerate}
 \end{itemize}
 \end{frame}
@@ -139,7 +119,7 @@ type checked, but the code that uses this module is.
 \begin{itemize}
 \item A proposal to design a gradual type system for Lua
 \begin{itemize}
-\item Should be simple enough to preserve existing Lua idioms
+\item Should be complex enough to preserve existing Lua idioms
 \end{itemize}
 \item A superset of Lua
 \begin{itemize}
@@ -244,7 +224,7 @@ part of the language
 \frametitle{Metatables}
 \begin{itemize}
 \item 294 (15.0\%) of the 1966 files use \textbf{setmetatable}
-\item 99 (5.1\%) of the 196 files use \textbf{getmetatable}
+\item 99 (5.1\%) of the 1966 files use \textbf{getmetatable}
 \end{itemize}
 \end{frame}
 
@@ -254,21 +234,23 @@ part of the language
 \begin{itemize}
 \item The table constructor is being used 17369 times in the 1966 files
 \begin{itemize}
-\item 4391 (25.28\%) times is the empty construct
-\item 12975 (74.70\%) times is a constructor with only static keys
-\item 3 (0.02\%) times is a constructor with only dynamic keys
+\item 4391 (25.28\%) times it is the empty construct
+\item 12975 (74.70\%) times it is a constructor with only static keys
+\item 3 (0.02\%) times it is a constructor with only dynamic keys
 \item There is no constructor with static and dynamic keys
 \end{itemize}
 \end{itemize}
 \end{frame}
 
-\subsection{Module}
+\subsection{Modules}
 \begin{frame}
-\frametitle{Module}
+\frametitle{Modules}
 \begin{itemize}
-\item 655 (33.3\%) of the 1966 files use \textbf{return} at the end of the file
-\item 602 (30.7\%) of the 1966 files use the function \textbf{module}
-\item The rest of the files are plain scripts
+\item 616 (31.3\%) of the 1966 files use \textbf{return} at the end of the file
+\item 563 (28.7\%) of the 1966 files use the function \textbf{module}
+\item 39 (2.0\%) of the 1966 files use \textbf{return} and \textbf{module}
+\item The other 748 (38.0\%) files are plain scripts
+\item That is, 1218 (62.0\%) of the 1966 files are modules
 \end{itemize}
 \end{frame}
 
