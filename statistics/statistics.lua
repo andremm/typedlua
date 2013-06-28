@@ -343,7 +343,6 @@ local function result_recon ()
   result.varindex_non_literal = 0
   result.varindex_non_literal_fc = 0
   result.number_of_constructs = 0
-  result.ret = result[0].ret
   for i=0,result.number_of_functions do
     if result[i].func_type == "A" then
       result.anonymousf = result.anonymousf + 1
@@ -410,7 +409,7 @@ local function check (ast)
   init_result()
   check_block(ast, "main", 0)
   if #ast > 0 and ast[#ast].tag == "StmRet" then
-    result[0].ret = #ast[#ast][1]
+    result.returning_module = true
   end
   result_recon()
 end
@@ -521,7 +520,7 @@ function statistics.log_result (filename, result)
   print("varindex_literal_fc", result.varindex_literal_fc)
   print("varindex_non_literal", result.varindex_non_literal)
   print("varindex_non_literal_fc", result.varindex_non_literal_fc)
-  print("ret", result.ret)
+  print("returning_module", result.returning_module)
   print("calling_module", result.calling_module)
 end
 
@@ -551,9 +550,10 @@ function statistics.init_merge ()
   merge.varindex_literal_fc = 0
   merge.varindex_non_literal = 0
   merge.varindex_non_literal_fc = 0
-  merge.ret = 0
+  merge.returning_module = 0
   merge.calling_module = 0
-  merge.module_and_ret = 0
+  merge.module_and_return = 0
+  merge.plain_script = 0
   return merge
 end
 
@@ -584,10 +584,14 @@ function statistics.merge (result, merge)
   merge.varindex_literal_fc = merge.varindex_literal_fc + result.varindex_literal_fc
   merge.varindex_non_literal = merge.varindex_non_literal + result.varindex_non_literal
   merge.varindex_non_literal_fc = merge.varindex_non_literal_fc + result.varindex_non_literal_fc
-  if result.ret then merge.ret = merge.ret + 1 end
-  if result.calling_module then merge.calling_module = merge.calling_module + 1 end
-  if result.ret and result.calling_module then
-    merge.module_and_ret = merge.module_and_ret + 1
+  if result.returning_module and result.calling_module then
+    merge.module_and_return = merge.module_and_return + 1
+  elseif result.returning_module then
+    merge.returning_module = merge.returning_module + 1
+  elseif result.calling_module then
+    merge.calling_module = merge.calling_module + 1
+  else
+    merge.plain_script = merge.plain_script + 1
   end
 end
 
@@ -615,9 +619,10 @@ function statistics.log_merge (merge)
   print("varindex_literal_fc", merge.varindex_literal_fc)
   print("varindex_non_literal", merge.varindex_non_literal)
   print("varindex_non_literal_fc", merge.varindex_non_literal_fc)
-  print("ret", merge.ret)
+  print("returning_module", merge.returning_module)
   print("calling_module", merge.calling_module)
-  print("module_and_ret", merge.module_and_ret)
+  print("module_and_return", merge.module_and_return)
+  print("plain_script", merge.plain_script)
 end
 
 return statistics
