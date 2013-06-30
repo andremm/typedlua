@@ -190,35 +190,42 @@ Void <: T_{1} \times Void (\textit{S-VOID2)}
 \subsection{Syntax}
 
 \begin{align*}
+v ::= \; & id \; | \; e \cdot e\\
+%funcname ::= \; & \textbf{function} \; \overline{id} \;
+%| \; \textbf{method} \; \overline{id}\\
+funcboby ::= \; & ((\overline{id},isvararg),s)\\
+s ::= \; & statements\\
+%s ::= \; & \textbf{block} \; \overline{s}\\
+%| & \; \textbf{ifelse} \; e \; s \; s\\
+%| & \; \textbf{while} \; e \; s\\
+%| & \; \textbf{fornum} \; id \; e \; e \; e \; s\\
+%| & \; \textbf{forgen} \; \overline{id} \; \overline{e} \; s\\
+%| & \; \textbf{repeat} \; s \; e\\
+%| & \; \textbf{func} \; funcname \; funcbody\\
+%| & \; \textbf{localfunc} \; id \; funcbody\\
+%| & \; \textbf{label} \; id\\
+%| & \; \textbf{goto} \; id\\
+%| & \; break\\
+%| & \; \textbf{assign} \; \overline{v} \; \overline{e}\\
+%| & \; \textbf{localvar} \; \overline{id} \; \overline{e}\\
+%| & \; \textbf{ret} \; \overline{e}\\
+%| & \; e\\
 e ::= \; & nil\\
 | & \; false\\
 | & \; true\\
 | & \; {...}\\
 | & \; n\\
-| & \; s\\
+| & \; l\\
 | & \; v\\
-| & \; func \; b\\
-| & \; \{fl\}\\
-| & \; id(e,el)\\
-| & \; e(el)\\
-| & \; e + e\\
-| & \; e - e\\
-| & \; e \times e\\
-| & \; e \div e\\
-| & \; e \bmod e\\
-| & \; e \otimes e\\
-| & \; e \oplus e\\
-| & \; e \not= e\\
-| & \; e = e\\
-| & \; e < e\\
-| & \; e \le e\\
-| & \; e > e\\
-| & \; e \ge e\\
-| & \; e \land e\\
-| & \; e \lor e\\
-| & \; \lnot \; e\\
-| & \; - e\\
-| & \; \# \; e\\
+| & \; \textbf{func} \; funcbody\\
+| & \; \{(\overline{e},\overline{(e,e)})\}\\
+| & \; id(e,\overline{e})\\
+| & \; e(\overline{e})\\
+| & \; e \; binop \; e\\
+| & \; unop \; e\\
+binop ::= & + | - | \times | \div | \bmod | \otimes | \oplus
+  | \not= | = | < | \le | > | \ge | \land | \lor\\
+unop ::= & \; \lnot \; | - | \; \#\\
 \end{align*}
 
 \subsection{Expressions}
@@ -244,23 +251,23 @@ n : Number \; (\textit{T-NUMBER})
 \]
 
 \[
-s : String \; (\textit{T-STRING})
+l : String \; (\textit{T-STRING})
 \]
 
 \[
-func \; b : Any \; (\textit{T-ANONFUNC})
+\textbf{func} \; funcbody : Any \; (\textit{T-ANONFUNC})
 \]
 
 \[
-\{fl\} : Any \; (\textit{T-TABLECONST})
+\{(\overline{e},\overline{(e,e)})\} : Any \; (\textit{T-TABLECONST})
 \]
 
 \[
-id(e,el) : Any \; (\textit{T-METHCALL})
+id(e,\overline{e}) : Any \; (\textit{T-METHCALL})
 \]
 
 \[
-e(el) : Any \; (\textit{T-FUNCCALL})
+e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
 \]
 
 \[
