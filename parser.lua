@@ -1,3 +1,9 @@
+--[[
+This file implements the Typed Lua parser using LPeg
+]]
+
+local parser = {}
+
 local lpeg = require("lpeg")
 
 lpeg.locale(lpeg)
@@ -349,7 +355,7 @@ local function getcontents (filename)
   return contents
 end
 
-local function parse (filename)
+function parser.parse (filename)
   local errorinfo = { filename = filename }
   local input = getcontents(filename)
   lpeg.setmaxstack(1000)
@@ -360,6 +366,4 @@ local function parse (filename)
   return ast
 end
 
-return {
-  parse = parse,
-}
+return parser
