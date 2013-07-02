@@ -113,7 +113,7 @@ namelist2str = function (namelist)
   for k,v in ipairs(namelist) do
     l[k] = string.format('"%s"', v)
   end
-  return "[" .. table.concat(l, ", ") .. "]"
+  return "[" .. table.concat(l, ",") .. "]"
 end
 
 fieldlist2str = function (fieldlist)
@@ -132,7 +132,7 @@ varlist2str = function (varlist)
   for k,v in ipairs(varlist) do
     l[k] = var2str(v)
   end
-  return " [" .. table.concat(l, ", ") .. "]"
+  return " [" .. table.concat(l, ",") .. "]"
 end
 
 explist2str = function (explist)
@@ -140,7 +140,7 @@ explist2str = function (explist)
   for k,v in ipairs(explist) do
     l[k] = exp2str(v)
   end
-  return " [" .. table.concat(l, ", ") .. "]"
+  return " [" .. table.concat(l, ",") .. "]"
 end
 
 var2str = function (var)
@@ -279,7 +279,7 @@ block2str = function (block)
   for k,v in ipairs(block) do
     l[k] = stm2str(v)
   end
-  return tag .. " [" .. table.concat(l, ", ") .. "]"
+  return tag .. " [" .. table.concat(l, ",") .. "]"
 end
 
 function ast.tostring (t)

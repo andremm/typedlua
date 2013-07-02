@@ -355,13 +355,23 @@ local function getcontents (filename)
   return contents
 end
 
-function parser.parse (filename)
+function parser.parse_from_file (filename)
   local errorinfo = { filename = filename }
   local input = getcontents(filename)
   lpeg.setmaxstack(1000)
   local ast = lpeg.match(G, input, nil, errorinfo)
   if not ast then
     return nil,errormsg(input, errorinfo)
+  end
+  return ast
+end
+
+function parser.parse (subject, filename)
+  local errorinfo = { filename = filename }
+  lpeg.setmaxstack(1000)
+  local ast = lpeg.match(G, subject, nil, errorinfo)
+  if not ast then
+    return nil,errormsg(subject, errorinfo)
   end
   return ast
 end
