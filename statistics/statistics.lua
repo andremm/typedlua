@@ -1,8 +1,9 @@
 
 local statistics = {}
 
+package.path = "../?.lua;" .. package.path
+
 local parser = require "parser"
-local pp = require "pp"
 
 local number_of_functions = 0
 local anonymousf = 0
@@ -416,7 +417,7 @@ end
 
 function statistics.generate (filename)
   assert(type(filename) == "string")
-  local ast,errormsg = parser.parse(filename)
+  local ast,errormsg = parser.parse_from_file(filename)
   if not ast then
     error(errormsg)
   end
