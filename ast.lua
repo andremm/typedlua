@@ -296,8 +296,7 @@ function ast.dump (t, i)
   if i == nil then i = 0 end
   io.write(string.format("{\n"))
   io.write(string.format("%s[tag] = %s\n", string.rep(" ", i+2), t.tag))
-  io.write(string.format("%s[line_number] = %s\n", string.rep(" ", i+2), t.line_number))
-  io.write(string.format("%s[column_number] = %s\n", string.rep(" ", i+2), t.column_number))
+  io.write(string.format("%s[pos] = %s\n", string.rep(" ", i+2), t.pos))
   for k,v in ipairs(t) do
     io.write(string.format("%s[%s] = ", string.rep(" ", i+2), tostring(k)))
     if type(v) == "table" then
