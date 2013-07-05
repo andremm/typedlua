@@ -7,13 +7,18 @@ local VERSION = "0.1"
 local PROGNAME = "tlc"
 local OUTPUT = PROGNAME .. ".lua"
 
+local DUMPAST = false
+local PRINTAST = false
+
 local progname = PROGNAME
 
 local USAGE = [[
 usage: %s [options] [filename]
 Available options are:
+-d	dump the AST
 -h	print this help
 -o name	output to file 'name' (default is '%s')
+-p	print the AST
 -v	print current version
 ]]
 
@@ -30,6 +35,8 @@ local function doargs ()
   while i <= #arg do
     if string.find(arg[i], "^-") == nil then
       return i
+    elseif arg[i] == "-d" then
+      DUMPAST = true
     elseif arg[i] == "-h" then
       usage()
     elseif arg[i] == "-o" then
@@ -39,6 +46,8 @@ local function doargs ()
       else
         OUTPUT = arg[i]
       end
+    elseif arg[i] == "-p" then
+      PRINTAST = true
     elseif arg[i] == "-v" then
       io.write(string.format("Typed Lua %s\n", VERSION))
       os.exit(0)
@@ -71,6 +80,7 @@ if not t then
   os.exit(1)
 end
 
-ast.print(t)
+if DUMPAST then ast.dump(t) end
+if PRINTAST then ast.print(t) end
 
 os.exit(0)
