@@ -178,7 +178,9 @@ local G = { V"Lua",
                 return t
               end;
   Constructor = taggedCap("ExpTableConstructor", symb("{") * V"FieldList" * symb("}"));
-  NameList = sepby1(token(V"Name","Name"), symb(","), "NameList");
+  Type = token(V"Name", "Type");
+  TypedName = taggedCap("Name", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
+  NameList = sepby1(V"TypedName", symb(","), "NameList");
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
              taggedCap("ExpList", V"Constructor") +
@@ -234,7 +236,7 @@ local G = { V"Lua",
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
   ForNum = taggedCap("StmForNum",
-             token(V"Name","Name") * symb("=") * V"Expr" * symb(",") *
+             V"TypedName" * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
              V"ForBody");
   ForGen = taggedCap("StmForGen", V"NameList" * kw("in") * V"ExpList" * V"ForBody");

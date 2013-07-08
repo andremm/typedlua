@@ -161,7 +161,7 @@ check_exp = function (exp, func_name, func_id)
     new_func_def("anonymous")
     local id = result.number_of_functions
     if #exp[1] > 0 then
-      if exp[1][1] == "self" or exp[1][1] == "this" then
+      if exp[1][1][1] == "self" or exp[1][1][1] == "this" then
         result[id].is_method = 1
       end
     end
@@ -266,7 +266,7 @@ check_stm = function (stm, func_name, func_id)
     elseif stm[1].tag == "Function" then
       -- statistics of the use of method definition
       if #stm[2] > 0 then
-        if stm[2][1] == "self" or stm[2][1] == "this" then
+        if stm[2][1][1] == "self" or stm[2][1][1] == "this" then
           result[id].is_method = 1
         end
         -- statistics of the use of function declaration as table field

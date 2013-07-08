@@ -488,7 +488,7 @@ s = [=[
 local a,b,c = function () end
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["a","b","c"] [ExpFunction (([],False),StmBlock [])]]
+StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] [ExpFunction (([],False),StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -498,7 +498,7 @@ s = [=[
 local test = function ( a , b , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["test"] [ExpFunction ((["a","b"],True),StmBlock [])]]
+StmBlock [StmLocalVar [(test,any)] [ExpFunction (([(a,any),(b,any)],True),StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -518,7 +518,7 @@ s = [=[
 for k,v in pairs(t) do print (k,v) end
 ]=]
 e = [=[
-StmBlock [StmForGen ["k","v"] [ExpFunctionCall (ExpVar (VarID "pairs")) [ExpVar (VarID "t")]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID "print")) [ExpVar (VarID "k"),ExpVar (VarID "v")])])]
+StmBlock [StmForGen [(k,any),(v,any)] [ExpFunctionCall (ExpVar (VarID "pairs")) [ExpVar (VarID "t")]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID "print")) [ExpVar (VarID "k"),ExpVar (VarID "v")])])]
 ]=]
 
 r = parse(s)
@@ -528,7 +528,7 @@ s = [=[
 for i = 1 , 10 , 2 do end
 ]=]
 e = [=[
-StmBlock [StmForNum "i" (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
+StmBlock [StmForNum (i,any) (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -538,7 +538,7 @@ s = [=[
 for i=1,10 do end
 ]=]
 e = [=[
-StmBlock [StmForNum "i" (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+StmBlock [StmForNum (i,any) (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -548,7 +548,7 @@ s = [=[
 function test(a , b , ...) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ((["a","b"],True),StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) (([(a,any),(b,any)],True),StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -588,7 +588,7 @@ s = [=[
 function testando . funcao . com : espcacos ( e, com , parametros, ... ) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) ((["e","com","parametros"],True),StmBlock [])]
+StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) (([(e,any),(com,any),(parametros,any)],True),StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -635,7 +635,7 @@ else
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID "a")) (StmBlock [StmRet [ExpVar (VarID "a")]]) (StmBlock [StmLocalVar ["c"] [ExpVar (VarID "d")],StmAssign [VarID "d"] [ExpAdd (ExpVar (VarID "d")) (ExpNum 1.0)],StmRet [ExpVar (VarID "d")]])]
+StmBlock [StmIfElse (ExpVar (VarID "a")) (StmBlock [StmRet [ExpVar (VarID "a")]]) (StmBlock [StmLocalVar [(c,any)] [ExpVar (VarID "d")],StmAssign [VarID "d"] [ExpAdd (ExpVar (VarID "d")) (ExpNum 1.0)],StmRet [ExpVar (VarID "d")]])]
 ]=]
 
 r = parse(s)
@@ -687,7 +687,7 @@ s = [=[
 local a
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["a"] []]
+StmBlock [StmLocalVar [(a,any)] []]
 ]=]
 
 r = parse(s)
@@ -697,7 +697,7 @@ s = [=[
 local a,b,c
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["a","b","c"] []]
+StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] []]
 ]=]
 
 r = parse(s)
@@ -707,7 +707,7 @@ s = [=[
 local a = 1 , 1 + 2, 5.1
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["a"] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
+StmBlock [StmLocalVar [(a,any)] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
 ]=]
 
 r = parse(s)
@@ -717,7 +717,7 @@ s = [=[
 local a,b,c = 1.9
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["a","b","c"] [ExpNum 1.9]]
+StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] [ExpNum 1.9]]
 ]=]
 
 r = parse(s)
@@ -737,7 +737,7 @@ s = [=[
 local function test ( a , b , c , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ((["a","b","c"],True),StmBlock [])]
+StmBlock [StmLocalFunction "test" (([(a,any),(b,any),(c,any)],True),StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -902,7 +902,7 @@ s = [=[
 local t = {{{}}, {"alo"}}
 ]=]
 e = [=[
-StmBlock [StmLocalVar ["t"] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
+StmBlock [StmLocalVar [(t,any)] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
 ]=]
 
 r = parse(s)
@@ -978,7 +978,7 @@ s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '='
+test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '=', ':'
 ]=]
 
 r = parse(s)
