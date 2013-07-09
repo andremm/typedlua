@@ -133,7 +133,7 @@ local function is_literal (tag)
 end
 
 check_var = function (var, func_name, func_id)
-  if var.tag == "VarID" then -- VarID ID
+  if var.tag == "VarID" then -- VarID Name
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
@@ -157,7 +157,7 @@ check_exp = function (exp, func_name, func_id)
      exp.tag == "ExpStr" then -- ExpStr String
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
-  elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Stm
+  elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Type Stm
     new_func_def("anonymous")
     local id = result.number_of_functions
     if #exp[1] > 0 then
@@ -165,11 +165,11 @@ check_exp = function (exp, func_name, func_id)
         result[id].is_method = 1
       end
     end
-    check_stm(exp[2], func_name, result.number_of_functions)
+    check_stm(exp[3], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     result[func_id].number_of_constructs = result[func_id].number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
-  elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp ID [Exp]
+  elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
     result[func_id].varindex_literal = result[func_id].varindex_literal + 1
@@ -255,7 +255,7 @@ check_stm = function (stm, func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
-  elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Stm
+  elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
     new_func_def("global")
     local id = result.number_of_functions
     if stm[1].tag == "Method" then
@@ -275,12 +275,12 @@ check_stm = function (stm, func_name, func_id)
         end
       end
     end
-    check_stm(stm[3], func_name, result.number_of_functions)
-  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction ID ParList Stm
+    check_stm(stm[4], func_name, result.number_of_functions)
+  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
     new_func_def("local")
-    check_stm(stm[3], func_name, result.number_of_functions)
-  elseif stm.tag == "StmLabel" or -- StmLabel ID
-         stm.tag == "StmGoTo" or -- StmGoTo ID
+    check_stm(stm[4], func_name, result.number_of_functions)
+  elseif stm.tag == "StmLabel" or -- StmLabel Name
+         stm.tag == "StmGoTo" or -- StmGoTo Name
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
     check_varlist(stm[1], func_name, func_id)

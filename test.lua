@@ -488,7 +488,7 @@ s = [=[
 local a,b,c = function () end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] [ExpFunction (([],False),StmBlock [])]]
+StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpFunction ([],False) "any" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -498,7 +498,7 @@ s = [=[
 local test = function ( a , b , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(test,any)] [ExpFunction (([(a,any),(b,any)],True),StmBlock [])]]
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("a","any"),("b","any")],True) "any" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -508,7 +508,7 @@ s = [=[
 test = function (...) return ...,0 end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID "test"] [ExpFunction (([],True),StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
+StmBlock [StmAssign [VarID "test"] [ExpFunction ([],True) "any" (StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
 ]=]
 
 r = parse(s)
@@ -518,7 +518,7 @@ s = [=[
 for k,v in pairs(t) do print (k,v) end
 ]=]
 e = [=[
-StmBlock [StmForGen [(k,any),(v,any)] [ExpFunctionCall (ExpVar (VarID "pairs")) [ExpVar (VarID "t")]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID "print")) [ExpVar (VarID "k"),ExpVar (VarID "v")])])]
+StmBlock [StmForGen [("k","any"),("v","any")] [ExpFunctionCall (ExpVar (VarID "pairs")) [ExpVar (VarID "t")]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID "print")) [ExpVar (VarID "k"),ExpVar (VarID "v")])])]
 ]=]
 
 r = parse(s)
@@ -528,7 +528,7 @@ s = [=[
 for i = 1 , 10 , 2 do end
 ]=]
 e = [=[
-StmBlock [StmForNum (i,any) (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
+StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -538,7 +538,7 @@ s = [=[
 for i=1,10 do end
 ]=]
 e = [=[
-StmBlock [StmForNum (i,any) (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -548,7 +548,7 @@ s = [=[
 function test(a , b , ...) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) (([(a,any),(b,any)],True),StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("a","any"),("b","any")],True) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -558,7 +558,7 @@ s = [=[
 function test (...) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) (([],True),StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([],True) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -568,7 +568,7 @@ s = [=[
 function t.a:b() end
 ]=]
 e = [=[
-StmBlock [StmFunction (Method ["t","a","b"]) (([],False),StmBlock [])]
+StmBlock [StmFunction (Method ["t","a","b"]) ([],False) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -578,7 +578,7 @@ s = [=[
 function t.a() end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["t","a"]) (([],False),StmBlock [])]
+StmBlock [StmFunction (Function ["t","a"]) ([],False) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -588,7 +588,7 @@ s = [=[
 function testando . funcao . com : espcacos ( e, com , parametros, ... ) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) (([(e,any),(com,any),(parametros,any)],True),StmBlock [])]
+StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) ([("e","any"),("com","any"),("parametros","any")],True) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -635,7 +635,7 @@ else
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID "a")) (StmBlock [StmRet [ExpVar (VarID "a")]]) (StmBlock [StmLocalVar [(c,any)] [ExpVar (VarID "d")],StmAssign [VarID "d"] [ExpAdd (ExpVar (VarID "d")) (ExpNum 1.0)],StmRet [ExpVar (VarID "d")]])]
+StmBlock [StmIfElse (ExpVar (VarID "a")) (StmBlock [StmRet [ExpVar (VarID "a")]]) (StmBlock [StmLocalVar [("c","any")] [ExpVar (VarID "d")],StmAssign [VarID "d"] [ExpAdd (ExpVar (VarID "d")) (ExpNum 1.0)],StmRet [ExpVar (VarID "d")]])]
 ]=]
 
 r = parse(s)
@@ -687,7 +687,7 @@ s = [=[
 local a
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(a,any)] []]
+StmBlock [StmLocalVar [("a","any")] []]
 ]=]
 
 r = parse(s)
@@ -697,7 +697,7 @@ s = [=[
 local a,b,c
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] []]
+StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] []]
 ]=]
 
 r = parse(s)
@@ -707,7 +707,7 @@ s = [=[
 local a = 1 , 1 + 2, 5.1
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(a,any)] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
+StmBlock [StmLocalVar [("a","any")] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
 ]=]
 
 r = parse(s)
@@ -717,7 +717,7 @@ s = [=[
 local a,b,c = 1.9
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(a,any),(b,any),(c,any)] [ExpNum 1.9]]
+StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpNum 1.9]]
 ]=]
 
 r = parse(s)
@@ -727,7 +727,7 @@ s = [=[
 local function test() end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" (([],False),StmBlock [])]
+StmBlock [StmLocalFunction "test" ([],False) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -737,7 +737,7 @@ s = [=[
 local function test ( a , b , c , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" (([(a,any),(b,any),(c,any)],True),StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("a","any"),("b","any"),("c","any")],True) "any" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -747,7 +747,7 @@ s = [=[
 local function test(...) return ... end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" (([],True),StmBlock [StmRet [ExpDots]])]
+StmBlock [StmLocalFunction "test" ([],True) "any" (StmBlock [StmRet [ExpDots]])]
 ]=]
 
 r = parse(s)
@@ -902,7 +902,7 @@ s = [=[
 local t = {{{}}, {"alo"}}
 ]=]
 e = [=[
-StmBlock [StmLocalVar [(t,any)] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
+StmBlock [StmLocalVar [("t","any")] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
 ]=]
 
 r = parse(s)
@@ -968,7 +968,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)

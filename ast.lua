@@ -15,8 +15,6 @@ type FieldList = ([Exp],[(Exp,Exp)])
 
 type ParList = ([ID],IsVarArg)
 
-type FuncBody = (ParList,Stm)
-
 data FuncName = Function [Name] | Method [Name]
 
 data Var = VarID Name | VarIndex Exp Exp
@@ -27,8 +25,8 @@ data Stm = StmBlock [Stm]
          | StmForNum ID Exp Exp Exp Stm
          | StmForGen [ID] [Exp] Stm
          | StmRepeat Stm Exp
-         | StmFunction FuncName FuncBody
-         | StmLocalFunction Name FuncBody
+         | StmFunction FuncName ParList Type Stm
+         | StmLocalFunction Name ParList Type Stm
          | StmLabel Name
          | StmGoTo Name
          | StmBreak
@@ -44,7 +42,7 @@ data Exp = ExpNil
          | ExpNum Double
          | ExpStr String
          | ExpVar Var
-         | ExpFunction FuncBody
+         | ExpFunction ParList Type Stm
          | ExpTableConstructor FieldList
          | ExpMethodCall Exp Name [Exp]
          | ExpFunctionCall Exp [Exp]
@@ -76,7 +74,7 @@ print :: AST -> Void
 
 local ast = {}
 
-local block2str, stm2str, exp2str, var2str, id2str
+local block2str, stm2str, exp2str, var2str, id2str, type2str
 local explist2str, varlist2str, fieldlist2str, namelist2str, idlist2str
 
 local function iscntrl (x)
@@ -112,8 +110,12 @@ local function fixed_string (str)
   return new_str
 end
 
+type2str = function (t)
+  return '"' .. tostring(t) .. '"'
+end
+
 id2str = function (id)
-  return "(" .. id[1] .. "," .. id[2] .. ")"
+  return "(" .. string.format('"%s"', id[1]) .. "," .. type2str(id[2]) .. ")"
 end
 
 idlist2str = function (idlist)
@@ -163,7 +165,7 @@ var2str = function (var)
   local tag = var.tag
   local str = tag
   if tag == "VarID" then -- VarID Name
-    str = str .. " \"" .. var[1] .. "\""
+    str = str .. ' "' .. var[1] .. '"'
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
     str = str .. " (" .. exp2str(var[1]) .. ")"
     str = str .. " (" .. exp2str(var[2]) .. ")"
@@ -183,19 +185,20 @@ exp2str = function (exp)
   elseif tag == "ExpNum" then -- ExpNum Double
     str = str .. string.format(" %.1f", exp[1])
   elseif tag == "ExpStr" then -- ExpStr String
-    str = str .. string.format(" \"%s\"", fixed_string(exp[1]))
+    str = str .. string.format(' "%s"', fixed_string(exp[1]))
   elseif tag == "ExpVar" then -- ExpVar Var
     str = str .. " (" .. var2str(exp[1]) .. ")"
-  elseif tag == "ExpFunction" then -- ExpFunction ParList Stm
+  elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
     local is_vararg = "False"
     if exp[1].is_vararg then is_vararg = "True" end
-    str = str .. " ((" .. idlist2str(exp[1]) .. "," .. is_vararg .. "),"
-    str = str .. stm2str(exp[2]) .. ")"
+    str = str .. " (" .. idlist2str(exp[1]) .. "," .. is_vararg .. ") "
+    str = str .. type2str(exp[2])
+    str = str .. " (" .. stm2str(exp[3]) .. ")"
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     str = str .. fieldlist2str(exp[1])
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
     str = str .. " (" .. exp2str(exp[1]) .. ")"
-    str = str .. " \"" .. exp[2] .. "\""
+    str = str .. ' "' .. exp[2] .. '"'
     str = str .. explist2str(exp[3])
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     str = str .. " (" .. exp2str(exp[1]) .. ")"
@@ -253,21 +256,23 @@ stm2str = function (stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     str = str .. " (" .. stm2str(stm[1]) .. ")"
     str = str .. " (" .. exp2str(stm[2]) .. ")"
-  elseif tag == "StmFunction" then -- StmFunction FuncName ParList Stm
+  elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
     local is_vararg = "False"
     if stm[2].is_vararg then is_vararg = "True" end
     str = str .. " (" .. stm[1].tag .. " " .. namelist2str(stm[1]) .. ")"
-    str = str .. " ((" .. idlist2str(stm[2]) .. "," .. is_vararg .. "),"
-    str = str .. stm2str(stm[3]) .. ")"
-  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Stm
+    str = str .. " (" .. idlist2str(stm[2]) .. "," .. is_vararg .. ") "
+    str = str .. type2str(stm[3])
+    str = str .. " (" .. stm2str(stm[4]) .. ")"
+  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
     local is_vararg = "False"
     if stm[2].is_vararg then is_vararg = "True" end
-    str = str .. " \"" .. stm[1] .. "\""
-    str = str .. " ((" .. idlist2str(stm[2]) .. "," .. is_vararg .. "),"
-    str = str .. stm2str(stm[3]) .. ")"
+    str = str .. ' "' .. stm[1] .. '"'
+    str = str .. " (" .. idlist2str(stm[2]) .. "," .. is_vararg .. ") "
+    str = str .. type2str(stm[3])
+    str = str .. " (" .. stm2str(stm[4]) .. ")"
   elseif tag == "StmLabel" or -- StmLabel Name
          tag == "StmGoTo" then -- StmGoTo Name
-    str = str .. " \"" .. stm[1] .. "\""
+    str = str .. ' "' .. stm[1] .. '"'
   elseif tag == "StmBreak" then -- StmBreak
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
     str = str .. varlist2str(stm[1])

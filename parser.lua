@@ -259,7 +259,7 @@ local G = { V"Lua",
             end +
             taggedCap("NameList", symb("...") * Cg(Cc(true), "is_vararg"));
   FuncBody = symb("(") * (V"ParList" + taggedCap("NameList", Cg(Cc(false), "is_vararg"))) * symb(")") *
-             V"Block" * kw("end");
+             ((symb(":") * V"Type") + Cc("any")) * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name","Name") * V"FuncBody");
   LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
