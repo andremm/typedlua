@@ -154,8 +154,13 @@ local G = { V"Lua",
   -- parser
   Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
+  Type = token(V"Name", "Type");
+  TypedName = taggedCap("Name", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
+  TypedVar = taggedCap("VarID", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
+  TypedPrimary = taggedCap("ExpVar", V"TypedVar") +
+                 symb("(") * V"Expr" * symb(")");
   StatList = (symb(";") + V"Stat")^0;
-  Var = taggedCap("VarID", token(V"Name","Name"));
+  Var = taggedCap("VarID", token(V"Name","Name") * Cc("any"));
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
@@ -178,8 +183,6 @@ local G = { V"Lua",
                 return t
               end;
   Constructor = taggedCap("ExpTableConstructor", symb("{") * V"FieldList" * symb("}"));
-  Type = token(V"Name", "Type");
-  TypedName = taggedCap("Name", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
   NameList = sepby1(V"TypedName", symb(","), "NameList");
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
@@ -210,18 +213,16 @@ local G = { V"Lua",
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
                   taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name","Name") * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
-                )^0, function (t1, t2)
-                       if t2 then
-                         if t2.tag == "ExpMethodCall" then
-                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1], [3] = t2[2]}
-                         elseif t2.tag == "ExpFunctionCall" then
-                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
-                         else
-                           return {tag = "ExpVar", pos = t1.pos, [1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}}
-                         end
+                )^1, function (t1, t2)
+                       if t2.tag == "ExpMethodCall" then
+                         return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1], [3] = t2[2]}
+                       elseif t2.tag == "ExpFunctionCall" then
+                         return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
+                       else
+                         return {tag = "ExpVar", pos = t1.pos, [1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}}
                        end
-                       return t1
-                     end);
+                     end) +
+                V"TypedPrimary";
   PrimaryExp = taggedCap("ExpVar", V"Var") +
                symb("(") * V"Expr" * symb(")");
   Block = taggedCap("StmBlock", V"StatList" * V"RetStat"^-1);

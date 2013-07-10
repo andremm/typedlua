@@ -17,7 +17,7 @@ type ParList = ([ID],IsVarArg)
 
 data FuncName = Function [Name] | Method [Name]
 
-data Var = VarID Name | VarIndex Exp Exp
+data Var = VarID ID | VarIndex Exp Exp
 
 data Stm = StmBlock [Stm]
          | StmIfElse Exp Stm Stm
@@ -165,7 +165,7 @@ var2str = function (var)
   local tag = var.tag
   local str = tag
   if tag == "VarID" then -- VarID Name
-    str = str .. ' "' .. var[1] .. '"'
+    str = str .. " " .. id2str(var)
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
     str = str .. " (" .. exp2str(var[1]) .. ")"
     str = str .. " (" .. exp2str(var[2]) .. ")"
