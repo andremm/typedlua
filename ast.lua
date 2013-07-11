@@ -164,7 +164,7 @@ end
 var2str = function (var)
   local tag = var.tag
   local str = tag
-  if tag == "VarID" then -- VarID Name
+  if tag == "VarID" then -- VarID ID
     str = str .. " " .. id2str(var)
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
     str = str .. " (" .. exp2str(var[1]) .. ")"

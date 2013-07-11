@@ -1,7 +1,8 @@
 #!/usr/bin/env lua
 
-local parser = require "parser"
 local ast = require "ast"
+local code = require "code"
+local parser = require "parser"
 
 local VERSION = "0.1"
 local PROGNAME = "tlc"
@@ -60,8 +61,8 @@ local function doargs ()
 end
 
 local function getcontents (filename)
-  file = assert(io.open(filename, "r"))
-  contents = file:read("*a")
+  local file = assert(io.open(filename, "r"))
+  local contents = file:read("*a")
   file:close()
   return contents
 end
@@ -80,7 +81,22 @@ if not t then
   os.exit(1)
 end
 
-if DUMPAST then ast.dump(t) end
-if PRINTAST then ast.print(t) end
+if DUMPAST and PRINTAST then
+  ast.dump(t)
+  ast.print(t)
+  os.exit(0)
+end
+
+if DUMPAST then
+  ast.dump(t)
+  os.exit(0)
+end
+
+if PRINTAST then
+  ast.print(t)
+  os.exit(0)
+end
+
+code.generate(t, OUTPUT)
 
 os.exit(0)
