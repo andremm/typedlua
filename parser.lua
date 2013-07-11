@@ -356,8 +356,8 @@ local G = { V"Lua",
 }
 
 local function getcontents (filename)
-  file = assert(io.open(filename, "r"))
-  contents = file:read("*a")
+  local file = assert(io.open(filename, "r"))
+  local contents = file:read("*a")
   file:close()
   return contents
 end
