@@ -67,6 +67,13 @@ local function getcontents (filename)
   return contents
 end
 
+local function setcontents (contents, filename)
+  local file = assert(io.open(filename, "w"))
+  file:write(contents)
+  file:write("\n")
+  file:close()
+end
+
 if #arg < 1 then
   usage("no input file given")
 end
@@ -97,6 +104,8 @@ if PRINTAST then
   os.exit(0)
 end
 
-code.generate(t, OUTPUT)
+local generated_code = code.generate(t)
+setcontents(generated_code, OUTPUT)
+print(generated_code)
 
 os.exit(0)

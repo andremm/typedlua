@@ -276,15 +276,9 @@ code_block = function (block, i)
   return table.concat(l, "\n")
 end
 
-function code.generate (ast, filename)
+function code.generate (ast)
   assert(type(ast) == "table")
-  assert(type(filename) == "string")
-  local generated_code = code_block(ast, 0)
-  local output = assert(io.open(filename, "w"))
-  output:write(generated_code)
-  output:write("\n")
-  output:close()
-  print(generated_code)
+  return code_block(ast, 0)
 end
 
 return code
