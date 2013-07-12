@@ -155,12 +155,14 @@ local G = { V"Lua",
   Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
   Type = token(V"Name", "Type");
-  TypedName = taggedCap("Name", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
-  TypedVar = taggedCap("VarID", token(V"Name", "Name") * ((symb(":") * V"Type") + Cc("any")));
+  OptionalType = (symb(":") * V"Type") + V"DynamicType";
+  DynamicType = Cc("any");
+  TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
+  TypedVar = taggedCap("VarID", token(V"Name", "Name") * V"OptionalType");
   TypedPrimary = taggedCap("ExpVar", V"TypedVar") +
                  symb("(") * V"Expr" * symb(")");
   StatList = (symb(";") + V"Stat")^0;
-  Var = taggedCap("VarID", token(V"Name","Name") * Cc("any"));
+  Var = taggedCap("VarID", token(V"Name","Name") * V"DynamicType");
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
@@ -260,7 +262,7 @@ local G = { V"Lua",
             end +
             taggedCap("NameList", symb("...") * Cg(Cc(true), "is_vararg"));
   FuncBody = symb("(") * (V"ParList" + taggedCap("NameList", Cg(Cc(false), "is_vararg"))) * symb(")") *
-             ((symb(":") * V"Type") + Cc("any")) * V"Block" * kw("end");
+             V"OptionalType" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name","Name") * V"FuncBody");
   LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
