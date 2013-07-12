@@ -154,7 +154,8 @@ local G = { V"Lua",
   -- parser
   Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
-  Type = token(V"Name", "Type");
+  Type = token(V"Name", "Type") +
+         token(C"nil", "Type");
   OptionalType = (symb(":") * V"Type") + V"DynamicType";
   DynamicType = Cc("any");
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
