@@ -12,28 +12,19 @@
 
 \maketitle
 
-\section{Syntax}
+\section{Type Language}
 
 \begin{align*}
-T ::= \; & integer\\
-& string\\
-& true\\
-& false\\
+T ::= \; & Object\\
+& i\\
+& s\\
+& \textbf{nil}\\
+& \textbf{false}\\
+& \textbf{true}\\
 & Any\\
 & Number\\
 & String\\
 & Boolean\\
-& Nil\\
-& Object\\
-& T_1 \rightarrow T_2\\
-& T_1 \cup T_2\\
-& T_1 \cap T_2\\
-& \{ T_1:U_1, ..., T_n:U_n, brand \}\\
-& X\\
-& \mu X.T\\
-V ::= \; & T*\\
-& T \times V\\
-& ()
 \end{align*}
 
 \section{Subtyping}
@@ -53,19 +44,19 @@ S \; <: \; S
 \subsection{Constants}
 
 \[
-integer <: Number \; (\textit{S-INT})
+i <: Number \; (\textit{S-INT})
 \]
 
 \[
-string <: String \; (\textit{S-LIT})
+s <: String \; (\textit{S-LIT})
 \]
 
 \[
-true <: Boolean \; (\textit{S-TRUE})
+\textbf{false} <: Boolean \; (\textit{S-FALSE})
 \]
 
 \[
-false <: Boolean \; (\textit{S-FALSE})
+\textbf{true} <: Boolean \; (\textit{S-TRUE})
 \]
 
 \subsection{Object (Top)}
@@ -74,126 +65,17 @@ false <: Boolean \; (\textit{S-FALSE})
 T <: Object \; (\textit{S-OBJ})
 \]
 
-\subsection{Functions}
-
-\[
-\frac{T_{1} <: S_{1} \;\;\; S_{2} <: T_{2}}
-     {S_{1} \rightarrow S_{2} \; <: \; T_{1} \rightarrow T_{2}} \; (\textit{S-FUNC})
-\]
-
-\subsection{Tables}
-
-\[
-\{T_{i}:U_{i} \; ^{i \in 1..n+m}\} \;
-<: \;
-\{T_{i}:U_{i} \; ^{i \in 1..n}\} \; (\textit{S-TAB1})
-\]
-
-\[
-\frac{\{T_{i}:S_{i} \; ^{i \in 1..n}\} \;
-       \textbf{is a permutation of} \;
-       \{V_{j}:U_{j} \; ^{j \in 1..n}\}}
-     {\{T_{i}:S_{i} \; ^{i \in 1..n}\}
-       <:
-       \{V_{j}:U_{j} \; ^{j \in 1..n}\}} \; (\textit{S-TAB2})
-\]
-
-\subsection{Union}
-
-\[
-T_{1} <: T_{1} \cup T_{2} \; (\textit{S-UNION1})
-\]
-
-\[
-T_{2} <: T_{1} \cup T_{2} \; (\textit{S-UNION2})
-\]
-
-\[
-\frac{S_{1} <: T\;\;\; S_{2} <: T}
-     {S_{1} \cup S_{2} <: T} \; (\textit{S-UNION3})
-\]
-
-\subsection{Intersection}
-
-\[
-T_{1} \cap T_{2} <: T_{1} \; (\textit{S-INTER1})
-\]
-
-\[
-T_{1} \cap T_{2} <: T_{2} \; (\textit{S-INTER2})
-\]
-
-\[
-\frac{S <: T_{1} \;\;\; S <: T_{2}}
-     {S <: T_{1} \cap T_{2}} \; (\textit{S-INTER3})
-\]
-
-\subsection{Product}
-
-\[
-\frac{T_{1} <: T_{2} \;\;\; V_{1} <: V_{2}}
-     {T_{1} \times V_{1} \; <: \; T_{2} \times V_{2}} \; (\textit{S-PROD1})
-\]
-
-\subsection{Vararg (...)}
-
-\[
-\frac{T_{1}* \; <: \; T_{2}*}
-     {T_{1} \; <: \; T_{2}} \; (\textit{S-VARARG1})
-\]
-
-\[
-T* \; <: \; T \cup Nil \times {T*} \; (\textit{S-VARARG2})
-\]
-
-\subsection{Recursive Types}
-
-\[
-\frac{S <: T[X \mapsto Y]}
-     {\mu Y.S <: \mu X.T} \; (\textit{S-REC})
-\]
-
-\subsection{Trash}
-
-\begin{align*}
-V ::= \; & Void\\
-& T\\
-& T*\\
-& T \times V
-\end{align*}
-
-\[
-Void <: Nil \; (\textit{S-VOID1})
-\]
-
-\[
-Void <: T_{1} \times Void (\textit{S-VOID2)}
-\]
-
-\[
-\frac{Void <: T \;\;\; Void <: V}
-     {Void <: T \times V} \; (\textit{S-VOID3})
-\]
-
-\[
-\frac{T_{1} <: T_{2} \;\;\; V_{1} <: V_{2}}
-     {T_{1} \times V_{1} <: T_{2} \times V_{2}} \; (\textit{S-PROD1})
-\]
-
-\[
-\frac{S_{1} <: T_{1} \;\;\; S_{2} \times Void <: Void}
-     {S_{1} \times S_{2} \times Void <: T_{1} \times Void} \; (\textit{S-PROD2})
-\]
-
 \section{Typing Rules}
 
-\subsection{Syntax}
+\subsection{Abstract Syntax}
 
 \begin{align*}
-v ::= \; & id \; | \; e \cdot e\\
+v ::= \; & id \; | \; e[e]\\
 %funcname ::= \; & \textbf{function} \; \overline{id} \;
 %| \; \textbf{method} \; \overline{id}\\
-funcboby ::= \; & ((\overline{id},isvararg),s)\\
+%funcboby ::= \; & ((\overline{id},isvararg),s)\\
+funcboby ::= \; & () \; s \; | \; ({...}) \; s \;
+| \; (\overline{id}) \; s \; | \; (\overline{id},{...}) \; s\\
 s ::= \; & statements\\
 %s ::= \; & \textbf{block} \; \overline{s}\\
 %| & \; \textbf{ifelse} \; e \; s \; s\\
@@ -210,19 +92,12 @@ s ::= \; & statements\\
 %| & \; \textbf{localvar} \; \overline{id} \; \overline{e}\\
 %| & \; \textbf{ret} \; \overline{e}\\
 %| & \; e\\
-e ::= \; & nil\\
-| & \; false\\
-| & \; true\\
-| & \; {...}\\
-| & \; n\\
-| & \; l\\
-| & \; v\\
-| & \; \textbf{func} \; funcbody\\
-| & \; \{(\overline{e},\overline{(e,e)})\}\\
-| & \; id(e,\overline{e})\\
-| & \; e(\overline{e})\\
-| & \; e \; binop \; e\\
-| & \; unop \; e\\
+e ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
+| \; {...} \; | \; n \; | \; l \; | \; v \;
+| \; \textbf{func} \; funcbody \; | \\
+& \{(\overline{e},\overline{(e,e)})\} \;
+| \; id(e,\overline{e}) \; | \; e(\overline{e}) \;
+| \; e \; binop \; e \; | \; unop \; e\\
 binop ::= & + | - | \times | \div | \bmod | \otimes | \oplus
   | \not= | = | < | \le | > | \ge | \land | \lor\\
 unop ::= & \; \lnot \; | - | \; \#\\
@@ -231,138 +106,213 @@ unop ::= & \; \lnot \; | - | \; \#\\
 \subsection{Expressions}
 
 \[
-nil : Nil \; (\textit{T-NIL})
+\textbf{nil} : \textbf{nil} \; (\textit{T-NIL})
 \]
 
 \[
-false : Boolean \; (\textit{T-FALSE})
+\textbf{false} : \textbf{false} \; (\textit{T-FALSE})
 \]
 
 \[
-true : Boolean \; (\textit{T-TRUE})
+\textbf{true} : \textbf{true} \; (\textit{T-TRUE})
 \]
 
 \[
-{...} : Any \; (\textit{T-VARARG})
+{...} : TODO \; (\textit{T-VARARG})
 \]
 
 \[
-n : Number \; (\textit{T-NUMBER})
+n : n \; (\textit{T-NUMBER})
 \]
 
 \[
-l : String \; (\textit{T-STRING})
+l : l \; (\textit{T-STRING})
 \]
 
 \[
-\textbf{func} \; funcbody : Any \; (\textit{T-ANONFUNC})
+\textbf{func} \; funcbody : TODO \; (\textit{T-ANONFUNC})
 \]
 
 \[
-\{(\overline{e},\overline{(e,e)})\} : Any \; (\textit{T-TABLECONST})
+\{(\overline{e},\overline{(e,e)})\} : TODO \; (\textit{T-TABLECONST})
 \]
 
 \[
-id(e,\overline{e}) : Any \; (\textit{T-METHCALL})
+id(e,\overline{e}) : TODO \; (\textit{T-METHCALL})
 \]
 
 \[
-e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
-\]
-
-\[
-\frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} + e_{2} : Number} \; (\textit{T-ADD})
+e(\overline{e}) : TODO \; (\textit{T-FUNCCALL})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} - e_{2} : Number} \; (\textit{T-SUB})
+     {e_{1} + e_{2} : Number} \; (\textit{T-ADDNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} + e_{2} : Any} \; (\textit{T-ADDANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \times e_{2} : Number} \; (\textit{T-MUL})
+     {e_{1} - e_{2} : Number} \; (\textit{T-SUBNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} - e_{2} : Any} \; (\textit{T-SUBANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \div e_{2} : Number} \; (\textit{T-DIV})
+     {e_{1} \times e_{2} : Number} \; (\textit{T-MULNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \times e_{2} : Any} \; (\textit{T-MULANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \bmod e_{2} : Number} \; (\textit{T-MOD})
+     {e_{1} \div e_{2} : Number} \; (\textit{T-DIVNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \div e_{2} : Any} \; (\textit{T-DIVANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \otimes e_{2} : Number} \; (\textit{T-POW})
+     {e_{1} \bmod e_{2} : Number} \; (\textit{T-MODNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \bmod e_{2} : Any} \; (\textit{T-MODANY})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} \otimes e_{2} : Number} \; (\textit{T-POWNUM})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \otimes e_{2} : Any} \; (\textit{T-POWANY})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} \oplus e_{2} : String} \; (\textit{T-CONCAT})
+     {e_{1} \oplus e_{2} : String} \; (\textit{T-CONCATSTR})
 \]
 
 \[
-\frac{e_{1}:T \;\;\; e_{2}:T}
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \oplus e_{2} : Any} \; (\textit{T-CONCATANY})
+\]
+
+\[
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
      {e_{1} \not= e_{2} : Boolean} \; (\textit{T-NE})
 \]
 
 \[
-\frac{e_{1}:T \;\;\; e_{2}:T}
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
      {e_{1} = e_{2} : Boolean} \; (\textit{T-EQ})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT1})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-LTNUM})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT2})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-LTSTR})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-LTANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE1})
+     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LENUM})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE2})
+     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LESTR})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LEANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT1})
+     {e_{1} > e_{2} : Boolean} \; (\textit{T-GTNUM})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT2})
+     {e_{1} > e_{2} : Boolean} \; (\textit{T-GTSTR})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} > e_{2} : Boolean} \; (\textit{T-GTANY})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE1})
+     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GENUM})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE2})
+     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GESTR})
+\]
+
+\[
+\frac{e_{1}:Any \;\;\; e_{2}:Any}
+     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GEANY})
+\]
+
+\[
+\frac{e_{1}:\textbf{nil}}
+     {e_{1} \land e_{2} : \textbf{nil}} \; (\textit{T-ANDNIL})
+\]
+
+\[
+\frac{e_{1}:\textbf{false}}
+     {e_{1} \land e_{2} : \textbf{false}} \; (\textit{T-ANDFALSE})
 \]
 
 \[
 \frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \land e_{2} : T_{1} \cup T_{2}} \; (\textit{T-AND})
+     {e_{1} \land e_{2} : T_{2}} \; (\textit{T-ANDTRUE})
 \]
 
 \[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \lor e_{2} : T_{1} \cup T_{2}} \; (\textit{T-OR})
+\frac{e_{1}:\textbf{nil} \;\;\; e_{2}:T}
+     {e_{1} \lor e_{2} : T} \; (\textit{T-ORNIL})
+\]
+
+\[
+\frac{e_{1}:\textbf{false} \;\;\; e_{2}:T}
+     {e_{1} \lor e_{2} : T} \; (\textit{T-ORFALSE})
+\]
+
+\[
+\frac{e_{1}:T}
+     {e_{1} \lor e_{2} : T} \; (\textit{T-ORTRUE})
 \]
 
 \[
@@ -372,7 +322,12 @@ e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
 
 \[
 \frac{e : Number}
-     {- \; e : Number} \; (\textit{T-MINUS})
+     {- \; e : Number} \; (\textit{T-MINUSNUM})
+\]
+
+\[
+\frac{e : Any}
+     {- \; e : Any} \; (\textit{T-MINUSANY})
 \]
 
 \[
