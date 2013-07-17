@@ -159,9 +159,8 @@ local G = { V"Lua",
   OptionalType = (symb(":") * V"Type") + V"DynamicType";
   DynamicType = Cc("any");
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
-  TypedVar = taggedCap("VarID", token(V"Name", "Name") * V"OptionalType");
-  TypedPrimary = taggedCap("ExpVar", V"TypedVar") +
-                 symb("(") * V"Expr" * symb(")");
+  TypedVar = taggedCap("VarID", token(V"Name", "Name") * symb(":") * V"Type");
+  TypedGlobal = taggedCap("ExpVar", V"TypedVar" * -V"FuncArgs");
   StatList = (symb(";") + V"Stat")^0;
   Var = taggedCap("VarID", token(V"Name","Name") * V"DynamicType");
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
@@ -216,16 +215,18 @@ local G = { V"Lua",
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
                   taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name","Name") * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
-                )^1, function (t1, t2)
-                       if t2.tag == "ExpMethodCall" then
-                         return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1], [3] = t2[2]}
-                       elseif t2.tag == "ExpFunctionCall" then
-                         return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
-                       else
-                         return {tag = "ExpVar", pos = t1.pos, [1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}}
+                )^0, function (t1, t2)
+                       if t2 then
+                         if t2.tag == "ExpMethodCall" then
+                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1], [3] = t2[2]}
+                         elseif t2.tag == "ExpFunctionCall" then
+                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
+                         else
+                           return {tag = "ExpVar", pos = t1.pos, [1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}}
+                         end
                        end
-                     end) +
-                V"TypedPrimary";
+                       return t1
+                     end);
   PrimaryExp = taggedCap("ExpVar", V"Var") +
                symb("(") * V"Expr" * symb(")");
   Block = taggedCap("StmBlock", V"StatList" * V"RetStat"^-1);
@@ -273,7 +274,7 @@ local G = { V"Lua",
   GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name","Name"));
   RetStat = taggedCap("StmRet", kw("return") * (V"ExpList" + Ct(Cc())) * symb(";")^-1);
   ExprStat = Cmt(
-             (V"SuffixedExp" *
+             ((V"TypedGlobal" + V"SuffixedExp") *
                 (Cc(function (...)
                            local vl = {...}
                            local el = vl[#vl]
@@ -301,7 +302,7 @@ local G = { V"Lua",
                            return false
                          end)))
              , function (s, i, s1, f, ...) return f(s1,...) end);
-  Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
+  Assignment = ((symb(",") * (V"TypedGlobal" + V"SuffixedExp"))^1)^-1 * symb("=") * V"ExpList";
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
          V"BreakStat" + V"GoToStat" + V"ExprStat";

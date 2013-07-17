@@ -275,7 +275,7 @@ s = [=[
 f = 9e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -285,7 +285,7 @@ s = [=[
 f = 5.e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -295,7 +295,7 @@ s = [=[
 f = .9e-
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -305,7 +305,7 @@ s = [=[
 f = 5.9e+
 ]=]
 e = [=[
-test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -317,7 +317,7 @@ s = [=[
 hex = 0xG
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -380,7 +380,7 @@ unfinished
 comment
 ]=]
 e = [=[
-test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -446,6 +446,16 @@ i = i + 1
 ]=]
 e = [=[
 StmBlock [StmAssign [VarIndex (ExpVar (VarID ("a","any"))) (ExpFunctionCall (ExpVar (VarID ("f","any"))) [])] [ExpVar (VarID ("sub","any"))],StmAssign [VarID ("i","any")] [ExpAdd (ExpVar (VarID ("i","any"))) (ExpNum 1.0)]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+a:b(1)._ = some_value
+]=]
+e = [=[
+StmBlock [StmAssign [VarIndex (ExpMethodCall (ExpVar (VarID ("a","any"))) "b" [ExpNum 1.0]) (ExpStr "_")] [ExpVar (VarID ("some_value","any"))]]
 ]=]
 
 r = parse(s)
