@@ -216,7 +216,7 @@ exp2str = function (exp)
          tag == "ExpLE" or -- ExpLE Exp Exp
          tag == "ExpGT" or -- ExpGT Exp Exp
          tag == "ExpGE" or -- ExpGE Exp Exp
-         tag == "ExpAnd" or -- ExpGE Exp Exp
+         tag == "ExpAnd" or -- ExpAnd Exp Exp
          tag == "ExpOr" then -- ExpOr Exp Exp
     str = str .. " (" .. exp2str(exp[1]) .. ")"
     str = str .. " (" .. exp2str(exp[2]) .. ")"

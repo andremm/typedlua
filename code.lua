@@ -185,7 +185,7 @@ code_exp = function (exp, i)
          tag == "ExpLE" or -- ExpLE Exp Exp
          tag == "ExpGT" or -- ExpGT Exp Exp
          tag == "ExpGE" or -- ExpGE Exp Exp
-         tag == "ExpAnd" or -- ExpGE Exp Exp
+         tag == "ExpAnd" or -- ExpAnd Exp Exp
          tag == "ExpOr" then -- ExpOr Exp Exp
     return "(" .. code_exp(exp[1], i) .. binop(tag) .. code_exp(exp[2], i) .. ")"
   elseif tag == "ExpNot" or -- ExpNot Exp

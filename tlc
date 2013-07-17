@@ -1,6 +1,7 @@
 #!/usr/bin/env lua
 
 local ast = require "ast"
+local checker = require "checker"
 local code = require "code"
 local parser = require "parser"
 
@@ -102,6 +103,12 @@ end
 if PRINTAST then
   ast.print(t)
   os.exit(0)
+end
+
+t,e = checker.typecheck(t)
+if not t then
+  print(e)
+  os.exit(1)
 end
 
 local generated_code = code.generate(t)
