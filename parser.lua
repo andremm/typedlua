@@ -23,7 +23,7 @@ local function trim (s)
 end
 
 -- gets line number and column number
-local function lineno (s, i)
+function parser.lineno (s, i)
   if i == 1 then return 1,1 end
   local n,lastline = 0,""
   s = s:sub(1,i) .. "\n"
@@ -37,7 +37,7 @@ end
 -- creates an error message for the input string
 local function errormsg (s, t)
   local i = t.ffp or 1
-  local lineno,colno = lineno(s,i)
+  local lineno,colno = parser.lineno(s,i)
   local u = lpeg.match(C((1 - space)^0), s, i)
   local msg
   if u == '' then
