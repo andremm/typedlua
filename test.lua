@@ -462,6 +462,26 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+x:number,y:boolean,z:nil = 1,true
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","number"),VarID ("y","boolean"),VarID ("z","nil")] [ExpNum 1.0,ExpTrue]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x:number,t.f,a:b()[0],z:nil = 1,function () end,"alo"
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","any"))) (ExpStr "f"),VarIndex (ExpMethodCall (ExpVar (VarID ("a","any"))) "b" []) (ExpNum 0.0),VarID ("z","nil")] [ExpNum 1.0,ExpFunction ([],False) "any" (StmBlock []),ExpStr "alo"]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 concat1 = 1 .. 2^3
 ]=]
 e = [=[
@@ -515,6 +535,26 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local test = function (x:number,y:string) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("y","string")],False) "nil" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local test = function (x:number,t,a:boolean) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("t","any"),("a","boolean")],False) "nil" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 test = function (...) return ...,0 end
 ]=]
 e = [=[
@@ -535,6 +575,16 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+for k:number,v:any in pairs(t) do print (k,v) end
+]=]
+e = [=[
+StmBlock [StmForGen [("k","number"),("v","any")] [ExpFunctionCall (ExpVar (VarID ("pairs","any"))) [ExpVar (VarID ("t","any"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","any"))) [ExpVar (VarID ("k","any")),ExpVar (VarID ("v","any"))])])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 for i = 1 , 10 , 2 do end
 ]=]
 e = [=[
@@ -549,6 +599,16 @@ for i=1,10 do end
 ]=]
 e = [=[
 StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for i:number=1,10 do end
+]=]
+e = [=[
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -599,6 +659,36 @@ function testando . funcao . com : espcacos ( e, com , parametros, ... ) end
 ]=]
 e = [=[
 StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) ([("e","any"),("com","any"),("parametros","any")],True) "any" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f (x:number,y:string) : nil end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([("x","number"),("y","string")],False) "nil" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f (x:number,y:string,...) : nil end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([("x","number"),("y","string")],True) "nil" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f (x:number,t,a:boolean) : nil end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([("x","number"),("t","any"),("a","boolean")],False) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -734,6 +824,26 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:number,y:boolean,z:nil
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","number"),("y","boolean"),("z","nil")] []]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local a:number,b,c:nil = 1.9
+]=]
+e = [=[
+StmBlock [StmLocalVar [("a","number"),("b","any"),("c","nil")] [ExpNum 1.9]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 local function test() end
 ]=]
 e = [=[
@@ -758,6 +868,36 @@ local function test(...) return ... end
 ]=]
 e = [=[
 StmBlock [StmLocalFunction "test" ([],True) "any" (StmBlock [StmRet [ExpDots]])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test(x:number,y:string) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","number"),("y","string")],False) "nil" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test(x:number,t:any,...) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","number"),("t","any")],True) "nil" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test(x:number,t,a:boolean) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","number"),("t","any"),("a","boolean")],False) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -945,6 +1085,26 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+x:int = y:int
+]=]
+e = [=[
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x:int = t[f:int]
+]=]
+e = [=[
+test.lua:1:16: syntax error, unexpected ']', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 a = function (a,b,) end
 ]=]
 e = [=[
@@ -985,6 +1145,16 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local test = z:nil,1
+]=]
+e = [=[
+test.lua:1:16: syntax error, unexpected 'nil,1', expecting 'Name'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
@@ -995,10 +1165,30 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+for k,v in pairs(t:any) do end
+]=]
+e = [=[
+test.lua:1:23: syntax error, unexpected ')', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 for i=1,10, do end
 ]=]
 e = [=[
 test.lua:1:13: syntax error, unexpected 'do', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for i=1,n:number do end
+]=]
+e = [=[
+test.lua:1:18: syntax error, unexpected 'do', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
@@ -1076,6 +1266,16 @@ end
 ]=]
 e = [=[
 test.lua:7:1: syntax error, unexpected 'end', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+if a:any then else end
+]=]
+e = [=[
+test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
