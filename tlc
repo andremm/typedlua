@@ -105,7 +105,7 @@ if PRINTAST then
   os.exit(0)
 end
 
-t,e = checker.typecheck(t)
+t,e = checker.typecheck(t, subject, filename)
 if not t then
   print(e)
   os.exit(1)
