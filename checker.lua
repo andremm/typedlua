@@ -2,7 +2,15 @@
 This file implements the type checker for Typed Lua
 ]]
 
+local parser = require "parser"
+
 local checker = {}
+
+local function typeerror (msg, node)
+  local l,c = parser.lineno(checker.subject, node.pos)
+  local error_msg = ("%s:%d:%d: type error, %s"):format(checker.filename, l, c, msg)
+  return nil,error_msg
+end
 
 local check_block, check_stm, check_exp, check_var
 local check_explist
@@ -29,9 +37,8 @@ end
 
 check_exp = function (exp)
   local tag = exp.tag
-  local t,m
+  local t,m,msg
   if tag == "ExpNil" then
-    exp.type = "nil"
   elseif tag == "ExpFalse" then
     exp.type = "boolean"
   elseif tag == "ExpTrue" then
@@ -66,29 +73,41 @@ check_exp = function (exp)
     if not t then return t,m end
     t,m = check_exp(exp[2])
     if not t then return t,m end
-    if exp[1].type == "number" and exp[2].type == "number" then
-      exp.type = "number"
-      return true
+    if exp[1].type == "number" then
+      if exp[2].type == "number" then
+        exp.type = "number"
+        return true
+      end
+      exp[1] = exp[2]
+    elseif exp[1].type == "any" then
+      if exp[2].type == "any" then
+        exp.type = "any"
+        return true
+      end
+      exp[1] = exp[2]
     end
-    if exp[1].type == "any" and exp[2].type == "any" then
-      exp.type = "any"
-      return true
-    end
-    return nil,"arithmetic type error"
+    msg = ("attempt to perform arithmetic on a %s"):format(exp[1].type)
+    return typeerror(msg, exp[1])
   elseif tag == "ExpConcat" then -- ExpConcat Exp Exp
     t,m = check_exp(exp[1])
     if not t then return t,m end
     t,m = check_exp(exp[2])
     if not t then return t,m end
-    if exp[1].type == "string" and exp[2].type == "string" then
-      exp.type = "string"
-      return true
+    if exp[1].type == "string" then
+      if exp[2].type == "string" then
+        exp.type = "string"
+        return true
+      end
+      exp[1] = exp[2]
+    elseif exp[1].type == "any" then
+      if exp[2].type == "any" then
+        exp.type = "any"
+        return true
+      end
+      exp[1] = exp[2]
     end
-    if exp[1].type == "any" and exp[2].type == "any" then
-      exp.type = "any"
-      return true
-    end
-    return nil,"concat type error"
+    msg = ("attempt to concatenate a %s"):format(exp[1].type)
+    return typeerror(msg, exp[1])
   elseif tag == "ExpNE" or -- ExpNE Exp Exp
          tag == "ExpEQ" then -- ExpEQ Exp Exp
     t,m = check_exp(exp[1])
@@ -202,8 +221,12 @@ check_block = function (block)
   return true
 end
 
-function checker.typecheck (ast)
+function checker.typecheck (ast, subject, filename)
   assert(type(ast) == "table")
+  assert(type(subject) == "string")
+  assert(type(filename) == "string")
+  checker.subject = subject
+  checker.filename = filename
   local t,m = check_block (ast)
   if not t then return t,m end
   return ast
