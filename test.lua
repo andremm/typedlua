@@ -1434,6 +1434,26 @@ StmBlock [StmLocalVar [("x","any")] [ExpConcat (ExpStr "hello") (ExpStr "world")
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+local x = 1 > 2 
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpGT (ExpNum 1.0) (ExpNum 2.0)]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = "hello" < "world"
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 s = [=[
@@ -1451,6 +1471,16 @@ local x = 1 .. "hello"
 ]=]
 e = [=[
 test.lua:1:11: type error, attempt to concatenate a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = 1 < "hello"
+]=]
+e = [=[
+test.lua:1:11: type error, attempt to compare number with string
 ]=]
 
 r = typecheck(s)

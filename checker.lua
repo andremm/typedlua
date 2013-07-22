@@ -30,7 +30,7 @@ local function check_arith (exp)
 
   if types.isNumber(exp[1].type) then
     if types.isNumber(exp[2].type) then
-      exp.type = types.Number()
+      set_type(exp, types.Number())
       return true
     end
     exp[1] = exp[2]
@@ -48,13 +48,40 @@ local function check_concat (exp)
 
   if types.isString(exp[1].type) then
     if types.isString(exp[2].type) then
-      exp.type = types.String()
+      set_type(exp, types.String())
       return true
     end
     exp[1] = exp[2]
   end
   msg = "attempt to concatenate a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
+  return typeerror(msg, exp[1])
+end
+
+local function check_equal (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  set_type(exp, types.Boolean())
+  return true
+end
+
+local function check_order (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  set_type(exp, types.Boolean())
+  if types.isNumber(exp[1].type) and types.isNumber(exp[2].type) then
+    return true
+  elseif types.isString(exp[1].type) and types.isString(exp[2].type) then
+      return true
+  end
+  msg = "attempt to compare %s with %s"
+  msg = string.format(msg, types.tostring(exp[1].type), types.tostring(exp[2].type))
   return typeerror(msg, exp[1])
 end
 
@@ -118,31 +145,12 @@ check_exp = function (exp)
     return check_concat(exp)
   elseif tag == "ExpNE" or -- ExpNE Exp Exp
          tag == "ExpEQ" then -- ExpEQ Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    exp.type = "boolean"
-    return true
+    return check_equal(exp)
   elseif tag == "ExpLT" or -- ExpLT Exp Exp
          tag == "ExpLE" or -- ExpLE Exp Exp
          tag == "ExpGT" or -- ExpGT Exp Exp
          tag == "ExpGE" then -- ExpGE Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    exp.type = "boolean"
-    if exp[1].type == "number" and exp[2].type == "number" then
-      return true
-    end
-    if exp[1].type == "any" and exp[2].type == "any" then
-      return true
-    end
-    if exp[1].type == "string" and exp[2].type == "string" then
-      return true
-    end
-    return nil,"relational type error"
+    return check_order(exp)
   elseif tag == "ExpAnd" then -- ExpAnd Exp Exp
     t,m = check_exp(exp[1])
     if not t then return t,m end
