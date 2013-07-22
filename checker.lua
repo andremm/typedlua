@@ -7,6 +7,11 @@ local types = require "types"
 
 local checker = {}
 
+local function set_type (node, node_type)
+  node.type = node_type
+  return true
+end
+
 local function typeerror (msg, node)
   local l,c = parser.lineno(checker.subject, node.pos)
   local error_msg = "%s:%d:%d: type error, %s"
@@ -35,6 +40,24 @@ local function check_arith (exp)
   return typeerror(msg, exp[1])
 end
 
+local function check_concat (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  if types.isString(exp[1].type) then
+    if types.isString(exp[2].type) then
+      exp.type = types.String()
+      return true
+    end
+    exp[1] = exp[2]
+  end
+  msg = "attempt to concatenate a %s"
+  msg = string.format(msg, types.tostring(exp[1].type))
+  return typeerror(msg, exp[1])
+end
+
 check_explist = function (explist)
   local t,m
   for k,v in ipairs(explist) do
@@ -59,16 +82,17 @@ check_exp = function (exp)
   local tag = exp.tag
   local t,m,msg
   if tag == "ExpNil" then
+    return set_type(exp, types.Nil())
   elseif tag == "ExpFalse" then
-    exp.type = "boolean"
+    return set_type(exp, types.Boolean())
   elseif tag == "ExpTrue" then
-    exp.type = "boolean"
+    return set_type(exp, types.Boolean())
   elseif tag == "ExpDots" then
-    exp.type = "any"
+    return set_type(exp, types.Any())
   elseif tag == "ExpNum" then -- ExpNum Double
-    exp.type = "number"
+    return set_type(exp, types.Number())
   elseif tag == "ExpStr" then -- ExpStr String
-    exp.type = "string"
+    return set_type(exp, types.String())
   elseif tag == "ExpVar" then -- ExpVar Var
     t,m = check_var(exp[1])
     if not t then return t,m end
@@ -76,13 +100,13 @@ check_exp = function (exp)
     return true
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
     local is_vararg = exp[1].is_vararg
-    exp.type = "any"
+    return set_type(exp, types.Any())
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
-    exp.type = "any"
+    return set_type(exp, types.Any())
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    exp.type = "any"
+    return set_type(exp, types.Any())
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
-    exp.type = "any"
+    return set_type(exp, types.Any())
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
          tag == "ExpMul" or -- ExpMul Exp Exp
@@ -91,25 +115,7 @@ check_exp = function (exp)
          tag == "ExpPow" then -- ExpPow Exp Exp
     return check_arith(exp)
   elseif tag == "ExpConcat" then -- ExpConcat Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    if exp[1].type == "string" then
-      if exp[2].type == "string" then
-        exp.type = "string"
-        return true
-      end
-      exp[1] = exp[2]
-    elseif exp[1].type == "any" then
-      if exp[2].type == "any" then
-        exp.type = "any"
-        return true
-      end
-      exp[1] = exp[2]
-    end
-    msg = ("attempt to concatenate a %s"):format(exp[1].type)
-    return typeerror(msg, exp[1])
+    return check_concat(exp)
   elseif tag == "ExpNE" or -- ExpNE Exp Exp
          tag == "ExpEQ" then -- ExpEQ Exp Exp
     t,m = check_exp(exp[1])
