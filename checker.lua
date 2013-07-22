@@ -3,17 +3,37 @@ This file implements the type checker for Typed Lua
 ]]
 
 local parser = require "parser"
+local types = require "types"
 
 local checker = {}
 
 local function typeerror (msg, node)
   local l,c = parser.lineno(checker.subject, node.pos)
-  local error_msg = ("%s:%d:%d: type error, %s"):format(checker.filename, l, c, msg)
+  local error_msg = "%s:%d:%d: type error, %s"
+  error_msg = string.format(error_msg, checker.filename, l, c, msg)
   return nil,error_msg
 end
 
 local check_block, check_stm, check_exp, check_var
 local check_explist
+
+local function check_arith (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  if types.isNumber(exp[1].type) then
+    if types.isNumber(exp[2].type) then
+      exp.type = types.Number()
+      return true
+    end
+    exp[1] = exp[2]
+  end
+  msg = "attempt to perform arithmetic on a %s"
+  msg = string.format(msg, types.tostring(exp[1].type))
+  return typeerror(msg, exp[1])
+end
 
 check_explist = function (explist)
   local t,m
@@ -69,25 +89,7 @@ check_exp = function (exp)
          tag == "ExpDiv" or -- ExpDiv Exp Exp
          tag == "ExpMod" or -- ExpMod Exp Exp
          tag == "ExpPow" then -- ExpPow Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    if exp[1].type == "number" then
-      if exp[2].type == "number" then
-        exp.type = "number"
-        return true
-      end
-      exp[1] = exp[2]
-    elseif exp[1].type == "any" then
-      if exp[2].type == "any" then
-        exp.type = "any"
-        return true
-      end
-      exp[1] = exp[2]
-    end
-    msg = ("attempt to perform arithmetic on a %s"):format(exp[1].type)
-    return typeerror(msg, exp[1])
+    return check_arith(exp)
   elseif tag == "ExpConcat" then -- ExpConcat Exp Exp
     t,m = check_exp(exp[1])
     if not t then return t,m end

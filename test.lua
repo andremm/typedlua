@@ -1,14 +1,32 @@
 #!/usr/bin/env lua
 
-local parser = require "parser"
 local ast = require "ast"
+local checker = require "checker"
+local parser = require "parser"
 
 -- expected result, result, subject
 local e, r, s
 
+local filename = "test.lua"
+
 local function parse (s)
-  local t,m = parser.parse(s,"test.lua")
+  local t,m = parser.parse(s,filename)
   local r
+  if not t then
+    r = m
+  else
+    r = ast.tostring(t)
+  end
+  return r .. "\n"
+end
+
+local function typecheck (s)
+  local t,m = parser.parse(s,filename)
+  if not t then
+    error(m)
+    os.exit(1)
+  end
+  t,m = checker.typecheck(t,s,filename)
   if not t then
     r = m
   else
@@ -1390,6 +1408,32 @@ test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<
 ]=]
 
 r = parse(s)
+assert(r == e)
+
+print("> testing type checker...")
+
+-- tests that type check
+
+s = [=[
+local x = 1 + 1
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpAdd (ExpNum 1.0) (ExpNum 1.0)]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- tests that do not type check
+
+s = [=[
+local x = 1 + "alo"
+]=]
+e = [=[
+test.lua:1:15: type error, attempt to perform arithmetic on a string
+]=]
+
+r = typecheck(s)
 assert(r == e)
 
 print("OK")
