@@ -1425,6 +1425,16 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local x = -1
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpMinus (ExpNum 1.0)]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local x = "hello" .. "world"
 ]=]
 e = [=[
@@ -1454,6 +1464,16 @@ StmBlock [StmLocalVar [("x","any")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+local x = #"hello world"
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpLen (ExpStr "hello world")]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 s = [=[
@@ -1461,6 +1481,16 @@ local x = 1 + "hello"
 ]=]
 e = [=[
 test.lua:1:15: type error, attempt to perform arithmetic on a string
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = -"hello"
+]=]
+e = [=[
+test.lua:1:12: type error, attempt to perform arithmetic on a string
 ]=]
 
 r = typecheck(s)
@@ -1481,6 +1511,16 @@ local x = 1 < "hello"
 ]=]
 e = [=[
 test.lua:1:11: type error, attempt to compare number with string
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = #1
+]=]
+e = [=[
+test.lua:1:12: type error, attempt to get length of a number value
 ]=]
 
 r = typecheck(s)

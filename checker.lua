@@ -68,6 +68,43 @@ local function check_equal (exp)
   return true
 end
 
+local function check_len (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+
+  if types.isString(exp[1].type) then
+    set_type(exp, types.Number())
+    return true
+  end
+  msg = "attempt to get length of a %s value"
+  msg = string.format(msg, types.tostring(exp[1].type))
+  return typeerror(msg, exp[1])
+end
+
+local function check_minus (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+
+  if types.isNumber(exp[1].type) then
+    set_type(exp, types.Number())
+    return true
+  end
+  msg = "attempt to perform arithmetic on a %s"
+  msg = string.format(msg, types.tostring(exp[1].type))
+  return typeerror(msg, exp[1])
+end
+
+local function check_not (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+
+  set_type(exp, types.Boolean())
+  return true
+end
+
 local function check_order (exp)
   local status,msg
 
@@ -166,30 +203,11 @@ check_exp = function (exp)
     exp.type = "boolean"
     return true
   elseif tag == "ExpNot" then -- ExpNot Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    exp.type = "boolean"
-    return true
+    return check_not(exp)
   elseif tag == "ExpMinus" then -- ExpMinus Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    if exp[1].type == "number" then
-      exp.type = "number"
-      return true
-    end
-    if exp[1].type == "any" then
-      exp.type = "any"
-      return true
-    end
-    return nil,"arithmetic type error"
+    return check_minus(exp)
   elseif tag == "ExpLen" then -- ExpLen Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    if exp[1].type == "string" then
-      exp[1].type = "number"
-      return true
-    end
-    return nil,"length operator type error"
+    return check_len(exp)
   else
     error("cannot type check expression " .. tag)
   end
