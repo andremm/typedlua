@@ -22,6 +22,16 @@ end
 local check_block, check_stm, check_exp, check_var
 local check_explist
 
+local function check_and (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  set_type(exp, types.Boolean())
+  return true
+end
+
 local function check_arith (exp)
   local status,msg
 
@@ -68,6 +78,15 @@ local function check_equal (exp)
   return true
 end
 
+local function check_expvar (exp)
+  local status,msg
+
+  status,msg = check_var(exp[1]) ; if not status then return status,msg end
+
+  set_type(exp, exp[1].type)
+  return true
+end
+
 local function check_len (exp)
   local status,msg
 
@@ -105,6 +124,16 @@ local function check_not (exp)
   return true
 end
 
+local function check_or (exp)
+  local status,msg
+
+  status,msg = check_exp(exp[1]) ; if not status then return status,msg end
+  status,msg = check_exp(exp[2]) ; if not status then return status,msg end
+
+  set_type(exp, types.Boolean())
+  return true
+end
+
 local function check_order (exp)
   local status,msg
 
@@ -122,6 +151,21 @@ local function check_order (exp)
   return typeerror(msg, exp[1])
 end
 
+local function check_varid (var)
+  set_type(var, var[2])
+  return true
+end
+
+local function check_varindex (var)
+  local status,msg
+
+  status,msg = check_exp(var[1]) ; if not status then return status,msg end
+  status,msg = check_exp(var[2]) ; if not status then return status,msg end
+
+  set_type(var, types.Any())
+  return true
+end
+
 check_explist = function (explist)
   local t,m
   for k,v in ipairs(explist) do
@@ -134,9 +178,9 @@ end
 check_var = function (var)
   local tag = var.tag
   if tag == "VarID" then -- VarID ID
-    var.type = var[2]
-    return true
+    return check_varid(var)
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
+    return check_varindex(var)
   else
     error("cannot type check a variable " .. tag)
   end
@@ -144,7 +188,6 @@ end
 
 check_exp = function (exp)
   local tag = exp.tag
-  local t,m,msg
   if tag == "ExpNil" then
     return set_type(exp, types.Nil())
   elseif tag == "ExpFalse" then
@@ -158,10 +201,7 @@ check_exp = function (exp)
   elseif tag == "ExpStr" then -- ExpStr String
     return set_type(exp, types.String())
   elseif tag == "ExpVar" then -- ExpVar Var
-    t,m = check_var(exp[1])
-    if not t then return t,m end
-    exp.type = exp[1].type
-    return true
+    return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
     local is_vararg = exp[1].is_vararg
     return set_type(exp, types.Any())
@@ -189,19 +229,9 @@ check_exp = function (exp)
          tag == "ExpGE" then -- ExpGE Exp Exp
     return check_order(exp)
   elseif tag == "ExpAnd" then -- ExpAnd Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    exp.type = "boolean"
-    return true
+    return check_and(exp)
   elseif tag == "ExpOr" then -- ExpOr Exp Exp
-    t,m = check_exp(exp[1])
-    if not t then return t,m end
-    t,m = check_exp(exp[2])
-    if not t then return t,m end
-    exp.type = "boolean"
-    return true
+    return check_or(exp)
   elseif tag == "ExpNot" then -- ExpNot Exp
     return check_not(exp)
   elseif tag == "ExpMinus" then -- ExpMinus Exp
