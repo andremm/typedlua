@@ -144,7 +144,7 @@ local function check_order (exp)
   if types.isNumber(exp[1].type) and types.isNumber(exp[2].type) then
     return true
   elseif types.isString(exp[1].type) and types.isString(exp[2].type) then
-      return true
+    return true
   end
   msg = "attempt to compare %s with %s"
   msg = string.format(msg, types.tostring(exp[1].type), types.tostring(exp[2].type))
@@ -197,9 +197,9 @@ check_exp = function (exp)
   elseif tag == "ExpDots" then
     return set_type(exp, types.Any())
   elseif tag == "ExpNum" then -- ExpNum Double
-    return set_type(exp, types.Number())
+    return set_type(exp, types.Numeral(exp[1]))
   elseif tag == "ExpStr" then -- ExpStr String
-    return set_type(exp, types.String())
+    return set_type(exp, types.Literal(exp[1]))
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
