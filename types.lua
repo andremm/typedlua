@@ -54,6 +54,22 @@ function types.isAny (t)
   return false
 end
 
+function types.isBoolean (t)
+  if t.tag == "TypeBase" and t[1] == "boolean" or
+     types.isFalse(t) or types.isTrue(t) or
+     types.isAny(t) then
+    return true
+  end
+  return false
+end
+
+function types.isFalse (t)
+  if t.tag == "TypeConstant" and t[1] == false then
+    return true
+  end
+  return false
+end
+
 function types.isInteger (t)
   if t.tag == "TypeConstant" then
     local x = t[1]
@@ -67,6 +83,13 @@ end
 
 function types.isLiteral (t)
   if t.tag == "TypeConstant" and type(t[1]) == "string" then
+    return true
+  end
+  return false
+end
+
+function types.isNil (t)
+  if t.tag == "TypeConstant" and t[1] == nil then
     return true
   end
   return false
@@ -86,6 +109,13 @@ function types.isString (t)
   if t.tag == "TypeBase" and t[1] == "string" or
      types.isLiteral(t) or
      types.isAny(t) then
+    return true
+  end
+  return false
+end
+
+function types.isTrue (t)
+  if t.tag == "TypeConstant" and t[1] == true then
     return true
   end
   return false

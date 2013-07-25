@@ -7,6 +7,11 @@ local types = require "types"
 
 local checker = {}
 
+local function set_pos (node, node_pos)
+  node.pos = node_pos
+  return true
+end
+
 local function set_type (node, node_type)
   node.type = node_type
   return true
@@ -28,7 +33,16 @@ local function check_and (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
-  set_type(exp, types.Boolean())
+  set_pos(exp, exp[1].pos)
+
+  if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
+    set_type(exp, exp[1].type)
+  elseif types.isBoolean(exp[1].type) and not types.isTrue(exp[1].type) then
+    set_type(exp, types.Any())
+  else
+    set_type(exp, exp[2].type)
+  end
+
   return true
 end
 
@@ -74,6 +88,7 @@ local function check_equal (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
+  set_pos(exp, exp[1].pos)
   set_type(exp, types.Boolean())
   return true
 end
@@ -120,6 +135,7 @@ local function check_not (exp)
 
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
 
+  set_pos(exp, exp[1].pos)
   set_type(exp, types.Boolean())
   return true
 end
@@ -130,7 +146,16 @@ local function check_or (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
-  set_type(exp, types.Boolean())
+  set_pos(exp, exp[1].pos)
+
+  if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
+    set_type(exp, exp[2].type)
+  elseif types.isBoolean(exp[1].type) and not types.isTrue(exp[1].type) then
+    set_type(exp, types.Any())
+  else
+    set_type(exp, exp[1].type)
+  end
+
   return true
 end
 
@@ -191,9 +216,9 @@ check_exp = function (exp)
   if tag == "ExpNil" then
     return set_type(exp, types.Nil())
   elseif tag == "ExpFalse" then
-    return set_type(exp, types.Boolean())
+    return set_type(exp, types.False())
   elseif tag == "ExpTrue" then
-    return set_type(exp, types.Boolean())
+    return set_type(exp, types.True())
   elseif tag == "ExpDots" then
     return set_type(exp, types.Any())
   elseif tag == "ExpNum" then -- ExpNum Double
