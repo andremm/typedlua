@@ -155,6 +155,14 @@ local function type2str (t)
     return type(t[1])
   elseif tag == "TypeBase" then
     return t[1]
+  elseif tag == "TypeFunction" then
+    return "(" .. type2str(t[1]) .. " -> " .. type2str(t[2]) .. ")"
+  elseif tag == "TypeTuple" then
+    return "(" .. type2str(t[1]) .. " x " .. type2str(t[2]) .. ")"
+  elseif tag == "TypeStar" then
+    return type2str(t[1]) .. "*"
+  elseif tag == "TypeVoid" then
+    return "void"
   else
     error("expecting a type, but got a " .. tag)
   end

@@ -25,7 +25,7 @@ local function typeerror (msg, node)
 end
 
 local function infer_arguments (list)
-  local t = { tag = "" }
+  local t
   local len = #list
   if len == 0 then
     if list.is_vararg then
@@ -34,12 +34,14 @@ local function infer_arguments (list)
       t = types.Void()
     end
   else
-    t = types.str2type(list[1][2])
-    for i=2,len do
-      t = types.Tuple(t, types.str2type(list[i][2]))
-    end
     if list.is_vararg then
-      t = types.Tuple(t, types.Star(types.Any()))
+      t = types.Star(types.Any())
+    else
+      t = types.str2type(list[len][2])
+      len = len - 1
+    end
+    for i=len,1,-1 do
+      t = types.Tuple(types.str2type(list[i][2]), t)
     end
   end
   return t
@@ -262,7 +264,6 @@ function check_exp (exp)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
     return set_type(exp, types.Any())
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
-    print(exp[1].tag)
     return set_type(exp, types.Any())
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
