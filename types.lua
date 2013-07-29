@@ -7,6 +7,10 @@ Base = "any" | "boolean" | "number" | "string"
 
 Type = TypeConstant Constant
      | TypeBase Base
+     | TypeFunction Type Type
+     | TypeTuple Type Type
+     | TypeStar Type
+     | TypeVoid
 ]]
 
 local types = {}
@@ -21,6 +25,10 @@ end
 
 function types.False ()
   return { tag = "TypeConstant", [1] = false }
+end
+
+function types.Function (arg, ret)
+  return { tag = "TypeFunction", [1] = arg, [2] = ret }
 end
 
 function types.Literal (l)
@@ -39,12 +47,24 @@ function types.Number ()
   return { tag = "TypeBase", [1] = "number" }
 end
 
+function types.Star (t)
+  return { tag = "TypeStar", [1] = t }
+end
+
 function types.String ()
   return { tag = "TypeBase", [1] = "string" }
 end
 
 function types.True ()
   return { tag = "TypeConstant", [1] = true }
+end
+
+function types.Tuple (t1, t2)
+  return { tag = "TypeTuple", [1] = t1, [2] = t2 }
+end
+
+function types.Void ()
+  return { tag = "TypeVoid" }
 end
 
 function types.isAny (t)
@@ -138,6 +158,21 @@ local function type2str (t)
   else
     error("expecting a type, but got a " .. tag)
   end
+end
+
+function types.str2type (s)
+  if s == "any" then
+    return types.Any()
+  elseif s == "boolean" then
+    return types.Boolean()
+  elseif s == "nil" then
+    return types.Nil()
+  elseif s == "number" then
+    return types.Number()
+  elseif s == "string" then
+    return types.String()
+  end
+  return nil
 end
 
 function types.tostring (t)

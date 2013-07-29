@@ -24,6 +24,27 @@ local function typeerror (msg, node)
   return nil,error_msg
 end
 
+local function infer_arguments (list)
+  local t = { tag = "" }
+  local len = #list
+  if len == 0 then
+    if list.is_vararg then
+      t = types.Star(types.Any())
+    else
+      t = types.Void()
+    end
+  else
+    t = types.str2type(list[1][2])
+    for i=2,len do
+      t = types.Tuple(t, types.str2type(list[i][2]))
+    end
+    if list.is_vararg then
+      t = types.Tuple(t, types.Star(types.Any()))
+    end
+  end
+  return t
+end
+
 local check_block, check_stm, check_exp, check_var
 local check_explist
 
@@ -228,13 +249,20 @@ function check_exp (exp)
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
-    local is_vararg = exp[1].is_vararg
-    return set_type(exp, types.Any())
+    local t1 = infer_arguments(exp[1])
+    local t2 = types.str2type(exp[2])
+    if not t2 then
+      local msg = "type '%s' is not defined"
+      msg = string.format(msg, exp[2])
+      return typeerror(msg, exp)
+    end
+    return set_type(exp, types.Function(t1, t2))
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return set_type(exp, types.Any())
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
     return set_type(exp, types.Any())
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    print(exp[1].tag)
     return set_type(exp, types.Any())
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
