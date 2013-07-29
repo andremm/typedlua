@@ -54,6 +54,14 @@ function types.isAny (t)
   return false
 end
 
+function types.isBaseBoolean (t)
+  if t.tag == "TypeBase" and t[1] == "boolean" or
+     types.isAny(t) then
+    return true
+  end
+  return false
+end
+
 function types.isBoolean (t)
   if t.tag == "TypeBase" and t[1] == "boolean" or
      types.isFalse(t) or types.isTrue(t) or

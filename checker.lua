@@ -37,7 +37,7 @@ local function check_and (exp)
 
   if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
     set_type(exp, exp[1].type)
-  elseif types.isBoolean(exp[1].type) and not types.isTrue(exp[1].type) then
+  elseif types.isBaseBoolean(exp[1].type) then
     set_type(exp, types.Any())
   else
     set_type(exp, exp[2].type)
@@ -150,7 +150,7 @@ local function check_or (exp)
 
   if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
     set_type(exp, exp[2].type)
-  elseif types.isBoolean(exp[1].type) and not types.isTrue(exp[1].type) then
+  elseif types.isBaseBoolean(exp[1].type) then
     set_type(exp, types.Any())
   else
     set_type(exp, exp[1].type)
