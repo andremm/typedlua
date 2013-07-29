@@ -69,7 +69,7 @@ local function unop (tag)
   return op
 end
 
-code_idlist = function (idlist, i)
+function code_idlist (idlist, i)
   local l = {}
   for k,v in ipairs(idlist) do
     l[k] = v[1]
@@ -77,7 +77,7 @@ code_idlist = function (idlist, i)
   return table.concat(l, ",")
 end
 
-code_parlist = function (parlist, i)
+function code_parlist (parlist, i)
   local l = {}
   for k,v in ipairs(parlist) do
     l[k] = v[1]
@@ -88,7 +88,7 @@ code_parlist = function (parlist, i)
   return " (" .. table.concat(l, ",") .. ")"
 end
 
-code_fieldlist = function (fieldlist, i)
+function code_fieldlist (fieldlist, i)
   local l = {{},{}}
   for k,v in ipairs(fieldlist[1]) do
     l[1][k] = code_exp(v[1]) .. ","
@@ -99,7 +99,7 @@ code_fieldlist = function (fieldlist, i)
   return table.concat(l[1], "") .. table.concat(l[2], "")
 end
 
-code_varlist = function (varlist, i)
+function code_varlist (varlist, i)
   local l = {}
   for k,v in ipairs(varlist) do
     l[k] = code_var(v, i)
@@ -107,7 +107,7 @@ code_varlist = function (varlist, i)
   return table.concat(l, ", ")
 end
 
-code_explist = function (explist, i)
+function code_explist (explist, i)
   local l = {}
   for k,v in ipairs(explist) do
     l[k] = code_exp(v, i)
@@ -115,7 +115,7 @@ code_explist = function (explist, i)
   return table.concat(l, ", ")
 end
 
-code_funcname = function (funcname, i)
+function code_funcname (funcname, i)
   local l = {}
   local n = 0
   local tag = funcname.tag
@@ -137,7 +137,7 @@ code_funcname = function (funcname, i)
   return str
 end
 
-code_var = function (var, i)
+function code_var (var, i)
   local tag = var.tag
   if tag == "VarID" then -- VarID ID
     return var[1]
@@ -148,7 +148,7 @@ code_var = function (var, i)
   end
 end
 
-code_exp = function (exp, i)
+function code_exp (exp, i)
   local tag = exp.tag
   if tag == "ExpNil" then
     return "nil"
@@ -197,7 +197,7 @@ code_exp = function (exp, i)
   end
 end
 
-code_stm = function (stm, i)
+function code_stm (stm, i)
   local tag = stm.tag
   local str
   if tag == "StmBlock" then -- StmBlock [Stm]
@@ -264,7 +264,7 @@ code_stm = function (stm, i)
   end
 end
 
-code_block = function (block, i)
+function code_block (block, i)
   local tag = block.tag
   if tag ~= "StmBlock" then
     error("expecting a block, but got a " .. tag)

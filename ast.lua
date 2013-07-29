@@ -110,15 +110,15 @@ local function fixed_string (str)
   return new_str
 end
 
-type2str = function (t)
+function type2str (t)
   return '"' .. tostring(t) .. '"'
 end
 
-id2str = function (id)
+function id2str (id)
   return "(" .. string.format('"%s"', id[1]) .. "," .. type2str(id[2]) .. ")"
 end
 
-idlist2str = function (idlist)
+function idlist2str (idlist)
   local l = {}
   for k,v in ipairs(idlist) do
     l[k] = id2str(v)
@@ -126,7 +126,7 @@ idlist2str = function (idlist)
   return "[" .. table.concat(l, ",") .. "]"
 end
 
-namelist2str = function (namelist)
+function namelist2str (namelist)
   local l = {}
   for k,v in ipairs(namelist) do
     l[k] = string.format('"%s"', v)
@@ -134,7 +134,7 @@ namelist2str = function (namelist)
   return "[" .. table.concat(l, ",") .. "]"
 end
 
-fieldlist2str = function (fieldlist)
+function fieldlist2str (fieldlist)
   local l = {{},{}}
   for k,v in ipairs(fieldlist[1]) do
     l[1][k] = exp2str(v[1])
@@ -145,7 +145,7 @@ fieldlist2str = function (fieldlist)
   return " ([" .. table.concat(l[1], ",") .. "],[" .. table.concat(l[2], ",") .. "])"
 end
 
-varlist2str = function (varlist)
+function varlist2str (varlist)
   local l = {}
   for k,v in ipairs(varlist) do
     l[k] = var2str(v)
@@ -153,7 +153,7 @@ varlist2str = function (varlist)
   return " [" .. table.concat(l, ",") .. "]"
 end
 
-explist2str = function (explist)
+function explist2str (explist)
   local l = {}
   for k,v in ipairs(explist) do
     l[k] = exp2str(v)
@@ -161,7 +161,7 @@ explist2str = function (explist)
   return " [" .. table.concat(l, ",") .. "]"
 end
 
-var2str = function (var)
+function var2str (var)
   local tag = var.tag
   local str = tag
   if tag == "VarID" then -- VarID ID
@@ -175,7 +175,7 @@ var2str = function (var)
   return str
 end
 
-exp2str = function (exp)
+function exp2str (exp)
   local tag = exp.tag
   local str = tag
   if tag == "ExpNil" or
@@ -230,7 +230,7 @@ exp2str = function (exp)
   return str
 end
 
-stm2str = function (stm)
+function stm2str (stm)
   local tag = stm.tag
   local str = tag
   if tag == "StmBlock" then -- StmBlock [Stm]
@@ -291,7 +291,7 @@ stm2str = function (stm)
   return str
 end
 
-block2str = function (block)
+function block2str (block)
   local tag = block.tag
   if tag ~= "StmBlock" then
     error("expecting a block, but got a " .. tag)

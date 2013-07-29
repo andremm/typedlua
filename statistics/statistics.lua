@@ -52,7 +52,7 @@ local function new_func_def (func_type)
   end
 end
 
-check_fieldlist = function (fieldlist, func_name, func_id)
+function check_fieldlist (fieldlist, func_name, func_id)
   local id = func_id
   local only_static,only_dynamic = true,true
   -- statistics of the use of table constructs
@@ -108,13 +108,13 @@ check_fieldlist = function (fieldlist, func_name, func_id)
   end
 end
 
-check_explist = function (explist, func_name, func_id)
+function check_explist (explist, func_name, func_id)
   for k,v in ipairs(explist) do
     check_exp(v, func_name, func_id)
   end
 end
 
-check_varlist = function (varlist, func_name, func_id)
+function check_varlist (varlist, func_name, func_id)
   for k,v in ipairs(varlist) do
     check_var(v, func_name, func_id)
   end
@@ -132,7 +132,7 @@ local function is_literal (tag)
   return false
 end
 
-check_var = function (var, func_name, func_id)
+function check_var (var, func_name, func_id)
   if var.tag == "VarID" then -- VarID Name
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
     -- statistics of the use of table indexing
@@ -148,7 +148,7 @@ check_var = function (var, func_name, func_id)
   end
 end
 
-check_exp = function (exp, func_name, func_id)
+function check_exp (exp, func_name, func_id)
   if exp.tag == "ExpNil" or
      exp.tag == "ExpFalse" or
      exp.tag == "ExpTrue" or
@@ -234,7 +234,7 @@ check_exp = function (exp, func_name, func_id)
   end
 end
 
-check_stm = function (stm, func_name, func_id)
+function check_stm (stm, func_name, func_id)
   if stm.tag == "StmBlock" then -- StmBlock [Stm]
     check_block(stm, func_name, func_id)
   elseif stm.tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
@@ -305,7 +305,7 @@ check_stm = function (stm, func_name, func_id)
   end
 end
 
-check_block = function (block, func_name, func_id)
+function check_block (block, func_name, func_id)
   if block.tag ~= "StmBlock" then
     error("expecting a block, but got a " .. block.tag)
   end

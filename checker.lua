@@ -191,7 +191,7 @@ local function check_varindex (var)
   return true
 end
 
-check_explist = function (explist)
+function check_explist (explist)
   local t,m
   for k,v in ipairs(explist) do
     t,m = check_exp(v)
@@ -200,7 +200,7 @@ check_explist = function (explist)
   return true
 end
 
-check_var = function (var)
+function check_var (var)
   local tag = var.tag
   if tag == "VarID" then -- VarID ID
     return check_varid(var)
@@ -211,7 +211,7 @@ check_var = function (var)
   end
 end
 
-check_exp = function (exp)
+function check_exp (exp)
   local tag = exp.tag
   if tag == "ExpNil" then
     return set_type(exp, types.Nil())
@@ -269,7 +269,7 @@ check_exp = function (exp)
   return true
 end
 
-check_stm = function (stm)
+function check_stm (stm)
   local tag = stm.tag
   local t,m
   if tag == "StmBlock" then -- StmBlock [Stm]
@@ -297,7 +297,7 @@ check_stm = function (stm)
   return true
 end
 
-check_block = function (block)
+function check_block (block)
   local tag = block.tag
   local t,m
   if tag ~= "StmBlock" then
