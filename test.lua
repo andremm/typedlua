@@ -1494,6 +1494,16 @@ StmBlock [StmLocalVar [("x","any")] [ExpLen (ExpStr "hello world")]]
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+for i=1,10 do end
+]=]
+e = [=[
+StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 s = [=[
@@ -1581,6 +1591,46 @@ local x = #1
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to get length of a number value
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i:boolean=1,10 do end
+]=]
+e = [=[
+test.lua:1:5: type error, 'for' control variable must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i:number=nil,10 do end
+]=]
+e = [=[
+test.lua:1:14: type error, 'for' initial value must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i=1,nil do end
+]=]
+e = [=[
+test.lua:1:9: type error, 'for' limit must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i=1,10,nil do end
+]=]
+e = [=[
+test.lua:1:12: type error, 'for' step must be a number
 ]=]
 
 r = typecheck(s)

@@ -234,6 +234,38 @@ end
 
 -- statements
 
+local function check_numeric_for (stm)
+  local status,msg
+  local t = types.str2type(stm[1][2])
+  if not t then
+    msg = "type '%s' is not defined"
+    msg = string.format(msg, stm[1][2])
+    return typeerror(msg, stm)
+  end
+
+  if not types.isNumber(t) then
+    msg = "'for' control variable must be a number"
+    return typeerror(msg, stm[1])
+  end
+
+  status,msg = check_exp(stm[2]) ; if not status then return status,msg end
+  status,msg = check_exp(stm[3]) ; if not status then return status,msg end
+  status,msg = check_exp(stm[4]) ; if not status then return status,msg end
+
+  if not types.isNumber(stm[2].type) then
+    msg = "'for' initial value must be a number"
+    return typeerror(msg, stm[2])
+  elseif not types.isNumber(stm[3].type) then
+    msg = "'for' limit must be a number"
+    return typeerror(msg, stm[3])
+  elseif not types.isNumber(stm[4].type) then
+    msg = "'for' step must be a number"
+    return typeerror(msg, stm[4])
+  end
+
+  return check_stm(stm[5])
+end
+
 function check_explist (explist)
   local t,m
   for k,v in ipairs(explist) do
@@ -335,6 +367,7 @@ function check_stm (stm)
     status,msg = check_exp(stm[1])
     if not status then return status,msg end
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
+    return check_numeric_for(stm)
   elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
