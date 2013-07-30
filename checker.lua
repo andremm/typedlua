@@ -47,6 +47,20 @@ local function infer_arguments (list)
   return t
 end
 
+local function infer_explist (list)
+  local t
+  local len = #list
+  if len == 0 then
+    t = types.Void()
+  else
+    t = list[len].type
+    for i=len-1,1,-1 do
+      t = types.Tuple(list[i].type, t)
+    end
+  end
+  return t
+end
+
 local check_block, check_stm, check_exp, check_var
 local check_explist
 
@@ -262,8 +276,14 @@ function check_exp (exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return set_type(exp, types.Any())
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
+    local status,msg = check_explist(exp[3])
+    if not status then return status,msg end
+    local t = infer_explist(exp[3])
     return set_type(exp, types.Any())
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    local status,msg = check_explist(exp[2])
+    if not status then return status,msg end
+    local t = infer_explist(exp[2])
     return set_type(exp, types.Any())
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
