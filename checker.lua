@@ -64,6 +64,8 @@ end
 local check_block, check_stm, check_exp, check_var
 local check_explist
 
+-- expressions
+
 local function check_and (exp)
   local status,msg
 
@@ -213,6 +215,8 @@ local function check_order (exp)
   return typeerror(msg, exp[1])
 end
 
+-- variables
+
 local function check_varid (var)
   set_type(var, var[2])
   return true
@@ -227,6 +231,8 @@ local function check_varindex (var)
   set_type(var, types.Any())
   return true
 end
+
+-- statements
 
 function check_explist (explist)
   local t,m
@@ -320,26 +326,48 @@ end
 
 function check_stm (stm)
   local tag = stm.tag
-  local t,m
+  local status,msg
   if tag == "StmBlock" then -- StmBlock [Stm]
   elseif tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
+    status,msg = check_exp(stm[1])
+    if not status then return status,msg end
   elseif tag == "StmWhile" then -- StmWhile Exp Stm
+    status,msg = check_exp(stm[1])
+    if not status then return status,msg end
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
   elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
-    local is_vararg = stm[2].is_vararg
+    local t1 = infer_arguments(stm[2])
+    local t2 = types.str2type(stm[3])
+    if not t2 then
+      local msg = "type '%s' is not defined"
+      msg = string.format(msg, stm[2])
+      return typeerror(msg, exp)
+    end
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
-    local is_vararg = stm[2].is_vararg
+    local t1 = infer_arguments(stm[2])
+    local t2 = types.str2type(stm[3])
+    if not t2 then
+      local msg = "type '%s' is not defined"
+      msg = string.format(msg, stm[2])
+      return typeerror(msg, exp)
+    end
   elseif tag == "StmLabel" or -- StmLabel Name
          tag == "StmGoTo" then -- StmGoTo Name
   elseif tag == "StmBreak" then -- StmBreak
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    status,msg = check_explist(stm[2])
+    if not status then return status,msg end
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
-    t,m = check_explist(stm[2])
-    if not t then return t,m end
+    status,msg = check_explist(stm[2])
+    if not status then return status,msg end
   elseif tag == "StmRet" then -- StmRet [Exp]
+    status,msg = check_explist(stm[1])
+    if not status then return status,msg end
   elseif tag == "StmCall" then -- StmCall Exp
+    status,msg = check_exp(stm[1])
+    if not status then return status,msg end
   else
     error("cannot type check statement " .. tag)
   end
@@ -348,13 +376,13 @@ end
 
 function check_block (block)
   local tag = block.tag
-  local t,m
+  local status,msg
   if tag ~= "StmBlock" then
     error("cannot type block " .. tag)
   end
   for k,v in ipairs(block) do
-    t,m = check_stm(v)
-    if not t then return t,m end
+    status,msg = check_stm(v)
+    if not status then return status,msg end
   end
   return true
 end
