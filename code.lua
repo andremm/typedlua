@@ -91,7 +91,7 @@ end
 function code_fieldlist (fieldlist, i)
   local l = {{},{}}
   for k,v in ipairs(fieldlist[1]) do
-    l[1][k] = code_exp(v[1]) .. ","
+    l[1][k] = code_exp(v[1], i) .. ","
   end
   for k,v in ipairs(fieldlist[2]) do
     l[2][k] = "[ " .. code_exp(v[1], i) .. " ] = " .. code_exp(v[2], i) .. ","
@@ -142,7 +142,7 @@ function code_var (var, i)
   if tag == "VarID" then -- VarID ID
     return var[1]
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
-    return code_exp[1] .. "[ " .. code_exp[2] .. " ]"
+    return code_exp(var[1], i) .. "[ " .. code_exp(var[2], i) .. " ]"
   else
     error("expecting a variable, but got a " .. tag)
   end
