@@ -218,7 +218,7 @@ end
 -- variables
 
 local function check_varid (var)
-  set_type(var, var[2])
+  set_type(var, types.str2type(var[2]))
   return true
 end
 
@@ -264,6 +264,22 @@ local function check_numeric_for (stm)
   end
 
   return check_stm(stm[5])
+end
+
+local function check_repeat (stm)
+  local status,msg
+
+  status,msg = check_exp(stm[2]) ; if not status then return status,msg end
+
+  return check_stm(stm[1])
+end
+
+local function check_while (stm)
+  local status,msg
+
+  status,msg = check_exp(stm[1]) ; if not status then return status,msg end
+
+  return check_stm(stm[2])
 end
 
 function check_explist (explist)
@@ -364,12 +380,12 @@ function check_stm (stm)
     status,msg = check_exp(stm[1])
     if not status then return status,msg end
   elseif tag == "StmWhile" then -- StmWhile Exp Stm
-    status,msg = check_exp(stm[1])
-    if not status then return status,msg end
+    return check_while(stm)
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
     return check_numeric_for(stm)
   elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
+    return check_repeat(stm)
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
     local t1 = infer_arguments(stm[2])
     local t2 = types.str2type(stm[3])
