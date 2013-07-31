@@ -52,6 +52,33 @@ local function errormsg (s, t)
   return msg
 end
 
+-- increases loop level
+local function insideloop ()
+  return Cmt(Carg(1),
+  function (s, i, t)
+    t.loop = t.loop + 1
+    return true
+  end)
+end
+
+-- decreases loop level
+local function outsideloop ()
+  return Cmt(Carg(1),
+  function (s, i, t)
+    t.loop = t.loop - 1
+    return true
+  end)
+end
+
+-- used to check if a break is inside a loop
+local function isinsideloop ()
+  return Cmt(Carg(1),
+  function (s, i, t)
+    if t.loop > 0 then return true end
+    return false
+  end)
+end
+
 -- aborts with an error message
 local function report_error (s, i, t)
   print(errormsg(s, t))
@@ -237,7 +264,8 @@ local G = { V"Lua",
   IfStat = taggedCap("StmIfElse",
              kw("if") * V"Expr" * kw("then") * V"Block" *
                (V"ElseIf" + taggedCap("StmBlock", Cc())) * kw("end"));
-  WhileStat = taggedCap("StmWhile", kw("while") * V"Expr" * kw("do") * V"Block" * kw("end"));
+  WhileStat = taggedCap("StmWhile", kw("while") * insideloop() * V"Expr" *
+                kw("do") * V"Block" * kw("end") * outsideloop());
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
   ForNum = taggedCap("StmForNum",
@@ -245,8 +273,9 @@ local G = { V"Lua",
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
              V"ForBody");
   ForGen = taggedCap("StmForGen", V"NameList" * kw("in") * V"ExpList" * V"ForBody");
-  ForStat = kw("for") * (V"ForNum" + V"ForGen") * kw("end");
-  RepeatStat = taggedCap("StmRepeat", kw("repeat") * V"Block" * kw("until") * V"Expr");
+  ForStat = kw("for") * insideloop() * (V"ForNum" + V"ForGen") * kw("end") * outsideloop();
+  RepeatStat = taggedCap("StmRepeat", kw("repeat") * insideloop() * V"Block" *
+                 kw("until") * V"Expr" * outsideloop());
   FuncName = sepby1(token(V"Name","Name"), symb("."), "IDList") * (symb(":") * token(V"Name","Name"))^-1 /
              function (t, n)
                if n then
@@ -270,7 +299,7 @@ local G = { V"Lua",
   LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
   LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
   LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name","Name") * symb("::"));
-  BreakStat = taggedCap("StmBreak", kw("break"));
+  BreakStat = taggedCap("StmBreak", kw("break") * isinsideloop());
   GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name","Name"));
   RetStat = taggedCap("StmRet", kw("return") * (V"ExpList" + Ct(Cc())) * symb(";")^-1);
   ExprStat = Cmt(
@@ -367,7 +396,7 @@ local function getcontents (filename)
 end
 
 function parser.parse_from_file (filename)
-  local errorinfo = { filename = filename }
+  local errorinfo = { filename = filename, loop = 0 }
   local input = getcontents(filename)
   lpeg.setmaxstack(1000)
   local ast = lpeg.match(G, input, nil, errorinfo)
@@ -378,7 +407,7 @@ function parser.parse_from_file (filename)
 end
 
 function parser.parse (subject, filename)
-  local errorinfo = { filename = filename }
+  local errorinfo = { filename = filename, loop = 0 }
   lpeg.setmaxstack(1000)
   local ast = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
