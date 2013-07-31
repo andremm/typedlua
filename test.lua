@@ -1569,6 +1569,51 @@ StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBloc
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+::label::
+do ::label:: end
+::other_label::
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmLabel "label"],StmLabel "other_label"]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::label::
+goto label
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmGoTo "label"]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::label::
+do ::label:: goto label end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmLabel "label",StmGoTo "label"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::label::
+do goto label end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmGoTo "label"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 s = [=[
@@ -1696,6 +1741,39 @@ for i=1,10,nil do end
 ]=]
 e = [=[
 test.lua:1:12: type error, 'for' step must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::label::
+::label::
+::other_label::
+]=]
+e = [=[
+test.lua:2:1: label 'label' already defined on line 1
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+goto label
+]=]
+e = [=[
+test.lua:1:1: no visible label 'label' for <goto> at line 1
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::other_label::
+do do do goto label end end end
+]=]
+e = [=[
+test.lua:2:10: no visible label 'label' for <goto> at line 2
 ]=]
 
 r = typecheck(s)

@@ -7,6 +7,65 @@ local types = require "types"
 
 local checker = {}
 
+local st = {} -- symbol table
+
+local function errormsg (msg, node)
+  local l,c = parser.lineno(checker.subject, node.pos)
+  local error_msg = "%s:%d:%d: %s"
+  error_msg = string.format(error_msg, checker.filename, l, c, msg)
+  return nil,error_msg
+end
+
+-- functions that handle the symbol table
+
+local function new_scope ()
+  if not st.scope then
+    st.scope = 0
+  else
+    st.scope = st.scope + 1
+  end
+  return st.scope
+end
+
+local function begin_scope ()
+  local scope = new_scope()
+  st[scope] = {} -- new hash for new scope
+  st[scope].label = {} -- stores the labels of a scope
+end
+
+local function end_scope ()
+  local scope = st.scope
+  st[scope] = nil
+  st.scope = scope - 1
+end
+
+local function set_label (stm)
+  local scope = st.scope
+  local label = stm[1]
+  if st[scope]["label"][label] then
+    local msg = "label '%s' already defined on line %d"
+    local line,col = parser.lineno(checker.subject, st[scope]["label"][label].pos)
+    msg = string.format(msg, label, line)
+    return errormsg(msg, stm)
+  end
+  st[scope]["label"][label] = stm
+  return true
+end
+
+local function lookup_label (stm)
+  local scope = st.scope
+  local label = stm[1]
+  for i=scope,0,-1 do
+    if st[i]["label"][label] then
+      return true
+    end
+  end
+  local msg = "no visible label '%s' for <goto> at line %d"
+  local line,col = parser.lineno(checker.subject, stm.pos)
+  msg = string.format(msg, label, line)
+  return errormsg(msg, stm)
+end
+
 local function set_pos (node, node_pos)
   node.pos = node_pos
   return true
@@ -234,6 +293,11 @@ end
 
 -- statements
 
+local function check_break (stm)
+  set_type(stm, types.Void())
+  return true
+end
+
 local function check_if_else (stm)
   local status,msg
 
@@ -241,6 +305,24 @@ local function check_if_else (stm)
   status,msg = check_stm(stm[2]) ; if not status then return status,msg end
   status,msg = check_stm(stm[3]) ; if not status then return status,msg end
 
+  return true
+end
+
+local function check_goto (stm)
+  local status,msg
+
+  status,msg = lookup_label(stm) ; if not status then return status,msg end
+
+  set_type(stm, types.Void())
+  return true
+end
+
+local function check_label (stm)
+  local status,msg
+
+  status,msg = set_label(stm) ; if not status then return status,msg end
+
+  set_type(stm, types.Void())
   return true
 end
 
@@ -412,9 +494,12 @@ function check_stm (stm)
       msg = string.format(msg, stm[2])
       return typeerror(msg, exp)
     end
-  elseif tag == "StmLabel" or -- StmLabel Name
-         tag == "StmGoTo" then -- StmGoTo Name
+  elseif tag == "StmLabel" then -- StmLabel Name
+    return check_label(stm)
+  elseif tag == "StmGoTo" then -- StmGoTo Name
+    return check_goto(stm)
   elseif tag == "StmBreak" then -- StmBreak
+    return check_break(stm)
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
     status,msg = check_explist(stm[2])
     if not status then return status,msg end
@@ -439,10 +524,12 @@ function check_block (block)
   if tag ~= "StmBlock" then
     error("cannot type block " .. tag)
   end
+  begin_scope()
   for k,v in ipairs(block) do
     status,msg = check_stm(v)
     if not status then return status,msg end
   end
+  end_scope()
   return true
 end
 
@@ -452,6 +539,7 @@ function checker.typecheck (ast, subject, filename)
   assert(type(filename) == "string")
   checker.subject = subject
   checker.filename = filename
+  st = {} -- reseting the symbol table
   local t,m = check_block (ast)
   if not t then return t,m end
   return ast
