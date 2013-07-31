@@ -9,9 +9,9 @@ local checker = {}
 
 local st = {} -- symbol table
 
-local function errormsg (msg, node)
+local function semerror (msg, node)
   local l,c = parser.lineno(checker.subject, node.pos)
-  local error_msg = "%s:%d:%d: %s"
+  local error_msg = "%s:%d:%d: semantic error, %s"
   error_msg = string.format(error_msg, checker.filename, l, c, msg)
   return nil,error_msg
 end
@@ -29,14 +29,19 @@ end
 
 local function begin_scope ()
   local scope = new_scope()
+  st["maxscope"] = scope
   st[scope] = {} -- new hash for new scope
-  st[scope].label = {} -- stores the labels of a scope
+  st[scope]["label"] = {} -- stores label definitions of a scope
+  st[scope]["goto"] = {} -- stores goto definitions of a scope 
 end
 
 local function end_scope ()
+  st.scope = st.scope - 1
+end
+
+local function set_pending_goto (stm)
   local scope = st.scope
-  st[scope] = nil
-  st.scope = scope - 1
+  table.insert(st[scope]["goto"], stm)
 end
 
 local function set_label (stm)
@@ -46,14 +51,13 @@ local function set_label (stm)
     local msg = "label '%s' already defined on line %d"
     local line,col = parser.lineno(checker.subject, st[scope]["label"][label].pos)
     msg = string.format(msg, label, line)
-    return errormsg(msg, stm)
+    return semerror(msg, stm)
   end
   st[scope]["label"][label] = stm
   return true
 end
 
-local function lookup_label (stm)
-  local scope = st.scope
+local function lookup_label (stm, scope)
   local label = stm[1]
   for i=scope,0,-1 do
     if st[i]["label"][label] then
@@ -63,7 +67,17 @@ local function lookup_label (stm)
   local msg = "no visible label '%s' for <goto> at line %d"
   local line,col = parser.lineno(checker.subject, stm.pos)
   msg = string.format(msg, label, line)
-  return errormsg(msg, stm)
+  return semerror(msg, stm)
+end
+
+local function check_pending_gotos ()
+  for s=st.maxscope,0,-1 do
+    for k,v in ipairs(st[s]["goto"]) do
+      local status,msg = lookup_label(v,s)
+      if not status then return status,msg end
+    end
+  end
+  return true
 end
 
 local function set_pos (node, node_pos)
@@ -298,6 +312,15 @@ local function check_break (stm)
   return true
 end
 
+local function check_call (stm)
+  local status,msg
+
+  status,msg = check_exp(stm[1]) ; if not status then return status,msg end
+
+  set_type(stm, stm[1].type)
+  return true
+end
+
 local function check_if_else (stm)
   local status,msg
 
@@ -309,10 +332,7 @@ local function check_if_else (stm)
 end
 
 local function check_goto (stm)
-  local status,msg
-
-  status,msg = lookup_label(stm) ; if not status then return status,msg end
-
+  set_pending_goto(stm)
   set_type(stm, types.Void())
   return true
 end
@@ -510,8 +530,7 @@ function check_stm (stm)
     status,msg = check_explist(stm[1])
     if not status then return status,msg end
   elseif tag == "StmCall" then -- StmCall Exp
-    status,msg = check_exp(stm[1])
-    if not status then return status,msg end
+    return check_call(stm)
   else
     error("cannot type check statement " .. tag)
   end
@@ -540,8 +559,9 @@ function checker.typecheck (ast, subject, filename)
   checker.subject = subject
   checker.filename = filename
   st = {} -- reseting the symbol table
-  local t,m = check_block (ast)
-  if not t then return t,m end
+  local status,msg
+  status,msg = check_block (ast) ; if not status then return status,msg end
+  status,msg = check_pending_gotos() ; if not status then return status,msg end
   return ast
 end
 

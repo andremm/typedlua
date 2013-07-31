@@ -1593,6 +1593,17 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+goto label
+::label::
+]=]
+e = [=[
+StmBlock [StmGoTo "label",StmLabel "label"]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 ::label::
 do ::label:: goto label end
 ]=]
@@ -1605,10 +1616,43 @@ assert(r == e)
 
 s = [=[
 ::label::
+do goto label ; ::label:: end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmGoTo "label",StmLabel "label"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+::label::
 do goto label end
 ]=]
 e = [=[
 StmBlock [StmLabel "label",StmBlock [StmGoTo "label"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+do goto label end
+::label::
+]=]
+e = [=[
+StmBlock [StmBlock [StmGoTo "label"],StmLabel "label"]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+do do do do do goto label end end end end end
+::label::
+]=]
+e = [=[
+StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmGoTo "label"]]]]],StmLabel "label"]
 ]=]
 
 r = typecheck(s)
@@ -1748,11 +1792,11 @@ assert(r == e)
 
 s = [=[
 ::label::
-::label::
 ::other_label::
+::label::
 ]=]
 e = [=[
-test.lua:2:1: label 'label' already defined on line 1
+test.lua:3:1: semantic error, label 'label' already defined on line 1
 ]=]
 
 r = typecheck(s)
@@ -1762,7 +1806,18 @@ s = [=[
 goto label
 ]=]
 e = [=[
-test.lua:1:1: no visible label 'label' for <goto> at line 1
+test.lua:1:1: semantic error, no visible label 'label' for <goto> at line 1
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+goto label
+::other_label::
+]=]
+e = [=[
+test.lua:1:1: semantic error, no visible label 'label' for <goto> at line 1
 ]=]
 
 r = typecheck(s)
@@ -1773,7 +1828,7 @@ s = [=[
 do do do goto label end end end
 ]=]
 e = [=[
-test.lua:2:10: no visible label 'label' for <goto> at line 2
+test.lua:2:10: semantic error, no visible label 'label' for <goto> at line 2
 ]=]
 
 r = typecheck(s)
