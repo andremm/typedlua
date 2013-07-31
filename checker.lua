@@ -234,6 +234,16 @@ end
 
 -- statements
 
+local function check_if_else (stm)
+  local status,msg
+
+  status,msg = check_exp(stm[1]) ; if not status then return status,msg end
+  status,msg = check_stm(stm[2]) ; if not status then return status,msg end
+  status,msg = check_stm(stm[3]) ; if not status then return status,msg end
+
+  return true
+end
+
 local function check_numeric_for (stm)
   local status,msg
   local t = types.str2type(stm[1][2])
@@ -376,9 +386,9 @@ function check_stm (stm)
   local tag = stm.tag
   local status,msg
   if tag == "StmBlock" then -- StmBlock [Stm]
+    return check_block(stm)
   elseif tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
-    status,msg = check_exp(stm[1])
-    if not status then return status,msg end
+    return check_if_else(stm)
   elseif tag == "StmWhile" then -- StmWhile Exp Stm
     return check_while(stm)
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
