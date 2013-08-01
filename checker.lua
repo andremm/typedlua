@@ -346,6 +346,14 @@ local function check_label (stm)
   return true
 end
 
+local function check_generic_for (stm)
+  local status,msg
+
+  status,msg = check_explist(stm[2]) ; if not status then return status,msg end
+
+  return check_stm(stm[3])
+end
+
 local function check_numeric_for (stm)
   local status,msg
   local t = types.str2type(stm[1][2])
@@ -496,6 +504,7 @@ function check_stm (stm)
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
     return check_numeric_for(stm)
   elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
+    return check_generic_for(stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     return check_repeat(stm)
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
