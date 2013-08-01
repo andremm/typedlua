@@ -9,11 +9,38 @@ local checker = {}
 
 local st = {} -- symbol table
 
-local function semerror (msg, node)
-  local l,c = parser.lineno(checker.subject, node.pos)
+local function semerror (msg, pos)
+  local l,c = parser.lineno(checker.subject, pos)
   local error_msg = "%s:%d:%d: semantic error, %s"
   error_msg = string.format(error_msg, checker.filename, l, c, msg)
   return nil,error_msg
+end
+
+local function set_pos (node, node_pos)
+  node.pos = node_pos
+  return true
+end
+
+local function set_type (node, node_type)
+  node.type = node_type
+  return true
+end
+
+local function typeerror (msg, pos)
+  local l,c = parser.lineno(checker.subject, pos)
+  local error_msg = "%s:%d:%d: type error, %s"
+  error_msg = string.format(error_msg, checker.filename, l, c, msg)
+  return nil,error_msg
+end
+
+local function str2type (str, pos)
+  local t = types.str2type(str)
+  if not t then
+    msg = "type '%s' is not defined"
+    msg = string.format(msg, str)
+    return typeerror(msg, pos)
+  end
+  return t
 end
 
 -- functions that handle the symbol table
@@ -33,6 +60,7 @@ local function begin_scope ()
   st[scope] = {} -- new hash for new scope
   st[scope]["label"] = {} -- stores label definitions of a scope
   st[scope]["goto"] = {} -- stores goto definitions of a scope 
+  st[scope]["local"] = {} -- stores local variables of a scope
 end
 
 local function end_scope ()
@@ -70,7 +98,7 @@ local function set_label (stm)
     local msg = "label '%s' already defined on line %d"
     local line,col = parser.lineno(checker.subject, st[scope]["label"][label].pos)
     msg = string.format(msg, label, line)
-    return semerror(msg, stm)
+    return semerror(msg, stm.pos)
   end
   st[scope]["label"][label] = stm
   return true
@@ -86,7 +114,7 @@ local function lookup_label (stm, scope)
   local msg = "no visible label '%s' for <goto> at line %d"
   local line,col = parser.lineno(checker.subject, stm.pos)
   msg = string.format(msg, label, line)
-  return semerror(msg, stm)
+  return semerror(msg, stm.pos)
 end
 
 local function check_pending_gotos ()
@@ -99,25 +127,54 @@ local function check_pending_gotos ()
   return true
 end
 
-local function set_pos (node, node_pos)
-  node.pos = node_pos
-  return true
+local function newlocal (lname, ltype, lpos)
+  local var = {}
+  var.name = lname
+  var.type = ltype
+  var.pos = lpos
+  return var
 end
 
-local function set_type (node, node_type)
-  node.type = node_type
-  return true
+local function addlocal (id)
+  local scope = st.scope
+  local id_name = id[1]
+  local id_pos = id.pos
+  local id_type,msg = str2type(id[2])
+  if not id_type then return id_type,msg end
+  local var = st[scope]["local"][id_name]
+  if not var then
+    st[scope]["local"][id_name] = newlocal(id_name, id_type, id_pos)
+    return true
+  end
+  local msg = "local variable '%s' already defined on line %d"
+  local line,col = parser.lineno(checker.subject, var.pos)
+  msg = string.format(msg, id_name, line)
+  return semerror(msg, id.pos)
 end
 
-local function typeerror (msg, node)
-  local l,c = parser.lineno(checker.subject, node.pos)
-  local error_msg = "%s:%d:%d: type error, %s"
-  error_msg = string.format(error_msg, checker.filename, l, c, msg)
-  return nil,error_msg
+local function updatelocal (id, exp)
+  local scope = st.scope
+  local id_name = id[1]
+  local var = st[scope]["local"][id_name]
+  local exp_type
+  if exp then
+    exp_type = exp.type
+  else
+    exp_type = types.Nil()
+  end
+  if types.isAny(var.type) or
+     types.Equal(var.type, exp_type) then
+    var.type = exp_type
+    return true
+  end
+  local msg = "attempt to assign '%s' to '%s'"
+  local line,col = parser.lineno(checker.subject, id.pos)
+  msg = string.format(msg, types.tostring(exp_type), types.tostring(var.type))
+  return typeerror(msg, id.pos)
 end
 
 local function infer_arguments (list)
-  local t
+  local t,msg
   local len = #list
   if len == 0 then
     if list.is_vararg then
@@ -129,11 +186,14 @@ local function infer_arguments (list)
     if list.is_vararg then
       t = types.Star(types.Any())
     else
-      t = types.str2type(list[len][2])
+      t,msg = str2type(list[len][2])
+      if not t then return t,msg end
       len = len - 1
     end
     for i=len,1,-1 do
-      t = types.Tuple(types.str2type(list[i][2]), t)
+      local u,msg = str2type(list[i][2])
+      if not u then return u,msg end
+      t = types.Tuple(u, t)
     end
   end
   return t
@@ -192,7 +252,7 @@ local function check_arith (exp)
   end
   msg = "attempt to perform arithmetic on a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
-  return typeerror(msg, exp[1])
+  return typeerror(msg, exp[1].pos)
 end
 
 local function check_concat (exp)
@@ -210,7 +270,7 @@ local function check_concat (exp)
   end
   msg = "attempt to concatenate a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
-  return typeerror(msg, exp[1])
+  return typeerror(msg, exp[1].pos)
 end
 
 local function check_equal (exp)
@@ -244,7 +304,7 @@ local function check_len (exp)
   end
   msg = "attempt to get length of a %s value"
   msg = string.format(msg, types.tostring(exp[1].type))
-  return typeerror(msg, exp[1])
+  return typeerror(msg, exp[1].pos)
 end
 
 local function check_minus (exp)
@@ -258,7 +318,7 @@ local function check_minus (exp)
   end
   msg = "attempt to perform arithmetic on a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
-  return typeerror(msg, exp[1])
+  return typeerror(msg, exp[1].pos)
 end
 
 local function check_not (exp)
@@ -304,13 +364,15 @@ local function check_order (exp)
   end
   msg = "attempt to compare %s with %s"
   msg = string.format(msg, types.tostring(exp[1].type), types.tostring(exp[2].type))
-  return typeerror(msg, exp[1])
+  return typeerror(msg, exp[1].pos)
 end
 
 -- variables
 
 local function check_varid (var)
-  set_type(var, types.str2type(var[2]))
+  local t,msg = types.str2type(var[2], var.pos)
+  if not t then return t,msg end
+  set_type(var, t)
   return true
 end
 
@@ -331,7 +393,7 @@ local function check_break (stm)
     local msg = "<break> at line %d not inside a loop"
     local line,col = parser.lineno(checker.subject, stm.pos)
     msg = string.format(msg, line)
-    return semerror(msg, stm)
+    return semerror(msg, stm.pos)
   end
   set_type(stm, types.Void())
   return true
@@ -383,17 +445,14 @@ local function check_generic_for (stm)
 end
 
 local function check_numeric_for (stm)
-  local status,msg
-  local t = types.str2type(stm[1][2])
-  if not t then
-    msg = "type '%s' is not defined"
-    msg = string.format(msg, stm[1][2])
-    return typeerror(msg, stm)
-  end
+  local t,status,msg
+
+  t,msg = str2type(stm[1][2], stm.pos)
+  if not t then return t,msg end
 
   if not types.isNumber(t) then
     msg = "'for' control variable must be a number"
-    return typeerror(msg, stm[1])
+    return typeerror(msg, stm[1].pos)
   end
 
   status,msg = check_exp(stm[2]) ; if not status then return status,msg end
@@ -402,13 +461,13 @@ local function check_numeric_for (stm)
 
   if not types.isNumber(stm[2].type) then
     msg = "'for' initial value must be a number"
-    return typeerror(msg, stm[2])
+    return typeerror(msg, stm[2].pos)
   elseif not types.isNumber(stm[3].type) then
     msg = "'for' limit must be a number"
-    return typeerror(msg, stm[3])
+    return typeerror(msg, stm[3].pos)
   elseif not types.isNumber(stm[4].type) then
     msg = "'for' step must be a number"
-    return typeerror(msg, stm[4])
+    return typeerror(msg, stm[4].pos)
   end
 
   insideloop()
@@ -436,6 +495,25 @@ local function check_while (stm)
   status,msg = check_exp(stm[1]) ; if not status then return status,msg end
   status,msg = check_stm(stm[2]) ; if not status then return status,msg end
   outsideloop()
+
+  return true
+end
+
+local function check_local_assignment (stm)
+  local status,msg
+
+  for k,v in ipairs(stm[1]) do
+    status,msg = addlocal(v)
+    if not status then return status,msg end
+  end
+
+  status,msg = check_explist(stm[2])
+  if not status then return status,msg end
+
+  for k,v in ipairs(stm[1]) do
+    status,msg = updatelocal(v, stm[2][k])
+    if not status then return status,msg end
+  end
 
   return true
 end
@@ -478,12 +556,8 @@ function check_exp (exp)
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
     local t1 = infer_arguments(exp[1])
-    local t2 = types.str2type(exp[2])
-    if not t2 then
-      local msg = "type '%s' is not defined"
-      msg = string.format(msg, exp[2])
-      return typeerror(msg, exp)
-    end
+    local t2,msg = str2type(exp[2], exp[2].pos)
+    if not t2 then return t2,msg end
     set_type(exp, types.Function(t1, t2))
     return check_stm(exp[3])
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
@@ -548,21 +622,13 @@ function check_stm (stm)
     return check_repeat(stm)
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
     local t1 = infer_arguments(stm[2])
-    local t2 = types.str2type(stm[3])
-    if not t2 then
-      local msg = "type '%s' is not defined"
-      msg = string.format(msg, stm[2])
-      return typeerror(msg, exp)
-    end
+    local t2,msg = str2type(stm[3], stm[3].pos)
+    if not t2 then return t2,msg end
     return check_stm(stm[4])
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
     local t1 = infer_arguments(stm[2])
-    local t2 = types.str2type(stm[3])
-    if not t2 then
-      local msg = "type '%s' is not defined"
-      msg = string.format(msg, stm[2])
-      return typeerror(msg, exp)
-    end
+    local t2,msg = str2type(stm[3], stm[3].pos)
+    if not t2 then return t2,msg end
     return check_stm(stm[4])
   elseif tag == "StmLabel" then -- StmLabel Name
     return check_label(stm)
@@ -574,8 +640,7 @@ function check_stm (stm)
     status,msg = check_explist(stm[2])
     if not status then return status,msg end
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
-    status,msg = check_explist(stm[2])
-    if not status then return status,msg end
+    return check_local_assignment(stm)
   elseif tag == "StmRet" then -- StmRet [Exp]
     status,msg = check_explist(stm[1])
     if not status then return status,msg end

@@ -149,6 +149,19 @@ function types.isTrue (t)
   return false
 end
 
+function types.Equal (t1, t2)
+  if types.isNil(t1) then
+    return types.isNil(t2)
+  elseif types.isBoolean(t1) then
+    return types.isBoolean(t2)
+  elseif types.isNumber(t1) then
+    return types.isNumber(t2)
+  elseif types.isString(t1) then
+    return types.isString(t2)
+  end
+  return false
+end
+
 local function type2str (t)
   local tag = t.tag
   if tag == "TypeConstant" then
