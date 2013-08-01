@@ -518,6 +518,28 @@ local function check_local_assignment (stm)
   return true
 end
 
+local function check_local_function (stm)
+  local status,msg
+  local t1 = infer_arguments(stm[2])
+  local t2,msg = str2type(stm[3], stm[3].pos)
+  if not t2 then return t2,msg end
+
+  status,msg = check_stm(stm[4])
+  if not status then return status,msg end
+
+  local id = { stm[1], "any" }
+  id.pos = stm.pos
+  id.type = types.Function(t1, t2)
+
+  status,msg = addlocal(id)
+  if not status then return status,msg end
+
+  status,msg = updatelocal(id, id)
+  if not status then return status,msg end
+
+  return true
+end
+
 function check_explist (explist)
   local t,m
   for k,v in ipairs(explist) do
@@ -626,10 +648,7 @@ function check_stm (stm)
     if not t2 then return t2,msg end
     return check_stm(stm[4])
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
-    local t1 = infer_arguments(stm[2])
-    local t2,msg = str2type(stm[3], stm[3].pos)
-    if not t2 then return t2,msg end
-    return check_stm(stm[4])
+    return check_local_function(stm)
   elseif tag == "StmLabel" then -- StmLabel Name
     return check_label(stm)
   elseif tag == "StmGoTo" then -- StmGoTo Name
