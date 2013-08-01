@@ -510,49 +510,6 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-while 1 do
-  while 1 do
-    break
-  end
-  break
-end
-]=]
-e = [=[
-StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak]),StmBreak])]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-repeat
-  if x > 1 then break end
-until 1
-]=]
-e = [=[
-StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","any"))) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-for i=1,10 do
-  do
-    break
-    break
-    return
-  end
-end
-]=]
-e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
 do
   var = 2+2;
   return
@@ -1216,28 +1173,6 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-break
-]=]
-e = [=[
-test.lua:1:1: syntax error, unexpected 'break', expecting 'return', '(', 'Name', 'goto', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-function f ()
-  if x then break end
-end
-]=]
-e = [=[
-test.lua:2:13: syntax error, unexpected 'break', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'goto', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
@@ -1570,6 +1505,61 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+while 1 do
+  break
+end
+]=]
+e = [=[
+StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+  while 1 do
+    break
+  end
+  break
+end
+]=]
+e = [=[
+StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak]),StmBreak])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+repeat
+  if x > 1 then break end
+until 1
+]=]
+e = [=[
+StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","any"))) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i=1,10 do
+  do
+    break
+    break
+    return
+  end
+end
+]=]
+e = [=[
+StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 ::label::
 do ::label:: end
 ::other_label::
@@ -1785,6 +1775,40 @@ for i=1,10,nil do end
 ]=]
 e = [=[
 test.lua:1:12: type error, 'for' step must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+break
+]=]
+e = [=[
+test.lua:1:1: semantic error, <break> at line 1 not inside a loop
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+function f ()
+  if x then break end
+end
+]=]
+e = [=[
+test.lua:2:13: semantic error, <break> at line 2 not inside a loop
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+end
+break
+]=]
+e = [=[
+test.lua:3:1: semantic error, <break> at line 3 not inside a loop
 ]=]
 
 r = typecheck(s)

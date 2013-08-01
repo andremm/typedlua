@@ -39,6 +39,25 @@ local function end_scope ()
   st.scope = st.scope - 1
 end
 
+local function insideloop ()
+  if not st.loop then
+    st.loop = 1
+  else
+    st.loop = st.loop + 1
+  end
+end
+
+local function outsideloop ()
+  st.loop = st.loop - 1
+end
+
+local function isinsideloop ()
+  if st.loop and st.loop > 0 then
+    return true
+  end
+  return false
+end
+
 local function set_pending_goto (stm)
   local scope = st.scope
   table.insert(st[scope]["goto"], stm)
@@ -308,6 +327,12 @@ end
 -- statements
 
 local function check_break (stm)
+  if not isinsideloop() then
+    local msg = "<break> at line %d not inside a loop"
+    local line,col = parser.lineno(checker.subject, stm.pos)
+    msg = string.format(msg, line)
+    return semerror(msg, stm)
+  end
   set_type(stm, types.Void())
   return true
 end
@@ -349,9 +374,12 @@ end
 local function check_generic_for (stm)
   local status,msg
 
+  insideloop()
   status,msg = check_explist(stm[2]) ; if not status then return status,msg end
+  status,msg = check_stm(stm[3]) ; if not status then return status,msg end
+  outsideloop()
 
-  return check_stm(stm[3])
+  return true
 end
 
 local function check_numeric_for (stm)
@@ -383,23 +411,33 @@ local function check_numeric_for (stm)
     return typeerror(msg, stm[4])
   end
 
-  return check_stm(stm[5])
+  insideloop()
+  status,msg = check_stm(stm[5]) ; if not status then return status,msg end
+  outsideloop()
+
+  return true
 end
 
 local function check_repeat (stm)
   local status,msg
 
+  insideloop()
+  status,msg = check_stm(stm[1]) ; if not status then return status,msg end
   status,msg = check_exp(stm[2]) ; if not status then return status,msg end
+  outsideloop()
 
-  return check_stm(stm[1])
+  return true
 end
 
 local function check_while (stm)
   local status,msg
 
+  insideloop()
   status,msg = check_exp(stm[1]) ; if not status then return status,msg end
+  status,msg = check_stm(stm[2]) ; if not status then return status,msg end
+  outsideloop()
 
-  return check_stm(stm[2])
+  return true
 end
 
 function check_explist (explist)
@@ -446,7 +484,8 @@ function check_exp (exp)
       msg = string.format(msg, exp[2])
       return typeerror(msg, exp)
     end
-    return set_type(exp, types.Function(t1, t2))
+    set_type(exp, types.Function(t1, t2))
+    return check_stm(exp[3])
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return set_type(exp, types.Any())
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
@@ -515,6 +554,7 @@ function check_stm (stm)
       msg = string.format(msg, stm[2])
       return typeerror(msg, exp)
     end
+    return check_stm(stm[4])
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
     local t1 = infer_arguments(stm[2])
     local t2 = types.str2type(stm[3])
@@ -523,6 +563,7 @@ function check_stm (stm)
       msg = string.format(msg, stm[2])
       return typeerror(msg, exp)
     end
+    return check_stm(stm[4])
   elseif tag == "StmLabel" then -- StmLabel Name
     return check_label(stm)
   elseif tag == "StmGoTo" then -- StmGoTo Name
@@ -569,7 +610,7 @@ function checker.typecheck (ast, subject, filename)
   checker.filename = filename
   st = {} -- reseting the symbol table
   local status,msg
-  status,msg = check_block (ast) ; if not status then return status,msg end
+  status,msg = check_block(ast) ; if not status then return status,msg end
   status,msg = check_pending_gotos() ; if not status then return status,msg end
   return ast
 end
