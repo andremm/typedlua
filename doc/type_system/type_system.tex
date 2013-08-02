@@ -15,9 +15,9 @@
 \section{Type Language}
 
 \begin{align*}
-T ::= \; & constant \; | \; base\\
+T ::= \; & constant \; | \; base \; | \; T \cup T\\
 constant ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
- | \; n \; | \; s\\
+ | \; {<}integer{>} \; | \; {<}double{>} \; | \; {<}string{>}\\
 base ::= \; & Any \; | \; Boolean \; | \; Number \; | \; String\\
 \end{align*}
 
@@ -38,11 +38,15 @@ S \; <: \; S
 \subsection{Constants}
 
 \[
-n <: Number \; (\textit{S-NUM})
+{<}integer{>} <: Number \; (\textit{S-INTEGER})
 \]
 
 \[
-s <: String \; (\textit{S-LIT})
+{<}double{>} <: Number \; (\textit{S-DOUBLE})
+\]
+
+\[
+{<}string{>} <: String \; (\textit{S-STRING})
 \]
 
 \[
@@ -70,7 +74,7 @@ v ::= \; & id \; | \; e[e]\\
 %funcboby ::= \; & ((\overline{id},isvararg),s)\\
 funcboby ::= \; & () \; s \; | \; ({...}) \; s \;
 | \; (\overline{id}) \; s \; | \; (\overline{id},{...}) \; s\\
-s ::= \; & statements\\
+s ::= \; & {<}statements{>}\\
 %s ::= \; & \textbf{block} \; \overline{s}\\
 %| & \; \textbf{ifelse} \; e \; s \; s\\
 %| & \; \textbf{while} \; e \; s\\
@@ -87,14 +91,13 @@ s ::= \; & statements\\
 %| & \; \textbf{ret} \; \overline{e}\\
 %| & \; e\\
 e ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
-| \; {...} \; | \; n \; | \; l \; | \; v \;
-| \; \textbf{func} \; funcbody \; | \\
-& \{(\overline{e},\overline{(e,e)})\} \;
-| \; id(e,\overline{e}) \; | \; e(\overline{e}) \;
-| \; e \; binop \; e \; | \; unop \; e\\
-binop ::= & + | - | \times | \div | \bmod | \otimes | \oplus
-  | \not= | = | < | \le | > | \ge | \land | \lor\\
-unop ::= & \; \lnot \; | - | \; \#\\
+| \; {...} \; | \; n \; | \; w \; | \; v \; | \\
+& \textbf{func} \; funcbody \;
+| \; \{(\overline{e},\overline{(e,e)})\} \;
+| \; id(e,\overline{e}) \; | \; e(\overline{e}) \; | \\
+& e + e \; | \; e \; {..} \; e \; | \; e == e \; | \; e < e \;
+| \; e \; \textbf{and} \; e \; | \; e \; \textbf{or} \; e \; | \\
+& \textbf{not} \; e \; | - e \; | \; \# \; e
 \end{align*}
 
 \subsection{Expressions}
@@ -112,7 +115,7 @@ unop ::= & \; \lnot \; | - | \; \#\\
 \]
 
 \[
-{...} : TODO \; (\textit{T-VARARG})
+{...} : Any \; (\textit{T-VARARG})
 \]
 
 \[
@@ -120,167 +123,113 @@ n : n \; (\textit{T-NUMBER})
 \]
 
 \[
-l : l \; (\textit{T-STRING})
+w : w \; (\textit{T-STRING})
 \]
 
 \[
-\textbf{func} \; funcbody : TODO \; (\textit{T-ANONFUNC})
+\textbf{func} \; funcbody : Any \; (\textit{T-ANONFUNC})
 \]
 
 \[
-\{(\overline{e},\overline{(e,e)})\} : TODO \; (\textit{T-TABLECONST})
+\{(\overline{e},\overline{(e,e)})\} : Any \; (\textit{T-TABLECONST})
 \]
 
 \[
-id(e,\overline{e}) : TODO \; (\textit{T-METHCALL})
+id(e,\overline{e}) : Any \; (\textit{T-METHCALL})
 \]
 
 \[
-e(\overline{e}) : TODO \; (\textit{T-FUNCCALL})
+e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} + e_{2} : Number} \; (\textit{T-ADD})
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} + e_{2} : Number} \; (\textit{T-ARITH1})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} - e_{2} : Number} \; (\textit{T-SUB})
+\frac{e_{1}:Any}
+     {e_{1} + e_{2} : Any} \; (\textit{T-ARITH2})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \times e_{2} : Number} \; (\textit{T-MUL})
+\frac{e_{2}:Any}
+     {e_{1} + e_{2} : Any} \; (\textit{T-ARITH3})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \div e_{2} : Number} \; (\textit{T-DIV})
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} \; {..} \; e_{2} : String} \; (\textit{T-CONCAT1})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \bmod e_{2} : Number} \; (\textit{T-MOD})
+\frac{e_{1}:Any}
+     {e_{1} \; {..} \; e_{2} : Any} \; (\textit{T-CONCAT2})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \otimes e_{2} : Number} \; (\textit{T-POW})
-\]
-
-\[
-\frac{e_{1}:String \;\;\; e_{2}:String \;\;\; String \sim Any}
-     {e_{1} \oplus e_{2} : String} \; (\textit{T-CONCAT})
+\frac{e_{2}:Any}
+     {e_{1} \; {..} \; e_{2} : Any} \; (\textit{T-CONCAT3})
 \]
 
 \[
 \frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \not= e_{2} : Boolean} \; (\textit{T-NE})
+     {e_{1} == e_{2} : Boolean} \; (\textit{T-EQUALITY})
+\]
+
+\[
+\frac{e_{1}:Number \;\;\; e_{2}:Number}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL1})
+\]
+
+\[
+\frac{e_{1}:String \;\;\; e_{2}:String}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL2})
+\]
+
+\[
+\frac{e_{1}:Any}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL3})
+\]
+
+\[
+\frac{e_{2}:Any}
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL4})
 \]
 
 \[
 \frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} = e_{2} : Boolean} \; (\textit{T-EQ})
+     {e_{1} \; \textbf{and} \; e_{2} : T_{1} \cup T_{2}} \; (\textit{T-AND})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT1})
+\frac{e_{1}:T \;\;\; e_{2}:T_{2}}
+     {e_{1} \; \textbf{or} \; e_{2} : T_{1} \cup T_{2}} \; (\textit{T-OR})
 \]
 
 \[
-\frac{e_{1}:String \;\;\; e_{2}:String \;\;\; String \sim Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-LT2})
+\frac{e:T}
+     {\textbf{not} \; e : Boolean} \; (\textit{T-NOT})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE1})
+\frac{e:Number}
+     {- \; e : Number} \; (\textit{T-MINUS1})
 \]
 
 \[
-\frac{e_{1}:String \;\;\; e_{2}:String \;\;\; String \sim Any}
-     {e_{1} \le e_{2} : Boolean} \; (\textit{T-LE2})
+\frac{e:Any}
+     {- \; e : Any} \; (\textit{T-MINUS2})
 \]
 
 \[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT1})
+\frac{e : String}
+     {\# \; e : Number} \; (\textit{T-LEN1})
 \]
 
 \[
-\frac{e_{1}:String \;\;\; e_{2}:String \;\;\; String \sim Any}
-     {e_{1} > e_{2} : Boolean} \; (\textit{T-GT2})
-\]
-
-\[
-\frac{e_{1}:Number \;\;\; e_{2}:Number \;\;\; Number \sim Any}
-     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE1})
-\]
-
-\[
-\frac{e_{1}:String \;\;\; e_{2}:String \;\;\; String \sim Any}
-     {e_{1} \ge e_{2} : Boolean} \; (\textit{T-GE2})
-\]
-
-\[
-\frac{e_{1}:\textbf{nil}}
-     {e_{1} \land e_{2} : \textbf{nil}} \; (\textit{T-AND1})
-\]
-
-\[
-\frac{e_{1}:\textbf{false}}
-     {e_{1} \land e_{2} : \textbf{false}} \; (\textit{T-AND2})
-\]
-
-\[
-\frac{e_{1}:Boolean \;\;\;
-\textbf{typeof}(e_{1}) \not= \textbf{false} \;\;\;
-\textbf{typeof}(e_{1}) \not= \textbf{true}}
-     {e_{1} \land e_{2} : Any} \; (\textit{T-AND3})
-\]
-
-\[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \land e_{2} : T_{2}} \; (\textit{T-AND4})
-\]
-
-\[
-\frac{e_{1}:\textbf{nil} \;\;\; e_{2}:T}
-     {e_{1} \lor e_{2} : T} \; (\textit{T-OR1})
-\]
-
-\[
-\frac{e_{1}:\textbf{false} \;\;\; e_{2}:T}
-     {e_{1} \lor e_{2} : T} \; (\textit{T-OR2})
-\]
-
-\[
-\frac{e_{1}:Boolean \;\;\;
-\textbf{typeof}(e_{1}) \not= \textbf{false} \;\;\;
-\textbf{typeof}(e_{1}) \not= \textbf{true}}
-     {e_{1} \lor e_{2} : Any} \; (\textit{T-OR3})
-\]
-
-\[
-\frac{e_{1}:T}
-     {e_{1} \lor e_{2} : T} \; (\textit{T-OR4})
-\]
-
-\[
-\frac{e : T}
-     {\lnot \; e : Boolean} \; (\textit{T-NOT})
-\]
-
-\[
-\frac{e : Number \;\;\; Number \sim Any}
-     {- \; e : Number} \; (\textit{T-MINUS})
-\]
-
-\[
-\frac{e : String \;\;\; String \sim Any}
-     {\# \; e : Number} \; (\textit{T-LEN})
+\frac{e : Any}
+     {\# \; e : Any} \; (\textit{T-LEN2})
 \]
 
 \end{document}
