@@ -1465,26 +1465,6 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local x = (true and 1) + 1
-]=]
-e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpAdd (ExpAnd (ExpTrue) (ExpNum 1.0)) (ExpNum 1.0)]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = (1 or nil) + 1
-]=]
-e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpAdd (ExpOr (ExpNum 1.0) (ExpNil)) (ExpNum 1.0)]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
 local x = #"hello world"
 ]=]
 e = [=[
@@ -1685,46 +1665,6 @@ local x = 1 < "hello"
 ]=]
 e = [=[
 test.lua:1:11: type error, attempt to compare number with string
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = (nil and 1) + 1
-]=]
-e = [=[
-test.lua:1:12: type error, attempt to perform arithmetic on a nil
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = (1 and false) + 1
-]=]
-e = [=[
-test.lua:1:12: type error, attempt to perform arithmetic on a boolean
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = (true or nil) + 1
-]=]
-e = [=[
-test.lua:1:12: type error, attempt to perform arithmetic on a boolean
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = (nil or true) + 1
-]=]
-e = [=[
-test.lua:1:12: type error, attempt to perform arithmetic on a boolean
 ]=]
 
 r = typecheck(s)

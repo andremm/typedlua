@@ -7,6 +7,7 @@ Base = "any" | "boolean" | "number" | "string"
 
 Type = TypeConstant Constant
      | TypeBase Base
+     | TypeUnion Type Type
      | TypeFunction Type Type
      | TypeTuple Type Type
      | TypeStar Type
@@ -29,10 +30,6 @@ end
 
 function types.Function (arg, ret)
   return { tag = "TypeFunction", [1] = arg, [2] = ret }
-end
-
-function types.Literal (l)
-  return { tag = "TypeConstant", [1] = l }
 end
 
 function types.Nil ()
@@ -63,8 +60,16 @@ function types.Tuple (t1, t2)
   return { tag = "TypeTuple", [1] = t1, [2] = t2 }
 end
 
+function types.Union (t1, t2)
+  return { tag = "TypeUnion", [1] = t1, [2] = t2 }
+end
+
 function types.Void ()
   return { tag = "TypeVoid" }
+end
+
+function types.Word (w)
+  return { tag = "TypeConstant", [1] = w }
 end
 
 function types.isAny (t)
@@ -75,8 +80,7 @@ function types.isAny (t)
 end
 
 function types.isBaseBoolean (t)
-  if t.tag == "TypeBase" and t[1] == "boolean" or
-     types.isAny(t) then
+  if t.tag == "TypeBase" and t[1] == "boolean" then
     return true
   end
   return false
@@ -84,8 +88,7 @@ end
 
 function types.isBoolean (t)
   if t.tag == "TypeBase" and t[1] == "boolean" or
-     types.isFalse(t) or types.isTrue(t) or
-     types.isAny(t) then
+     types.isFalse(t) or types.isTrue(t) then
     return true
   end
   return false
@@ -109,13 +112,6 @@ function types.isInteger (t)
   return false
 end
 
-function types.isLiteral (t)
-  if t.tag == "TypeConstant" and type(t[1]) == "string" then
-    return true
-  end
-  return false
-end
-
 function types.isNil (t)
   if t.tag == "TypeConstant" and t[1] == nil then
     return true
@@ -126,8 +122,7 @@ end
 function types.isNumber (t)
   if t.tag == "TypeBase" and t[1] == "number" or
      t.tag == "TypeConstant" and type(t[1]) == "number" or
-     types.isInteger(t) or
-     types.isAny(t) then
+     types.isInteger(t) then
     return true
   end
   return false
@@ -135,8 +130,7 @@ end
 
 function types.isString (t)
   if t.tag == "TypeBase" and t[1] == "string" or
-     types.isLiteral(t) or
-     types.isAny(t) then
+     types.isWord(t) then
     return true
   end
   return false
@@ -144,6 +138,13 @@ end
 
 function types.isTrue (t)
   if t.tag == "TypeConstant" and t[1] == true then
+    return true
+  end
+  return false
+end
+
+function types.isWord (t)
+  if t.tag == "TypeConstant" and type(t[1]) == "string" then
     return true
   end
   return false
@@ -174,6 +175,8 @@ local function type2str (t)
     return "(" .. type2str(t[1]) .. " x " .. type2str(t[2]) .. ")"
   elseif tag == "TypeStar" then
     return type2str(t[1]) .. "*"
+  elseif tag == "TypeUnion" then
+    return "(" .. type2str(t[1]) .. " U " .. type2str(t[2]) .. ")"
   elseif tag == "TypeVoid" then
     return "void"
   else

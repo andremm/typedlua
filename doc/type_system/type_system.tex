@@ -174,27 +174,27 @@ e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
 
 \[
 \frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} == e_{2} : Boolean} \; (\textit{T-EQUALITY})
+     {e_{1} == e_{2} : Boolean} \; (\textit{T-EQUAL})
 \]
 
 \[
 \frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL1})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER1})
 \]
 
 \[
 \frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL2})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER2})
 \]
 
 \[
 \frac{e_{1}:Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL3})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER3})
 \]
 
 \[
 \frac{e_{2}:Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-RELATIONAL4})
+     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER4})
 \]
 
 \[
@@ -203,7 +203,7 @@ e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
 \]
 
 \[
-\frac{e_{1}:T \;\;\; e_{2}:T_{2}}
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
      {e_{1} \; \textbf{or} \; e_{2} : T_{1} \cup T_{2}} \; (\textit{T-OR})
 \]
 

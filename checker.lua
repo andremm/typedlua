@@ -224,16 +224,8 @@ local function check_and (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
+  set_type(exp, types.Union(exp[1].type, exp[2].type)) -- T-AND
   set_pos(exp, exp[1].pos)
-
-  if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
-    set_type(exp, exp[1].type)
-  elseif types.isBaseBoolean(exp[1].type) then
-    set_type(exp, types.Any())
-  else
-    set_type(exp, exp[2].type)
-  end
-
   return true
 end
 
@@ -243,12 +235,19 @@ local function check_arith (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
-  if types.isNumber(exp[1].type) then
-    if types.isNumber(exp[2].type) then
-      set_type(exp, types.Number())
-      return true
+  if types.isNumber(exp[1].type) and
+     types.isNumber(exp[2].type) then -- T-ARITH1
+    set_type(exp, types.Number())
+    return true
+  elseif types.isAny(exp[1].type) or -- T-ARITH2
+         types.isAny(exp[2].type) then -- T-ARITH3
+    set_type(exp, types.Any())
+    return true
+  else
+    if not types.isNumber(exp[2].type) and
+       not types.isAny(exp[2].type) then
+      exp[1] = exp[2]
     end
-    exp[1] = exp[2]
   end
   msg = "attempt to perform arithmetic on a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
@@ -261,12 +260,19 @@ local function check_concat (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
-  if types.isString(exp[1].type) then
-    if types.isString(exp[2].type) then
-      set_type(exp, types.String())
-      return true
+  if types.isString(exp[1].type) and
+     types.isString(exp[2].type) then -- T-CONCAT1
+    set_type(exp, types.String())
+    return true
+  elseif types.isAny(exp[1].type) or -- T-CONCAT2
+         types.isAny(exp[2].type) then -- T-CONCAT3
+    set_type(exp, types.Any())
+    return true
+  else
+    if not types.isString(exp[2].type) and
+       not types.isAny(exp[2].type) then
+      exp[1] = exp[2]
     end
-    exp[1] = exp[2]
   end
   msg = "attempt to concatenate a %s"
   msg = string.format(msg, types.tostring(exp[1].type))
@@ -279,8 +285,8 @@ local function check_equal (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
+  set_type(exp, types.Boolean()) -- T-EQUAL
   set_pos(exp, exp[1].pos)
-  set_type(exp, types.Boolean())
   return true
 end
 
@@ -298,8 +304,11 @@ local function check_len (exp)
 
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
 
-  if types.isString(exp[1].type) then
+  if types.isString(exp[1].type) then -- T-LEN1
     set_type(exp, types.Number())
+    return true
+  elseif types.isAny(exp[1].type) then -- T-LEN2
+    set_type(exp, types.Any())
     return true
   end
   msg = "attempt to get length of a %s value"
@@ -312,8 +321,11 @@ local function check_minus (exp)
 
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
 
-  if types.isNumber(exp[1].type) then
+  if types.isNumber(exp[1].type) then -- T-MINUS1
     set_type(exp, types.Number())
+    return true
+  elseif types.isAny(exp[1].type) then -- T-MINUS2
+    set_type(exp, types.Any())
     return true
   end
   msg = "attempt to perform arithmetic on a %s"
@@ -326,8 +338,8 @@ local function check_not (exp)
 
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
 
+  set_type(exp, types.Boolean()) -- T-NOT
   set_pos(exp, exp[1].pos)
-  set_type(exp, types.Boolean())
   return true
 end
 
@@ -337,16 +349,8 @@ local function check_or (exp)
   status,msg = check_exp(exp[1]) ; if not status then return status,msg end
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
+  set_type(exp, types.Union(exp[1].type, exp[2].type)) -- T-OR
   set_pos(exp, exp[1].pos)
-
-  if types.isNil(exp[1].type) or types.isFalse(exp[1].type) then
-    set_type(exp, exp[2].type)
-  elseif types.isBaseBoolean(exp[1].type) then
-    set_type(exp, types.Any())
-  else
-    set_type(exp, exp[1].type)
-  end
-
   return true
 end
 
@@ -357,9 +361,14 @@ local function check_order (exp)
   status,msg = check_exp(exp[2]) ; if not status then return status,msg end
 
   set_type(exp, types.Boolean())
-  if types.isNumber(exp[1].type) and types.isNumber(exp[2].type) then
+  if types.isNumber(exp[1].type) and
+     types.isNumber(exp[2].type) then -- T-ORDER1
     return true
-  elseif types.isString(exp[1].type) and types.isString(exp[2].type) then
+  elseif types.isString(exp[1].type) and
+         types.isString(exp[2].type) then -- T-ORDER2
+    return true
+  elseif types.isAny(exp[1].type) or -- T-ORDER3
+         types.isAny(exp[2].type) then -- T-ORDER4
     return true
   end
   msg = "attempt to compare %s with %s"
@@ -450,7 +459,7 @@ local function check_numeric_for (stm)
   t,msg = str2type(stm[1][2], stm.pos)
   if not t then return t,msg end
 
-  if not types.isNumber(t) then
+  if not types.isNumber(t) and not types.isAny(t) then
     msg = "'for' control variable must be a number"
     return typeerror(msg, stm[1].pos)
   end
@@ -573,7 +582,7 @@ function check_exp (exp)
   elseif tag == "ExpNum" then -- ExpNum Double
     return set_type(exp, types.Numeral(exp[1]))
   elseif tag == "ExpStr" then -- ExpStr String
-    return set_type(exp, types.Literal(exp[1]))
+    return set_type(exp, types.Word(exp[1]))
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
