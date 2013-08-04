@@ -1,7 +1,7 @@
 --[[
 This file implements the available types in Typed Lua
 
-Constant = nil | false | true | <numeral> | <literal>
+Constant = nil | false | true | <integer> | <double> | <word>
 
 Base = "any" | "boolean" | "number" | "string"
 
@@ -79,17 +79,21 @@ function types.isAny (t)
   return false
 end
 
-function types.isBaseBoolean (t)
-  if t.tag == "TypeBase" and t[1] == "boolean" then
+function types.isBoolean (t)
+  if t.tag == "TypeBase" and t[1] == "boolean" or
+     types.isFalse(t) or types.isTrue(t) then
     return true
   end
   return false
 end
 
-function types.isBoolean (t)
-  if t.tag == "TypeBase" and t[1] == "boolean" or
-     types.isFalse(t) or types.isTrue(t) then
-    return true
+function types.isDouble (t)
+  if t.tag == "TypeConstant" then
+    local x = t[1]
+    if type(x) == "number" and
+       math.floor(x) ~= x then
+      return true
+    end
   end
   return false
 end
@@ -121,8 +125,7 @@ end
 
 function types.isNumber (t)
   if t.tag == "TypeBase" and t[1] == "number" or
-     t.tag == "TypeConstant" and type(t[1]) == "number" or
-     types.isInteger(t) then
+     types.isInteger(t) or types.isDouble(t) then
     return true
   end
   return false
