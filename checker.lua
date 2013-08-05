@@ -26,6 +26,14 @@ local function set_type (node, node_type)
   return true
 end
 
+local function get_node_type (node)
+  if node then
+    return node.type
+  else
+    return types.Nil()
+  end
+end
+
 local function typeerror (msg, pos)
   local l,c = parser.lineno(checker.subject, pos)
   local error_msg = "%s:%d:%d: type error, %s"
@@ -127,6 +135,27 @@ local function check_pending_gotos ()
   return true
 end
 
+local function new_id (id_name, id_pos, id_type)
+  local id = {}
+  id["name"] = id_name
+  id["pos"] = id_pos
+  id["type"] = id_type
+  return id
+end
+
+local function set_global (name, pos, dec_type, exp_type)
+  local status,msg
+  if types.Equal(dec_type, exp_type) or
+     types.isAny(dec_type) then
+    st["global"][name] = new_id(name, pos, exp_type)
+    return true
+  end
+  local msg = "attempt to assign '%s' to '%s'"
+  local line,col = parser.lineno(checker.subject, pos)
+  msg = string.format(msg, types.tostring(exp_type), types.tostring(dec_type))
+  return typeerror(msg, pos)
+end
+
 local function newlocal (lname, ltype, lpos)
   local var = {}
   var.name = lname
@@ -171,6 +200,42 @@ local function updatelocal (id, exp)
   local line,col = parser.lineno(checker.subject, id.pos)
   msg = string.format(msg, types.tostring(exp_type), types.tostring(var.type))
   return typeerror(msg, id.pos)
+end
+
+local function get_local_scope (name)
+  local scope = st.scope
+  for i=scope,0,-1 do
+    if st[scope]["local"][name] then
+      return i
+    end
+  end
+  return nil
+end
+
+local function get_var_name (var)
+  local tag = var.tag
+  if tag == "VarID" then
+    return var[1]
+  elseif tag == "VarIndex" then
+    error("Indexing of variables not implemented yet")
+  else
+    error("Unknown variable type " .. tag)
+  end
+end
+
+local function get_var_pos (var)
+  return var.pos
+end
+
+local function get_var_type (var)
+  local tag = var.tag
+  if tag == "VarID" then
+    return var.type
+  elseif tag == "VarIndex" then
+    error("Indexing of variables not implemented yet")
+  else
+    error("Unknown variable type " .. tag)
+  end
 end
 
 local function infer_arguments (list)
@@ -413,10 +478,9 @@ end
 -- variables
 
 local function check_varid (var)
-  local t,msg = types.str2type(var[2], var.pos)
+  local t,msg = str2type(var[2], var.pos)
   if not t then return t,msg end
-  set_type(var, t)
-  return true
+  return set_type(var, t)
 end
 
 local function check_varindex (var)
@@ -538,6 +602,28 @@ local function check_while (stm)
   status,msg = check_exp(stm[1]) ; if not status then return status,msg end
   status,msg = check_stm(stm[2]) ; if not status then return status,msg end
   outsideloop()
+
+  return true
+end
+
+local function check_assignment (stm)
+  local status,msg
+
+  status,msg = check_explist(stm[2]) ; if not status then return status,msg end
+
+  for k,v in ipairs(stm[1]) do
+    status,msg = check_var(v) ; if not status then return status,msg end
+    local var_name = get_var_name(v)
+    local var_pos = get_var_pos(v)
+    local var_type = get_var_type(v)
+    local var_scope = get_local_scope(var_name)
+    local exp_type = get_node_type(stm[2][k])
+    if var_scope then -- local
+    else -- global
+      status,msg = set_global(var_name, var_pos, var_type, exp_type)
+      if not status then return status,msg end
+    end
+  end
 
   return true
 end
@@ -689,8 +775,7 @@ function check_stm (stm)
   elseif tag == "StmBreak" then -- StmBreak
     return check_break(stm)
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
-    status,msg = check_explist(stm[2])
-    if not status then return status,msg end
+    return check_assignment(stm)
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
     return check_local_assignment(stm)
   elseif tag == "StmRet" then -- StmRet [Exp]
@@ -726,6 +811,7 @@ function checker.typecheck (ast, subject, filename)
   checker.subject = subject
   checker.filename = filename
   st = {} -- reseting the symbol table
+  st["global"] = {} -- store global names
   local status,msg
   status,msg = check_block(ast) ; if not status then return status,msg end
   status,msg = check_pending_gotos() ; if not status then return status,msg end

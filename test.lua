@@ -1628,6 +1628,17 @@ StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmGoTo "label"]]]]]
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+x,y,z = 1,2
+x = "alo"
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","any"),VarID ("y","any"),VarID ("z","any")] [ExpNum 1.0,ExpNum 2.0],StmAssign [VarID ("x","any")] [ExpStr "alo"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 s = [=[
@@ -1793,6 +1804,16 @@ do do do goto label end end end
 ]=]
 e = [=[
 test.lua:2:10: semantic error, no visible label 'label' for <goto> at line 2
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x:number,y:number,z:boolean = 1,2
+]=]
+e = [=[
+test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
 ]=]
 
 r = typecheck(s)
