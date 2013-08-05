@@ -229,6 +229,22 @@ local function check_and (exp)
   return true
 end
 
+local function check_anonymous_func (exp)
+  local status,msg
+
+  local t1 = infer_arguments(exp[1])
+
+  local t2,msg = str2type(exp[2], exp[2].pos)
+  if not t2 then return t2,msg end
+
+  set_type(exp, types.Function(t1, t2))
+
+  status,msg = check_stm(exp[3])
+  if not status then return status,msg end
+
+  return true
+end
+
 local function check_arith (exp)
   local status,msg
 
@@ -299,6 +315,13 @@ local function check_expvar (exp)
   return true
 end
 
+local function check_function_call (exp)
+  local status,msg = check_explist(exp[2])
+  if not status then return status,msg end
+  local t = infer_explist(exp[2])
+  return set_type(exp, types.Any())
+end
+
 local function check_len (exp)
   local status,msg
 
@@ -314,6 +337,13 @@ local function check_len (exp)
   msg = "attempt to get length of a %s value"
   msg = string.format(msg, types.tostring(exp[1].type))
   return typeerror(msg, exp[1].pos)
+end
+
+local function check_method_call (exp)
+  local status,msg = check_explist(exp[3])
+  if not status then return status,msg end
+  local t = infer_explist(exp[3])
+  return set_type(exp, types.Any())
 end
 
 local function check_minus (exp)
@@ -374,6 +404,10 @@ local function check_order (exp)
   msg = "attempt to compare %s with %s"
   msg = string.format(msg, types.tostring(exp[1].type), types.tostring(exp[2].type))
   return typeerror(msg, exp[1].pos)
+end
+
+local function check_table (exp)
+  return set_type(exp, types.Any())
 end
 
 -- variables
@@ -572,37 +606,27 @@ end
 function check_exp (exp)
   local tag = exp.tag
   if tag == "ExpNil" then
-    return set_type(exp, types.Nil())
+    return set_type(exp, types.Nil()) -- T-NIL
   elseif tag == "ExpFalse" then
-    return set_type(exp, types.False())
+    return set_type(exp, types.False()) -- T-FALSE
   elseif tag == "ExpTrue" then
-    return set_type(exp, types.True())
+    return set_type(exp, types.True()) -- T-TRUE
   elseif tag == "ExpDots" then
-    return set_type(exp, types.Any())
+    return set_type(exp, types.Star(types.Any())) -- T-VARARG
   elseif tag == "ExpNum" then -- ExpNum Double
-    return set_type(exp, types.Numeral(exp[1]))
+    return set_type(exp, types.Numeral(exp[1])) -- T-NUMBER
   elseif tag == "ExpStr" then -- ExpStr String
-    return set_type(exp, types.Word(exp[1]))
+    return set_type(exp, types.Word(exp[1])) -- T-STRING
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
-    local t1 = infer_arguments(exp[1])
-    local t2,msg = str2type(exp[2], exp[2].pos)
-    if not t2 then return t2,msg end
-    set_type(exp, types.Function(t1, t2))
-    return check_stm(exp[3])
+    return check_anonymous_func(exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
-    return set_type(exp, types.Any())
+    return check_table(exp)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    local status,msg = check_explist(exp[3])
-    if not status then return status,msg end
-    local t = infer_explist(exp[3])
-    return set_type(exp, types.Any())
+    return check_method_call(exp)
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
-    local status,msg = check_explist(exp[2])
-    if not status then return status,msg end
-    local t = infer_explist(exp[2])
-    return set_type(exp, types.Any())
+    return check_function_call(exp)
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
          tag == "ExpMul" or -- ExpMul Exp Exp

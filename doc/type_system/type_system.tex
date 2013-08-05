@@ -15,7 +15,9 @@
 \section{Type Language}
 
 \begin{align*}
-T ::= \; & constant \; | \; base \; | \; T \cup T\\
+T ::= \; & constant \; | \; base \; | \; T \rightarrow T \; | \; T \cup T \; 
+ | \; S\\
+S ::= \; & {T*} \; | \; T \times S \; | \; Void\\
 constant ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
  | \; {<}integer{>} \; | \; {<}double{>} \; | \; {<}string{>}\\
 base ::= \; & Any \; | \; Boolean \; | \; Number \; | \; String\\
@@ -57,6 +59,29 @@ S \; <: \; S
 \textbf{true} <: Boolean \; (\textit{S-TRUE})
 \]
 
+\subsection{Functions}
+
+\[
+\frac{T_{1} <: S_{1} \;\;\; S_{2} <: T_{2}}
+     {S_{1} \rightarrow S_{2} \; <: \; T_{1} \rightarrow T_{2}} \;
+(\textit{S-FUNC})
+\]
+
+\subsection{Union}
+
+\[
+T_{1} <: T_{1} \cup T_{2} \; (\textit{S-UNION1})
+\]
+
+\[
+T_{2} <: T_{1} \cup T_{2} \; (\textit{S-UNION2})
+\]
+
+\[
+\frac{S_{1} <: T\;\;\; S_{2} <: T}
+     {S_{1} \cup S_{2} <: T} \; (\textit{S-UNION3})
+\]
+
 %\subsection{Object (Top)}
 %
 %\[
@@ -69,27 +94,23 @@ S \; <: \; S
 
 \begin{align*}
 v ::= \; & id \; | \; e[e]\\
-%funcname ::= \; & \textbf{function} \; \overline{id} \;
-%| \; \textbf{method} \; \overline{id}\\
-%funcboby ::= \; & ((\overline{id},isvararg),s)\\
+funcname ::= \; & \textbf{function} \; \overline{id} \;
+| \; \textbf{method} \; \overline{id}\\
 funcboby ::= \; & () \; s \; | \; ({...}) \; s \;
 | \; (\overline{id}) \; s \; | \; (\overline{id},{...}) \; s\\
-s ::= \; & {<}statements{>}\\
-%s ::= \; & \textbf{block} \; \overline{s}\\
-%| & \; \textbf{ifelse} \; e \; s \; s\\
-%| & \; \textbf{while} \; e \; s\\
-%| & \; \textbf{fornum} \; id \; e \; e \; e \; s\\
-%| & \; \textbf{forgen} \; \overline{id} \; \overline{e} \; s\\
-%| & \; \textbf{repeat} \; s \; e\\
-%| & \; \textbf{func} \; funcname \; funcbody\\
-%| & \; \textbf{localfunc} \; id \; funcbody\\
-%| & \; \textbf{label} \; id\\
-%| & \; \textbf{goto} \; id\\
-%| & \; break\\
-%| & \; \textbf{assign} \; \overline{v} \; \overline{e}\\
-%| & \; \textbf{localvar} \; \overline{id} \; \overline{e}\\
-%| & \; \textbf{ret} \; \overline{e}\\
-%| & \; e\\
+s ::= \; & \overline{s} \;
+| \; \textbf{if-else} \; e \; s \; s \;
+| \; \textbf{while} \; e \; s \;
+| \; \textbf{repeat} \; s \; e \; | \\
+& \textbf{fornum} \; id \; e \; e \; e \; s \; 
+| \; \textbf{forgen} \; \overline{id} \; \overline{e} \; s \; | \\
+& \textbf{func} \; funcname \; funcbody \; | \\
+& \textbf{localfunc} \; id \; funcbody \;
+| \; \textbf{label} \; id\ \; | \; \textbf{goto} \; id \; | \\
+& \textbf{break} \;
+| \; \textbf{assign} \; \overline{v} \; \overline{e} \;
+| \; \textbf{localvar} \; \overline{id} \; \overline{e} \;
+| \; \textbf{ret} \; \overline{e} \; | \; e\\
 e ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
 | \; {...} \; | \; n \; | \; w \; | \; v \; | \\
 & \textbf{func} \; funcbody \;
@@ -115,7 +136,7 @@ e ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
 \]
 
 \[
-{...} : Any \; (\textit{T-VARARG})
+{...} : {Any*} \; (\textit{T-VARARG})
 \]
 
 \[
@@ -127,7 +148,28 @@ w : w \; (\textit{T-STRING})
 \]
 
 \[
-\textbf{func} \; funcbody : Any \; (\textit{T-ANONFUNC})
+\frac{():Void \;\;\; s:T}
+     {\textbf{func} \; () \; s : Void \rightarrow T} \;
+     (\textit{T-AFUNC1})
+\]
+
+\[
+\frac{(...):{Any*} \;\;\; s:T}
+     {\textbf{func} \; (...) \; s : {Any*} \rightarrow T} \;
+     (\textit{T-AFUNC2})
+\]
+
+\[
+\frac{(\overline{id}):T_{1} \;\;\; s:T_{2}}
+     {\textbf{func} \; (\overline{id}) \; s : T_{1} \rightarrow T_{2}} \;
+     (\textit{T-AFUNC3})
+\]
+
+\[
+\frac{(\overline{id},...):T_{1} \times {Any*} \;\;\; s:T_{2}}
+     {\textbf{func} \; (\overline{id},...) \; s :
+       T_{1} \times {Any*} \rightarrow T_{2}} \;
+     (\textit{T-AFUNC4})
 \]
 
 \[
