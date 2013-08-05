@@ -151,7 +151,6 @@ local function set_global (name, pos, dec_type, exp_type)
     return true
   end
   local msg = "attempt to assign '%s' to '%s'"
-  local line,col = parser.lineno(checker.subject, pos)
   msg = string.format(msg, types.tostring(exp_type), types.tostring(dec_type))
   return typeerror(msg, pos)
 end
@@ -179,6 +178,24 @@ local function addlocal (id)
   local line,col = parser.lineno(checker.subject, var.pos)
   msg = string.format(msg, id_name, line)
   return semerror(msg, id.pos)
+end
+
+local function get_local_type (name, scope)
+  return st[scope]["local"][name]["type"]
+end
+
+local function get_local_pos (name, scope)
+  return st[scope]["local"][name]["pos"]
+end
+
+local function update_local (name, pos, scope, exp_type)
+  local var_type = get_local_type(name, scope)
+  if types.Equal(var_type, exp_type) then
+    return true
+  end
+  local msg = "attempt to assign '%s' to '%s'"
+  msg = string.format(msg, types.tostring(exp_type), types.tostring(var_type))
+  return typeerror(msg, pos)
 end
 
 local function updatelocal (id, exp)
@@ -619,6 +636,8 @@ local function check_assignment (stm)
     local var_scope = get_local_scope(var_name)
     local exp_type = get_node_type(stm[2][k])
     if var_scope then -- local
+      status,msg = update_local(var_name, var_pos, var_scope, exp_type)
+      if not status then return status,msg end
     else -- global
       status,msg = set_global(var_name, var_pos, var_type, exp_type)
       if not status then return status,msg end
