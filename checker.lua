@@ -150,6 +150,13 @@ local function new_id (id_name, id_pos, id_type)
   return id
 end
 
+local function isglobal (name)
+  if st["global"][name] then
+    return true
+  end
+  return false
+end
+
 local function set_global (name, pos, dec_type, exp_type)
   local status,msg
   if types.Equal(dec_type, exp_type) or
@@ -160,6 +167,23 @@ local function set_global (name, pos, dec_type, exp_type)
   local msg = "attempt to assign '%s' to '%s'"
   msg = string.format(msg, types.tostring(exp_type), types.tostring(dec_type))
   return typeerror(msg, pos)
+end
+
+local function get_global (name)
+  return st["global"][name]
+end
+
+local function get_global_type (name)
+  return st["global"][name]["type"]
+end
+
+local function islocal (name)
+  for i=st.scope,0,-1 do
+    if st[i]["local"][name] then
+      return true
+    end
+  end
+  return false
 end
 
 local function set_local (name, pos, dec_type, exp_type)
@@ -173,6 +197,16 @@ local function set_local (name, pos, dec_type, exp_type)
   local msg = "attempt to assign '%s' to '%s'"
   msg = string.format(msg, types.tostring(exp_type), types.tostring(dec_type))
   return typeerror(msg, pos)
+end
+
+local function get_local (name)
+  local scope = st.scope
+  for i=scope,0,-1 do
+    if st[i]["local"][name] then
+      return st[i]["local"][name]
+    end
+  end
+  return nil
 end
 
 local function get_local_type (name, scope)
@@ -196,7 +230,7 @@ end
 local function get_local_scope (name)
   local scope = st.scope
   for i=scope,0,-1 do
-    if st[scope]["local"][name] then
+    if st[i]["local"][name] then
       return i
     end
   end
@@ -385,10 +419,38 @@ local function check_expvar (exp)
 end
 
 local function check_function_call (exp)
-  local status,msg = check_explist(exp[2])
+  local status,msg
+
+  status,msg = check_explist(exp[2])
   if not status then return status,msg end
-  local t = infer_explist(exp[2])
-  return set_type(exp, types.Any())
+
+  local call_type = infer_explist(exp[2])
+
+  local var = exp[1][1]
+  local var_name = get_var_name(var)
+  local var_type
+  local local_or_global
+
+  if islocal(var_name) then
+    local_or_global = "local"
+    local var_scope = get_local_scope(var_name)
+    var_type = get_local_type(var_name, var_scope)
+  elseif isglobal(var_name) then
+    local_or_global = "global"
+    var_type = get_global_type(var_name)
+  else
+    msg = "attempt to call undeclared function '%s'"
+    msg = string.format(msg, var_name)
+    return typeerror(msg, exp.pos)
+  end
+
+  if not types.isFunction(var_type) then
+    msg = "attempt to call %s '%s' a %s"
+    msg = string.format(msg, local_or_global, var_name, types.tostring(var_type))
+    return typeerror(msg, exp.pos)
+  end
+
+  return true
 end
 
 local function check_len (exp)
@@ -836,7 +898,16 @@ local function init_symbol_table (subject, filename)
   st.filename = filename -- store filename for error messages
   st["global"] = {} -- store global names
   for k,v in pairs(_ENV) do
-    st["global"][k] = new_id(k, 0, types.Any())
+    local t = type(v)
+    local any = types.Any()
+    local any_star = types.Star(any)
+    if t == "string" then
+      st["global"][k] = new_id(k, 0, types.Word(v))
+    elseif t == "function" then
+      st["global"][k] = new_id(k, 0, types.Function(any_star,any))
+    else
+      st["global"][k] = new_id(k, 0, any)
+    end
   end
 end
 

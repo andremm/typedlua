@@ -105,6 +105,13 @@ function types.isFalse (t)
   return false
 end
 
+function types.isFunction (t)
+  if t.tag == "TypeFunction" then
+    return true
+  end
+  return false
+end
+
 function types.isInteger (t)
   if t.tag == "TypeConstant" then
     local x = t[1]
@@ -146,6 +153,13 @@ function types.isTrue (t)
   return false
 end
 
+function types.isVoid (t)
+  if t.tag == "TypeVoid" then
+    return true
+  end
+  return false
+end
+
 function types.isWord (t)
   if t.tag == "TypeConstant" and type(t[1]) == "string" then
     return true
@@ -162,6 +176,12 @@ function types.Equal (t1, t2)
     return types.isNumber(t2)
   elseif types.isString(t1) then
     return types.isString(t2)
+  elseif types.isVoid(t1) then
+    return types.isVoid(t2)
+  elseif types.isAny(t1) then
+    return types.isAny(t2)
+  elseif types.isFunction(t1) and types.isFunction(t2) then
+    return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
   end
   return false
 end
