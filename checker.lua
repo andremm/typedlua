@@ -162,29 +162,17 @@ local function set_global (name, pos, dec_type, exp_type)
   return typeerror(msg, pos)
 end
 
-local function newlocal (lname, ltype, lpos)
-  local var = {}
-  var.name = lname
-  var.type = ltype
-  var.pos = lpos
-  return var
-end
-
-local function addlocal (id)
+local function set_local (name, pos, dec_type, exp_type)
+  local status,msg
   local scope = st.scope
-  local id_name = id[1]
-  local id_pos = id.pos
-  local id_type,msg = str2type(id[2])
-  if not id_type then return id_type,msg end
-  local var = st[scope]["local"][id_name]
-  if not var then
-    st[scope]["local"][id_name] = newlocal(id_name, id_type, id_pos)
+  if types.Equal(dec_type, exp_type) or
+     types.isAny(dec_type) then
+    st[scope]["local"][name] = new_id(name, pos, exp_type)
     return true
   end
-  local msg = "local variable '%s' already defined on line %d"
-  local line,col = lineno(var.pos)
-  msg = string.format(msg, id_name, line)
-  return semerror(msg, id.pos)
+  local msg = "attempt to assign '%s' to '%s'"
+  msg = string.format(msg, types.tostring(exp_type), types.tostring(dec_type))
+  return typeerror(msg, pos)
 end
 
 local function get_local_type (name, scope)
@@ -205,27 +193,6 @@ local function update_local (name, pos, scope, exp_type)
   return typeerror(msg, pos)
 end
 
-local function updatelocal (id, exp)
-  local scope = st.scope
-  local id_name = id[1]
-  local var = st[scope]["local"][id_name]
-  local exp_type
-  if exp then
-    exp_type = exp.type
-  else
-    exp_type = types.Nil()
-  end
-  if types.isAny(var.type) or
-     types.Equal(var.type, exp_type) then
-    var.type = exp_type
-    return true
-  end
-  local msg = "attempt to assign '%s' to '%s'"
-  local line,col = lineno(id.pos)
-  msg = string.format(msg, types.tostring(exp_type), types.tostring(var.type))
-  return typeerror(msg, id.pos)
-end
-
 local function get_local_scope (name)
   local scope = st.scope
   for i=scope,0,-1 do
@@ -234,6 +201,19 @@ local function get_local_scope (name)
     end
   end
   return nil
+end
+
+local function get_func_name (fn)
+  local tag = fn.tag
+  if tag == "Function" then
+    if #fn == 1 then
+      return fn[1]
+    else
+      error("Declaring functions inside tables is not implemented yet")
+    end
+  elseif tag == "Method" then
+    error("Method not implemented yet")
+  end
 end
 
 local function get_var_name (var)
@@ -318,7 +298,7 @@ local function check_and (exp)
   return true
 end
 
-local function check_anonymous_func (exp)
+local function check_anonymous_function (exp)
   local status,msg
 
   local t1 = infer_arguments(exp[1])
@@ -654,19 +634,44 @@ local function check_assignment (stm)
   return true
 end
 
-local function check_local_assignment (stm)
+local function check_local_var (stm)
   local status,msg
-
-  for k,v in ipairs(stm[1]) do
-    status,msg = addlocal(v)
-    if not status then return status,msg end
-  end
 
   status,msg = check_explist(stm[2])
   if not status then return status,msg end
 
   for k,v in ipairs(stm[1]) do
-    status,msg = updatelocal(v, stm[2][k])
+    local var_name = v[1]
+    local var_pos = v["pos"]
+    local var_type,msg = str2type(v[2])
+    if not var_type then return var_type,msg end
+    local exp_type = get_node_type(stm[2][k])
+    status,msg = set_local(var_name, var_pos, var_type, exp_type)
+    if not status then return status,msg end
+  end
+
+  return true
+end
+
+local function check_global_function (stm)
+  local status,msg
+  local t1 = infer_arguments(stm[2])
+  local t2,msg = str2type(stm[3], stm[3].pos)
+  if not t2 then return t2,msg end
+
+  status,msg = check_stm(stm[4])
+  if not status then return status,msg end
+
+  local var_name = get_func_name(stm[1])
+  local var_pos = stm["pos"]
+  local var_type = types.Function(t1, t2)
+  local var_scope = get_local_scope(var_name)
+  local exp_type = types.Function(t1, t2)
+  if var_scope then -- local
+    status,msg = update_local(var_name, var_pos, var_scope, exp_type)
+    if not status then return status,msg end
+  else -- global
+    status,msg = set_global(var_name, var_pos, var_type, exp_type)
     if not status then return status,msg end
   end
 
@@ -682,14 +687,12 @@ local function check_local_function (stm)
   status,msg = check_stm(stm[4])
   if not status then return status,msg end
 
-  local id = { stm[1], "any" }
-  id.pos = stm.pos
-  id.type = types.Function(t1, t2)
+  local var_name = stm[1]
+  local var_pos = stm["pos"]
+  local var_type = t2
+  local exp_type = types.Function(t1, t2)
 
-  status,msg = addlocal(id)
-  if not status then return status,msg end
-
-  status,msg = updatelocal(id, id)
+  status,msg = set_local(var_name, var_pos, var_type, exp_type)
   if not status then return status,msg end
 
   return true
@@ -732,7 +735,7 @@ function check_exp (exp)
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
-    return check_anonymous_func(exp)
+    return check_anonymous_function(exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return check_table(exp)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
@@ -788,10 +791,7 @@ function check_stm (stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     return check_repeat(stm)
   elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
-    local t1 = infer_arguments(stm[2])
-    local t2,msg = str2type(stm[3], stm[3].pos)
-    if not t2 then return t2,msg end
-    return check_stm(stm[4])
+    return check_global_function(stm)
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
     return check_local_function(stm)
   elseif tag == "StmLabel" then -- StmLabel Name
@@ -803,7 +803,7 @@ function check_stm (stm)
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
     return check_assignment(stm)
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
-    return check_local_assignment(stm)
+    return check_local_var(stm)
   elseif tag == "StmRet" then -- StmRet [Exp]
     status,msg = check_explist(stm[1])
     if not status then return status,msg end
