@@ -9,10 +9,24 @@ local checker = {}
 
 local st = {} -- symbol table
 
+local function lineno (pos)
+  return parser.lineno(st.subject, pos)
+end
+
+local function errormsg (pos)
+  local l,c = lineno(pos)
+  return string.format("%s:%d:%d:", st.filename, l, c)
+end
+
 local function semerror (msg, pos)
-  local l,c = parser.lineno(checker.subject, pos)
-  local error_msg = "%s:%d:%d: semantic error, %s"
-  error_msg = string.format(error_msg, checker.filename, l, c, msg)
+  local error_msg = "%s semantic error, %s"
+  error_msg = string.format(error_msg, errormsg(pos), msg)
+  return nil,error_msg
+end
+
+local function typeerror (msg, pos)
+  local error_msg = "%s type error, %s"
+  error_msg = string.format(error_msg, errormsg(pos), msg)
   return nil,error_msg
 end
 
@@ -32,13 +46,6 @@ local function get_node_type (node)
   else
     return types.Nil()
   end
-end
-
-local function typeerror (msg, pos)
-  local l,c = parser.lineno(checker.subject, pos)
-  local error_msg = "%s:%d:%d: type error, %s"
-  error_msg = string.format(error_msg, checker.filename, l, c, msg)
-  return nil,error_msg
 end
 
 local function str2type (str, pos)
@@ -104,7 +111,7 @@ local function set_label (stm)
   local label = stm[1]
   if st[scope]["label"][label] then
     local msg = "label '%s' already defined on line %d"
-    local line,col = parser.lineno(checker.subject, st[scope]["label"][label].pos)
+    local line,col = lineno(st[scope]["label"][label].pos)
     msg = string.format(msg, label, line)
     return semerror(msg, stm.pos)
   end
@@ -120,7 +127,7 @@ local function lookup_label (stm, scope)
     end
   end
   local msg = "no visible label '%s' for <goto> at line %d"
-  local line,col = parser.lineno(checker.subject, stm.pos)
+  local line,col = lineno(stm.pos)
   msg = string.format(msg, label, line)
   return semerror(msg, stm.pos)
 end
@@ -175,7 +182,7 @@ local function addlocal (id)
     return true
   end
   local msg = "local variable '%s' already defined on line %d"
-  local line,col = parser.lineno(checker.subject, var.pos)
+  local line,col = lineno(var.pos)
   msg = string.format(msg, id_name, line)
   return semerror(msg, id.pos)
 end
@@ -214,7 +221,7 @@ local function updatelocal (id, exp)
     return true
   end
   local msg = "attempt to assign '%s' to '%s'"
-  local line,col = parser.lineno(checker.subject, id.pos)
+  local line,col = lineno(id.pos)
   msg = string.format(msg, types.tostring(exp_type), types.tostring(var.type))
   return typeerror(msg, id.pos)
 end
@@ -515,7 +522,7 @@ end
 local function check_break (stm)
   if not isinsideloop() then
     local msg = "<break> at line %d not inside a loop"
-    local line,col = parser.lineno(checker.subject, stm.pos)
+    local line,col = lineno(stm.pos)
     msg = string.format(msg, line)
     return semerror(msg, stm.pos)
   end
@@ -823,14 +830,21 @@ function check_block (block)
   return true
 end
 
+local function init_symbol_table (subject, filename)
+  st = {} -- reseting the symbol table
+  st.subject = subject -- store subject for error messages
+  st.filename = filename -- store filename for error messages
+  st["global"] = {} -- store global names
+  for k,v in pairs(_ENV) do
+    st["global"][k] = new_id(k, 0, types.Any())
+  end
+end
+
 function checker.typecheck (ast, subject, filename)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
-  checker.subject = subject
-  checker.filename = filename
-  st = {} -- reseting the symbol table
-  st["global"] = {} -- store global names
+  init_symbol_table(subject, filename)
   local status,msg
   status,msg = check_block(ast) ; if not status then return status,msg end
   status,msg = check_pending_gotos() ; if not status then return status,msg end
