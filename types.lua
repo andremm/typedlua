@@ -10,7 +10,6 @@ Type = TypeConstant Constant
      | TypeUnion Type Type
      | TypeFunction Type Type
      | TypeList [Type]
-     | TypeTuple Type Type
      | TypeStar Type
      | TypeVoid
 ]]
@@ -59,10 +58,6 @@ end
 
 function types.True ()
   return { tag = "TypeConstant", [1] = true }
-end
-
-function types.Tuple (t1, t2)
-  return { tag = "TypeTuple", [1] = t1, [2] = t2 }
 end
 
 function types.Union (t1, t2)
@@ -171,13 +166,6 @@ function types.isTrue (t)
   return false
 end
 
-function types.isTuple (t)
-  if t.tag == "TypeTuple" then
-    return true
-  end
-  return false
-end
-
 function types.isUnion (t)
   if t.tag == "TypeUnion" then
     return true
@@ -226,8 +214,6 @@ function types.Equal (t1, t2)
     return true
   elseif types.isStar(t1) and types.isStar(t2) then
     return types.Equal(t1[1], t2[1])
-  elseif types.isTuple(t1) and types.isTuple(t2) then
-    return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
   elseif types.Union(t1) and types.Union(t2) then
     return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
   end
@@ -248,8 +234,6 @@ local function type2str (t)
       list[k] = type2str(v)
     end
     return "(" .. table.concat(list, " x ") .. ")"
-  elseif tag == "TypeTuple" then
-    return "(" .. type2str(t[1]) .. " x " .. type2str(t[2]) .. ")"
   elseif tag == "TypeStar" then
     return type2str(t[1]) .. "*"
   elseif tag == "TypeUnion" then

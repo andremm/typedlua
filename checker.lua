@@ -287,7 +287,7 @@ local function infer_parameters_list (list)
   end
   local type_list = {}
   for i=1,len do
-    local t,msg = str2type(list[i][2])
+    local t,msg = str2type(list[i][2], list[i]["pos"])
     if not t then return t,msg end
     table.insert(type_list, t)
   end
@@ -695,7 +695,7 @@ local function check_local_var (stm)
   for k,v in ipairs(stm[1]) do
     local var_name = v[1]
     local var_pos = v["pos"]
-    local var_type,msg = str2type(v[2])
+    local var_type,msg = str2type(v[2], v["pos"])
     if not var_type then return var_type,msg end
     local exp_type = get_node_type(stm[2][k])
     status,msg = set_local(var_name, var_pos, var_type, exp_type)
