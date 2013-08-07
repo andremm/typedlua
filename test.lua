@@ -39,6 +39,8 @@ print("> testing lexer...")
 
 -- syntax ok
 
+-- empty files
+
 s = [=[
 ]=]
 e = [=[
@@ -58,6 +60,8 @@ StmBlock []
 r = parse(s)
 assert(r == e)
 
+-- expressions
+
 s = [=[
 _nil,_false,_true,_dots = nil,false,true,...
 ]=]
@@ -67,6 +71,8 @@ StmBlock [StmAssign [VarID ("_nil","any"),VarID ("_false","any"),VarID ("_true",
 
 r = parse(s)
 assert(r == e)
+
+-- floating points
 
 s = [=[
 f1 = 1.
@@ -123,6 +129,8 @@ StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 10.0],StmAssign [VarID ("f2","a
 r = parse(s)
 assert(r == e)
 
+-- integers
+
 s = [=[
 i = 1
 h = 0xff
@@ -145,6 +153,8 @@ StmBlock [StmAssign [VarID ("h","any")] [ExpNum 1900.0],StmAssign [VarID ("i","a
 r = parse(s)
 assert(r == e)
 
+-- long comments
+
 s = [=[
 --[======[
 testing
@@ -162,6 +172,8 @@ StmBlock []
 
 r = parse(s)
 assert(r == e)
+
+-- long strings
 
 s = [=[
 --[[
@@ -202,6 +214,8 @@ StmBlock [StmAssign [VarID ("ls2","any")] [ExpStr " testing \\n [[ long ]] \\t [
 
 r = parse(s)
 assert(r == e)
+
+-- short strings
 
 s = [=[
 -- short string test begin
@@ -289,6 +303,8 @@ assert(r == e)
 
 -- syntax error
 
+-- floating points
+
 s = [=[
 f = 9e
 ]=]
@@ -329,6 +345,8 @@ test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '
 r = parse(s)
 assert(r == e)
 
+-- integers
+
 s = [=[
 -- invalid hexadecimal number
 
@@ -340,6 +358,8 @@ test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{',
 
 r = parse(s)
 assert(r == e)
+
+-- long strings
 
 s = [=[
 --[==[
@@ -362,6 +382,8 @@ test.lua:5:7: syntax error, unexpected '[===[', expecting '(', 'Name', '{', 'fun
 
 r = parse(s)
 assert(r == e)
+
+-- short strings
 
 s = [=[
 -- short string test begin
@@ -392,6 +414,8 @@ e = [=[
 --r = parse(s)
 --assert(r == e)
 
+-- unfinished comments
+
 s = [=[
 --[[ testing
 unfinished
@@ -408,6 +432,60 @@ print("> testing parser...")
 
 -- syntax ok
 
+-- anonymous functions
+
+s = [=[
+local a,b,c = function () end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpFunction ([],False) "any" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local test = function ( a , b , ... ) end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("a","any"),("b","any")],True) "any" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local test = function (x:number,y:string) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("y","string")],False) "nil" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local test = function (x:number,t,a:boolean) : nil end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("t","any"),("a","boolean")],False) "nil" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+test = function (...) return ...,0 end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","any")] [ExpFunction ([],True) "any" (StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- arithmetic expressions
+
 s = [=[
 arithmetic = 1 - 2 * 3 + 4
 ]=]
@@ -417,6 +495,18 @@ StmBlock [StmAssign [VarID ("arithmetic","any")] [ExpAdd (ExpSub (ExpNum 1.0) (E
 
 r = parse(s)
 assert(r == e)
+
+s = [=[
+pow = -3^-2^2
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("pow","any")] [ExpMinus (ExpPow (ExpNum 3.0) (ExpMinus (ExpPow (ExpNum 2.0) (ExpNum 2.0))))]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- assignments
 
 s = [=[
 a = f()[1]
@@ -499,15 +589,7 @@ StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","any"))) 
 r = parse(s)
 assert(r == e)
 
-s = [=[
-concat1 = 1 .. 2^3
-]=]
-e = [=[
-StmBlock [StmAssign [VarID ("concat1","any")] [ExpConcat (ExpNum 1.0) (ExpPow (ExpNum 2.0) (ExpNum 3.0))]]
-]=]
-
-r = parse(s)
-assert(r == e)
+-- block statements
 
 s = [=[
 do
@@ -522,6 +604,20 @@ StmBlock [StmBlock [StmAssign [VarID ("var","any")] [ExpAdd (ExpNum 2.0) (ExpNum
 r = parse(s)
 assert(r == e)
 
+-- concatenation expressions
+
+s = [=[
+concat1 = 1 .. 2^3
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("concat1","any")] [ExpConcat (ExpNum 1.0) (ExpPow (ExpNum 2.0) (ExpNum 3.0))]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- empty files
+
 s = [=[
 ;
 ]=]
@@ -532,55 +628,7 @@ StmBlock []
 r = parse(s)
 assert(r == e)
 
-s = [=[
-local a,b,c = function () end
-]=]
-e = [=[
-StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpFunction ([],False) "any" (StmBlock [])]]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local test = function ( a , b , ... ) end
-]=]
-e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("a","any"),("b","any")],True) "any" (StmBlock [])]]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local test = function (x:number,y:string) : nil end
-]=]
-e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("y","string")],False) "nil" (StmBlock [])]]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local test = function (x:number,t,a:boolean) : nil end
-]=]
-e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("t","any"),("a","boolean")],False) "nil" (StmBlock [])]]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-test = function (...) return ...,0 end
-]=]
-e = [=[
-StmBlock [StmAssign [VarID ("test","any")] [ExpFunction ([],True) "any" (StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
-]=]
-
-r = parse(s)
-assert(r == e)
+-- for generic
 
 s = [=[
 for k,v in pairs(t) do print (k,v) end
@@ -601,6 +649,8 @@ StmBlock [StmForGen [("k","number"),("v","any")] [ExpFunctionCall (ExpVar (VarID
 
 r = parse(s)
 assert(r == e)
+
+-- for numeric
 
 s = [=[
 for i = 1 , 10 , 2 do end
@@ -631,6 +681,8 @@ StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmB
 
 r = parse(s)
 assert(r == e)
+
+-- global functions
 
 s = [=[
 function test(a , b , ...) end
@@ -712,6 +764,8 @@ StmBlock [StmFunction (Function ["f"]) ([("x","number"),("t","any"),("a","boolea
 r = parse(s)
 assert(r == e)
 
+-- goto
+
 s = [=[
 goto label
 :: label :: return
@@ -722,6 +776,8 @@ StmBlock [StmGoTo "label",StmLabel "label",StmRet []]
 
 r = parse(s)
 assert(r == e)
+
+-- if-else
 
 s = [=[
 if a then end
@@ -800,6 +856,8 @@ StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet []]) (StmIfEl
 
 r = parse(s)
 assert(r == e)
+
+-- locals
 
 s = [=[
 local a
@@ -921,15 +979,7 @@ StmBlock [StmLocalFunction "test" ([("x","number"),("t","any"),("a","boolean")],
 r = parse(s)
 assert(r == e)
 
-s = [=[
-pow = -3^-2^2
-]=]
-e = [=[
-StmBlock [StmAssign [VarID ("pow","any")] [ExpMinus (ExpPow (ExpNum 3.0) (ExpMinus (ExpPow (ExpNum 2.0) (ExpNum 2.0))))]]
-]=]
-
-r = parse(s)
-assert(r == e)
+-- relational expressions
 
 s = [=[
 relational = 1 < 2 >= 3 == 4 ~= 5 < 6 <= 7
@@ -940,6 +990,8 @@ StmBlock [StmAssign [VarID ("relational","any")] [ExpLE (ExpLT (ExpNE (ExpEQ (Ex
 
 r = parse(s)
 assert(r == e)
+
+-- repeat
 
 s = [=[
 repeat
@@ -953,6 +1005,8 @@ StmBlock [StmRepeat (StmBlock [StmAssign [VarID ("a","any"),VarID ("b","any"),Va
 
 r = parse(s)
 assert(r == e)
+
+-- return
 
 s = [=[
 return
@@ -1013,6 +1067,8 @@ StmBlock [StmRet [ExpNum 1.0,ExpAdd (ExpSub (ExpNum 1.0) (ExpMul (ExpNum 2.0) (E
 
 r = parse(s)
 assert(r == e)
+
+-- tables
 
 s = [=[
 t = { [1] = "alo", alo = 1, 2; }
@@ -1076,6 +1132,8 @@ StmBlock [StmLocalVar [("t","any")] [ExpTableConstructor ([ExpTableConstructor (
 r = parse(s)
 assert(r == e)
 
+-- while
+
 s = [=[
 i = 0
 while (i < 10)
@@ -1092,35 +1150,7 @@ assert(r == e)
 
 -- syntax error
 
-s = [=[
-concat2 = 2^3..1
-]=]
-e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-x:int = y:int
-]=]
-e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-x:int = t[f:int]
-]=]
-e = [=[
-test.lua:1:16: syntax error, unexpected ']', expecting 'String', '{', '('
-]=]
-
-r = parse(s)
-assert(r == e)
+-- anonymous functions
 
 s = [=[
 a = function (a,b,) end
@@ -1162,15 +1192,41 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'N
 r = parse(s)
 assert(r == e)
 
+-- assignments
+
 s = [=[
-local test = z:nil,1
+x:int = y:int
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected 'nil,1', expecting 'Name'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
 assert(r == e)
+
+s = [=[
+x:int = t[f:int]
+]=]
+e = [=[
+test.lua:1:16: syntax error, unexpected ']', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- concatenation expressions
+
+s = [=[
+concat2 = 2^3..1
+]=]
+e = [=[
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- for generic
 
 s = [=[
 for k;v in pairs(t) do end
@@ -1192,6 +1248,8 @@ test.lua:1:23: syntax error, unexpected ')', expecting 'String', '{', '('
 r = parse(s)
 assert(r == e)
 
+-- for numeric
+
 s = [=[
 for i=1,10, do end
 ]=]
@@ -1211,6 +1269,8 @@ test.lua:1:18: syntax error, unexpected 'do', expecting 'String', '{', '('
 
 r = parse(s)
 assert(r == e)
+
+-- global functions
 
 s = [=[
 function func(a,b,c,) end
@@ -1242,6 +1302,8 @@ test.lua:1:15: syntax error, unexpected ':d', expecting '('
 r = parse(s)
 assert(r == e)
 
+-- goto
+
 s = [=[
 :: label :: return
 goto label
@@ -1252,6 +1314,8 @@ test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 
 
 r = parse(s)
 assert(r == e)
+
+-- if-else
 
 s = [=[
 if a then
@@ -1299,12 +1363,26 @@ test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
 r = parse(s)
 assert(r == e)
 
+-- labels
+
 s = [=[
 :: blah ::
 :: not ::
 ]=]
 e = [=[
 test.lua:2:4: syntax error, unexpected 'not', expecting 'Name'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- locals
+
+s = [=[
+local test = z:nil,1
+]=]
+e = [=[
+test.lua:1:16: syntax error, unexpected 'nil,1', expecting 'Name'
 ]=]
 
 r = parse(s)
@@ -1360,6 +1438,8 @@ test.lua:1:16: syntax error, unexpected '(a,', expecting 'Name'
 r = parse(s)
 assert(r == e)
 
+-- repeat
+
 s = [=[
 repeat
   a,b,c = 1+1,2+2,3+3
@@ -1371,6 +1451,8 @@ test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 
 
 r = parse(s)
 assert(r == e)
+
+-- return
 
 s = [=[
 return
@@ -1387,6 +1469,8 @@ test.lua:2:1: syntax error, unexpected 'return', expecting ';', '(', 'Name', '{'
 r = parse(s)
 assert(r == e)
 
+-- tables
+
 s = [=[
 t = { , }
 ]=]
@@ -1396,6 +1480,8 @@ test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function',
 
 r = parse(s)
 assert(r == e)
+
+-- while
 
 s = [=[
 i = 0
@@ -1413,6 +1499,8 @@ assert(r == e)
 print("> testing type checker...")
 
 -- tests that type check
+
+-- arithmetic expressions
 
 s = [=[
 local x = 1 + 1
@@ -1434,55 +1522,20 @@ StmBlock [StmLocalVar [("x","any")] [ExpMinus (ExpNum 1.0)]]
 r = typecheck(s)
 assert(r == e)
 
+-- assignments
+
 s = [=[
-local x = "hello" .. "world"
+x,y,z = 1,2
+x = "alo"
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpConcat (ExpStr "hello") (ExpStr "world")]]
+StmBlock [StmAssign [VarID ("x","any"),VarID ("y","any"),VarID ("z","any")] [ExpNum 1.0,ExpNum 2.0],StmAssign [VarID ("x","any")] [ExpStr "alo"]]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
 
-s = [=[
-local x = 1 > 2 
-]=]
-e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpGT (ExpNum 1.0) (ExpNum 2.0)]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = "hello" < "world"
-]=]
-e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = #"hello world"
-]=]
-e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpLen (ExpStr "hello world")]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-for i=1,10 do end
-]=]
-e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
-]=]
-
-r = typecheck(s)
-assert(r == e)
+-- break
 
 s = [=[
 while 1 do
@@ -1539,17 +1592,31 @@ StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBloc
 r = typecheck(s)
 assert(r == e)
 
+-- concatenation expressions
+
 s = [=[
-::label::
-do ::label:: end
-::other_label::
+local x = "hello" .. "world"
 ]=]
 e = [=[
-StmBlock [StmLabel "label",StmBlock [StmLabel "label"],StmLabel "other_label"]
+StmBlock [StmLocalVar [("x","any")] [ExpConcat (ExpStr "hello") (ExpStr "world")]]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
+
+-- for numeric
+
+s = [=[
+for i=1,10 do end
+]=]
+e = [=[
+StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- goto
 
 s = [=[
 ::label::
@@ -1628,18 +1695,57 @@ StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmGoTo "label"]]]]]
 r = typecheck(s)
 assert(r == e)
 
+-- labels
+
 s = [=[
-x,y,z = 1,2
-x = "alo"
+::label::
+do ::label:: end
+::other_label::
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("x","any"),VarID ("y","any"),VarID ("z","any")] [ExpNum 1.0,ExpNum 2.0],StmAssign [VarID ("x","any")] [ExpStr "alo"]]
+StmBlock [StmLabel "label",StmBlock [StmLabel "label"],StmLabel "other_label"]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- length operator
+
+s = [=[
+local x = #"hello world"
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpLen (ExpStr "hello world")]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- order expressions
+
+s = [=[
+local x = 1 > 2 
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpGT (ExpNum 1.0) (ExpNum 2.0)]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = "hello" < "world"
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","any")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
 
 -- tests that do not type check
+
+-- arithmetic expressions
 
 s = [=[
 local x = 1 + "hello"
@@ -1661,6 +1767,56 @@ test.lua:1:12: type error, attempt to perform arithmetic on a string
 r = typecheck(s)
 assert(r == e)
 
+-- assignments
+
+s = [=[
+x:number,y:number,z:boolean = 1,2
+]=]
+e = [=[
+test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- break
+
+s = [=[
+break
+]=]
+e = [=[
+test.lua:1:1: semantic error, <break> at line 1 not inside a loop
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+function f ()
+  if x then break end
+end
+]=]
+e = [=[
+test.lua:2:13: semantic error, <break> at line 2 not inside a loop
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+end
+break
+]=]
+e = [=[
+test.lua:3:1: semantic error, <break> at line 3 not inside a loop
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- concatenation expressions
+
 s = [=[
 local x = 1 .. "hello"
 ]=]
@@ -1671,25 +1827,7 @@ test.lua:1:11: type error, attempt to concatenate a number
 r = typecheck(s)
 assert(r == e)
 
-s = [=[
-local x = 1 < "hello"
-]=]
-e = [=[
-test.lua:1:11: type error, attempt to compare number with string
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x = #1
-]=]
-e = [=[
-test.lua:1:12: type error, attempt to get length of a number value
-]=]
-
-r = typecheck(s)
-assert(r == e)
+-- for numeric
 
 s = [=[
 for i:boolean=1,10 do end
@@ -1731,51 +1869,7 @@ test.lua:1:12: type error, 'for' step must be a number
 r = typecheck(s)
 assert(r == e)
 
-s = [=[
-break
-]=]
-e = [=[
-test.lua:1:1: semantic error, <break> at line 1 not inside a loop
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-function f ()
-  if x then break end
-end
-]=]
-e = [=[
-test.lua:2:13: semantic error, <break> at line 2 not inside a loop
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-while 1 do
-end
-break
-]=]
-e = [=[
-test.lua:3:1: semantic error, <break> at line 3 not inside a loop
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-::label::
-::other_label::
-::label::
-]=]
-e = [=[
-test.lua:3:1: semantic error, label 'label' already defined on line 1
-]=]
-
-r = typecheck(s)
-assert(r == e)
+-- goto
 
 s = [=[
 goto label
@@ -1809,11 +1903,39 @@ test.lua:2:10: semantic error, no visible label 'label' for <goto> at line 2
 r = typecheck(s)
 assert(r == e)
 
+-- label
+
 s = [=[
-x:number,y:number,z:boolean = 1,2
+::label::
+::other_label::
+::label::
 ]=]
 e = [=[
-test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
+test.lua:3:1: semantic error, label 'label' already defined on line 1
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- length operator
+
+s = [=[
+local x = #1
+]=]
+e = [=[
+test.lua:1:12: type error, attempt to get length of a number value
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- order expressions
+
+s = [=[
+local x = 1 < "hello"
+]=]
+e = [=[
+test.lua:1:11: type error, attempt to compare number with string
 ]=]
 
 r = typecheck(s)
