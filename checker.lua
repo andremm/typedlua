@@ -276,42 +276,32 @@ local function get_var_type (var)
   end
 end
 
-local function infer_arguments (list)
-  local t,msg
+local function infer_parameters_list (list)
   local len = #list
   if len == 0 then
     if list.is_vararg then
-      t = types.Star(types.Any())
+      return types.Star(types.Any())
     else
-      t = types.Void()
-    end
-  else
-    if list.is_vararg then
-      t = types.Star(types.Any())
-    else
-      t,msg = str2type(list[len][2])
-      if not t then return t,msg end
-      len = len - 1
-    end
-    for i=len,1,-1 do
-      local u,msg = str2type(list[i][2])
-      if not u then return u,msg end
-      t = types.Tuple(u, t)
+      return types.Void()
     end
   end
-  return t
+  local type_list = {}
+  for i=1,len do
+    local t,msg = str2type(list[i][2])
+    if not t then return t,msg end
+    table.insert(type_list, t)
+  end
+  if list.is_vararg then
+    table.insert(type_list, types.Star(types.Any()))
+  end
+  return types.List(type_list)
 end
 
 local function infer_explist (list)
-  local t
+  local t = {}
   local len = #list
-  if len == 0 then
-    t = types.Void()
-  else
-    t = list[len].type
-    for i=len-1,1,-1 do
-      t = types.Tuple(list[i].type, t)
-    end
+  for i=1,len do
+    table.insert(t, list[i]["type"])
   end
   return t
 end
@@ -335,7 +325,7 @@ end
 local function check_anonymous_function (exp)
   local status,msg
 
-  local t1 = infer_arguments(exp[1])
+  local t1 = infer_parameters_list(exp[1])
 
   local t2,msg = str2type(exp[2], exp[2].pos)
   if not t2 then return t2,msg end
@@ -717,7 +707,8 @@ end
 
 local function check_global_function (stm)
   local status,msg
-  local t1 = infer_arguments(stm[2])
+
+  local t1 = infer_parameters_list(stm[2])
   local t2,msg = str2type(stm[3], stm[3].pos)
   if not t2 then return t2,msg end
 
@@ -742,7 +733,8 @@ end
 
 local function check_local_function (stm)
   local status,msg
-  local t1 = infer_arguments(stm[2])
+
+  local t1 = infer_parameters_list(stm[2])
   local t2,msg = str2type(stm[3], stm[3].pos)
   if not t2 then return t2,msg end
 

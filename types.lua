@@ -9,6 +9,7 @@ Type = TypeConstant Constant
      | TypeBase Base
      | TypeUnion Type Type
      | TypeFunction Type Type
+     | TypeList [Type]
      | TypeTuple Type Type
      | TypeStar Type
      | TypeVoid
@@ -30,6 +31,10 @@ end
 
 function types.Function (arg, ret)
   return { tag = "TypeFunction", [1] = arg, [2] = ret }
+end
+
+function types.List (l)
+  return { tag = "TypeList", [1] = l }
 end
 
 function types.Nil ()
@@ -123,6 +128,13 @@ function types.isInteger (t)
   return false
 end
 
+function types.isList (t)
+  if t.tag == "TypeList" then
+    return true
+  end
+  return false
+end
+
 function types.isNil (t)
   if t.tag == "TypeConstant" and t[1] == nil then
     return true
@@ -138,6 +150,12 @@ function types.isNumber (t)
   return false
 end
 
+function types.isStar (t)
+  if t.tag == "TypeStar" then
+    return true
+  end
+end
+
 function types.isString (t)
   if t.tag == "TypeBase" and t[1] == "string" or
      types.isWord(t) then
@@ -148,6 +166,20 @@ end
 
 function types.isTrue (t)
   if t.tag == "TypeConstant" and t[1] == true then
+    return true
+  end
+  return false
+end
+
+function types.isTuple (t)
+  if t.tag == "TypeTuple" then
+    return true
+  end
+  return false
+end
+
+function types.isUnion (t)
+  if t.tag == "TypeUnion" then
     return true
   end
   return false
@@ -182,6 +214,22 @@ function types.Equal (t1, t2)
     return types.isAny(t2)
   elseif types.isFunction(t1) and types.isFunction(t2) then
     return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
+  elseif types.isList(t1) and types.isList(t2) then
+    if #t1[1] ~= #t2[1] then
+      return false
+    end
+    for i=1,#t1[1] do
+      if not types.Equal(t1[1][i], t2[1][i]) then
+        return false
+      end
+    end
+    return true
+  elseif types.isStar(t1) and types.isStar(t2) then
+    return types.Equal(t1[1], t2[1])
+  elseif types.isTuple(t1) and types.isTuple(t2) then
+    return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
+  elseif types.Union(t1) and types.Union(t2) then
+    return types.Equal(t1[1], t2[1]) and types.Equal(t1[2], t2[2])
   end
   return false
 end
@@ -194,6 +242,12 @@ local function type2str (t)
     return t[1]
   elseif tag == "TypeFunction" then
     return "(" .. type2str(t[1]) .. " -> " .. type2str(t[2]) .. ")"
+  elseif tag == "TypeList" then
+    local list = {}
+    for k,v in ipairs(t[1]) do
+      list[k] = type2str(v)
+    end
+    return "(" .. table.concat(list, " x ") .. ")"
   elseif tag == "TypeTuple" then
     return "(" .. type2str(t[1]) .. " x " .. type2str(t[2]) .. ")"
   elseif tag == "TypeStar" then
