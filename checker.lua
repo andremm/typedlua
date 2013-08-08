@@ -445,6 +445,8 @@ local function check_function_call (exp)
     return true
   end
 
+  msg = "parameter %d of '%s' attempt to pass %s to %s"
+
   local len_par = #par_type[1]
   local len_call
   if not types.isAnyStar(par_type[1][len_par]) then
@@ -452,8 +454,7 @@ local function check_function_call (exp)
       for i=1,len_par do
         local t1, t2 = par_type[1][i], types.Nil()
         if not types.isAny(t1) then
-          msg = "parameter %d, attempt to pass %s to %s"
-          msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+          msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
           return typeerror(msg, exp.pos)
         end
       end
@@ -467,8 +468,7 @@ local function check_function_call (exp)
              not types.isAny(t2) and
              not types.isAnyStar(t2) and
              not types.Equal(t1, t2) then
-            msg = "parameter %d, attempt to pass %s to %s"
-            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
             return typeerror(msg, exp.pos)
           end
         end
@@ -480,8 +480,7 @@ local function check_function_call (exp)
              not types.isAny(t2) and
              not types.isAnyStar(t2) and
              not types.Equal(t1, t2) then
-            msg = "parameter %d, attempt to pass %s to %s"
-            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
             return typeerror(msg, exp.pos)
           end
         end
@@ -494,8 +493,7 @@ local function check_function_call (exp)
         local t1, t2 = par_type[1][i], types.Nil()
         if not types.isAny(t1) and
            not types.isAnyStar(t1) then
-          msg = "parameter %d, attempt to pass %s to %s"
-          msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+          msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
           return typeerror(msg, exp.pos)
         end
       end
@@ -510,8 +508,7 @@ local function check_function_call (exp)
              not types.isAnyStar(t1) and
              not types.isAnyStar(t2) and
              not types.Equal(t1, t2) then
-            msg = "parameter %d, attempt to pass %s to %s"
-            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
             return typeerror(msg, exp.pos)
           end
         end
@@ -524,8 +521,7 @@ local function check_function_call (exp)
              not types.isAnyStar(t1) and
              not types.isAnyStar(t2) and
              not types.Equal(t1, t2) then
-            msg = "parameter %d, attempt to pass %s to %s"
-            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            msg = msg:format(i, var_name, types.tostring(t2), types.tostring(t1))
             return typeerror(msg, exp.pos)
           end
         end
