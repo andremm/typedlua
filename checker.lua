@@ -278,14 +278,10 @@ end
 
 local function infer_parameters_list (list)
   local len = #list
-  if len == 0 then
-    if list.is_vararg then
-      return types.Star(types.Any())
-    else
-      return types.Void()
-    end
-  end
   local type_list = {}
+  if len == 0 and not list.is_vararg then
+    return types.Void()
+  end
   for i=1,len do
     local t,msg = str2type(list[i][2], list[i]["pos"])
     if not t then return t,msg end
@@ -300,10 +296,13 @@ end
 local function infer_explist (list)
   local t = {}
   local len = #list
+  if len == 0 then
+    return types.Void()
+  end
   for i=1,len do
     table.insert(t, list[i]["type"])
   end
-  return t
+  return types.List(t)
 end
 
 local check_block, check_stm, check_exp, check_var
@@ -325,7 +324,8 @@ end
 local function check_anonymous_function (exp)
   local status,msg
 
-  local t1 = infer_parameters_list(exp[1])
+  local t1,msg = infer_parameters_list(exp[1])
+  if not t1 then return t1,msg end
 
   local t2,msg = str2type(exp[2], exp[2].pos)
   if not t2 then return t2,msg end
@@ -438,6 +438,100 @@ local function check_function_call (exp)
     msg = "attempt to call %s '%s' a %s"
     msg = string.format(msg, local_or_global, var_name, types.tostring(var_type))
     return typeerror(msg, exp.pos)
+  end
+
+  local par_type = var_type[1]
+  if types.isVoid(par_type) then
+    return true
+  end
+
+  local len_par = #par_type[1]
+  local len_call
+  if not types.isAnyStar(par_type[1][len_par]) then
+    if types.isVoid(call_type) then
+      for i=1,len_par do
+        local t1, t2 = par_type[1][i], types.Nil()
+        if not types.isAny(t1) then
+          msg = "parameter %d, attempt to pass %s to %s"
+          msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+          return typeerror(msg, exp.pos)
+        end
+      end
+      return true
+    else
+      len_call = #call_type[1]
+      if len_call >= len_par then
+        for i=1,len_par do
+          local t1, t2 = par_type[1][i], call_type[1][i]
+          if not types.isAny(t1) and
+             not types.isAny(t2) and
+             not types.isAnyStar(t2) and
+             not types.Equal(t1, t2) then
+            msg = "parameter %d, attempt to pass %s to %s"
+            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            return typeerror(msg, exp.pos)
+          end
+        end
+        return true
+      else
+        for i=1,len_par do
+          local t1, t2 = par_type[1][i], call_type[1][i] or types.Nil()
+          if not types.isAny(t1) and
+             not types.isAny(t2) and
+             not types.isAnyStar(t2) and
+             not types.Equal(t1, t2) then
+            msg = "parameter %d, attempt to pass %s to %s"
+            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            return typeerror(msg, exp.pos)
+          end
+        end
+        return true
+      end
+    end
+  else
+    if types.isVoid(call_type) then
+      for i=1,len_par do
+        local t1, t2 = par_type[1][i], types.Nil()
+        if not types.isAny(t1) and
+           not types.isAnyStar(t1) then
+          msg = "parameter %d, attempt to pass %s to %s"
+          msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+          return typeerror(msg, exp.pos)
+        end
+      end
+      return true
+    else
+      len_call = #call_type[1]
+      if len_call >= len_par then
+        for i=1,len_par do
+          local t1, t2 = par_type[1][i], call_type[1][i]
+          if not types.isAny(t1) and
+             not types.isAny(t2) and
+             not types.isAnyStar(t1) and
+             not types.isAnyStar(t2) and
+             not types.Equal(t1, t2) then
+            msg = "parameter %d, attempt to pass %s to %s"
+            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            return typeerror(msg, exp.pos)
+          end
+        end
+        return true
+      else
+        for i=1,len_par do
+          local t1, t2 = par_type[1][i], call_type[1][i] or types.Nil()
+          if not types.isAny(t1) and
+             not types.isAny(t2) and
+             not types.isAnyStar(t1) and
+             not types.isAnyStar(t2) and
+             not types.Equal(t1, t2) then
+            msg = "parameter %d, attempt to pass %s to %s"
+            msg = string.format(msg, i, types.tostring(t2), types.tostring(t1))
+            return typeerror(msg, exp.pos)
+          end
+        end
+        return true
+      end
+    end
   end
 
   return true
@@ -708,7 +802,9 @@ end
 local function check_global_function (stm)
   local status,msg
 
-  local t1 = infer_parameters_list(stm[2])
+  local t1,msg = infer_parameters_list(stm[2])
+  if not t1 then return t1,msg end
+
   local t2,msg = str2type(stm[3], stm[3].pos)
   if not t2 then return t2,msg end
 
@@ -734,7 +830,9 @@ end
 local function check_local_function (stm)
   local status,msg
 
-  local t1 = infer_parameters_list(stm[2])
+  local t1,msg = infer_parameters_list(stm[2])
+  if not t1 then return t1,msg end
+
   local t2,msg = str2type(stm[3], stm[3].pos)
   if not t2 then return t2,msg end
 

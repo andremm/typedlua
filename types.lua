@@ -79,6 +79,13 @@ function types.isAny (t)
   return false
 end
 
+function types.isAnyStar (t)
+  if types.isStar(t) and types.isAny(t[1]) then
+    return true
+  end
+  return false
+end
+
 function types.isBoolean (t)
   if t.tag == "TypeBase" and t[1] == "boolean" or
      types.isFalse(t) or types.isTrue(t) then
