@@ -157,7 +157,7 @@ function check_exp (exp, func_name, func_id)
      exp.tag == "ExpStr" then -- ExpStr String
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
-  elseif exp.tag == "ExpFunction" then -- ExpFunction ParList Type Stm
+  elseif exp.tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
     new_func_def("anonymous")
     local id = result.number_of_functions
     if #exp[1] > 0 then
@@ -255,7 +255,7 @@ function check_stm (stm, func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
-  elseif stm.tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
+  elseif stm.tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
     new_func_def("global")
     local id = result.number_of_functions
     if stm[1].tag == "Method" then
@@ -268,15 +268,16 @@ function check_stm (stm, func_name, func_id)
       if #stm[2] > 0 then
         if stm[2][1][1] == "self" or stm[2][1][1] == "this" then
           result[id].is_method = 1
-        end
-        -- statistics of the use of function declaration as table field
-        if #stm[2] > 1 then
           result[id].table_field = 1
         end
+     end
+      -- statistics of the use of function declaration as table field
+      if #stm[1] > 1  then
+        result[id].table_field = 1
       end
     end
     check_stm(stm[4], func_name, result.number_of_functions)
-  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
+  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     new_func_def("local")
     check_stm(stm[4], func_name, result.number_of_functions)
   elseif stm.tag == "StmLabel" or -- StmLabel Name
