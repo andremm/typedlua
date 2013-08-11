@@ -882,7 +882,7 @@ function check_exp (exp)
     return set_type(exp, types.Word(exp[1])) -- T-STRING
   elseif tag == "ExpVar" then -- ExpVar Var
     return check_expvar(exp)
-  elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
+  elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
     return check_anonymous_function(exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return check_table(exp)
@@ -938,9 +938,9 @@ function check_stm (stm)
     return check_generic_for(stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     return check_repeat(stm)
-  elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
+  elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
     return check_global_function(stm)
-  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
+  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     return check_local_function(stm)
   elseif tag == "StmLabel" then -- StmLabel Name
     return check_label(stm)

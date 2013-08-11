@@ -161,6 +161,7 @@ local G = { V"Lua",
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
   TypedVar = taggedCap("VarID", token(V"Name", "Name") * symb(":") * V"Type");
   TypedGlobal = taggedCap("ExpVar", V"TypedVar" * -V"FuncArgs");
+  TypedVarArg = taggedCap("Name", token(C("..."), "...") * V"OptionalType");
   StatList = (symb(";") + V"Stat")^0;
   Var = taggedCap("VarID", token(V"Name","Name") * V"DynamicType");
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
@@ -259,13 +260,13 @@ local G = { V"Lua",
                end
                return t
              end;
-  ParList = V"NameList" * (symb(",") * symb("...") * Cc(true))^-1 /
+  ParList = V"NameList" * (symb(",") * V"TypedVarArg")^-1 /
             function (t, v)
-              if v then t.is_vararg = true else t.is_vararg = false end
+              if v then table.insert(t, v) end
               return t
             end +
-            taggedCap("NameList", symb("...") * Cg(Cc(true), "is_vararg"));
-  FuncBody = symb("(") * (V"ParList" + taggedCap("NameList", Cg(Cc(false), "is_vararg"))) * symb(")") *
+            taggedCap("NameList", V"TypedVarArg"^-1);
+  FuncBody = symb("(") * V"ParList" * symb(")") *
              V"OptionalType" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name","Name") * V"FuncBody");

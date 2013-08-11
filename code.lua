@@ -164,7 +164,7 @@ function code_exp (exp, i)
     return "[=[" .. exp[1] .. "]=]"
   elseif tag == "ExpVar" then -- ExpVar Var
     return code_var(exp[1], i)
-  elseif tag == "ExpFunction" then -- ExpFunction ParList Type Stm
+  elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
     return "function " .. code_parlist(exp[1], i) .. "\n" .. code_block(exp[3], i) .. ident("end", i)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return "{" .. code_fieldlist(exp[1], i) .. "}"
@@ -233,12 +233,12 @@ function code_stm (stm, i)
     str = ident("repeat\n", i) .. code_block(stm[1], i+1)
     str = str .. ident("until ", i) .. code_exp(stm[2], i+1)
     return str
-  elseif tag == "StmFunction" then -- StmFunction FuncName ParList Type Stm
+  elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
     str = ident("function ", i) .. code_funcname(stm[1], i)
     str = str .. code_parlist(stm[2], i) .. "\n"
     str = str .. code_block(stm[4], i) .. ident("end\n", i)
     return str
-  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name ParList Type Stm
+  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     str = ident("local function ", i) .. stm[1]
     str = str .. code_parlist(stm[2], i) .. "\n"
     str = str .. code_block(stm[4], i) .. ident("end\n", i)
