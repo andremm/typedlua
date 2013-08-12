@@ -96,12 +96,12 @@ local function taggedCap (tag, pat)
 end
 
 local function unaryop (op, e)
-  return { tag = op, [1] = e }
+  return { tag = op, pos = e.pos, [1] = e }
 end
 
 local function binaryop (e1, op, e2)
   if not op then return e1 end
-  return { tag = op, [1] = e1, [2] = e2 }
+  return { tag = op, pos = e1.pos, [1] = e1, [2] = e2 }
 end
 
 local function chainl (pat, sep, a)
