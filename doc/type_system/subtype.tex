@@ -6,6 +6,8 @@
 
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
+\newcommand{\pipe}{\;|\;}
+\newcommand{\env}{\Gamma}
 
 \title{Typed Lua Type System}
 
@@ -18,10 +20,12 @@
 \section{Type Language}
 
 \begin{align*}
-T ::= \; & C \; | \; B \; | \; Object \; | \; Any\\
-C ::= \; & \mathbf{nil} \; | \; \mathbf{false} \; | \; \mathbf{true} \;
- | \; {<}double{>} \; | \; {<}integer{>} \; | \; {<}string{>}\\
-B ::= \; & Boolean \; | \; Number \; | \; String\\
+T ::= \; & C \pipe B \pipe Object \pipe Any \pipe
+T \rightarrow T \pipe T \cup T\\
+C ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
+\pipe {<}double{>} \pipe {<}integer{>} \pipe {<}string{>}\\
+B ::= \; & Boolean \pipe Number \pipe String\\
+V ::= \; & T \pipe {T*} \pipe T \times V\\ 
 \end{align*}
 
 \section{Subtyping}
@@ -29,40 +33,231 @@ B ::= \; & Boolean \; | \; Number \; | \; String\\
 \subsection{Constant types}
 
 \[
-C \subtype C \mylabel{S-CONSTANT}
+C \subtype C
+\mylabel{S-CONSTANT}
 \]
 \[
-\mathbf{false} \subtype Boolean \mylabel{S-FALSE}
+\mathbf{false} \subtype Boolean
+\mylabel{S-FALSE}
 \]
 \[
-\mathbf{true} \subtype Boolean \mylabel{S-TRUE}
+\mathbf{true} \subtype Boolean
+\mylabel{S-TRUE}
 \]
 \[
-{<}double{>} \subtype Number \mylabel{S-DOUBLE}
+{<}double{>} \subtype Number
+\mylabel{S-DOUBLE}
 \]
 \[
-{<}integer{>} \subtype Number \mylabel{S-INTEGER}
+{<}integer{>} \subtype Number
+\mylabel{S-INTEGER}
 \]
 \[
-{<}string{>} \subtype Number \mylabel{S-STRING}
+{<}string{>} \subtype Number
+\mylabel{S-STRING}
 \]
 
 \subsection{Basic types}
 
 \[
-B \subtype B \mylabel{S-BASIC}
+B \subtype B
+\mylabel{S-BASIC}
 \]
 
 \subsection{Object (Top) type}
 
 \[
-T \subtype Object \mylabel{S-OBJECT}
+T \subtype Object
+\mylabel{S-OBJECT}
 \]
 
 \subsection{Any type}
 
 \[
-Any \subtype Any \mylabel{S-ANY}
+Any \subtype Any
+\mylabel{S-ANY}
+\]
+
+\subsection{Function types}
+
+\[
+\frac{T_{1} \subtype S_{1} \;\;\; S_{2} \subtype T_{2}}
+     {S_{1} \rightarrow S_{2} \subtype T_{1} \rightarrow T_{2}}
+\mylabel{S-FUNCTION}
+\]
+
+\subsection{Union types}
+
+\[
+T_{1} \subtype T_{1} \cup T_{2}
+\mylabel{S-UNION1}
+\]
+\[
+T_{2} \subtype T_{1} \cup T_{2}
+\mylabel{S-UNION2}
+\]
+\[
+\frac{S_{1} \subtype T \;\;\; S_{2} \subtype T}
+     {S_{1} \cup S_{2} \subtype T}
+\mylabel{S-UNION3}
+\]
+
+\subsection{Product types}
+
+\[
+\frac{T_{1} \subtype T_{2} \;\;\; V_{1} \subtype V_{2}}
+     {T_{1} \times V_{1} \subtype T_{2} \times V_{2}}
+\mylabel{S-PROD}
+\]
+
+\subsection{VarArg types}
+
+\[
+\frac{T_{1}* \subtype T_{2}*}
+     {T_{1} \subtype T_{2}}
+\mylabel{VARARG-1}
+\]
+\[
+{T*} \subtype (T \cup Nil) \times {T*}
+\mylabel{VARARG-2}
+\]
+
+\section{Typing Rules}
+
+\subsection{Abstract Syntax}
+
+\begin{align*}
+k ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
+\pipe n \pipe w\\ 
+v ::= \; & id \pipe e[e]\\
+e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
+\pipe \{(\overline{e},\overline{(e,e)})\}
+\pipe id(e,\overline{e}) \pipe e(\overline{e}) \pipe\\
+& e + e \pipe e \; {..} \; e \pipe e == e \pipe e < e
+\pipe e \; \mathbf{and} \; e \pipe e \; \mathbf{or} \; e \pipe\\
+& \mathbf{not} \; e \; | - e \pipe \# \; e
+\end{align*}
+
+\subsection{Expressions}
+
+\[
+\env \vdash k : k
+\mylabel{T-CONSTANT}
+\]
+\[
+\frac{\env({...}) = T}
+     {\env \vdash {...} : T*}
+\mylabel{T-VARARG}
+\]
+\[
+\env \vdash \mathbf{func} \; (\overline{id}) : Any
+\mylabel{T-ANONFUNC}
+\]
+\[
+\env \vdash \{(\overline{e},\overline{(e,e)})\} : Any
+\mylabel{T-TABLE}
+\]
+\[
+\env \vdash id(e,\overline{e}) : Any
+\mylabel{T-METHODCALL}
+\]
+\[
+\env \vdash e(\overline{e}) : Any
+\mylabel{T-FUNCCALL}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\; T_{2} \subtype Number}
+     {\env \vdash e_{1} + e_{2} : Number}
+\mylabel{T-ARITH1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH2}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH3}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\; T_{2} \subtype String}
+     {\env \vdash e_{1} \; {..} \;  e_{2} : String}
+\mylabel{T-CONCAT1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT2}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT3}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} == e_{2} : Boolean}
+\mylabel{T-EQUAL}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\; T_{2} \subtype Number}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER1}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\; T_{2} \subtype String}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER2}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER3}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER4}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-AND}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR}
+\]
+\[
+\frac{\env \vdash e:T}
+     {\env \vdash \mathbf{not} \; e : Boolean}
+\mylabel{T-NOT}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; T \subtype Number}
+     {\env \vdash - \; e : Number}
+\mylabel{T-MINUS1}
+\]
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash - \; e : Any}
+\mylabel{T-MINUS2}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; T \subtype String}
+     {\env \vdash \# \; e : Number}
+\mylabel{T-LEN1}
+\]
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash \# \; e : Any}
+\mylabel{T-LEN2}
 \]
 
 \end{document}
