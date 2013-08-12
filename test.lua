@@ -3,6 +3,7 @@
 local ast = require "ast"
 local checker = require "checker"
 local parser = require "parser"
+local types = require "subtype"
 
 -- expected result, result, subject
 local e, r, s
@@ -1535,6 +1536,129 @@ test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<
 
 r = parse(s)
 assert(r == e)
+
+print("> testing subtyping...")
+
+-- constant types
+
+local Nil = types.Nil()
+local False = types.False()
+local True = types.True()
+local Double = types.ConstantNumber(1.1)
+local Integer = types.ConstantNumber(1)
+local Word = types.ConstantString("w")
+
+-- basic types
+
+local Boolean = types.Boolean()
+local Number = types.Number()
+local String = types.String()
+
+-- other types
+
+local Object = types.Object()
+local Any = types.Any()
+
+assert(types.isConstant(Nil))
+assert(types.isConstant(False))
+assert(types.isConstant(True))
+assert(types.isConstant(Double))
+assert(types.isConstant(Integer))
+assert(types.isConstant(Word))
+assert(not types.isConstant(String))
+
+assert(types.isBasic(Boolean))
+assert(types.isBasic(Number))
+assert(types.isBasic(String))
+assert(not types.isBasic(Word))
+
+assert(types.isObject(Object))
+assert(not types.isObject(Any))
+
+assert(types.isAny(Any))
+assert(not types.isAny(Object))
+
+-- subtyping
+
+-- constant types
+
+assert(types.subtype(Nil,Nil))
+assert(types.subtype(False,False))
+assert(types.subtype(True,True))
+assert(types.subtype(Double,Double))
+assert(types.subtype(Integer,Integer))
+assert(types.subtype(Word,Word))
+
+assert(types.subtype(False,Boolean))
+assert(types.subtype(True,Boolean))
+assert(types.subtype(Double,Number))
+assert(types.subtype(Integer,Number))
+assert(types.subtype(Word,String))
+
+assert(not types.subtype(False,Integer))
+assert(not types.subtype(True,String))
+assert(not types.subtype(Double,Boolean))
+assert(not types.subtype(Integer,Nil))
+assert(not types.subtype(Word,Number))
+
+-- basic types
+
+assert(types.subtype(Boolean,Boolean))
+assert(types.subtype(Number,Number))
+assert(types.subtype(String,String))
+
+assert(not types.subtype(Boolean,False))
+assert(not types.subtype(Number,Boolean))
+assert(not types.subtype(String,Number))
+
+-- object
+
+assert(types.subtype(Object,Object))
+assert(types.subtype(Nil,Object))
+assert(types.subtype(False,Object))
+assert(types.subtype(True,Object))
+assert(types.subtype(Double,Object))
+assert(types.subtype(Integer,Object))
+assert(types.subtype(Word,Object))
+assert(types.subtype(Boolean,Object))
+assert(types.subtype(Number,Object))
+assert(types.subtype(String,Object))
+assert(types.subtype(Any,Object))
+
+assert(not types.subtype(Object,Nil))
+assert(not types.subtype(Object,False))
+assert(not types.subtype(Object,True))
+assert(not types.subtype(Object,Double))
+assert(not types.subtype(Object,Integer))
+assert(not types.subtype(Object,Word))
+assert(not types.subtype(Object,Boolean))
+assert(not types.subtype(Object,Number))
+assert(not types.subtype(Object,String))
+assert(not types.subtype(Object,Any))
+
+-- any
+
+assert(types.subtype(Any,Any))
+
+assert(not types.subtype(Nil,Any))
+assert(not types.subtype(False,Any))
+assert(not types.subtype(True,Any))
+assert(not types.subtype(Double,Any))
+assert(not types.subtype(Integer,Any))
+assert(not types.subtype(Word,Any))
+assert(not types.subtype(Boolean,Any))
+assert(not types.subtype(Number,Any))
+assert(not types.subtype(String,Any))
+
+assert(not types.subtype(Any,Nil))
+assert(not types.subtype(Any,False))
+assert(not types.subtype(Any,True))
+assert(not types.subtype(Any,Double))
+assert(not types.subtype(Any,Integer))
+assert(not types.subtype(Any,Word))
+assert(not types.subtype(Any,Boolean))
+assert(not types.subtype(Any,Number))
+assert(not types.subtype(Any,String))
 
 print("> testing type checker...")
 

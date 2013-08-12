@@ -1,0 +1,68 @@
+\documentclass[12pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+
+\newcommand{\mylabel}[1]{\; (\textsc{#1})}
+\newcommand{\subtype}{<:}
+
+\title{Typed Lua Type System}
+
+\author{André Murbach Maidl}
+
+\begin{document}
+
+\maketitle
+
+\section{Type Language}
+
+\begin{align*}
+T ::= \; & C \; | \; B \; | \; Object \; | \; Any\\
+C ::= \; & \mathbf{nil} \; | \; \mathbf{false} \; | \; \mathbf{true} \;
+ | \; {<}double{>} \; | \; {<}integer{>} \; | \; {<}string{>}\\
+B ::= \; & Boolean \; | \; Number \; | \; String\\
+\end{align*}
+
+\section{Subtyping}
+
+\subsection{Constant types}
+
+\[
+C \subtype C \mylabel{S-CONSTANT}
+\]
+\[
+\mathbf{false} \subtype Boolean \mylabel{S-FALSE}
+\]
+\[
+\mathbf{true} \subtype Boolean \mylabel{S-TRUE}
+\]
+\[
+{<}double{>} \subtype Number \mylabel{S-DOUBLE}
+\]
+\[
+{<}integer{>} \subtype Number \mylabel{S-INTEGER}
+\]
+\[
+{<}string{>} \subtype Number \mylabel{S-STRING}
+\]
+
+\subsection{Basic types}
+
+\[
+B \subtype B \mylabel{S-BASIC}
+\]
+
+\subsection{Object (Top) type}
+
+\[
+T \subtype Object \mylabel{S-OBJECT}
+\]
+
+\subsection{Any type}
+
+\[
+Any \subtype Any \mylabel{S-ANY}
+\]
+
+\end{document}
