@@ -1558,6 +1558,7 @@ local String = types.String()
 
 local Object = types.Object()
 local Any = types.Any()
+local t1, t2
 
 assert(types.isConstant(Nil))
 assert(types.isConstant(False))
@@ -1659,6 +1660,53 @@ assert(not types.subtype(Any,Word))
 assert(not types.subtype(Any,Boolean))
 assert(not types.subtype(Any,Number))
 assert(not types.subtype(Any,String))
+
+-- union
+
+t1 = types.Union(Nil,Boolean)
+assert(types.subtype(Nil,t1))
+assert(types.subtype(False,t1))
+assert(types.subtype(True,t1))
+assert(not types.subtype(t1,Nil))
+assert(not types.subtype(t1,False))
+assert(not types.subtype(t1,True))
+
+t1 = types.Union(Nil,Number)
+assert(types.subtype(Nil,t1))
+assert(types.subtype(Double,t1))
+assert(types.subtype(Integer,t1))
+assert(not types.subtype(t1,Nil))
+assert(not types.subtype(t1,Double))
+assert(not types.subtype(t1,Integer))
+
+t1 = types.Union(Number,String)
+assert(types.subtype(Double,t1))
+assert(types.subtype(Integer,t1))
+assert(types.subtype(Word,t1))
+assert(not types.subtype(t1,Double))
+assert(not types.subtype(t1,Integer))
+assert(not types.subtype(t1,Word))
+
+t1 = types.Union(True,False)
+assert(types.subtype(t1,Boolean))
+assert(not types.subtype(Boolean,t1))
+
+t1 = types.Union(Integer,Double)
+assert(types.subtype(t1,Number))
+assert(not types.subtype(Number,t1))
+
+t1 = types.Union(Boolean,Number)
+t2 = types.Union(t1,String)
+assert(types.subtype(Boolean,t2))
+assert(types.subtype(Number,t2))
+assert(types.subtype(String,t2))
+assert(types.subtype(t2,Object))
+assert(not types.subtype(t2,Boolean))
+assert(not types.subtype(t2,Number))
+assert(not types.subtype(t2,String))
+assert(not types.subtype(Object,t2))
+assert(not types.subtype(Any,t2))
+assert(not types.subtype(t2,Any))
 
 print("> testing type checker...")
 

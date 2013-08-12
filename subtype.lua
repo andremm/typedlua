@@ -9,6 +9,9 @@ Type = TypeConstant Constant
      | TypeBasic Basic
      | TypeObject
      | TypeAny
+     | TypeFunction [Type] Type
+     | TypeUnion Type Type
+     | TypeVarArg Type
 ]]
 
 local types = {}
@@ -69,6 +72,24 @@ end
 
 function types.Any ()
   return { tag = "TypeAny" }
+end
+
+-- function that create function type
+
+function types.Function (args, ret)
+  return { tag = "TypeFunction", [1] = args, [2] = ret }
+end
+
+-- function that create union type
+
+function types.Union (t1, t2)
+  return { tag = "TypeUnion", [1] = t1, [2] = t2 }
+end
+
+-- function that create vararg type
+
+function types.VarArg (t)
+  return { tag = "TypeVarArg", [1] = t }
 end
 
 -- functions that check constant types
@@ -177,6 +198,33 @@ function types.isAny (t)
   return false
 end
 
+-- function that check function type
+
+function types.isFunction (t)
+  if t.tag == "TypeFunction" then
+    return true
+  end
+  return false
+end
+
+-- function that check union type
+
+function types.isUnion (t)
+  if t.tag == "TypeUnion" then
+    return true
+  end
+  return false
+end
+
+-- function that check vararg type
+
+function types.isVarArg (t)
+  if t.tag == "TypeVarArg" then
+    return true
+  end
+  return false
+end
+
 -- subtyping
 
 function types.subtype (t1, t2)
@@ -218,6 +266,10 @@ function types.subtype (t1, t2)
     elseif types.isString(t1) and types.isString(t2) then
       return true
     end
+  elseif not types.isUnion(t1) and types.isUnion(t2) then -- S-UNION1 and S-UNION2
+    return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
+  elseif types.isUnion(t1) then -- S-UNION3
+    return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
   end
   return false
 end
