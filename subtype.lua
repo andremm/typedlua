@@ -274,4 +274,45 @@ function types.subtype (t1, t2)
   return false
 end
 
+function types.name2type (name)
+  if name == "any" then
+    return types.Any()
+  elseif name == "boolean" then
+    return types.Boolean()
+  elseif name == "nil" then
+    return types.Nil()
+  elseif name == "number" then
+    return types.Number()
+  elseif name == "object" then
+    return types.Object()
+  elseif name == "string" then
+    return types.String()
+  end
+  return nil
+end
+
+local function type2str (t)
+  if types.isConstant(t) then
+    return type(t[1])
+  elseif types.isBasic(t) then
+    return t[1]
+  elseif types.Object(t) then
+    return "object"
+  elseif types.Any(t) then
+    return "any"
+  elseif types.Function(t) then
+    return "function"
+  elseif types.Union(t) then
+    return type2str(t[1]) .. " + " .. type2str(t[2])
+  elseif types.VarArg(t) then
+    return type2str(t[1]) .. "*"
+  else
+    error("expecting type but got " .. t.tag)
+  end
+end
+
+function types.tostring (t)
+  return type2str(t)
+end
+
 return types

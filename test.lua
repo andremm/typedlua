@@ -1786,8 +1786,8 @@ e = [=[
 StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","any"))) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
 ]=]
 
-r = typecheck(s)
-assert(r == e)
+--r = typecheck(s)
+--assert(r == e)
 
 s = [=[
 for i=1,10 do
@@ -1968,7 +1968,7 @@ test.lua:1:15: type error, attempt to perform arithmetic on a string
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 s = [=[
 local x = -"hello"
@@ -1978,7 +1978,7 @@ test.lua:1:12: type error, attempt to perform arithmetic on a string
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 -- assignments
 
@@ -2038,7 +2038,7 @@ test.lua:1:11: type error, attempt to concatenate a number
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 -- for numeric
 
@@ -2140,7 +2140,7 @@ test.lua:1:12: type error, attempt to get length of a number value
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 -- order expressions
 
@@ -2152,6 +2152,6 @@ test.lua:1:11: type error, attempt to compare number with string
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 print("OK")
