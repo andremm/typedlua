@@ -8,6 +8,8 @@ local types = require "subtype"
 local Object = types.Object()
 local Any = types.Any()
 local Nil = types.Nil()
+local False = types.False()
+local True = types.True()
 local Boolean = types.Boolean()
 local Number = types.Number()
 local String = types.String()
@@ -51,7 +53,7 @@ local function get_node_type (node)
   if not node then
     return Nil
   end
-  return node["pos"]
+  return node["type"]
 end
 
 local function set_node_type (node, node_type)
@@ -179,14 +181,70 @@ local function idlist2varlist (idlist)
     var["tag"] = "VarID"
     var["pos"] = v["pos"]
     var[1] = v[1]
-    var[2] = var_type
+    var[2] = v[2]
+    var["type"] = var_type
+    table.insert(list, var)
   end
   return list
 end
 
-local function set_local (var)
+local function get_local_scope (name)
   local scope = st["scope"]
-  st[scope]["local"][lname] = var
+  for s=scope,0,-1 do
+    if st[s]["local"][name] then
+      return s
+    end
+  end
+  return nil
+end
+
+local function set_local (var, inf_type)
+  local scope = st["scope"]
+  local name = var[1]
+  local pos = var["pos"]
+  local dec_type = var["type"]
+  if types.subtype(inf_type, dec_type) then
+    var["type"] = dec_type
+  elseif types.isAny(dec_type) then
+    if not types.isNil(inf_type) then
+      var["type"] = inf_type
+    else
+      var["type"] = dec_type
+    end
+    local msg = "attempt to cast 'any' to 'number'"
+    msg = msg:format(types.tostring(inf_type))
+    typeerror(msg, var["pos"])
+  elseif types.isAny(inf_type) then
+    var["type"] = dec_type
+    local msg = "attempt to cast '%s' to 'any'"
+    msg = msg:format(types.tostring(dec_type))
+    typeerror(msg, var["pos"])
+  else
+    var["type"] = Any
+    local msg = "attempt to assign '%s' to '%s'"
+    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
+    typeerror(msg, var["pos"])
+  end
+  st[scope]["local"][name] = var
+end
+
+function check_var (var)
+  local tag = var.tag
+  if tag == "VarID" then
+    local t,msg = name2type(var[2])
+    if not t then
+      t = Any
+      typeerror(msg, var["pos"])
+    end
+    set_node_type(var, t)
+  elseif tag == "VarIndex" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(exp1)
+    check_exp(exp2)
+    set_node_type(var, Any)
+  else
+    error("cannot type check a variable " .. tag)
+  end
 end
 
 -- expressions
@@ -333,6 +391,14 @@ end
 
 local function check_assignment (varlist, explist)
   check_explist(explist)
+  for k,v in ipairs(varlist) do
+    check_var(v)
+    local exp_type = get_node_type(explist[k])
+    local var_name = v[1]
+    local var_pos = v["pos"]
+    local var_scope = get_local_scope(var_name)
+    local var_type = v["type"]
+  end
 end
 
 local function check_break (stm)
@@ -391,26 +457,8 @@ local function check_local_var (idlist, explist)
   local varlist = idlist2varlist(idlist)
   check_explist(explist)
   for k,v in ipairs(varlist) do
-    local exp_type = get_node_type(exp)
-    local var_name = v[1]
-    local var_pos = v["pos"]
-    local var_type = v[2]
-    if types.subtype(var_type, exp_type) then
-      v[2] = exp_type
-    elseif types.isAny(var_type) then
-      local msg = "attempt to cast 'any' to '%s'"
-      msg = msg:format(types.tostring(exp_type))
-      typeerror(msg, var_pos)
-    elseif types.isAny(exp_type) then
-      local msg = "attempt to cast '%s' to 'any'"
-      msg = msg:format(types.tostring(exp_type))
-      typeerror(msg, var_pos)
-    else
-      local msg = "attempt to assign '%s' to '%s'"
-      msg = msg:format(types.tostring(exp_type), types.tostring(var_type))
-      typeerror(msg, var_pos)
-    end
-    set_local(v)
+    local inf_type = get_node_type(explist[k])
+    set_local(v, inf_type)
   end
 end
 
@@ -443,9 +491,9 @@ function check_exp (exp)
   if tag == "ExpNil" then
     set_node_type(exp, Nil)
   elseif tag == "ExpFalse" then
-    set_node_type(exp, types.False())
+    set_node_type(exp, False)
   elseif tag == "ExpTrue" then
-    set_node_type(exp, types.True())
+    set_node_type(exp, True)
   elseif tag == "ExpDots" then
     check_vararg(exp)
   elseif tag == "ExpNum" then -- ExpNum Double
@@ -454,9 +502,13 @@ function check_exp (exp)
     set_node_type(exp, types.ConstantString(exp[1]))
   elseif tag == "ExpVar" then -- ExpVar Var
   elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
+    set_node_type(exp, Any)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
+    set_node_type(exp, Any)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
+    set_node_type(exp, Any)
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    set_node_type(exp, Any)
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
          tag == "ExpMul" or -- ExpMul Exp Exp
