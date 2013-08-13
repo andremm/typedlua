@@ -202,7 +202,7 @@ local function get_local_scope (name)
   return nil
 end
 
-local function set_global (var, inf_type)
+local function set_var (var, inf_type, scope)
   local name = var[1]
   local pos = var["pos"]
   local dec_type = var["type"]
@@ -228,59 +228,20 @@ local function set_global (var, inf_type)
     msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
     typeerror(msg, var["pos"])
   end
-  st["global"][name] = var
-end
-
-local function update_global (name, pos, inf_type)
-  local var = st["global"][name]
-  local dec_type = var["type"]
-  if not types.subtype(inf_type, dec_type) then
-    local msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
-    typeerror(msg, pos)
-  elseif types.isAny(dec_type) then
-    local msg = "attempt to cast 'any' to 'number'"
-    msg = msg:format(types.tostring(inf_type))
-    typeerror(msg, pos)
-  elseif types.isAny(inf_type) then
-    local msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(dec_type))
-    typeerror(msg, pos)
+  if scope then -- local
+    st[scope]["local"][name] = var
+  else -- global
+    st["global"][name] = var
   end
 end
 
-local function set_local (var, inf_type)
-  local scope = st["scope"]
-  local name = var[1]
-  local pos = var["pos"]
-  local dec_type = var["type"]
-  if types.subtype(inf_type, dec_type) then
-    var["type"] = dec_type
-  elseif types.isAny(dec_type) then
-    if not types.isNil(inf_type) then
-      var["type"] = inf_type
-    else
-      var["type"] = dec_type
-    end
-    local msg = "attempt to cast 'any' to '%s'"
-    msg = msg:format(types.tostring(inf_type))
-    typeerror(msg, var["pos"])
-  elseif types.isAny(inf_type) then
-    var["type"] = dec_type
-    local msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(dec_type))
-    typeerror(msg, var["pos"])
-  else
-    var["type"] = Any
-    local msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
-    typeerror(msg, var["pos"])
+local function update_var (name, pos, inf_type, scope)
+  local var
+  if scope then -- local
+    var = st[scope]["local"][name]
+  else -- global
+    var = st["global"][name]
   end
-  st[scope]["local"][name] = var
-end
-
-local function update_local (name, scope, pos, inf_type)
-  local var = st[scope]["local"][name]
   local dec_type = var["type"]
   if not types.subtype(inf_type, dec_type) then
     local msg = "attempt to assign '%s' to '%s'"
@@ -465,13 +426,13 @@ local function check_assignment (varlist, explist)
     local inf_type = get_node_type(explist[k])
     local scope = get_local_scope(v[1])
     if scope then -- local
-      update_local(v[1], scope, v["pos"], inf_type)
+      update_var(v[1], v["pos"], inf_type, scope)
     else -- global
       local global = get_global(v[1])
       if not global then
-        set_global(v, inf_type)
+        set_var(v, inf_type)
       else
-        update_global(v[1], v["pos"], inf_type)
+        update_var(v[1], v["pos"], inf_type)
       end
     end
   end
@@ -534,7 +495,8 @@ local function check_local_var (idlist, explist)
   check_explist(explist)
   for k,v in ipairs(varlist) do
     local inf_type = get_node_type(explist[k])
-    set_local(v, inf_type)
+    local scope = st["scope"]
+    set_var(v, inf_type, scope)
   end
 end
 
