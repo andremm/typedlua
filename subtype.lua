@@ -296,15 +296,15 @@ local function type2str (t)
     return type(t[1])
   elseif types.isBasic(t) then
     return t[1]
-  elseif types.Object(t) then
+  elseif types.isObject(t) then
     return "object"
-  elseif types.Any(t) then
+  elseif types.isAny(t) then
     return "any"
-  elseif types.Function(t) then
+  elseif types.isFunction(t) then
     return "function"
-  elseif types.Union(t) then
+  elseif types.isUnion(t) then
     return type2str(t[1]) .. " + " .. type2str(t[2])
-  elseif types.VarArg(t) then
+  elseif types.isVarArg(t) then
     return type2str(t[1]) .. "*"
   else
     error("expecting type but got " .. t.tag)
