@@ -2006,7 +2006,7 @@ assert(r == e)
 
 s = [=[
 function f ()
-  if x then break end
+  if 1 then break end
 end
 ]=]
 e = [=[

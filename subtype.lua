@@ -270,6 +270,8 @@ function types.subtype (t1, t2)
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
   elseif types.isUnion(t1) then -- S-UNION3
     return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
+  elseif types.isVarArg(t1) then
+    return types.subtype(t1[1], types.Union(t2, types.Nil()))
   end
   return false
 end

@@ -348,6 +348,27 @@ local function check_equal (exp)
   set_node_type(exp, Boolean) -- T-EQUAL
 end
 
+local function check_expvar (exp)
+  local var = exp[1]
+  local name = var[1]
+  local scope = get_local_scope(name)
+  local t,msg
+  if scope then -- local
+    t = st[scope]["local"][name]["type"]
+  else -- global
+    local g = st["global"][name]
+    if g then
+      t = g["type"]
+    else
+      t = types.Nil()
+      msg = "using variable '%s' without initialize"
+      msg = string.format(msg, name)
+      typeerror(msg, exp["pos"])
+    end
+  end
+  set_node_type(exp, t)
+end
+
 local function check_len (exp)
   local exp1 = exp[1]
   check_exp(exp1)
@@ -415,7 +436,15 @@ local function check_order (exp)
 end
 
 local function check_vararg (exp)
-  set_node_type(exp, Any)
+  local name = "..."
+  local scope = get_local_scope(name)
+  local vararg_type
+  if scope then -- local
+    vararg_type = st[scope]["local"][name]["type"]
+  else -- global
+    vararg_type = st["global"][name]["type"]
+  end
+  set_node_type(exp, vararg_type)
 end
 
 -- statemnts
@@ -540,6 +569,7 @@ function check_exp (exp)
   elseif tag == "ExpStr" then -- ExpStr String
     set_node_type(exp, types.ConstantString(exp[1]))
   elseif tag == "ExpVar" then -- ExpVar Var
+    check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
     set_node_type(exp, Any)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
@@ -629,6 +659,15 @@ function check_block (block)
   end_scope()
 end
 
+local function add_vararg ()
+  local var, name = {}, "..."
+  var["tag"] = "VarID"
+  var[1] = name
+  var["pos"] = 1
+  var["type"] = types.VarArg(String)
+  st["global"][name] = var
+end
+
 local function init_symbol_table (subject, filename)
   st = {} -- reseting the symbol table
   st["subject"] = subject -- store subject for error messages
@@ -636,6 +675,7 @@ local function init_symbol_table (subject, filename)
   st["global"] = {} -- store global names
   st["semerror"] = {} -- store semantic errors
   st["typeerror"] = {} -- store type errors
+  add_vararg()
   for k,v in pairs(_ENV) do
     local t = type(v)
     local any_star = types.VarArg(Any)
@@ -664,6 +704,7 @@ function checker.typecheck (ast, subject, filename)
   end
   if #st["typeerror"] > 0 then
     typeerror = true
+    if semerror then msg = msg .. "\n" end
     msg = msg .. table.concat(st["typeerror"], "\n")
   end
   if semerror or typeerror then
