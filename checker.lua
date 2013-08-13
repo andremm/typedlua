@@ -357,6 +357,7 @@ local function check_len (exp)
   elseif types.isAny(t1) then -- T-LEN2
     set_node_type(exp, Any)
   else
+    set_node_type(exp, Any)
     local msg = "attempt to get length of a %s value"
     msg = string.format(msg, types.tostring(t1))
     typeerror(msg, exp1["pos"])

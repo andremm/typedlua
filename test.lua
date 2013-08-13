@@ -1716,20 +1716,20 @@ print("> testing type checker...")
 -- arithmetic expressions
 
 s = [=[
-local x = 1 + 1
+local x:number = 1 + 1
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpAdd (ExpNum 1.0) (ExpNum 1.0)]]
+StmBlock [StmLocalVar [("x","number")] [ExpAdd (ExpNum 1.0) (ExpNum 1.0)]]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local x = -1
+local x:number = -1
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpMinus (ExpNum 1.0)]]
+StmBlock [StmLocalVar [("x","number")] [ExpMinus (ExpNum 1.0)]]
 ]=]
 
 r = typecheck(s)
@@ -1738,11 +1738,11 @@ assert(r == e)
 -- assignments
 
 s = [=[
-x,y,z = 1,2
-x = "alo"
+x:number,y:number,z:string = 1,2,""
+z = "alo"
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("x","any"),VarID ("y","any"),VarID ("z","any")] [ExpNum 1.0,ExpNum 2.0],StmAssign [VarID ("x","any")] [ExpStr "alo"]]
+StmBlock [StmAssign [VarID ("x","number"),VarID ("y","number"),VarID ("z","string")] [ExpNum 1.0,ExpNum 2.0,ExpStr ""],StmAssign [VarID ("z","any")] [ExpStr "alo"]]
 ]=]
 
 r = typecheck(s)
@@ -1808,10 +1808,10 @@ assert(r == e)
 -- concatenation expressions
 
 s = [=[
-local x = "hello" .. "world"
+local x:string = "hello" .. "world"
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpConcat (ExpStr "hello") (ExpStr "world")]]
+StmBlock [StmLocalVar [("x","string")] [ExpConcat (ExpStr "hello") (ExpStr "world")]]
 ]=]
 
 r = typecheck(s)
@@ -1925,10 +1925,10 @@ assert(r == e)
 -- length operator
 
 s = [=[
-local x = #"hello world"
+local x:number = #"hello world"
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpLen (ExpStr "hello world")]]
+StmBlock [StmLocalVar [("x","number")] [ExpLen (ExpStr "hello world")]]
 ]=]
 
 r = typecheck(s)
@@ -1937,20 +1937,20 @@ assert(r == e)
 -- order expressions
 
 s = [=[
-local x = 1 > 2 
+local x:boolean = 1 > 2 
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpGT (ExpNum 1.0) (ExpNum 2.0)]]
+StmBlock [StmLocalVar [("x","boolean")] [ExpGT (ExpNum 1.0) (ExpNum 2.0)]]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local x = "hello" < "world"
+local x:boolean = "hello" < "world"
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("x","any")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
+StmBlock [StmLocalVar [("x","boolean")] [ExpLT (ExpStr "hello") (ExpStr "world")]]
 ]=]
 
 r = typecheck(s)
@@ -2145,10 +2145,10 @@ assert(r == e)
 -- order expressions
 
 s = [=[
-local x = 1 < "hello"
+local x:boolean = 1 < "hello"
 ]=]
 e = [=[
-test.lua:1:11: type error, attempt to compare number with string
+test.lua:1:19: type error, attempt to compare number with string
 ]=]
 
 r = typecheck(s)
