@@ -111,8 +111,4 @@ if not t then
   os.exit(1)
 end
 
-local generated_code = code.generate(t)
-setcontents(generated_code, OUTPUT)
-print(generated_code)
-
 os.exit(0)
