@@ -674,16 +674,6 @@ StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBloc
 r = parse(s)
 assert(r == e)
 
-s = [=[
-for i:number=1,10 do end
-]=]
-e = [=[
-StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
-]=]
-
-r = parse(s)
-assert(r == e)
-
 -- global functions
 
 s = [=[
@@ -1254,7 +1244,7 @@ s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '=', ':'
+test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', ':', '='
 ]=]
 
 r = parse(s)
@@ -1287,6 +1277,16 @@ for i=1,n:number do end
 ]=]
 e = [=[
 test.lua:1:18: syntax error, unexpected 'do', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for i:number=1,10 do end
+]=]
+e = [=[
+test.lua:1:13: syntax error, unexpected '=1,10', expecting 'in', ','
 ]=]
 
 r = parse(s)
@@ -1779,15 +1779,15 @@ assert(r == e)
 
 s = [=[
 repeat
-  if x > 1 then break end
+  if 2 > 1 then break end
 until 1
 ]=]
 e = [=[
-StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","any"))) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
+StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpNum 2.0) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
 ]=]
 
---r = typecheck(s)
---assert(r == e)
+r = typecheck(s)
+assert(r == e)
 
 s = [=[
 for i=1,10 do
@@ -1990,7 +1990,7 @@ test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 -- break
 
@@ -2043,24 +2043,14 @@ assert(r == e)
 -- for numeric
 
 s = [=[
-for i:boolean=1,10 do end
+for i=nil,10 do end
 ]=]
 e = [=[
-test.lua:1:5: type error, 'for' control variable must be a number
+test.lua:1:7: type error, 'for' initial value must be a number
 ]=]
 
 r = typecheck(s)
---assert(r == e)
-
-s = [=[
-for i:number=nil,10 do end
-]=]
-e = [=[
-test.lua:1:14: type error, 'for' initial value must be a number
-]=]
-
-r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 s = [=[
 for i=1,nil do end
@@ -2070,7 +2060,7 @@ test.lua:1:9: type error, 'for' limit must be a number
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 s = [=[
 for i=1,10,nil do end
@@ -2080,7 +2070,7 @@ test.lua:1:12: type error, 'for' step must be a number
 ]=]
 
 r = typecheck(s)
---assert(r == e)
+assert(r == e)
 
 -- goto
 

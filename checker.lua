@@ -501,6 +501,18 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
   check_exp(exp2)
   check_exp(exp3)
   check_stm(stm)
+  local t1, t2, t3 = exp1["type"], exp2["type"], exp3["type"]
+  local msg
+  if not types.subtype(t1, Number) then
+    msg = "'for' initial value must be a number"
+    typeerror(msg, exp1["pos"])
+  elseif not types.subtype(t2, Number) then
+    msg = "'for' limit must be a number"
+    typeerror(msg, exp2["pos"])
+  elseif not types.subtype(t3, Number) then
+    msg = "'for' step must be a number"
+    typeerror(msg, exp3["pos"])
+  end
   end_loop()
 end
 

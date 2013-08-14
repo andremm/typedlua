@@ -242,8 +242,9 @@ local G = { V"Lua",
                 kw("do") * V"Block" * kw("end"));
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
+  ForName = taggedCap("Name", token(V"Name","Name") * V"DynamicType");
   ForNum = taggedCap("StmForNum",
-             V"TypedName" * symb("=") * V"Expr" * symb(",") *
+             V"ForName" * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
              V"ForBody");
   ForGen = taggedCap("StmForGen", V"NameList" * kw("in") * V"ExpList" * V"ForBody");
