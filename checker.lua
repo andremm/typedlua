@@ -30,13 +30,19 @@ end
 local function semerror (msg, pos)
   local error_msg = "%s semantic error, %s"
   error_msg = string.format(error_msg, errormsg(pos), msg)
-  table.insert(st["semerror"], error_msg)
+  table.insert(st["messages"], error_msg)
 end
 
 local function typeerror (msg, pos)
   local error_msg = "%s type error, %s"
   error_msg = string.format(error_msg, errormsg(pos), msg)
-  table.insert(st["typeerror"], error_msg)
+  table.insert(st["messages"], error_msg)
+end
+
+local function warning (msg, pos)
+  local error_msg = "%s warning, %s"
+  error_msg = string.format(error_msg, errormsg(pos), msg)
+  table.insert(st["messages"], error_msg)
 end
 
 local function name2type (name)
@@ -216,12 +222,12 @@ local function set_var (var, inf_type, scope)
     end
     local msg = "attempt to cast 'any' to '%s'"
     msg = msg:format(types.tostring(inf_type))
-    typeerror(msg, var["pos"])
+    warning(msg, var["pos"])
   elseif types.isAny(inf_type) then
     var["type"] = dec_type
     local msg = "attempt to cast '%s' to 'any'"
     msg = msg:format(types.tostring(dec_type))
-    typeerror(msg, var["pos"])
+    warning(msg, var["pos"])
   else
     var["type"] = Any
     local msg = "attempt to assign '%s' to '%s'"
@@ -250,11 +256,11 @@ local function update_var (name, pos, inf_type, scope)
   elseif types.isAny(dec_type) then
     local msg = "attempt to cast 'any' to 'number'"
     msg = msg:format(types.tostring(inf_type))
-    typeerror(msg, pos)
+    warning(msg, pos)
   elseif types.isAny(inf_type) then
     local msg = "attempt to cast '%s' to 'any'"
     msg = msg:format(types.tostring(dec_type))
-    typeerror(msg, pos)
+    warning(msg, pos)
   end
 end
 
@@ -673,8 +679,7 @@ local function init_symbol_table (subject, filename)
   st["subject"] = subject -- store subject for error messages
   st["filename"] = filename -- store filename for error messages
   st["global"] = {} -- store global names
-  st["semerror"] = {} -- store semantic errors
-  st["typeerror"] = {} -- store type errors
+  st["messages"] = {} -- store errors and warnings
   add_vararg()
   for k,v in pairs(_ENV) do
     local t = type(v)
@@ -693,21 +698,11 @@ function checker.typecheck (ast, subject, filename)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
-  local msg = ""
-  local semerror, typeerror
   init_symbol_table(subject, filename)
   check_block(ast)
   check_pending_gotos()
-  if #st["semerror"] > 0 then
-    semerror = true
-    msg = msg .. table.concat(st["semerror"], "\n")
-  end
-  if #st["typeerror"] > 0 then
-    typeerror = true
-    if semerror then msg = msg .. "\n" end
-    msg = msg .. table.concat(st["typeerror"], "\n")
-  end
-  if semerror or typeerror then
+  if #st["messages"] > 0 then
+    local msg = table.concat(st["messages"], "\n")
     return nil,msg
   end
   return true
