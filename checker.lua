@@ -55,11 +55,26 @@ local function name2type (name)
   return t
 end
 
-local function get_node_type (node)
-  if not node then
-    return Nil
+local function get_fill_type (list)
+  local len = #list
+  if len > 0 then
+    local last_type = list[len]["type"]
+    if types.isVarArg(last_type) then
+      return types.typeofVarArg(last_type)
+    end
   end
-  return node["type"]
+  return Nil
+end
+
+local function get_node_type (node, fill_type)
+  if not node then
+    return fill_type
+  end
+  local node_type = node["type"]
+  if types.isVarArg(node_type) then
+    return types.typeofVarArg(node_type)
+  end
+  return node_type
 end
 
 local function set_node_type (node, node_type)
@@ -462,9 +477,10 @@ end
 
 local function check_assignment (varlist, explist)
   check_explist(explist)
+  local fill_type = get_fill_type(explist)
   for k,v in ipairs(varlist) do
     check_var(v)
-    local inf_type = get_node_type(explist[k])
+    local inf_type = get_node_type(explist[k], fill_type)
     local scope = get_local_scope(v[1])
     if scope then -- local
       update_var(v[1], v["pos"], inf_type, scope)
@@ -490,13 +506,16 @@ local function check_break (stm)
 end
 
 local function check_call (exp)
-
+  local exp1 = exp[1]
+  check_exp(exp1)
 end
 
 local function check_for_generic (idlist, explist, stm)
-  being_loop()
+  begin_loop()
+  begin_scope()
   check_explist(explist)
   check_stm(stm)
+  end_scope()
   end_loop()
 end
 
@@ -561,8 +580,9 @@ end
 local function check_local_var (idlist, explist)
   local varlist = idlist2varlist(idlist)
   check_explist(explist)
+  local fill_type = get_fill_type(explist)
   for k,v in ipairs(varlist) do
-    local inf_type = get_node_type(explist[k])
+    local inf_type = get_node_type(explist[k], fill_type)
     local scope = st["scope"]
     set_var(v, inf_type, scope)
   end

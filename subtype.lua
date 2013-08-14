@@ -225,6 +225,13 @@ function types.isVarArg (t)
   return false
 end
 
+function types.typeofVarArg (t)
+  if t.tag == "TypeVarArg" then
+    return t[1]
+  end
+  return nil
+end
+
 -- subtyping
 
 function types.subtype (t1, t2)
