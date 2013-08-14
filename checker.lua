@@ -329,8 +329,12 @@ end
 local function check_function (idlist, dec_type, stm)
   begin_scope()
   local varlist = idlist2varlist(idlist)
+  local len = #varlist
   local args_type = {}
-  if #varlist > 0 then
+  if len > 0 then
+    if varlist[len][1] == "..." then
+      varlist[len]["type"] = types.VarArg(varlist[len]["type"])
+    end
     for k,v in ipairs(varlist) do
       table.insert(args_type, v["type"])
     end
@@ -411,7 +415,6 @@ local function check_calling_function (exp)
   local msg, local_or_global
   local var, explist, pos = exp[1][1], exp[2], exp["pos"]
   check_explist(explist)
-  local args = explist2typelist(explist)
   local var_name = var[1]
   local var_type
   if islocal(var_name) then
@@ -432,12 +435,47 @@ local function check_calling_function (exp)
       msg = msg:format(local_or_global, var_name)
       warning(msg, pos)
     elseif types.isFunction(var_type) then
+      local fill_type
+      local len_args = #var_type[1]
+      local last_arg = var_type[1][len_args]
+      if types.isVarArg(last_arg) then
+        fill_type = types.typeofVarArg(last_arg)
+      else
+        fill_type = Nil
+      end
+      for k,v in ipairs(explist) do
+        local dec_type
+        dec_type = var_type[1][k]
+        if not dec_type then
+          dec_type = fill_type
+        else
+          if types.isVarArg(dec_type) then
+            dec_type = types.typeofVarArg(dec_type)
+          end
+        end
+        local given_type = v["type"]
+        if types.subtype(given_type, dec_type) then
+        elseif types.isAny(given_type) then
+          local msg = "parmeter %d of '%s', attempt to cast 'any' to '%s'"
+          msg = msg:format(k, var_name, types.tostring(dec_type))
+          warning(msg, pos)
+        elseif types.isAny(dec_type) then
+          local msg = "parameter %d of '%s', attempt to cast '%s' to 'any'"
+          msg = msg:format(k, var_name, types.tostring(given_type))
+          warning(msg, pos)
+        else
+          local msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
+          msg = msg:format(k, var_name, types.tostring(given_type), types.tostring(dec_type))
+          typeerror(msg, pos)
+        end
+      end
     else
       msg = "attempt to call %s '%s' of type '%s'"
       msg = msg:format(local_or_global, var_name, types.tostring(var_type))
       typeerror(msg, pos)
     end
   end
+
   set_node_type(exp, var_type)
 end
 
