@@ -175,20 +175,25 @@ local check_explist
 
 -- variables
 
+local function id2var (id)
+  local var = {}
+  local var_type,msg = name2type(id[2])
+  if not var_type then
+    var_type = Any
+    typeerror(msg, id["pos"])
+  end
+  var["tag"] = "VarID"
+  var["pos"] = id["pos"]
+  var[1] = id[1]
+  var[2] = id[2]
+  var["type"] = var_type
+  return var
+end
+
 local function idlist2varlist (idlist)
   local list = {}
   for k,v in ipairs(idlist) do
-    local var = {}
-    local var_type,msg = name2type(v[2])
-    if not var_type then
-      var_type = Any
-      typeerror(msg, v["pos"])
-    end
-    var["tag"] = "VarID"
-    var["pos"] = v["pos"]
-    var[1] = v[1]
-    var[2] = v[2]
-    var["type"] = var_type
+    local var = id2var(v)
     table.insert(list, var)
   end
   return list
@@ -497,6 +502,9 @@ end
 
 local function check_for_numeric (id, exp1, exp2, exp3, stm)
   begin_loop()
+  begin_scope()
+  local var = id2var(id)
+  set_var(var, Number, st["scope"])
   check_exp(exp1)
   check_exp(exp2)
   check_exp(exp3)
@@ -524,6 +532,7 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
     typeerror(msg, exp3["pos"])
   end
   check_stm(stm)
+  end_scope()
   end_loop()
 end
 

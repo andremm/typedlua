@@ -658,7 +658,7 @@ s = [=[
 for i = 1 , 10 , 2 do end
 ]=]
 e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 2.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -668,7 +668,7 @@ s = [=[
 for i=1,10 do end
 ]=]
 e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1799,7 +1799,7 @@ for i=1,10 do
 end
 ]=]
 e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
 ]=]
 
 r = typecheck(s)
@@ -1823,7 +1823,7 @@ s = [=[
 for i=1,10 do end
 ]=]
 e = [=[
-StmBlock [StmForNum ("i","any") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
 ]=]
 
 r = typecheck(s)
