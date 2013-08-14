@@ -190,19 +190,24 @@ local check_explist
 
 -- variables
 
-local function id2var (id)
+local function new_var (name, dec_type, pos, inf_type)
   local var = {}
+  var["tag"] = "VarID"
+  var[1] = name
+  var[2] = dec_type
+  var["pos"] = pos
+  var["type"] = inf_type
+  return var
+end
+
+local function id2var (id)
   local var_type,msg = name2type(id[2])
   if not var_type then
+    id[2] = "any"
     var_type = Any
     typeerror(msg, id["pos"])
   end
-  var["tag"] = "VarID"
-  var["pos"] = id["pos"]
-  var[1] = id[1]
-  var[2] = id[2]
-  var["type"] = var_type
-  return var
+  return new_var(id[1], id[2], id["pos"], var_type)
 end
 
 local function idlist2varlist (idlist)
@@ -303,6 +308,29 @@ function check_var (var)
   end
 end
 
+-- functions
+
+local function check_function (idlist, dec_type, stm)
+  begin_scope()
+  local varlist = idlist2varlist(idlist)
+  local args_type = {}
+  if #varlist > 0 then
+    for k,v in ipairs(varlist) do
+      table.insert(args_type, v["type"])
+    end
+  else
+    table.insert(args_type, types.VarArg(Object))
+  end
+  local ret_type,msg = name2type(dec_type)
+  if not ret_type then
+    ret_type = Any
+    typeerror(msg, exp["pos"])
+  end
+  check_stm(stm)
+  end_scope()
+  return types.Function(args_type, ret_type)
+end
+
 -- expressions
 
 local function check_and (exp)
@@ -311,6 +339,12 @@ local function check_and (exp)
   check_exp(exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   set_node_type(exp, types.Union(t1, t2)) -- T-AND
+end
+
+local function check_anonymous_function (exp)
+  local idlist, dec_type, stm = exp[1], exp[2], exp[3]
+  local t = check_function(idlist, dec_type, stm)
+  set_node_type(exp, t)
 end
 
 local function check_arith (exp)
@@ -555,8 +589,11 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
   end_loop()
 end
 
-local function check_global_function (fname, idlist, ret_type, stm)
-  check_stm(stm)
+local function check_global_function (stm)
+  local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  local t = check_function(idlist, dec_type, stm1)
+  local var = new_var(name, "any", stm["pos"], t)
+  set_var(var, t)
 end
 
 local function check_goto (stm)
@@ -573,8 +610,11 @@ local function check_label (stm)
   set_label(stm)
 end
 
-local function check_local_function (name, idlist, ret_type, stm)
-  check_stm(stm)
+local function check_local_function (stm)
+  local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  local t = check_function(idlist, dec_type, stm1)
+  local var = new_var(name, "any", stm["pos"], t)
+  set_var(var, t, st["scope"])
 end
 
 local function check_local_var (idlist, explist)
@@ -629,7 +669,7 @@ function check_exp (exp)
   elseif tag == "ExpVar" then -- ExpVar Var
     check_expvar(exp)
   elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
-    set_node_type(exp, Any)
+    check_anonymous_function(exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     set_node_type(exp, Any)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
@@ -683,9 +723,9 @@ function check_stm (stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_repeat(stm[1], stm[2])
   elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
-    check_global_function(stm[1], stm[2], stm[3], stm[4])
+    check_global_function(stm)
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
-    check_local_function(stm[1], stm[2], stm[3], stm[4])
+    check_local_function(stm)
   elseif tag == "StmLabel" then -- StmLabel Name
     check_label(stm)
   elseif tag == "StmGoTo" then -- StmGoTo Name
@@ -718,12 +758,8 @@ function check_block (block)
 end
 
 local function add_vararg ()
-  local var, name = {}, "..."
-  var["tag"] = "VarID"
-  var[1] = name
-  var["pos"] = 1
-  var["type"] = types.VarArg(String)
-  st["global"][name] = var
+  local name = "..."
+  st["global"][name] = new_var(name, "string", 1, types.VarArg(String))
 end
 
 local function init_symbol_table (subject, filename)

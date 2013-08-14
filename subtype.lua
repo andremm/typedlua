@@ -273,6 +273,9 @@ function types.subtype (t1, t2)
     elseif types.isString(t1) and types.isString(t2) then
       return true
     end
+  elseif types.isFunction(t1) and types.isFunction(t2) then
+    local s1, s2, s3, s4 = t1[1], t1[2], t2[1], t2[2]
+    return types.subtype(s2, s4)
   elseif not types.isUnion(t1) and types.isUnion(t2) then -- S-UNION1 and S-UNION2
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
   elseif types.isUnion(t1) then -- S-UNION3
@@ -310,7 +313,12 @@ local function type2str (t)
   elseif types.isAny(t) then
     return "any"
   elseif types.isFunction(t) then
-    return "function"
+    local l = {}
+    for k,v in ipairs(t[1]) do
+      l[k] = type2str(v)
+    end
+    local v = table.concat(l, " x ")
+    return "(" .. v .. ") -> " .. type2str(t[2])
   elseif types.isUnion(t) then
     return type2str(t[1]) .. " + " .. type2str(t[2])
   elseif types.isVarArg(t) then
