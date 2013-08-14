@@ -275,6 +275,14 @@ function types.subtype (t1, t2)
     end
   elseif types.isFunction(t1) and types.isFunction(t2) then
     local s1, s2, s3, s4 = t1[1], t1[2], t2[1], t2[2]
+    if #s1 ~= #s3 then
+      return false
+    end
+    for k,v in ipairs(s3) do
+      if not types.subtype(s3[k], s1[k]) then
+        return false
+      end
+    end
     return types.subtype(s2, s4)
   elseif not types.isUnion(t1) and types.isUnion(t2) then -- S-UNION1 and S-UNION2
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])

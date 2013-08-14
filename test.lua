@@ -2005,7 +2005,7 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-function f ()
+function f (x)
   if 1 then break end
 end
 ]=]

@@ -219,6 +219,22 @@ local function idlist2varlist (idlist)
   return list
 end
 
+local function isglobal (name)
+  if st["global"][name] then
+    return true
+  end
+  return false
+end
+
+local function islocal (name)
+  for s=st["scope"],0,-1 do
+    if st[s]["local"][name] then
+      return true
+    end
+  end
+  return false
+end
+
 local function get_global (name)
   return st["global"][name]
 end
@@ -254,7 +270,7 @@ local function set_var (var, inf_type, scope)
     msg = msg:format(types.tostring(dec_type))
     warning(msg, var["pos"])
   else
-    var["type"] = Any
+    var["type"] = dec_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
     typeerror(msg, var["pos"])
@@ -333,6 +349,19 @@ end
 
 -- expressions
 
+local function explist2typelist (explist)
+  local list = {}
+  local len = #explist
+  if len == 0 then
+    table.insert(list, types.VarArg(Object))
+  else
+    for k,v in ipairs(explist) do
+      table.insert(list, explist[k]["type"])
+    end
+  end
+  return list
+end
+
 local function check_and (exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(exp1)
@@ -372,6 +401,44 @@ local function check_arith (exp)
     msg = string.format(msg, types.tostring(wrong["type"]))
     typeerror(msg, wrong["pos"])
   end
+end
+
+local function check_calling_method (exp)
+  set_node_type(exp, types.Function(Any, Any))
+end
+
+local function check_calling_function (exp)
+  local msg, local_or_global
+  local var, explist, pos = exp[1][1], exp[2], exp["pos"]
+  check_explist(explist)
+  local args = explist2typelist(explist)
+  local var_name = var[1]
+  local var_type
+  if islocal(var_name) then
+    local_or_global = "local"
+    local var_scope = get_local_scope(var_name)
+    var_type = st[var_scope]["local"][var_name]["type"]
+  elseif isglobal(var_name) then
+    local_or_global = "global"
+    var_type = st["global"][var_name]["type"]
+  else
+    msg = "attempt to call undeclared function '%s'"
+    msg = msg:format(var_name)
+    typeerror(msg, pos)
+  end
+  if var_type then
+    if types.isAny(var_type) then
+      msg = "attempt to call %s '%s' of type 'any'"
+      msg = msg:format(local_or_global, var_name)
+      warning(msg, pos)
+    elseif types.isFunction(var_type) then
+    else
+      msg = "attempt to call %s '%s' of type '%s'"
+      msg = msg:format(local_or_global, var_name, types.tostring(var_type))
+      typeerror(msg, pos)
+    end
+  end
+  set_node_type(exp, var_type)
 end
 
 local function check_concat (exp)
@@ -495,6 +562,10 @@ local function check_order (exp)
   end
 end
 
+local function check_table (exp)
+  set_node_type(exp, Any)
+end
+
 local function check_vararg (exp)
   local name = "..."
   local scope = get_local_scope(name)
@@ -540,8 +611,7 @@ local function check_break (stm)
 end
 
 local function check_call (exp)
-  local exp1 = exp[1]
-  check_exp(exp1)
+  check_exp(exp)
 end
 
 local function check_for_generic (idlist, explist, stm)
@@ -590,7 +660,7 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
 end
 
 local function check_global_function (stm)
-  local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  local name, idlist, dec_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
   local t = check_function(idlist, dec_type, stm1)
   local var = new_var(name, "any", stm["pos"], t)
   set_var(var, t)
@@ -671,11 +741,11 @@ function check_exp (exp)
   elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
     check_anonymous_function(exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
-    set_node_type(exp, Any)
+    check_table(exp)
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    set_node_type(exp, Any)
+    check_calling_method(exp)
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
-    set_node_type(exp, Any)
+    check_calling_function(exp)
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp
          tag == "ExpMul" or -- ExpMul Exp Exp
