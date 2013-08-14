@@ -291,6 +291,13 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \subsection{Statements}
 
 \[
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2} \;\;\; e_{3}:T_{3} \;\;\;
+      T_{1} \lesssim Number \;\;\; T_{2} \lesssim Number \;\;\;
+      T_{3} \lesssim Number}
+     {\textbf{fornum} \; id \; e_{1} \; e_{2} \; e_{3} \; s}
+\mylabel{T-FORNUM}
+\]
+\[
 \frac{\overline{id}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
      {\textbf{localvar} \; \overline{id} = \overline{e}}
 \mylabel{T-LOCALVAR}

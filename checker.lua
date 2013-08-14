@@ -249,11 +249,7 @@ local function update_var (name, pos, inf_type, scope)
     var = st["global"][name]
   end
   local dec_type = var["type"]
-  if not types.subtype(inf_type, dec_type) then
-    local msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
-    typeerror(msg, pos)
-  elseif types.isAny(dec_type) then
+  if types.isAny(dec_type) then
     local msg = "attempt to cast 'any' to 'number'"
     msg = msg:format(types.tostring(inf_type))
     warning(msg, pos)
@@ -261,6 +257,10 @@ local function update_var (name, pos, inf_type, scope)
     local msg = "attempt to cast '%s' to 'any'"
     msg = msg:format(types.tostring(dec_type))
     warning(msg, pos)
+  elseif not types.subtype(inf_type, dec_type) then
+    local msg = "attempt to assign '%s' to '%s'"
+    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
+    typeerror(msg, pos)
   end
 end
 
@@ -500,19 +500,30 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
   check_exp(exp1)
   check_exp(exp2)
   check_exp(exp3)
-  check_stm(stm)
   local t1, t2, t3 = exp1["type"], exp2["type"], exp3["type"]
   local msg
-  if not types.subtype(t1, Number) then
+  if types.isAny(t1) then
+    msg = "'for' initial value is any"
+    warning(msg, exp1["pos"])
+  elseif not types.subtype(t1, Number) then
     msg = "'for' initial value must be a number"
     typeerror(msg, exp1["pos"])
+  end
+  if types.isAny(t2) then
+    msg = "'for' limit value is any"
+    warning(msg, exp1["pos"])
   elseif not types.subtype(t2, Number) then
     msg = "'for' limit must be a number"
     typeerror(msg, exp2["pos"])
+  end
+  if types.isAny(t3) then
+    msg = "'for' step value is any"
+    warning(msg, exp1["pos"])
   elseif not types.subtype(t3, Number) then
     msg = "'for' step must be a number"
     typeerror(msg, exp3["pos"])
   end
+  check_stm(stm)
   end_loop()
 end
 
