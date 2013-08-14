@@ -3,6 +3,7 @@
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amssymb}
 
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
@@ -130,6 +131,15 @@ T_{2} \subtype T_{1} \cup T_{2}
 k ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
 \pipe n \pipe w\\ 
 v ::= \; & id \pipe e[e]\\
+s ::= \; & \overline{s} \pipe \textbf{if-else} \; e \; s \; s
+\pipe \textbf{while} \; e \; s \pipe \textbf{repeat} \; s \; e \pipe\\
+& \textbf{fornum} \; id \; e \; e \; e \; s 
+\pipe \textbf{forgen} \; \overline{id} \; \overline{e} \; s \pipe\\
+& \textbf{func} \; name \; b \pipe \textbf{localfunc} \; id \; b
+\pipe \textbf{label} \; id \pipe \textbf{goto} \; id \pipe\\
+& \textbf{break} \pipe \overline{v} = \overline{e}
+\pipe \textbf{localvar} \; \overline{id} = \overline{e}
+\pipe \textbf{ret} \; \overline{e} \pipe e\\
 e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \pipe \{(\overline{e},\overline{(e,e)})\}
 \pipe id(e,\overline{e}) \pipe e(\overline{e}) \pipe\\
@@ -148,6 +158,11 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \frac{\env({...}) = T}
      {\env \vdash {...} : T*}
 \mylabel{T-VARARG}
+\]
+\[
+\frac{\env(v) = T}
+     {\env \vdash v : T}
+\mylabel{T-VAR}
 \]
 \[
 \env \vdash \mathbf{func} \; (\overline{id}) : Any
@@ -258,6 +273,32 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \frac{\env \vdash e:Any}
      {\env \vdash \# \; e : Any}
 \mylabel{T-LEN2}
+\]
+
+\subsection{Variables}
+
+\[
+\frac{\env(id) = T}
+     {\env \vdash id : T}
+\mylabel{T-ID}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1}[e_{2}] : Any}
+\mylabel{T-INDEX}
+\]
+
+\subsection{Statements}
+
+\[
+\frac{\overline{id}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
+     {\textbf{localvar} \; \overline{id} = \overline{e}}
+\mylabel{T-LOCALVAR}
+\]
+\[
+\frac{\overline{v}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
+     {\overline{v} = \overline{e}}
+\mylabel{T-ASSIGNMENT}
 \]
 
 \end{document}
