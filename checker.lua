@@ -442,6 +442,7 @@ local function check_call_args (fname, args, explist, pos)
   if len_list < len_args then
     local i = 1
     while i < len_list do
+      pos = explist[i]["pos"]
       dec_type = args[i]
       given_type = explist[i]["type"]
       if types.isVarArg(given_type) then
@@ -454,6 +455,7 @@ local function check_call_args (fname, args, explist, pos)
     if not exp then
       given_type = fill_type
     else
+      pos = explist[i]["pos"]
       given_type = explist[i]["type"]
       if types.isVarArg(given_type) then
         fill_type = types.typeofVarArg(given_type)
@@ -467,6 +469,7 @@ local function check_call_args (fname, args, explist, pos)
       if not exp then
         given_type = fill_type
       else
+        pos = exp["pos"]
         given_type = exp["type"]
         if types.isVarArg(given_type) then
           given_type = types.typeofVarArg(given_type)
@@ -485,6 +488,7 @@ local function check_call_args (fname, args, explist, pos)
     while i < len_args do
       dec_type = args[i]
       given_type = explist[i]["type"]
+      pos = explist[i]["pos"]
       if types.isVarArg(given_type) then
         given_type = types.typeofVarArg(given_type)
       end
@@ -496,18 +500,24 @@ local function check_call_args (fname, args, explist, pos)
       local j = i
       while j < len_list do
         given_type = explist[j]["type"]
+        pos = explist[j]["pos"]
         if types.typeofVarArg(given_type) then
           given_type = types.typeofVarArg(given_type)
         end
-        check_call_arg(fname, i, dec_type, given_type, pos)
+        check_call_arg(fname, j, dec_type, given_type, pos)
         j = j + 1
       end
       given_type = explist[j]["type"]
-      check_call_arg(fname, i, dec_type, given_type, pos)
+      pos = explist[j]["pos"]
+      check_call_arg(fname, j, dec_type, given_type, pos)
     else
-      check_call_arg(fname, i, args[i], explist[i]["type"], pos)
+      check_call_arg(fname, j, args[i], explist[i]["type"], pos)
     end
   end
+end
+
+local function check_call_ret (fname, ftype, pos)
+
 end
 
 local function check_call (fname, ftype, explist, pos, visibility)
@@ -516,23 +526,28 @@ local function check_call (fname, ftype, explist, pos, visibility)
     msg = "attempt to call %s '%s' of type 'any'"
     msg = msg:format(local_or_global, var_name)
     warning(msg, pos)
+    return Any
   elseif types.isFunction(ftype) then
     check_call_args(fname, ftype[1], explist, pos, visibility)
+    check_call_ret(fname, ftype[2], pos)
+    return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"
     msg = msg:format(local_or_global, var_name, types.tostring(var_type))
     typeerror(msg, pos)
+    return var_type
   end
 end
 
 local function check_calling_method (exp)
-  set_node_type(exp, types.Function(Any, Any))
+  set_node_type(exp, Any)
 end
 
 local function check_calling_function (exp)
   local var, explist, pos = exp[1][1], exp[2], exp["pos"]
   local var_name = var[1]
   local isvisible = get_visibility(var_name)
+  local ret_type = Nil
   check_explist(explist)
   if isvisible then
     local var_type
@@ -542,12 +557,13 @@ local function check_calling_function (exp)
     else
       var_type = st["global"][var_name]["type"]
     end
-    check_call(var_name, var_type, explist, pos, isvisible)
+    ret_type = check_call(var_name, var_type, explist, pos, isvisible)
   else
     local msg = "attempt to call undeclared function '%s'"
     msg = msg:format(var_name)
     typeerror(msg, pos)
   end
+  set_node_type(exp, ret_type)
 end
 
 local function check_concat (exp)
