@@ -3,7 +3,7 @@ This file implements the type checker for Typed Lua
 ]]
 
 local parser = require "parser"
-local types = require "subtype"
+local types = require "types"
 
 local Object = types.Object()
 local Any = types.Any()

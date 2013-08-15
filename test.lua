@@ -3,7 +3,7 @@
 local ast = require "ast"
 local checker = require "checker"
 local parser = require "parser"
-local types = require "subtype"
+local types = require "types"
 
 -- expected result, result, subject
 local e, r, s
