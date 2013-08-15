@@ -259,9 +259,11 @@ local function get_visibility (name)
 end
 
 local function set_var (var, inf_type, scope)
+  local msg
   local name = var[1]
   local pos = var["pos"]
   local dec_type = var["type"]
+  local shadowing
   if types.subtype(inf_type, dec_type) then
     var["type"] = dec_type
   elseif types.isAny(dec_type) then
@@ -270,24 +272,43 @@ local function set_var (var, inf_type, scope)
     else
       var["type"] = dec_type
     end
-    local msg = "attempt to cast 'any' to '%s'"
+    msg = "attempt to cast 'any' to '%s'"
     msg = msg:format(types.tostring(inf_type))
     warning(msg, var["pos"])
   elseif types.isAny(inf_type) then
     var["type"] = dec_type
-    local msg = "attempt to cast '%s' to 'any'"
+    msg = "attempt to cast '%s' to 'any'"
     msg = msg:format(types.tostring(dec_type))
     warning(msg, var["pos"])
   else
     var["type"] = dec_type
-    local msg = "attempt to assign '%s' to '%s'"
+    msg = "attempt to assign '%s' to '%s'"
     msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
     typeerror(msg, var["pos"])
   end
+  local shadowing, local_or_global
   if scope then -- local
+    shadowing = st[scope]["local"][name]
+    if shadowing then
+      local_or_global = "local"
+    end
     st[scope]["local"][name] = var
   else -- global
+    shadowing = st["global"][name]
+    if shadowing then
+      local_or_global = "global"
+    end
     st["global"][name] = var
+  end
+  if shadowing then
+    local line,col = lineno(shadowing["pos"])
+    local t1,t2 = types.tostring(shadowing["type"]), types.tostring(var["type"])
+    msg = "%s '%s' was previously defined on line %d"
+    msg = msg:format(local_or_global, name, line)
+    warning(msg, var["pos"])
+    msg = "shadowing local '%s' from '%s' to '%s'"
+    msg = msg:format(name, t1, t2)
+    warning(msg, var["pos"])
   end
 end
 
