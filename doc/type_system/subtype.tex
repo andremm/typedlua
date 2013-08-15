@@ -131,6 +131,7 @@ T_{2} \subtype T_{1} \cup T_{2}
 k ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
 \pipe n \pipe w\\ 
 v ::= \; & id \pipe e[e]\\
+b ::= \; & (\overline{id}) \; s\\
 s ::= \; & \overline{s} \pipe \textbf{if-else} \; e \; s \; s
 \pipe \textbf{while} \; e \; s \pipe \textbf{repeat} \; s \; e \pipe\\
 & \textbf{fornum} \; id \; e \; e \; e \; s 
@@ -140,7 +141,7 @@ s ::= \; & \overline{s} \pipe \textbf{if-else} \; e \; s \; s
 & \textbf{break} \pipe \overline{v} = \overline{e}
 \pipe \textbf{localvar} \; \overline{id} = \overline{e}
 \pipe \textbf{ret} \; \overline{e} \pipe e\\
-e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
+e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
 \pipe \{(\overline{e},\overline{(e,e)})\}
 \pipe id(e,\overline{e}) \pipe e(\overline{e}) \pipe\\
 & e + e \pipe e \; {..} \; e \pipe e == e \pipe e < e
@@ -165,8 +166,15 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \mylabel{T-VAR}
 \]
 \[
-\env \vdash \mathbf{func} \; (\overline{id}) : Any
-\mylabel{T-ANONFUNC}
+\frac{\env \vdash s:V}
+     {\env \vdash \mathbf{func} \; () \; s : {Object*} \rightarrow V}
+\mylabel{T-ANONFUNC1}
+\]
+\[
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
+     {\env \vdash \mathbf{func} \; (\overline{id}) \; s :
+     {V_{1}} \rightarrow V_{2}}
+\mylabel{T-ANONFUNC2}
 \]
 \[
 \env \vdash \{(\overline{e},\overline{(e,e)})\} : Any
@@ -177,8 +185,15 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; (\overline{id})
 \mylabel{T-METHODCALL}
 \]
 \[
-\env \vdash e(\overline{e}) : Any
-\mylabel{T-FUNCCALL}
+\frac{\env \vdash e_{1}:V_{1} \rightarrow V_{2} \;\;\;
+      \env \vdash \overline{e_{2}}:V_{3} \;\;\; V_{3} \lesssim V_{1}}
+     {\env \vdash e_{1}(\overline{e_{2}}) : V_{2}}
+\mylabel{T-FUNCCALL1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash \overline{e_{2}}:V}
+     {\env \vdash e_{1}(\overline{e_{2}}) : Any}
+\mylabel{T-FUNCCALL2}
 \]
 \[
 \frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
