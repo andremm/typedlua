@@ -249,6 +249,15 @@ local function get_local_scope (name)
   return nil
 end
 
+local function get_visibility (name)
+  if islocal(name) then
+    return "local"
+  elseif isglobal(name) then
+    return "global"
+  end
+  return nil
+end
+
 local function set_var (var, inf_type, scope)
   local name = var[1]
   local pos = var["pos"]
@@ -407,76 +416,138 @@ local function check_arith (exp)
   end
 end
 
+-- function name, parameter number, dec type, given type, pos
+
+local function check_call_arg (fname, k, dtype, gtype, pos)
+  local msg
+  if not types.subtype(gtype, dtype) then
+    msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
+    msg = msg:format(k, fname, types.tostring(gtype), types.tostring(dtype))
+    typeerror(msg, pos)
+  elseif types.isAny(gtype) then
+    msg = "parmeter %d of '%s', attempt to cast 'any' to '%s'"
+    msg = msg:format(k, fname, types.tostring(dtype))
+    warning(msg, pos)
+  elseif types.isAny(dtype) then
+    msg = "parameter %d of '%s', attempt to cast '%s' to 'any'"
+    msg = msg:format(k, fname, types.tostring(gtype))
+    warning(msg, pos)
+  end
+end
+
+local function check_call_args (fname, args, explist, pos)
+  local len_args, len_list = #args, #explist
+  local dec_type, given_type
+  local fill_type = Nil
+  if len_list < len_args then
+    local i = 1
+    while i < len_list do
+      dec_type = args[i]
+      given_type = explist[i]["type"]
+      if types.isVarArg(given_type) then
+        given_type = types.typeofVarArg(given_type)
+      end
+      check_call_arg(fname, i, dec_type, given_type, pos)
+      i = i + 1
+    end
+    local exp = explist[i]
+    if not exp then
+      given_type = fill_type
+    else
+      given_type = explist[i]["type"]
+      if types.isVarArg(given_type) then
+        fill_type = types.typeofVarArg(given_type)
+        given_type = fill_type
+      end
+    end
+    local j = i
+    while j < len_args do
+      dec_type = args[j]
+      exp = explist[j]
+      if not exp then
+        given_type = fill_type
+      else
+        given_type = exp["type"]
+        if types.isVarArg(given_type) then
+          given_type = types.typeofVarArg(given_type)
+        end
+      end
+      check_call_arg(fname, j, dec_type, given_type, pos)
+      j = j + 1
+    end
+    if types.isNil(fill_type) then
+      check_call_arg(fname, j, args[j], fill_type, pos)
+    else
+      check_call_arg(fname, j, args[j], explist[i]["type"], pos)
+    end
+  else
+    local i = 1
+    while i < len_args do
+      dec_type = args[i]
+      given_type = explist[i]["type"]
+      if types.isVarArg(given_type) then
+        given_type = types.typeofVarArg(given_type)
+      end
+      check_call_arg(fname, i, dec_type, given_type, pos)
+      i = i + 1
+    end
+    dec_type = args[i]
+    if types.isVarArg(dec_type) then
+      local j = i
+      while j < len_list do
+        given_type = explist[j]["type"]
+        if types.typeofVarArg(given_type) then
+          given_type = types.typeofVarArg(given_type)
+        end
+        check_call_arg(fname, i, dec_type, given_type, pos)
+        j = j + 1
+      end
+      given_type = explist[j]["type"]
+      check_call_arg(fname, i, dec_type, given_type, pos)
+    else
+      check_call_arg(fname, i, args[i], explist[i]["type"], pos)
+    end
+  end
+end
+
+local function check_call (fname, ftype, explist, pos, visibility)
+  local msg
+  if types.isAny(ftype) then
+    msg = "attempt to call %s '%s' of type 'any'"
+    msg = msg:format(local_or_global, var_name)
+    warning(msg, pos)
+  elseif types.isFunction(ftype) then
+    check_call_args(fname, ftype[1], explist, pos, visibility)
+  else
+    msg = "attempt to call %s '%s' of type '%s'"
+    msg = msg:format(local_or_global, var_name, types.tostring(var_type))
+    typeerror(msg, pos)
+  end
+end
+
 local function check_calling_method (exp)
   set_node_type(exp, types.Function(Any, Any))
 end
 
 local function check_calling_function (exp)
-  local msg, local_or_global
   local var, explist, pos = exp[1][1], exp[2], exp["pos"]
-  check_explist(explist)
   local var_name = var[1]
-  local var_type
-  if islocal(var_name) then
-    local_or_global = "local"
-    local var_scope = get_local_scope(var_name)
-    var_type = st[var_scope]["local"][var_name]["type"]
-  elseif isglobal(var_name) then
-    local_or_global = "global"
-    var_type = st["global"][var_name]["type"]
+  local isvisible = get_visibility(var_name)
+  check_explist(explist)
+  if isvisible then
+    local var_type
+    if isvisible == "local" then
+      local scope = get_local_scope(var_name)
+      var_type = st[scope]["local"][var_name]["type"]
+    else
+      var_type = st["global"][var_name]["type"]
+    end
+    check_call(var_name, var_type, explist, pos, isvisible)
   else
-    msg = "attempt to call undeclared function '%s'"
+    local msg = "attempt to call undeclared function '%s'"
     msg = msg:format(var_name)
     typeerror(msg, pos)
   end
-  if var_type then
-    if types.isAny(var_type) then
-      msg = "attempt to call %s '%s' of type 'any'"
-      msg = msg:format(local_or_global, var_name)
-      warning(msg, pos)
-    elseif types.isFunction(var_type) then
-      local fill_type
-      local len_args = #var_type[1]
-      local last_arg = var_type[1][len_args]
-      if types.isVarArg(last_arg) then
-        fill_type = types.typeofVarArg(last_arg)
-      else
-        fill_type = Nil
-      end
-      for k,v in ipairs(explist) do
-        local dec_type
-        dec_type = var_type[1][k]
-        if not dec_type then
-          dec_type = fill_type
-        else
-          if types.isVarArg(dec_type) then
-            dec_type = types.typeofVarArg(dec_type)
-          end
-        end
-        local given_type = v["type"]
-        if types.subtype(given_type, dec_type) then
-        elseif types.isAny(given_type) then
-          local msg = "parmeter %d of '%s', attempt to cast 'any' to '%s'"
-          msg = msg:format(k, var_name, types.tostring(dec_type))
-          warning(msg, pos)
-        elseif types.isAny(dec_type) then
-          local msg = "parameter %d of '%s', attempt to cast '%s' to 'any'"
-          msg = msg:format(k, var_name, types.tostring(given_type))
-          warning(msg, pos)
-        else
-          local msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
-          msg = msg:format(k, var_name, types.tostring(given_type), types.tostring(dec_type))
-          typeerror(msg, pos)
-        end
-      end
-    else
-      msg = "attempt to call %s '%s' of type '%s'"
-      msg = msg:format(local_or_global, var_name, types.tostring(var_type))
-      typeerror(msg, pos)
-    end
-  end
-
-  set_node_type(exp, var_type)
 end
 
 local function check_concat (exp)
@@ -648,7 +719,7 @@ local function check_break (stm)
   end
 end
 
-local function check_call (exp)
+local function check_stmcall (exp)
   check_exp(exp)
 end
 
@@ -847,7 +918,7 @@ function check_stm (stm)
   elseif tag == "StmRet" then -- StmRet [Exp]
     check_return(stm[1])
   elseif tag == "StmCall" then -- StmCall Exp
-    check_call(stm[1])
+    check_stmcall(stm[1])
   else
     error("cannot type check statement " .. tag)
   end
