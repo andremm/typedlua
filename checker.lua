@@ -460,6 +460,15 @@ local function check_call_args (fname, args, explist, pos)
   local len_args, len_list = #args, #explist
   local dec_type, given_type
   local fill_type = Nil
+  if len_list == 0 then -- calling void
+    dec_type = args[1]
+    if types.isVarArg(dec_type) then
+      dec_type = types.typeofVarArg(dec_type)
+      if types.isObject(dec_type) then -- function is void
+        return
+      end
+    end
+  end
   if len_list < len_args then
     local i = 1
     while i < len_list do
@@ -517,8 +526,8 @@ local function check_call_args (fname, args, explist, pos)
       i = i + 1
     end
     dec_type = args[i]
+    local j = i
     if types.isVarArg(dec_type) then
-      local j = i
       while j < len_list do
         given_type = explist[j]["type"]
         pos = explist[j]["pos"]
