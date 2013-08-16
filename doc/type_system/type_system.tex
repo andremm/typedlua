@@ -3,6 +3,12 @@
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\mylabel}[1]{\; (\textsc{#1})}
+\newcommand{\subtype}{<:}
+\newcommand{\pipe}{\;|\;}
+\newcommand{\env}{\Gamma}
 
 \title{Typed Lua Type System}
 
@@ -15,263 +21,306 @@
 \section{Type Language}
 
 \begin{align*}
-T ::= \; & constant \; | \; base \; | \; T \rightarrow T \; | \; T \cup T \; 
- | \; S\\
-S ::= \; & {T*} \; | \; T \times S \; | \; Void\\
-constant ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
- | \; {<}integer{>} \; | \; {<}double{>} \; | \; {<}string{>}\\
-base ::= \; & Any \; | \; Boolean \; | \; Number \; | \; String\\
+T ::= \; & C \pipe B \pipe Object \pipe Any \pipe
+T \rightarrow T \pipe T \cup T\\
+C ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
+\pipe {<}double{>} \pipe {<}integer{>} \pipe {<}string{>}\\
+B ::= \; & Boolean \pipe Number \pipe String\\
+V ::= \; & T \pipe {T*} \pipe T \times V\\ 
 \end{align*}
 
 \section{Subtyping}
 
-The subtyping relation ($<:$) should be reflexive (\ref{reflexive})
-and transitive (\ref{transitive}).
-
-\begin{align}
-\label{reflexive}
-S \; <: \; S
-\end{align}
-\begin{align}
-\label{transitive}
-\frac{S \; <: \; U \;\;\; U\;  <: \; T}{S \; <: \; T}
-\end{align}
-
-\subsection{Constants}
+\subsection{Constant types}
 
 \[
-{<}integer{>} <: Number \; (\textit{S-INTEGER})
+C \subtype C
+\mylabel{S-CONSTANT}
 \]
+\[
+\mathbf{false} \subtype Boolean
+\mylabel{S-FALSE}
+\]
+\[
+\mathbf{true} \subtype Boolean
+\mylabel{S-TRUE}
+\]
+\[
+{<}double{>} \subtype Number
+\mylabel{S-DOUBLE}
+\]
+\[
+{<}integer{>} \subtype Number
+\mylabel{S-INTEGER}
+\]
+\[
+{<}string{>} \subtype Number
+\mylabel{S-STRING}
+\]
+
+\subsection{Basic types}
 
 \[
-{<}double{>} <: Number \; (\textit{S-DOUBLE})
+B \subtype B
+\mylabel{S-BASIC}
 \]
+
+\subsection{Object (Top) type}
 
 \[
-{<}string{>} <: String \; (\textit{S-STRING})
+T \subtype Object
+\mylabel{S-OBJECT}
 \]
+
+\subsection{Any type}
 
 \[
-\textbf{false} <: Boolean \; (\textit{S-FALSE})
+Any \subtype Any
+\mylabel{S-ANY}
 \]
+
+\subsection{Function types}
 
 \[
-\textbf{true} <: Boolean \; (\textit{S-TRUE})
+\frac{T_{1} \subtype S_{1} \;\;\; S_{2} \subtype T_{2}}
+     {S_{1} \rightarrow S_{2} \subtype T_{1} \rightarrow T_{2}}
+\mylabel{S-FUNCTION}
 \]
 
-\subsection{Functions}
+\subsection{Union types}
 
 \[
-\frac{T_{1} <: S_{1} \;\;\; S_{2} <: T_{2}}
-     {S_{1} \rightarrow S_{2} \; <: \; T_{1} \rightarrow T_{2}} \;
-(\textit{S-FUNC})
+T_{1} \subtype T_{1} \cup T_{2}
+\mylabel{S-UNION1}
+\]
+\[
+T_{2} \subtype T_{1} \cup T_{2}
+\mylabel{S-UNION2}
+\]
+\[
+\frac{S_{1} \subtype T \;\;\; S_{2} \subtype T}
+     {S_{1} \cup S_{2} \subtype T}
+\mylabel{S-UNION3}
 \]
 
-\subsection{Union}
+\subsection{Product types}
 
 \[
-T_{1} <: T_{1} \cup T_{2} \; (\textit{S-UNION1})
+\frac{T_{1} \subtype T_{2} \;\;\; V_{1} \subtype V_{2}}
+     {T_{1} \times V_{1} \subtype T_{2} \times V_{2}}
+\mylabel{S-PROD}
 \]
+
+\subsection{VarArg types}
 
 \[
-T_{2} <: T_{1} \cup T_{2} \; (\textit{S-UNION2})
+\frac{T_{1}* \subtype T_{2}*}
+     {T_{1} \subtype T_{2}}
+\mylabel{VARARG-1}
 \]
-
 \[
-\frac{S_{1} <: T\;\;\; S_{2} <: T}
-     {S_{1} \cup S_{2} <: T} \; (\textit{S-UNION3})
+{T*} \subtype (T \cup Nil) \times {T*}
+\mylabel{VARARG-2}
 \]
-
-%\subsection{Object (Top)}
-%
-%\[
-%T <: Object \; (\textit{S-OBJ})
-%\]
 
 \section{Typing Rules}
 
 \subsection{Abstract Syntax}
 
 \begin{align*}
-v ::= \; & id \; | \; e[e]\\
-funcname ::= \; & \textbf{function} \; \overline{id} \;
-| \; \textbf{method} \; \overline{id}\\
-funcboby ::= \; & () \; s \; | \; ({...}) \; s \;
-| \; (\overline{id}) \; s \; | \; (\overline{id},{...}) \; s\\
-s ::= \; & \overline{s} \;
-| \; \textbf{if-else} \; e \; s \; s \;
-| \; \textbf{while} \; e \; s \;
-| \; \textbf{repeat} \; s \; e \; | \\
-& \textbf{fornum} \; id \; e \; e \; e \; s \; 
-| \; \textbf{forgen} \; \overline{id} \; \overline{e} \; s \; | \\
-& \textbf{func} \; funcname \; funcbody \; | \\
-& \textbf{localfunc} \; id \; funcbody \;
-| \; \textbf{label} \; id\ \; | \; \textbf{goto} \; id \; | \\
-& \textbf{break} \;
-| \; \overline{v} = \overline{e} \;
-| \; \textbf{localvar} \; \overline{id} \; \overline{e} \;
-| \; \textbf{ret} \; \overline{e} \; | \; e\\
-e ::= \; & \textbf{nil} \; | \; \textbf{false} \; | \; \textbf{true} \;
-| \; {...} \; | \; n \; | \; w \; | \; v \; | \\
-& \textbf{func} \; funcbody \;
-| \; \{(\overline{e},\overline{(e,e)})\} \;
-| \; id(e,\overline{e}) \; | \; e(\overline{e}) \; | \\
-& e + e \; | \; e \; {..} \; e \; | \; e == e \; | \; e < e \;
-| \; e \; \textbf{and} \; e \; | \; e \; \textbf{or} \; e \; | \\
-& \textbf{not} \; e \; | - e \; | \; \# \; e
+k ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
+\pipe n \pipe w\\ 
+v ::= \; & id \pipe e[e]\\
+b ::= \; & (\overline{id}) \; s\\
+s ::= \; & \overline{s} \pipe \textbf{if-else} \; e \; s \; s
+\pipe \textbf{while} \; e \; s \pipe \textbf{repeat} \; s \; e \pipe\\
+& \textbf{fornum} \; id \; e \; e \; e \; s 
+\pipe \textbf{forgen} \; \overline{id} \; \overline{e} \; s \pipe\\
+& \textbf{func} \; name \; b \pipe \textbf{localfunc} \; id \; b
+\pipe \textbf{label} \; id \pipe \textbf{goto} \; id \pipe\\
+& \textbf{break} \pipe \overline{v} = \overline{e}
+\pipe \textbf{localvar} \; \overline{id} = \overline{e}
+\pipe \textbf{ret} \; \overline{e} \pipe e\\
+e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
+\pipe \{(\overline{e},\overline{(e,e)})\}
+\pipe id(e,\overline{e}) \pipe e(\overline{e}) \pipe\\
+& e + e \pipe e \; {..} \; e \pipe e == e \pipe e < e
+\pipe e \; \mathbf{and} \; e \pipe e \; \mathbf{or} \; e \pipe\\
+& \mathbf{not} \; e \; | - e \pipe \# \; e
 \end{align*}
 
 \subsection{Expressions}
 
 \[
-\textbf{nil} : \textbf{nil} \; (\textit{T-NIL})
+\env \vdash k : k
+\mylabel{T-CONSTANT}
+\]
+\[
+\frac{\env({...}) = T}
+     {\env \vdash {...} : T*}
+\mylabel{T-VARARG}
+\]
+\[
+\frac{\env(v) = T}
+     {\env \vdash v : T}
+\mylabel{T-VAR}
+\]
+\[
+\frac{\env \vdash s:V}
+     {\env \vdash \mathbf{func} \; () \; s : {Object*} \rightarrow V}
+\mylabel{T-ANONFUNC1}
+\]
+\[
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
+     {\env \vdash \mathbf{func} \; (\overline{id}) \; s :
+     {V_{1}} \rightarrow V_{2}}
+\mylabel{T-ANONFUNC2}
+\]
+\[
+\env \vdash \{(\overline{e},\overline{(e,e)})\} : Any
+\mylabel{T-TABLE}
+\]
+\[
+\env \vdash id(e,\overline{e}) : Any
+\mylabel{T-METHODCALL}
+\]
+\[
+\frac{\env \vdash e_{1}:V_{1} \rightarrow V_{2} \;\;\;
+      \env \vdash \overline{e_{2}}:V_{3} \;\;\; V_{3} \lesssim V_{1}}
+     {\env \vdash e_{1}(\overline{e_{2}}) : V_{2}}
+\mylabel{T-FUNCCALL1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash \overline{e_{2}}:V}
+     {\env \vdash e_{1}(\overline{e_{2}}) : Any}
+\mylabel{T-FUNCCALL2}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\; T_{2} \subtype Number}
+     {\env \vdash e_{1} + e_{2} : Number}
+\mylabel{T-ARITH1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH2}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH3}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\; T_{2} \subtype String}
+     {\env \vdash e_{1} \; {..} \;  e_{2} : String}
+\mylabel{T-CONCAT1}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT2}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT3}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} == e_{2} : Boolean}
+\mylabel{T-EQUAL}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\; T_{2} \subtype Number}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER1}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\; T_{2} \subtype String}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER2}
+\]
+\[
+\frac{\env \vdash e_{1}:Any \;\;\; \env \vdash e_{2}:T}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER3}
+\]
+\[
+\frac{\env \vdash e_{1}:T \;\;\; \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER4}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-AND}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR}
+\]
+\[
+\frac{\env \vdash e:T}
+     {\env \vdash \mathbf{not} \; e : Boolean}
+\mylabel{T-NOT}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; T \subtype Number}
+     {\env \vdash - \; e : Number}
+\mylabel{T-MINUS1}
+\]
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash - \; e : Any}
+\mylabel{T-MINUS2}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; T \subtype String}
+     {\env \vdash \# \; e : Number}
+\mylabel{T-LEN1}
+\]
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash \# \; e : Any}
+\mylabel{T-LEN2}
 \]
 
-\[
-\textbf{false} : \textbf{false} \; (\textit{T-FALSE})
-\]
+\subsection{Variables}
 
 \[
-\textbf{true} : \textbf{true} \; (\textit{T-TRUE})
+\frac{\env(id) = T}
+     {\env \vdash id : T}
+\mylabel{T-ID}
+\]
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1}[e_{2}] : Any}
+\mylabel{T-INDEX}
 \]
 
-\[
-{...} : {Any*} \; (\textit{T-VARARG})
-\]
+\subsection{Statements}
 
 \[
-n : n \; (\textit{T-NUMBER})
+\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2} \;\;\; e_{3}:T_{3} \;\;\;
+      T_{1} \lesssim Number \;\;\; T_{2} \lesssim Number \;\;\;
+      T_{3} \lesssim Number}
+     {\textbf{fornum} \; id \; e_{1} \; e_{2} \; e_{3} \; s}
+\mylabel{T-FORNUM}
 \]
-
 \[
-w : w \; (\textit{T-STRING})
+\frac{\overline{id}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
+     {\textbf{localvar} \; \overline{id} = \overline{e}}
+\mylabel{T-LOCALVAR}
 \]
-
 \[
-\frac{():Void \;\;\; s:T}
-     {\textbf{func} \; () \; s : Void \rightarrow T} \;
-     (\textit{T-AFUNC1})
-\]
-
-\[
-\frac{(...):{Any*} \;\;\; s:T}
-     {\textbf{func} \; (...) \; s : {Any*} \rightarrow T} \;
-     (\textit{T-AFUNC2})
-\]
-
-\[
-\frac{(\overline{id}):T_{1} \;\;\; s:T_{2}}
-     {\textbf{func} \; (\overline{id}) \; s : T_{1} \rightarrow T_{2}} \;
-     (\textit{T-AFUNC3})
-\]
-
-\[
-\frac{(\overline{id},...):T_{1} \times {Any*} \;\;\; s:T_{2}}
-     {\textbf{func} \; (\overline{id},...) \; s :
-       T_{1} \times {Any*} \rightarrow T_{2}} \;
-     (\textit{T-AFUNC4})
-\]
-
-\[
-\{(\overline{e},\overline{(e,e)})\} : Any \; (\textit{T-TABLECONST})
-\]
-
-\[
-id(e,\overline{e}) : Any \; (\textit{T-METHCALL})
-\]
-
-\[
-e(\overline{e}) : Any \; (\textit{T-FUNCCALL})
-\]
-
-\[
-\frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} + e_{2} : Number} \; (\textit{T-ARITH1})
-\]
-
-\[
-\frac{e_{1}:Any}
-     {e_{1} + e_{2} : Any} \; (\textit{T-ARITH2})
-\]
-
-\[
-\frac{e_{2}:Any}
-     {e_{1} + e_{2} : Any} \; (\textit{T-ARITH3})
-\]
-
-\[
-\frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} \; {..} \; e_{2} : String} \; (\textit{T-CONCAT1})
-\]
-
-\[
-\frac{e_{1}:Any}
-     {e_{1} \; {..} \; e_{2} : Any} \; (\textit{T-CONCAT2})
-\]
-
-\[
-\frac{e_{2}:Any}
-     {e_{1} \; {..} \; e_{2} : Any} \; (\textit{T-CONCAT3})
-\]
-
-\[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} == e_{2} : Boolean} \; (\textit{T-EQUAL})
-\]
-
-\[
-\frac{e_{1}:Number \;\;\; e_{2}:Number}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER1})
-\]
-
-\[
-\frac{e_{1}:String \;\;\; e_{2}:String}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER2})
-\]
-
-\[
-\frac{e_{1}:Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER3})
-\]
-
-\[
-\frac{e_{2}:Any}
-     {e_{1} < e_{2} : Boolean} \; (\textit{T-ORDER4})
-\]
-
-\[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \; \textbf{and} \; e_{2} : T_{1} \cup T_{2}} \; (\textit{T-AND})
-\]
-
-\[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2}}
-     {e_{1} \; \textbf{or} \; e_{2} : T_{1} \cup T_{2}} \; (\textit{T-OR})
-\]
-
-\[
-\frac{e:T}
-     {\textbf{not} \; e : Boolean} \; (\textit{T-NOT})
-\]
-
-\[
-\frac{e:Number}
-     {- \; e : Number} \; (\textit{T-MINUS1})
-\]
-
-\[
-\frac{e:Any}
-     {- \; e : Any} \; (\textit{T-MINUS2})
-\]
-
-\[
-\frac{e : String}
-     {\# \; e : Number} \; (\textit{T-LEN1})
-\]
-
-\[
-\frac{e : Any}
-     {\# \; e : Any} \; (\textit{T-LEN2})
+\frac{\overline{v}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
+     {\overline{v} = \overline{e}}
+\mylabel{T-ASSIGNMENT}
 \]
 
 \end{document}

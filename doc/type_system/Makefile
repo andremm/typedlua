@@ -1,10 +1,4 @@
-all: type_system.pdf subtype.pdf
-
-subtype.pdf: subtype.tex
-	pdflatex subtype.tex
-	#bibtex type_system
-	pdflatex subtype.tex
-	pdflatex subtype.tex
+all: type_system.pdf
 
 type_system.pdf: type_system.tex
 	pdflatex type_system.tex
