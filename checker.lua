@@ -268,6 +268,19 @@ local function set_var (var, inf_type, scope)
     var["type"] = dec_type
   elseif types.isAny(dec_type) then
     if not types.isNil(inf_type) then
+      if types.isConstant(inf_type) then
+        local c = inf_type[1]
+        local t = type(c)
+        if t == "boolean" then
+          inf_type = Boolean
+        elseif t == "number" then
+          inf_type = Number
+        elseif t == "string" then
+          inf_type = String
+        else
+          inf_type = Nil
+        end
+      end
       var["type"] = inf_type
     else
       var["type"] = dec_type
