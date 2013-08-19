@@ -111,4 +111,7 @@ if not t then
   os.exit(1)
 end
 
+local generated_code = code.generate(t)
+print(generated_code)
+
 os.exit(0)

@@ -2,6 +2,7 @@
 
 local ast = require "ast"
 local checker = require "checker"
+local code = require "code"
 local parser = require "parser"
 local types = require "types"
 
@@ -35,6 +36,20 @@ local function typecheck (s)
     r = ast.tostring(t)
   end
   return r .. "\n"
+end
+
+local function generatecode (s)
+  local t,m = parser.parse(s,filename)
+  if not t then
+    error(m)
+    os.exit(1)
+  end
+  t,m = checker.typecheck(t,s,filename)
+  if not t then
+    error(m)
+    os.exit(1)
+  end
+  return code.generate(t)
 end
 
 print("> testing lexer...")
@@ -2142,6 +2157,296 @@ test.lua:1:19: type error, attempt to compare number with string
 ]=]
 
 r = typecheck(s)
+assert(r == e)
+
+print("> testing code generation...")
+
+-- simple tests
+
+-- do
+
+s = [=[
+do do do do do end end end end end
+]=]
+e = [=[
+do
+  do
+    do
+      do
+        do
+
+        end
+      end
+    end
+  end
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- for
+
+s = [=[
+for i=1,10 do end
+]=]
+e = [=[
+for i=1,10,1 do
+
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+for i=1,10,-1 do end
+]=]
+e = [=[
+for i=1,10,(-1) do
+
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- functions
+
+s = [=[
+function f (x, y, z)
+  return function (a, ...) end
+end
+]=]
+e = [=[
+function f (x, y, z)
+  return function (a, ...)
+  end
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+function f.m (x)
+  return {1,2,3}
+end
+]=]
+e = [=[
+function f.m (x)
+  return { 1, 2, 3, }
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+function f:m (x)
+  return {1,2,3}
+end
+]=]
+e = [=[
+function f:m (x)
+  return { 1, 2, 3, }
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- if-else
+
+s = [=[
+if 1 then
+  return 1
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+else
+  return 2
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+else
+  return 2
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+else
+  return 5
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+else
+  return 5
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  if "hello" then
+    return "hello"
+  end
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  if "foo" then
+    return "foo"
+  end
+  return 3
+elseif 4 then
+  return 4
+else
+  if "bar" then
+    return "bar"
+  end
+  return 5
+end
+]=]
+e = [=[
+if 1 then
+  if "hello" then
+    return "hello"
+  end
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  if "foo" then
+    return "foo"
+  end
+  return 3
+elseif 4 then
+  return 4
+else
+  if "bar" then
+    return "bar"
+  end
+  return 5
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- local functions
+
+s = [=[
+local function f (x)
+  return { foo = "bar", f = function () end }
+end
+]=]
+e = [=[
+local function f (x)
+  return { [ "foo" ] = "bar", [ "f" ] = function ()
+  end, }
+end
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- repeat
+
+s = [=[
+repeat
+  do
+    goto eof
+  end
+until 1
+::eof::
+]=]
+e = [=[
+repeat
+  do
+    goto eof
+  end
+until 1
+::eof::
+]=]
+
+r = generatecode(s)
+assert(r == e)
+
+-- while
+
+s = [=[
+while 1 do
+  break
+end
+]=]
+e = [=[
+while 1 do
+  break
+end
+]=]
+
+r = generatecode(s)
 assert(r == e)
 
 print("OK")

@@ -1018,7 +1018,7 @@ function checker.typecheck (ast, subject, filename)
     local msg = table.concat(st["messages"], "\n")
     return nil,msg
   end
-  return true
+  return ast
 end
 
 return checker
