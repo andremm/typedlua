@@ -131,17 +131,23 @@ T_{2} \subtype T_{1} \cup T_{2}
 k ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
 \pipe n \pipe w\\ 
 v ::= \; & id \pipe e[e]\\
-b ::= \; & (\overline{id}) \; s\\
-s ::= \; & \overline{s} \pipe \textbf{if-else} \; e \; s \; s
-\pipe \textbf{while} \; e \; s \pipe \textbf{repeat} \; s \; e \pipe\\
-& \textbf{fornum} \; id \; e \; e \; e \; s 
-\pipe \textbf{forgen} \; \overline{id} \; \overline{e} \; s \pipe\\
-& \textbf{func} \; name \; b \pipe \textbf{localfunc} \; id \; b
-\pipe \textbf{label} \; id \pipe \textbf{goto} \; id \pipe\\
-& \textbf{break} \pipe \overline{v} = \overline{e}
-\pipe \textbf{localvar} \; \overline{id} = \overline{e}
-\pipe \textbf{ret} \; \overline{e} \pipe e\\
-e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
+s ::= \; & \overline{s}
+\pipe \mathbf{if} \; e \; \mathbf{then} \; s \; \mathbf{else} \; s
+\pipe \mathbf{while} \; e \; \mathbf{do} \; s \; \mathbf{end} \pipe\\
+& \mathbf{repeat} \; s \; \mathbf{until} \; e
+\pipe \mathbf{for} \; id = e,e,e \; \mathbf{do} \; s \; \mathbf{end} \pipe\\
+& \mathbf{for} \; \overline{id} \; \mathbf{in} \; \overline{e} \;
+  \mathbf{do} \; s \; \mathbf{end}
+\pipe \mathbf{function} \; name \;
+  (\overline{id}) \; s \; \mathbf{end} \pipe\\
+& \mathbf{local} \; \mathbf{function} \; id \;
+  (\overline{id}) \; s \; \mathbf{end}
+\pipe \mathbf{::} \; id \; \mathbf{::} \pipe \mathbf{goto} \; id \pipe\\
+& \mathbf{break} \pipe \overline{v} = \overline{e}
+\pipe \mathbf{local} \; \overline{id} = \overline{e}
+\pipe \mathbf{return} \; \overline{e} \pipe e(\overline{e})\\
+e ::= \; & k \pipe {...} \pipe v
+\pipe \mathbf{function} \; (\overline{id}) \; s \; \mathbf{end}
 \pipe \{(\overline{e},\overline{(e,e)})\}
 \pipe id(e,\overline{e}) \pipe e(\overline{e}) \pipe\\
 & e + e \pipe e \; {..} \; e \pipe e == e \pipe e < e
@@ -167,12 +173,12 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
 \]
 \[
 \frac{\env \vdash s:V}
-     {\env \vdash \mathbf{func} \; () \; s : {Object*} \rightarrow V}
+     {\env \vdash \mathbf{function} \; () \; s : {Object*} \rightarrow V}
 \mylabel{T-ANONFUNC1}
 \]
 \[
 \frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
-     {\env \vdash \mathbf{func} \; (\overline{id}) \; s :
+     {\env \vdash \mathbf{function} \; (\overline{id}) \; s :
      {V_{1}} \rightarrow V_{2}}
 \mylabel{T-ANONFUNC2}
 \]
@@ -311,23 +317,25 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
 \]
 \[
 \frac{\env \vdash e:T \;\;\; \env \vdash s_{1}:V \;\;\; \env \vdash s_{2}:V}
-     {\env \vdash \textbf{if-else} \; e \; s_{1} \; s_{2} : V}
+     {\env \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \;
+      \mathbf{else} \; s_{2} \; \mathbf{end} : V}
 \mylabel{T-IF-ELSE1}
 \]
 \[
 \frac{\env \vdash e:T \;\;\;
       \env \vdash s_{1}:V_{1} \;\;\; \env \vdash s_{2}:V_{2}}
-     {\env \vdash \textbf{if-else} \; e \; s_{1} \; s_{2} : V_{1} \cup V_{2}}
+     {\env \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \;
+      \mathbf{else} \; s_{2} \; \mathbf{end} : V_{1} \cup V_{2}}
 \mylabel{T-IF-ELSE2}
 \]
 \[
 \frac{\env \vdash e:T \;\;\; \env \vdash s:V}
-     {\env \vdash \textbf{while} \; e \; s : V}
+     {\env \vdash \mathbf{while} \; e \; \mathbf{do} \; s \; \mathbf{end}: V}
 \mylabel{T-WHILE}
 \]
 \[
 \frac{\env \vdash s:V \;\;\; \env \vdash e:T}
-     {\env \vdash \textbf{repeat} \; s \; e : V}
+     {\env \vdash \mathbf{repeat} \; s \; \mathbf{unil} \; e : V}
 \mylabel{T-REPEAT}
 \]
 \[
@@ -338,73 +346,69 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
       T_{2} \lesssim Number \;\;\;
       T_{3} \lesssim Number
       \end{aligned}}
-     {\env \vdash \textbf{fornum} \; id \; e_{1} \; e_{2} \; e_{3} \; s : V}
+     {\env \vdash \mathbf{for} \; id = e_{1},e_{2},e_{3} \;
+      \mathbf{do} \; s \; \mathbf{end} : V}
 \mylabel{T-FORNUM}
 \]
 \[
 \frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash \overline{e}:V_{1}
       \;\;\; \env \vdash s:V}
-     {\env \vdash \textbf{forgen} \; \overline{id} \; \overline{e} \; s : V}
+     {\env \vdash \textbf{for} \; \overline{id} \; \mathbf{in} \; \overline{e}
+      \; \mathbf{do} \; s \; \mathbf{end} : V}
 \mylabel{T-FORGEN}
 \]
 \[
 \frac{\env \vdash s:V}
-     {\env \vdash \mathbf{func} \; fname \; () \; s : {Object*} \rightarrow V}
+     {\env \vdash \mathbf{function} \; name \; ()
+      \; s \; \mathbf{end} : {Object*} \rightarrow V}
 \mylabel{T-GLOBALFUNC1}
 \]
 \[
 \frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
-     {\env \vdash \mathbf{func} \; fname \; (\overline{id}) \; s :
-     {V_{1}} \rightarrow V_{2}}
+     {\env \vdash \mathbf{function} \; fname \; (\overline{id})
+      \; s \; \mathbf{end} : V_{1} \rightarrow V_{2}}
 \mylabel{T-GLOBALFUNC2}
 \]
 \[
 \frac{\env \vdash s:V}
-     {\env \vdash \mathbf{func} \; id \; () \; s : {Object*} \rightarrow V}
+     {\env \vdash \mathbf{local} \; \mathbf{function} \; id \; ()
+      \; s \; \mathbf{end} : {Object*} \rightarrow V}
 \mylabel{T-LOCALFUNC1}
 \]
 \[
 \frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
-     {\env \vdash \mathbf{func} \; id \; (\overline{id}) \; s :
-     {V_{1}} \rightarrow V_{2}}
+     {\env \vdash \mathbf{local} \; \mathbf{func} \; id \; (\overline{id})
+      \; s \; \mathbf{end} : V_{1} \rightarrow V_{2}}
 \mylabel{T-LOCALFUNC2}
 \]
 \[
-\frac{\overline{id}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
-     {\textbf{localvar} \; \overline{id} = \overline{e}}
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash \overline{e}:V_2
+      \;\;\; V_{1} \lesssim V_{2}}
+     {\env \vdash \mathbf{local} \; \overline{id} = \overline{e} : Nil}
 \mylabel{T-LOCALVAR}
 \]
 \[
-\env \vdash \textbf{label} \; id : Nil
+\env \vdash \mathbf{::} \; id \; \mathbf{::} : Nil
 \mylabel{T-LABEL}
 \]
 \[
-\env \vdash \textbf{goto} \; id : Nil
+\env \vdash \mathbf{goto} \; id : Nil
 \mylabel{T-GOTO}
 \]
 \[
-\env \vdash \textbf{break} : Nil
+\env \vdash \mathbf{break} : Nil
 \mylabel{T-BREAK}
 \]
 \[
-\frac{\overline{v}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
-     {\overline{v} = \overline{e}}
+\frac{\env \vdash \overline{v}:V_{1} \;\;\; \env \vdash \overline{e}:V_2
+      \;\;\; V_{1} \lesssim V_{2}}
+     {\env \vdash \overline{v} = \overline{e} : Nil}
 \mylabel{T-ASSIGNMENT}
 \]
 \[
 \frac{\env \vdash \overline{e}:V}
-     {\env \vdash \textbf{ret} \; \overline{e} : V}
+     {\env \vdash \mathbf{return} \; \overline{e} : V}
 \mylabel{T-RETURN}
-\]
-\[
-\frac{\env \vdash e:V_{1} \rightarrow V_{2}}
-     {\env \vdash e : V_{2}}
-\mylabel{T-CALL1}
-\]
-\[
-\frac{\env \vdash e:Any}
-     {\env \vdash e : Any}
-\mylabel{T-CALL1}
 \]
 
 \end{document}
