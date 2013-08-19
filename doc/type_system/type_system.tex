@@ -306,11 +306,68 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
 \subsection{Statements}
 
 \[
-\frac{e_{1}:T_{1} \;\;\; e_{2}:T_{2} \;\;\; e_{3}:T_{3} \;\;\;
-      T_{1} \lesssim Number \;\;\; T_{2} \lesssim Number \;\;\;
-      T_{3} \lesssim Number}
-     {\textbf{fornum} \; id \; e_{1} \; e_{2} \; e_{3} \; s}
+\env \vdash \overline{s} : V
+\mylabel{T-BLOCK}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; \env \vdash s_{1}:V \;\;\; \env \vdash s_{2}:V}
+     {\env \vdash \textbf{if-else} \; e \; s_{1} \; s_{2} : V}
+\mylabel{T-IF-ELSE1}
+\]
+\[
+\frac{\env \vdash e:T \;\;\;
+      \env \vdash s_{1}:V_{1} \;\;\; \env \vdash s_{2}:V_{2}}
+     {\env \vdash \textbf{if-else} \; e \; s_{1} \; s_{2} : V_{1} \cup V_{2}}
+\mylabel{T-IF-ELSE2}
+\]
+\[
+\frac{\env \vdash e:T \;\;\; \env \vdash s:V}
+     {\env \vdash \textbf{while} \; e \; s : V}
+\mylabel{T-WHILE}
+\]
+\[
+\frac{\env \vdash s:V \;\;\; \env \vdash e:T}
+     {\env \vdash \textbf{repeat} \; s \; e : V}
+\mylabel{T-REPEAT}
+\]
+\[
+\frac{\begin{aligned}
+      & \env \vdash e_{1}:T_{1} \;\;\; \env \vdash e_{2}:T_{2} \;\;\;
+      \env \vdash e_{3}:T_{3} \;\;\; \env \vdash s:V\\
+      & T_{1} \lesssim Number \;\;\;
+      T_{2} \lesssim Number \;\;\;
+      T_{3} \lesssim Number
+      \end{aligned}}
+     {\env \vdash \textbf{fornum} \; id \; e_{1} \; e_{2} \; e_{3} \; s : V}
 \mylabel{T-FORNUM}
+\]
+\[
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash \overline{e}:V_{1}
+      \;\;\; \env \vdash s:V}
+     {\env \vdash \textbf{forgen} \; \overline{id} \; \overline{e} \; s : V}
+\mylabel{T-FORGEN}
+\]
+\[
+\frac{\env \vdash s:V}
+     {\env \vdash \mathbf{func} \; fname \; () \; s : {Object*} \rightarrow V}
+\mylabel{T-GLOBALFUNC1}
+\]
+\[
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
+     {\env \vdash \mathbf{func} \; fname \; (\overline{id}) \; s :
+     {V_{1}} \rightarrow V_{2}}
+\mylabel{T-GLOBALFUNC2}
+\]
+\[
+\frac{\env \vdash s:V}
+     {\env \vdash \mathbf{func} \; id \; () \; s : {Object*} \rightarrow V}
+\mylabel{T-LOCALFUNC1}
+\]
+\[
+\frac{\env \vdash \overline{id}:V_{1} \;\;\; \env \vdash s:V_{2}}
+     {\env \vdash \mathbf{func} \; id \; (\overline{id}) \; s :
+     {V_{1}} \rightarrow V_{2}}
+\mylabel{T-LOCALFUNC2}
 \]
 \[
 \frac{\overline{id}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
@@ -318,9 +375,36 @@ e ::= \; & k \pipe {...} \pipe v \pipe \mathbf{func} \; b
 \mylabel{T-LOCALVAR}
 \]
 \[
+\env \vdash \textbf{label} \; id : Nil
+\mylabel{T-LABEL}
+\]
+\[
+\env \vdash \textbf{goto} \; id : Nil
+\mylabel{T-GOTO}
+\]
+\[
+\env \vdash \textbf{break} : Nil
+\mylabel{T-BREAK}
+\]
+\[
 \frac{\overline{v}:V_{1} \;\;\; \overline{e}:V_2 \;\;\; V_{1} \lesssim V_{2}}
      {\overline{v} = \overline{e}}
 \mylabel{T-ASSIGNMENT}
+\]
+\[
+\frac{\env \vdash \overline{e}:V}
+     {\env \vdash \textbf{ret} \; \overline{e} : V}
+\mylabel{T-RETURN}
+\]
+\[
+\frac{\env \vdash e:V_{1} \rightarrow V_{2}}
+     {\env \vdash e : V_{2}}
+\mylabel{T-CALL1}
+\]
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash e : Any}
+\mylabel{T-CALL1}
 \]
 
 \end{document}
