@@ -105,6 +105,24 @@ local function end_scope ()
   st["scope"] = st["scope"] - 1
 end
 
+local function new_function ()
+  if not st["fscope"] then
+    st["fscope"] = 0
+  else
+    st["fscope"] = st["fscope"] + 1
+  end
+  return st["fscope"]
+end
+
+local function begin_function ()
+  local fscope = new_function()
+  st["function"][fscope] = {}
+end
+
+local function end_function ()
+  st["fscope"] = st["fscope"] - 1
+end
+
 -- functions that handle invalid use of break
 
 local function begin_loop ()
@@ -125,7 +143,6 @@ local function insideloop ()
   end
   return false
 end
-
 
 -- functions that handle identifiers
 
@@ -369,13 +386,21 @@ end
 
 -- functions
 
+local function set_vararg (btype)
+  local fscope = st["fscope"]
+  st["function"][fscope]["is_vararg"] = true
+  st["function"][fscope]["vararg"] = types.VarArg(btype)
+end
+
 local function check_function (idlist, dec_type, stm)
+  begin_function()
   begin_scope()
   local varlist = idlist2varlist(idlist)
   local len = #varlist
   local args_type = {}
   if len > 0 then
     if varlist[len][1] == "..." then
+      set_vararg(varlist[len]["type"])
       varlist[len]["type"] = types.VarArg(varlist[len]["type"])
     end
     for k,v in ipairs(varlist) do
@@ -391,6 +416,7 @@ local function check_function (idlist, dec_type, stm)
   end
   check_stm(stm)
   end_scope()
+  end_function()
   return types.Function(args_type, ret_type)
 end
 
@@ -735,13 +761,14 @@ local function check_table (exp)
 end
 
 local function check_vararg (exp)
-  local name = "..."
-  local scope = get_local_scope(name)
+  local fscope = st["fscope"]
   local vararg_type
-  if scope then -- local
-    vararg_type = st[scope]["local"][name]["type"]
-  else -- global
-    vararg_type = st["global"][name]["type"]
+  if st["function"][fscope]["is_vararg"] then
+    vararg_type = st["function"][fscope]["vararg"]
+  else
+    local msg = "cannot use '...' outside a vararg function"
+    semerror(msg, exp["pos"])
+    vararg_type = types.VarArg(Any)
   end
   set_node_type(exp, vararg_type)
 end
@@ -995,18 +1022,13 @@ function check_block (block)
   end_scope()
 end
 
-local function add_vararg ()
-  local name = "..."
-  st["global"][name] = new_var(name, "string", 1, types.VarArg(String))
-end
-
 local function init_symbol_table (subject, filename)
   st = {} -- reseting the symbol table
   st["subject"] = subject -- store subject for error messages
   st["filename"] = filename -- store filename for error messages
+  st["function"] = {} -- store function attributes
   st["global"] = {} -- store global names
   st["messages"] = {} -- store errors and warnings
-  add_vararg()
   for k,v in pairs(_ENV) do
     local t = type(v)
     local any_star = types.VarArg(Any)
@@ -1025,7 +1047,10 @@ function checker.typecheck (ast, subject, filename)
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   init_symbol_table(subject, filename)
+  begin_function()
+  set_vararg(String)
   check_block(ast)
+  end_function()
   check_pending_gotos()
   if #st["messages"] > 0 then
     local msg = table.concat(st["messages"], "\n")
