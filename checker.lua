@@ -1040,11 +1040,11 @@ local function init_symbol_table (subject, filename)
   st["messages"] = {} -- store errors and warnings
   for k,v in pairs(_ENV) do
     local t = type(v)
-    local any_star = types.VarArg(Any)
+    local obj_star = types.VarArg(Object)
     if t == "string" then
       st["global"][k] = new_id(k, 0, types.ConstantString(v))
     elseif t == "function" then
-      st["global"][k] = new_id(k, 0, types.Function(any_star,any))
+      st["global"][k] = new_id(k, 0, types.Function({obj_star},obj_star))
     else
       st["global"][k] = new_id(k, 0, any)
     end
