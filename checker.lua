@@ -398,16 +398,25 @@ local function check_function (idlist, dec_type, stm)
   local varlist = idlist2varlist(idlist)
   local len = #varlist
   local args_type = {}
-  if len > 0 then
+  if len == 0 then
+    table.insert(args_type, types.VarArg(Object))
+  else
+    local is_vararg = false
+    local vararg_type
     if varlist[len][1] == "..." then
+      is_vararg = true
       set_vararg(varlist[len]["type"])
-      varlist[len]["type"] = types.VarArg(varlist[len]["type"])
+      vararg_type = varlist[len]["type"]
+      table.remove(varlist)
+      len = #varlist
     end
     for k,v in ipairs(varlist) do
+      set_var(v, v["type"], st["scope"])
       table.insert(args_type, v["type"])
     end
-  else
-    table.insert(args_type, types.VarArg(Object))
+    if is_vararg then
+      table.insert(args_type, types.VarArg(vararg_type))
+    end
   end
   local ret_type,msg = name2type(dec_type)
   if not ret_type then
