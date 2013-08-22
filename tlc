@@ -12,12 +12,15 @@ local OUTPUT = PROGNAME .. ".lua"
 local DUMPAST = false
 local PRINTAST = false
 
+local TYPECHECK = true
+
 local progname = PROGNAME
 
 local USAGE = [[
 usage: %s [options] [filename]
 Available options are:
 -d	dump the AST
+-g	generate code without type checking
 -h	print this help
 -o name	output to file 'name' (default is '%s')
 -p	print the AST
@@ -39,6 +42,8 @@ local function doargs ()
       return i
     elseif arg[i] == "-d" then
       DUMPAST = true
+    elseif arg[i] == "-g" then
+      TYPECHECK = false
     elseif arg[i] == "-h" then
       usage()
     elseif arg[i] == "-o" then
@@ -105,10 +110,12 @@ if PRINTAST then
   os.exit(0)
 end
 
-t,e = checker.typecheck(t, subject, filename)
-if not t then
-  print(e)
-  os.exit(1)
+if TYPECHECK then
+  t,e = checker.typecheck(t, subject, filename)
+  if not t then
+    print(e)
+    os.exit(1)
+  end
 end
 
 local generated_code = code.generate(t)
