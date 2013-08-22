@@ -123,6 +123,25 @@ local function end_function ()
   st["fscope"] = st["fscope"] - 1
 end
 
+local function get_return_type (fscope)
+  local ret_type = st["function"][fscope]["ret_type"]
+  if not ret_type then
+    return Nil
+  end
+  return ret_type
+end
+
+local function set_return_type (fscope, rtype)
+  local ret_type = st["function"][fscope]["ret_type"]
+  if not ret_type then
+    st["function"][fscope]["ret_type"] = rtype
+  else
+    if not types.subtype(ret_type, rtype) then
+      st["function"][fscope]["ret_type"] = types.Union(ret_type, rtype)
+    end
+  end
+end
+
 -- functions that handle invalid use of break
 
 local function begin_loop ()
@@ -351,7 +370,7 @@ local function update_var (name, pos, inf_type, scope)
   end
   local dec_type = var["type"]
   if types.isAny(dec_type) then
-    local msg = "attempt to cast 'any' to 'number'"
+    local msg = "attempt to cast 'any' to '%s'"
     msg = msg:format(types.tostring(inf_type))
     warning(msg, pos)
   elseif types.isAny(inf_type) then
@@ -424,6 +443,25 @@ local function check_function (idlist, dec_type, stm)
     typeerror(msg, exp["pos"])
   end
   check_stm(stm)
+  local fscope = st["fscope"]
+  local inf_type = get_return_type(fscope)
+  local msg
+  if types.subtype(inf_type, ret_type) then
+    st["function"][fscope]["ret_type"] = ret_type
+  elseif types.isAny(ret_type) then
+    ret_type = inf_type
+    msg = "attempt to cast 'any' to '%s'"
+    msg = msg:format(types.tostring(inf_type))
+    warning(msg, stm["pos"])
+  elseif types.isAny(inf_type) then
+    msg = "attempt to cast '%s' to 'any'"
+    msg = msg:format(types.tostring(ret_type))
+    warning(msg, stm["pos"])
+  else
+    msg = "attempt to assign '%s' to '%s'"
+    msg = msg:format(types.tostring(inf_type), types.tostring(ret_type))
+    typeerror(msg, stm["pos"])
+  end
   end_scope()
   end_function()
   return types.Function(args_type, ret_type)
@@ -911,6 +949,10 @@ end
 
 local function check_return (explist)
   check_explist(explist)
+  if #explist > 0 then
+    local fscope = st["fscope"]
+    set_return_type(fscope, explist[1]["type"])
+  end
 end
 
 local function check_while (exp, stm)
