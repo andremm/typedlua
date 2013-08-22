@@ -411,9 +411,30 @@ local function set_vararg (btype)
   st["function"][fscope]["vararg"] = types.VarArg(btype)
 end
 
-local function check_function (idlist, dec_type, stm)
-  begin_function()
-  begin_scope()
+local function check_function_stm (ret_type, stm)
+  check_stm(stm)
+  local fscope = st["fscope"]
+  local inf_type = get_return_type(fscope)
+  local msg
+  if types.subtype(inf_type, ret_type) then
+    st["function"][fscope]["ret_type"] = ret_type
+  elseif types.isAny(ret_type) then
+    ret_type = inf_type
+    msg = "attempt to cast 'any' to '%s'"
+    msg = msg:format(types.tostring(inf_type))
+    warning(msg, stm["pos"])
+  elseif types.isAny(inf_type) then
+    msg = "attempt to cast '%s' to 'any'"
+    msg = msg:format(types.tostring(ret_type))
+    warning(msg, stm["pos"])
+  else
+    msg = "attempt to assign '%s' to '%s'"
+    msg = msg:format(types.tostring(inf_type), types.tostring(ret_type))
+    typeerror(msg, stm["pos"])
+  end
+end
+
+local function check_function_prototype (idlist, dec_type)
   local varlist = idlist2varlist(idlist)
   local len = #varlist
   local args_type = {}
@@ -442,28 +463,6 @@ local function check_function (idlist, dec_type, stm)
     ret_type = Any
     typeerror(msg, exp["pos"])
   end
-  check_stm(stm)
-  local fscope = st["fscope"]
-  local inf_type = get_return_type(fscope)
-  local msg
-  if types.subtype(inf_type, ret_type) then
-    st["function"][fscope]["ret_type"] = ret_type
-  elseif types.isAny(ret_type) then
-    ret_type = inf_type
-    msg = "attempt to cast 'any' to '%s'"
-    msg = msg:format(types.tostring(inf_type))
-    warning(msg, stm["pos"])
-  elseif types.isAny(inf_type) then
-    msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(ret_type))
-    warning(msg, stm["pos"])
-  else
-    msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(ret_type))
-    typeerror(msg, stm["pos"])
-  end
-  end_scope()
-  end_function()
   return types.Function(args_type, ret_type)
 end
 
@@ -491,9 +490,15 @@ local function check_and (exp)
 end
 
 local function check_anonymous_function (exp)
+  begin_function()
+  begin_scope()
   local idlist, dec_type, stm = exp[1], exp[2], exp[3]
-  local t = check_function(idlist, dec_type, stm)
+  local t = check_function_prototype(idlist, dec_type)
+  local ret_type = t[2]
+  check_function_stm(ret_type, stm)
   set_node_type(exp, t)
+  end_scope()
+  end_function()
 end
 
 local function check_arith (exp)
@@ -902,10 +907,16 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
 end
 
 local function check_global_function (stm)
+  begin_function()
+  begin_scope()
   local name, idlist, dec_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
-  local t = check_function(idlist, dec_type, stm1)
+  local t = check_function_prototype(idlist, dec_type)
   local var = new_var(name, "any", stm["pos"], t)
   set_var(var, t)
+  local ret_type = t[2]
+  check_function_stm(ret_type, stm1)
+  end_scope()
+  end_function()
 end
 
 local function check_goto (stm)
@@ -923,10 +934,16 @@ local function check_label (stm)
 end
 
 local function check_local_function (stm)
+  begin_function()
+  begin_scope()
   local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
-  local t = check_function(idlist, dec_type, stm1)
+  local t = check_function_prototype(idlist, dec_type)
   local var = new_var(name, "any", stm["pos"], t)
   set_var(var, t, st["scope"])
+  local ret_type = t[2]
+  check_function_stm(ret_type, stm1)
+  end_scope()
+  end_function()
 end
 
 local function check_local_var (idlist, explist)
