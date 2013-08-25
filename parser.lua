@@ -5,6 +5,7 @@ This file implements the Typed Lua parser using LPeg
 local parser = {}
 
 local lpeg = require("lpeg")
+local st = require("st")
 
 lpeg.locale(lpeg)
 
@@ -15,23 +16,17 @@ local alpha, digit, alnum = lpeg.alpha, lpeg.digit, lpeg.alnum
 local xdigit = lpeg.xdigit
 local space = lpeg.space
 
+local lineno = st.lineno
+local begin_scope, end_scope = st.begin_scope, st.end_scope
+local begin_function, end_function = st.begin_function, st.end_function
+local begin_loop, end_loop = st.begin_loop, st.end_loop
+local insideloop = st.insideloop
+
 -- error message auxiliary functions
 
 -- trim
 local function trim (s)
   return s:gsub("^%s+", ""):gsub("%s+$", "")
-end
-
--- gets line number and column number
-function lineno (s, i)
-  if i == 1 then return 1, 1 end
-  local n, lastline = 0, ""
-  s = s:sub(1, i) .. "\n"
-  for line in s:gmatch("[^\n]*[\n]") do
-    n = n + 1
-    lastline = line
-  end
-  return n, lastline:len()-1
 end
 
 -- creates an error message for the input string
@@ -364,56 +359,6 @@ local G = { V"TypedLua",
   PowOp = symb("^") / "ExpPow";
   Shebang = P"#" * (P(1) - P"\n")^0 * P"\n";
 }
-
-local function begin_scope (env)
-  if not env.scope then
-    env.scope = 0
-  else
-    env.scope = env.scope + 1
-  end
-  local scope = env.scope
-  env.maxscope = scope
-  env[scope] = {}
-  env[scope]["label"] = {}
-  env[scope]["goto"] = {}
-end
-
-local function end_scope (env)
-  env.scope = env.scope - 1
-end
-
-local function begin_function (env)
-  if not env.fscope then
-    env.fscope = 0
-  else
-    env.fscope = env.fscope + 1
-  end
-  local fscope = env.fscope
-  env["function"][fscope] = {}
-end
-
-local function end_function (env)
-  env.fscope = env.fscope - 1
-end
-
-local function begin_loop (env)
-  if not env.loop then
-    env.loop = 1
-  else
-    env.loop = env.loop + 1
-  end
-end
-
-local function end_loop (env)
-  env.loop = env.loop - 1
-end
-
-local function insideloop (env)
-  if env.loop and env.loop > 0 then
-    return true
-  end
-  return false
-end
 
 local function exist_label (env, scope, stm)
   local l = stm[1]
