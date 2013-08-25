@@ -3,7 +3,14 @@ This file implements the type checker for Typed Lua
 ]]
 
 local parser = require "parser"
+local st = require "st"
 local types = require "types"
+
+local lineno = st.lineno
+local begin_scope, end_scope = st.begin_scope, st.end_scope
+local begin_function, end_function = st.begin_function, st.end_function
+local begin_loop, end_loop = st.begin_loop, st.end_loop
+local insideloop = st.insideloop
 
 local Object = types.Object()
 local Any = types.Any()
@@ -15,17 +22,6 @@ local Number = types.Number()
 local String = types.String()
 
 local checker = {}
-
-local function lineno (s, i)
-  if i == 1 then return 1, 1 end
-  local n, lastline = 0,""
-  s = s:sub(1, i) .. "\n"
-  for line in s:gmatch("[^\n]*[\n]") do
-    n = n + 1
-    lastline = line
-  end
-  return n, lastline:len()-1
-end
 
 local function errormsg (env, pos)
   local l,c = lineno(env.subject, pos)
@@ -78,45 +74,6 @@ end
 
 local function set_node_type (node, node_type)
   node["type"] = node_type
-end
-
--- functions that handle the symbol table
-
-local function new_scope (env)
-  if not env["scope"] then
-    env["scope"] = 0
-  else
-    env["scope"] = env["scope"] + 1
-  end
-  return env["scope"]
-end
-
-local function begin_scope (env)
-  local scope = new_scope(env)
-  env[scope] = {} -- new hash for new scope
-  env[scope]["local"] = {} -- stores local variables of a scope
-end
-
-local function end_scope (env)
-  env["scope"] = env["scope"] - 1
-end
-
-local function new_function (env)
-  if not env["fscope"] then
-    env["fscope"] = 0
-  else
-    env["fscope"] = env["fscope"] + 1
-  end
-  return env["fscope"]
-end
-
-local function begin_function (env)
-  local fscope = new_function(env)
-  env["function"][fscope] = {}
-end
-
-local function end_function (env)
-  env["fscope"] = env["fscope"] - 1
 end
 
 local function get_return_type (env, fscope)
@@ -1007,15 +964,15 @@ function checker.typecheck (ast, subject, filename)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
-  local st = {}
-  init_symbol_table(st, subject, filename)
-  begin_function(st)
-  set_vararg(st, String)
-  check_block(st, ast)
-  end_function(st)
-  if #st["messages"] > 0 then
-    local msg = table.concat(st["messages"], "\n")
-    return nil,msg
+  local env = {}
+  init_symbol_table(env, subject, filename)
+  begin_function(env)
+  set_vararg(env, String)
+  check_block(env, ast)
+  end_function(env)
+  if #env["messages"] > 0 then
+    local msg = table.concat(env["messages"], "\n")
+    return nil, msg
   end
   return ast
 end
