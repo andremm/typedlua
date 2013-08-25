@@ -606,6 +606,63 @@ StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","any"))) 
 r = parse(s)
 assert(r == e)
 
+-- break
+
+s = [=[
+while 1 do
+  break
+end
+]=]
+e = [=[
+StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+  while 1 do
+    break
+  end
+  break
+end
+]=]
+e = [=[
+StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak]),StmBreak])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+repeat
+  if 2 > 1 then break end
+until 1
+]=]
+e = [=[
+StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpNum 2.0) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for i=1,10 do
+  do
+    break
+    break
+    return
+  end
+end
+]=]
+e = [=[
+StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- block statements
 
 s = [=[
@@ -804,6 +861,83 @@ StmBlock [StmGoTo "label",StmLabel "label",StmRet []]
 r = parse(s)
 assert(r == e)
 
+s = [=[
+::label::
+goto label
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmGoTo "label"]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+goto label
+::label::
+]=]
+e = [=[
+StmBlock [StmGoTo "label",StmLabel "label"]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::label::
+do ::label:: goto label end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmLabel "label",StmGoTo "label"]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::label::
+do goto label ; ::label:: end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmGoTo "label",StmLabel "label"]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::label::
+do goto label end
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmGoTo "label"]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+do goto label end
+::label::
+]=]
+e = [=[
+StmBlock [StmBlock [StmGoTo "label"],StmLabel "label"]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+do do do do do goto label end end end end end
+::label::
+]=]
+e = [=[
+StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmGoTo "label"]]]]],StmLabel "label"]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- if-else
 
 s = [=[
@@ -879,6 +1013,20 @@ end
 ]=]
 e = [=[
 StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet []]) (StmIfElse (ExpVar (VarID ("c","any"))) (StmBlock []) (StmBlock []))]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- labels
+
+s = [=[
+::label::
+do ::label:: end
+::other_label::
+]=]
+e = [=[
+StmBlock [StmLabel "label",StmBlock [StmLabel "label"],StmLabel "other_label"]
 ]=]
 
 r = parse(s)
@@ -1241,6 +1389,42 @@ test.lua:1:16: syntax error, unexpected ']', expecting 'String', '{', '('
 r = parse(s)
 assert(r == e)
 
+-- break
+
+s = [=[
+break
+]=]
+e = [=[
+test.lua:1:1: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f (x)
+  if 1 then break end
+end
+]=]
+e = [=[
+test.lua:2:13: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+end
+break
+]=]
+e = [=[
+test.lua:3:1: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -1372,6 +1556,38 @@ test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 
 r = parse(s)
 assert(r == e)
 
+s = [=[
+goto label
+]=]
+e = [=[
+test.lua:1:1: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+goto label
+::other_label::
+]=]
+e = [=[
+test.lua:1:1: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::other_label::
+do do do goto label end end end
+]=]
+e = [=[
+test.lua:2:10: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- if-else
 
 s = [=[
@@ -1428,6 +1644,18 @@ s = [=[
 ]=]
 e = [=[
 test.lua:2:4: syntax error, unexpected 'not', expecting 'Name'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::label::
+::other_label::
+::label::
+]=]
+e = [=[
+test.lua:3:1: syntax error, label 'label' already defined at line 1
 ]=]
 
 r = parse(s)
@@ -1763,63 +1991,6 @@ StmBlock [StmAssign [VarID ("x","number"),VarID ("y","number"),VarID ("z","strin
 r = typecheck(s)
 assert(r == e)
 
--- break
-
-s = [=[
-while 1 do
-  break
-end
-]=]
-e = [=[
-StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak])]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-while 1 do
-  while 1 do
-    break
-  end
-  break
-end
-]=]
-e = [=[
-StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmWhile (ExpNum 1.0) (StmBlock [StmBreak]),StmBreak])]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-repeat
-  if 2 > 1 then break end
-until 1
-]=]
-e = [=[
-StmBlock [StmRepeat (StmBlock [StmIfElse (ExpGT (ExpNum 2.0) (ExpNum 1.0)) (StmBlock [StmBreak]) (StmBlock [])]) (ExpNum 1.0)]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-for i=1,10 do
-  do
-    break
-    break
-    return
-  end
-end
-]=]
-e = [=[
-StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [StmBlock [StmBreak,StmBreak,StmRet []]])]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
 -- concatenation expressions
 
 s = [=[
@@ -1839,99 +2010,6 @@ for i=1,10 do end
 ]=]
 e = [=[
 StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
--- goto
-
-s = [=[
-::label::
-goto label
-]=]
-e = [=[
-StmBlock [StmLabel "label",StmGoTo "label"]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-goto label
-::label::
-]=]
-e = [=[
-StmBlock [StmGoTo "label",StmLabel "label"]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-::label::
-do ::label:: goto label end
-]=]
-e = [=[
-StmBlock [StmLabel "label",StmBlock [StmLabel "label",StmGoTo "label"]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-::label::
-do goto label ; ::label:: end
-]=]
-e = [=[
-StmBlock [StmLabel "label",StmBlock [StmGoTo "label",StmLabel "label"]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-::label::
-do goto label end
-]=]
-e = [=[
-StmBlock [StmLabel "label",StmBlock [StmGoTo "label"]]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-do goto label end
-::label::
-]=]
-e = [=[
-StmBlock [StmBlock [StmGoTo "label"],StmLabel "label"]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-do do do do do goto label end end end end end
-::label::
-]=]
-e = [=[
-StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmBlock [StmGoTo "label"]]]]],StmLabel "label"]
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
--- labels
-
-s = [=[
-::label::
-do ::label:: end
-::other_label::
-]=]
-e = [=[
-StmBlock [StmLabel "label",StmBlock [StmLabel "label"],StmLabel "other_label"]
 ]=]
 
 r = typecheck(s)
@@ -2007,42 +2085,6 @@ test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
 r = typecheck(s)
 assert(r == e)
 
--- break
-
-s = [=[
-break
-]=]
-e = [=[
-test.lua:1:1: semantic error, <break> at line 1 not inside a loop
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-function f (x)
-  if 1 then break end
-end
-]=]
-e = [=[
-test.lua:2:13: semantic error, <break> at line 2 not inside a loop
-]=]
-
-r = typecheck(s)
---assert(r == e)
-
-s = [=[
-while 1 do
-end
-break
-]=]
-e = [=[
-test.lua:3:1: semantic error, <break> at line 3 not inside a loop
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
 -- concatenation expressions
 
 s = [=[
@@ -2082,54 +2124,6 @@ for i=1,10,nil do end
 ]=]
 e = [=[
 test.lua:1:12: type error, 'for' step must be a number
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
--- goto
-
-s = [=[
-goto label
-]=]
-e = [=[
-test.lua:1:1: semantic error, no visible label 'label' for <goto> at line 1
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-goto label
-::other_label::
-]=]
-e = [=[
-test.lua:1:1: semantic error, no visible label 'label' for <goto> at line 1
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-::other_label::
-do do do goto label end end end
-]=]
-e = [=[
-test.lua:2:10: semantic error, no visible label 'label' for <goto> at line 2
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
--- label
-
-s = [=[
-::label::
-::other_label::
-::label::
-]=]
-e = [=[
-test.lua:3:1: semantic error, label 'label' already defined at line 1
 ]=]
 
 r = typecheck(s)

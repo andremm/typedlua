@@ -8,10 +8,10 @@ local lpeg = require("lpeg")
 
 lpeg.locale(lpeg)
 
-local P,S,V = lpeg.P,lpeg.S,lpeg.V
-local C,Carg,Cb,Cc = lpeg.C,lpeg.Carg,lpeg.Cb,lpeg.Cc
-local Cf,Cg,Cmt,Cp,Ct = lpeg.Cf,lpeg.Cg,lpeg.Cmt,lpeg.Cp,lpeg.Ct
-local alpha,digit,alnum = lpeg.alpha,lpeg.digit,lpeg.alnum
+local P, S, V = lpeg.P, lpeg.S, lpeg.V
+local C, Carg, Cb, Cc = lpeg.C, lpeg.Carg, lpeg.Cb, lpeg.Cc
+local Cf, Cg, Cmt, Cp, Ct = lpeg.Cf, lpeg.Cg, lpeg.Cmt, lpeg.Cp, lpeg.Ct
+local alpha, digit, alnum = lpeg.alpha, lpeg.digit, lpeg.alnum
 local xdigit = lpeg.xdigit
 local space = lpeg.space
 
@@ -23,33 +23,35 @@ local function trim (s)
 end
 
 -- gets line number and column number
-function parser.lineno (s, i)
-  if i == 1 then return 1,1 end
-  local n,lastline = 0,""
-  s = s:sub(1,i) .. "\n"
+function lineno (s, i)
+  if i == 1 then return 1, 1 end
+  local n, lastline = 0, ""
+  s = s:sub(1, i) .. "\n"
   for line in s:gmatch("[^\n]*[\n]") do
     n = n + 1
     lastline = line
   end
-  return n,lastline:len()-1
+  return n, lastline:len()-1
 end
 
 -- creates an error message for the input string
+local function syntaxerror (errorinfo, pos, msg)
+  local l, c = lineno(errorinfo.subject, pos)
+  if c == 0 then c = 1 end
+  local error_msg = "%s:%d:%d: syntax error, %s"
+  return string.format(error_msg, errorinfo.filename, l, c, msg)
+end
+
+-- creates an errror message using the farthest failure position
 local function errormsg (s, t)
   local i = t.ffp or 1
-  local lineno,colno = parser.lineno(s,i)
   local u = lpeg.match(C((1 - space)^0), s, i)
-  local msg
-  if u == '' then
-    u = "EOF"
-    colno = 1
-  end
-  msg = ("%s:%d:%d: syntax error, unexpected '%s'"):
-        format(t.filename, lineno, colno, u)
+  if u == '' then u = "EOF" end
+  local msg = string.format("unexpected '%s'", u)
   if t.expected then
-    msg = msg .. (", expecting %s"):format(t.expected)
+    msg = string.format(msg .. ", expecting %s", t.expected)
   end
-  return msg
+  return syntaxerror(t, i, msg)
 end
 
 -- aborts with an error message
@@ -150,9 +152,9 @@ end
 
 -- grammar
 
-local G = { V"Lua",
+local G = { V"TypedLua",
   -- parser
-  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
+  TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
   Type = token(V"Name", "Type") +
          token(C"nil", "Type");
@@ -163,12 +165,12 @@ local G = { V"Lua",
   TypedGlobal = taggedCap("ExpVar", V"TypedVar" * -V"FuncArgs");
   TypedVarArg = taggedCap("Name", token(C("..."), "...") * V"OptionalType");
   StatList = (symb(";") + V"Stat")^0;
-  Var = taggedCap("VarID", token(V"Name","Name") * V"DynamicType");
+  Var = taggedCap("VarID", token(V"Name", "Name") * V"DynamicType");
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
             (Ct(symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
-             Ct(taggedCap("ExpStr", token(V"Name","Name")) * symb("=") * V"Expr"))) +
+             Ct(taggedCap("ExpStr", token(V"Name", "Name")) * symb("=") * V"Expr"))) +
           Cc(function (t, e) local i = #t[1]+1; t[1][i] = e ; return t end) *
              Ct(V"Expr");
   FieldList = Cp() * (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1 /
@@ -179,7 +181,7 @@ local G = { V"Lua",
                 t.tag = "FieldList"
                 t.pos = p
                 if len > 1 then
-                  for i=1,len,2 do
+                  for i=1, len, 2 do
                     t = args[i](t, args[i+1])
                   end
                 end
@@ -202,8 +204,8 @@ local G = { V"Lua",
   SubExpr_7 = V"UnOp" * V"SubExpr_7" / unaryop +
               V"SubExpr_8";
   SubExpr_8 = V"SimpleExp" * (V"PowOp" * V"SubExpr_7")^-1 / binaryop;
-  SimpleExp = taggedCap("ExpNum", token(V"Number","Number")) +
-              taggedCap("ExpStr", token(V"String","String")) +
+  SimpleExp = taggedCap("ExpNum", token(V"Number", "Number")) +
+              taggedCap("ExpStr", token(V"String", "String")) +
               taggedCap("ExpNil", kw("nil")) +
               taggedCap("ExpFalse", kw("false")) +
               taggedCap("ExpTrue", kw("true")) +
@@ -214,7 +216,7 @@ local G = { V"Lua",
   SuffixedExp = Cf(V"PrimaryExp" * (
                   taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name","Name"))) +
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
-                  taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name","Name") * V"FuncArgs")) +
+                  taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name", "Name") * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
                 )^0, function (t1, t2)
                        if t2 then
@@ -242,7 +244,7 @@ local G = { V"Lua",
                 kw("do") * V"Block" * kw("end"));
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
-  ForName = taggedCap("Name", token(V"Name","Name") * Cc("number"));
+  ForName = taggedCap("Name", token(V"Name", "Name") * Cc("number"));
   ForNum = taggedCap("StmForNum",
              V"ForName" * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
@@ -251,7 +253,7 @@ local G = { V"Lua",
   ForStat = kw("for") * (V"ForNum" + V"ForGen") * kw("end");
   RepeatStat = taggedCap("StmRepeat", kw("repeat") * V"Block" *
                  kw("until") * V"Expr");
-  FuncName = sepby1(token(V"Name","Name"), symb("."), "IDList") * (symb(":") * token(V"Name","Name"))^-1 /
+  FuncName = sepby1(token(V"Name", "Name"), symb("."), "IDList") * (symb(":") * token(V"Name", "Name"))^-1 /
              function (t, n)
                if n then
                  t.tag = "Method"
@@ -270,12 +272,12 @@ local G = { V"Lua",
   FuncBody = symb("(") * V"ParList" * symb(")") *
              V"OptionalType" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
-  LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name","Name") * V"FuncBody");
+  LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name", "Name") * V"FuncBody");
   LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
   LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
-  LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name","Name") * symb("::"));
+  LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name", "Name") * symb("::"));
   BreakStat = taggedCap("StmBreak", kw("break"));
-  GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name","Name"));
+  GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("StmRet", kw("return") * (V"ExpList" + Ct(Cc())) * symb(";")^-1);
   ExprStat = Cmt(
              ((V"TypedGlobal" + V"SuffixedExp") *
@@ -283,7 +285,7 @@ local G = { V"Lua",
                            local vl = {...}
                            local el = vl[#vl]
                            table.remove(vl)
-                           for k,v in ipairs(vl) do
+                           for k, v in ipairs(vl) do
                              if v.tag == "ExpVar" then
                                vl[k] = v[1]
                              else
@@ -293,19 +295,19 @@ local G = { V"Lua",
                            end
                            vl.tag = "VarList"
                            vl.pos = vl[1].pos
-                           return true,{tag = "StmAssign", pos = vl.pos, [1] = vl, [2] = el}
+                           return true, {tag = "StmAssign", pos = vl.pos, [1] = vl, [2] = el}
                          end) * V"Assignment"))
              +
              (V"SuffixedExp" *
                 (Cc(function (s)
                            if s.tag == "ExpMethodCall" or
                               s.tag == "ExpFunctionCall" then
-                             return true,{tag = "StmCall", pos = s.pos, [1] = s}
+                             return true, {tag = "StmCall", pos = s.pos, [1] = s}
                            end
                            -- invalid statement
                            return false
                          end)))
-             , function (s, i, s1, f, ...) return f(s1,...) end);
+             , function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * (V"TypedGlobal" + V"SuffixedExp"))^1)^-1 * symb("=") * V"ExpList";
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
@@ -363,6 +365,370 @@ local G = { V"Lua",
   Shebang = P"#" * (P(1) - P"\n")^0 * P"\n";
 }
 
+local function begin_scope (env)
+  if not env.scope then
+    env.scope = 0
+  else
+    env.scope = env.scope + 1
+  end
+  local scope = env.scope
+  env.maxscope = scope
+  env[scope] = {}
+  env[scope]["label"] = {}
+  env[scope]["goto"] = {}
+end
+
+local function end_scope (env)
+  env.scope = env.scope - 1
+end
+
+local function begin_loop (env)
+  if not env.loop then
+    env.loop = 1
+  else
+    env.loop = env.loop + 1
+  end
+end
+
+local function end_loop (env)
+  env.loop = env.loop - 1
+end
+
+local function insideloop (env)
+  if env.loop and env.loop > 0 then
+    return true
+  end
+  return false
+end
+
+local function exist_label (env, scope, stm)
+  local l = stm[1]
+  for s=scope, 0, -1 do
+    if env[s]["label"][l] then return true end
+  end
+  return false
+end
+
+local function set_label (env, label, pos)
+  local scope = env.scope
+  local l = env[scope]["label"][label]
+  if not l then
+    env[scope]["label"][label] = { name = label, pos = pos }
+    return true
+  else
+    local msg = "label '%s' already defined at line %d"
+    local line = lineno(env.errorinfo.subject, l.pos)
+    msg = string.format(msg, label, line)
+    return nil, syntaxerror(env.errorinfo, pos, msg)
+  end
+end
+
+local function set_pending_goto (env, stm)
+  local scope = env.scope
+  table.insert(env[scope]["goto"], stm)
+  return true
+end
+
+local function verify_pending_gotos (env)
+  for s=env.maxscope, 0, -1 do
+    for k, v in ipairs(env[s]["goto"]) do
+      if not exist_label(env, s, v) then
+        local msg = "no visible label '%s' for <goto>"
+        msg = string.format(msg, v[1])
+        return nil, syntaxerror(env.errorinfo, v.pos, msg)
+      end
+    end
+  end
+  return true
+end
+
+local traverse_stm, traverse_exp, traverse_var
+local traverse_block, traverse_explist, traverse_varlist
+
+local function traverse_bin_exp (env, exp1, exp2)
+  local status, msg
+  status, msg = traverse_exp(env, exp1)
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, exp2)
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_exp_call (env, exp, explist)
+  local status, msg
+  status, msg = traverse_exp(env, exp)
+  if not status then return status, msg end
+  status, msg = traverse_explist(env, explist)
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_table (env, fieldlist)
+  local status, msg
+  for k, v in ipairs(fieldlist[1]) do
+    status, msg = traverse_exp(env, v[1])
+    if not status then return status, msg end
+  end
+  for k, v in ipairs(fieldlist[2]) do
+    status, msg = traverse_exp(env, v[1])
+    if not status then return status, msg end
+    status, msg = traverse_exp(env, v[2])
+    if not status then return status, msg end
+  end
+  return true
+end
+
+local function traverse_assignment (env, stm)
+  local status, msg
+  status, msg = traverse_varlist(env, stm[1])
+  if not status then return status, msg end
+  status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_break (env, stm)
+  if not insideloop(env) then
+    local msg = "<break> not inside a loop"
+    return nil, syntaxerror(env.errorinfo, stm.pos, msg)
+  end
+  return true
+end
+
+local function traverse_stm_call (env, stm)
+  local status, msg = traverse_exp(env, stm[1])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_for_generic (env, stm)
+  begin_loop(env)
+  begin_scope(env)
+  local status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
+  end_scope(env)
+  end_loop(env)
+  return true
+end
+
+local function traverse_for_numeric (env, stm)
+  local status, msg
+  begin_loop(env)
+  begin_scope(env)
+  status, msg = traverse_exp(env, stm[2])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, stm[3])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, stm[4])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[5])
+  if not status then return status, msg end
+  end_scope(env)
+  end_loop(env)
+  return true
+end
+
+local function traverse_function (env, stm)
+  local status, msg = traverse_stm(env, stm[4])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_if_else (env, stm)
+  local status, msg
+  status, msg = traverse_exp(env, stm[1])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[2])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[3])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_label (env, stm)
+  local status, msg = set_label(env, stm[1], stm.pos)
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_local_var (env, stm)
+  local status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_goto (env, stm)
+  local status, msg = set_pending_goto(env, stm)
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_repeat (env, stm)
+  local status, msg
+  begin_loop(env)
+  status, msg = traverse_stm(env, stm[1])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, stm[2])
+  if not status then return status, msg end
+  end_loop(env)
+  return true
+end
+
+local function traverse_return (env, stm)
+  local status, msg = traverse_explist(env, stm[1])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_while (env, stm)
+  local status, msg
+  begin_loop(env)
+  status, msg = traverse_exp(env, stm[1])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[2])
+  if not status then return status, msg end
+  end_loop(env)
+  return true
+end
+
+function traverse_varlist (env, varlist)
+  for k, v in ipairs(varlist) do
+    local status, msg = traverse_var(env, v)
+    if not status then return status, msg end
+  end
+  return true
+end
+
+function traverse_explist (env, explist)
+  for k, v in ipairs(explist) do
+    local status, msg = traverse_exp(env, v)
+    if not status then return status, msg end
+  end
+  return true
+end
+
+function traverse_var (env, var)
+  local tag = var.tag
+  if tag == "VarID" then
+    return true
+  elseif tag == "VarIndex" then
+    local status, msg
+    status, msg = traverse_exp(env, var[1])
+    if not status then return status, msg end
+    status, msg = traverse_exp(env, var[2])
+    if not status then return status, msg end
+    return true
+  else
+    error("trying to traverse " .. tag)
+  end
+end
+
+function traverse_exp (env, exp)
+  local tag = exp.tag
+  if tag == "ExpNil" or
+     tag == "ExpFalse" or
+     tag == "ExpTrue" or
+     tag == "ExpDots" or
+     tag == "ExpNum" or -- ExpNum Double
+     tag == "ExpStr" then -- ExpStr String
+    return true
+  elseif tag == "ExpVar" then -- ExpVar Var
+    return traverse_var(env, exp[1])
+  elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
+    return traverse_stm(env, exp[3])
+  elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
+    return traverse_table(env, exp[1])
+  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
+    return traverse_exp_call(env, exp[1], exp[3])
+  elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    return traverse_exp_call(env, exp[1], exp[2])
+  elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
+         tag == "ExpSub" or -- ExpSub Exp Exp
+         tag == "ExpMul" or -- ExpMul Exp Exp
+         tag == "ExpDiv" or -- ExpDiv Exp Exp
+         tag == "ExpMod" or -- ExpMod Exp Exp
+         tag == "ExpPow" or -- ExpPow Exp Exp
+         tag == "ExpConcat" or -- ExpConcat Exp Exp
+         tag == "ExpNE" or -- ExpNE Exp Exp
+         tag == "ExpEQ" or -- ExpEQ Exp Exp
+         tag == "ExpLT" or -- ExpLT Exp Exp
+         tag == "ExpLE" or -- ExpLE Exp Exp
+         tag == "ExpGT" or -- ExpGT Exp Exp
+         tag == "ExpGE" or -- ExpGE Exp Exp
+         tag == "ExpAnd" or -- ExpAnd Exp Exp
+         tag == "ExpOr" then -- ExpOr Exp Exp
+    return traverse_bin_exp(env, exp[1], exp[2])
+  elseif tag == "ExpNot" or -- ExpNot Exp
+         tag == "ExpMinus" or -- ExpMinus Exp
+         tag == "ExpLen" then -- ExpLen Exp
+    return traverse_exp(env, exp[1])
+  else
+    error("trying to traverse " .. tag)
+  end
+end
+
+function traverse_stm (env, stm)
+  local tag = stm.tag
+  if tag == "StmBlock" then -- StmBlock [Stm]
+    return traverse_block(env, stm)
+  elseif tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
+    return traverse_if_else(env, stm)
+  elseif tag == "StmWhile" then -- StmWhile Exp Stm
+    return traverse_while(env, stm)
+  elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
+    return traverse_for_numeric(env, stm)
+  elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
+    return traverse_for_generic(env, stm)
+  elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
+    return traverse_repeat(env, stm)
+  elseif tag == "StmFunction" or -- StmFunction FuncName [ID] Type Stm
+         tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
+    return traverse_function(env, stm)
+  elseif tag == "StmLabel" then -- StmLabel Name
+    return traverse_label(env, stm)
+  elseif tag == "StmGoTo" then -- StmGoTo Name
+    return traverse_goto(env, stm)
+  elseif tag == "StmBreak" then -- StmBreak
+    return traverse_break(env, stm)
+  elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    return traverse_assignment(env, stm)
+  elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
+    return traverse_local_var(env, stm)
+  elseif tag == "StmRet" then -- StmRet [Exp]
+    return traverse_return(env, stm)
+  elseif tag == "StmCall" then -- StmCall Exp
+    return traverse_stm_call(env, stm)
+  else
+    error("trying to traverse " .. tag)
+  end
+end
+
+function traverse_block (env, block)
+  local tag = block.tag
+  if tag ~= "StmBlock" then
+    error("trying to traverse " .. tag)
+  end
+  begin_scope(env)
+  for k, v in ipairs(block) do
+    local status, msg = traverse_stm(env, v)
+    if not status then return status, msg end
+  end
+  end_scope(env)
+  return true
+end
+
+local function traverse (ast, errorinfo)
+  assert(type(ast) == "table")
+  assert(type(errorinfo) == "table")
+  local env = { errorinfo = errorinfo }
+  local status, msg
+  status, msg = traverse_block(env, ast)
+  if not status then return status, msg end
+  status, msg = verify_pending_gotos(env)
+  if not status then return status, msg end
+  return ast
+end
+
 local function getcontents (filename)
   local file = assert(io.open(filename, "r"))
   local contents = file:read("*a")
@@ -371,24 +737,24 @@ local function getcontents (filename)
 end
 
 function parser.parse_from_file (filename)
-  local errorinfo = { filename = filename, loop = 0 }
-  local input = getcontents(filename)
-  lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, input, nil, errorinfo)
-  if not ast then
-    return nil,errormsg(input, errorinfo)
-  end
-  return ast
-end
-
-function parser.parse (subject, filename)
-  local errorinfo = { filename = filename, loop = 0 }
+  local subject = getcontents(filename)
+  local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
   local ast = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
-    return nil,errormsg(subject, errorinfo)
+    return nil, errormsg(subject, errorinfo)
   end
-  return ast
+  return traverse(ast, errorinfo)
+end
+
+function parser.parse (subject, filename)
+  local errorinfo = { subject = subject, filename = filename }
+  lpeg.setmaxstack(1000)
+  local ast = lpeg.match(G, subject, nil, errorinfo)
+  if not ast then
+    return nil, errormsg(subject, errorinfo)
+  end
+  return traverse(ast, errorinfo)
 end
 
 return parser

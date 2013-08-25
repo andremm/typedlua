@@ -19,7 +19,15 @@ local checker = {}
 local st = {} -- symbol table
 
 local function lineno (pos)
-  return parser.lineno(st["subject"], pos)
+  local s = st["subject"]
+  if pos == 1 then return 1,1 end
+  local n,lastline = 0,""
+  s = s:sub(1,pos) .. "\n"
+  for line in s:gmatch("[^\n]*[\n]") do
+    n = n + 1
+    lastline = line
+  end
+  return n,lastline:len()-1
 end
 
 local function errormsg (pos)
@@ -142,27 +150,6 @@ local function set_return_type (fscope, rtype)
   end
 end
 
--- functions that handle invalid use of break
-
-local function begin_loop ()
-  if not st["loop"] then
-    st["loop"] = 1
-  else
-    st["loop"] = st["loop"] + 1
-  end
-end
-
-local function end_loop ()
-  st["loop"] = st["loop"] - 1
-end
-
-local function insideloop ()
-  if st["loop"] and st["loop"] > 0 then
-    return true
-  end
-  return false
-end
-
 -- functions that handle identifiers
 
 local function new_id (id_name, id_pos, id_type)
@@ -171,54 +158,6 @@ local function new_id (id_name, id_pos, id_type)
   id["pos"] = id_pos
   id["type"] = id_type
   return id
-end
-
--- functions that handle labels and gotos
-
-local function lookup_label (stm, scope)
-  local label = stm[1]
-  for s=scope,0,-1 do
-    if st[s]["label"][label] then
-      return true
-    end
-  end
-  return false
-end
-
-local function set_label (stm)
-  local scope = st["scope"]
-  local label = stm[1]
-  local pos = stm["pos"]
-  local l = st[scope]["label"][label]
-  if not l then
-    local t = { name = label, pos = pos }
-    st[scope]["label"][label] = t
-  else
-    local msg = "label '%s' already defined at line %d"
-    local line,col = lineno(l["pos"])
-    msg = string.format(msg, label, line)
-    semerror(msg, pos)
-  end
-end
-
-local function check_pending_gotos ()
-  for s=st["maxscope"],0,-1 do
-    for k,v in ipairs(st[s]["goto"]) do
-      local label = v[1]
-      local pos = v["pos"]
-      if not lookup_label(v,s) then
-        local msg = "no visible label '%s' for <goto> at line %d"
-        local line,col = lineno(pos)
-        msg = string.format(msg, label, line)
-        semerror(msg, pos)
-      end
-    end
-  end
-end
-
-local function set_pending_goto (stm)
-  local scope = st["scope"]
-  table.insert(st[scope]["goto"], stm)
 end
 
 local check_block, check_stm, check_exp, check_var
@@ -847,31 +786,18 @@ local function check_assignment (varlist, explist)
   end
 end
 
-local function check_break (stm)
-  if not insideloop() then
-    local msg = "<break> at line %d not inside a loop"
-    local pos = stm["pos"]
-    local line,col = lineno(pos)
-    msg = string.format(msg, line)
-    semerror(msg, pos)
-  end
-end
-
 local function check_stmcall (exp)
   check_exp(exp)
 end
 
 local function check_for_generic (idlist, explist, stm)
-  begin_loop()
   begin_scope()
   check_explist(explist)
   check_stm(stm)
   end_scope()
-  end_loop()
 end
 
 local function check_for_numeric (id, exp1, exp2, exp3, stm)
-  begin_loop()
   begin_scope()
   local var = id2var(id)
   set_var(var, Number, st["scope"])
@@ -903,7 +829,6 @@ local function check_for_numeric (id, exp1, exp2, exp3, stm)
   end
   check_stm(stm)
   end_scope()
-  end_loop()
 end
 
 local function check_global_function (stm)
@@ -919,18 +844,10 @@ local function check_global_function (stm)
   end_function()
 end
 
-local function check_goto (stm)
-  set_pending_goto(stm)
-end
-
 local function check_if_else (exp, stm1, stm2)
   check_exp(exp)
   check_stm(stm1)
   check_stm(stm2)
-end
-
-local function check_label (stm)
-  set_label(stm)
 end
 
 local function check_local_function (stm)
@@ -958,10 +875,8 @@ local function check_local_var (idlist, explist)
 end
 
 local function check_repeat (stm, exp)
-  begin_loop()
   check_stm(stm)
   check_exp(exp)
-  end_loop()
 end
 
 local function check_return (explist)
@@ -973,10 +888,8 @@ local function check_return (explist)
 end
 
 local function check_while (exp, stm)
-  begin_loop()
   check_exp(exp)
   check_stm(stm)
-  end_loop()
 end
 
 function check_explist (explist)
@@ -1059,12 +972,9 @@ function check_stm (stm)
     check_global_function(stm)
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     check_local_function(stm)
-  elseif tag == "StmLabel" then -- StmLabel Name
-    check_label(stm)
-  elseif tag == "StmGoTo" then -- StmGoTo Name
-    check_goto(stm)
-  elseif tag == "StmBreak" then -- StmBreak
-    check_break(stm)
+  elseif tag == "StmLabel" or -- StmLabel Name
+         tag == "StmGoTo" or -- StmGoTo Name
+         tag == "StmBreak" then -- StmBreak
   elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
     check_assignment(stm[1], stm[2])
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
@@ -1119,7 +1029,6 @@ function checker.typecheck (ast, subject, filename)
   set_vararg(String)
   check_block(ast)
   end_function()
-  check_pending_gotos()
   if #st["messages"] > 0 then
     local msg = table.concat(st["messages"], "\n")
     return nil,msg
