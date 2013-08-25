@@ -1307,6 +1307,58 @@ StmBlock [StmLocalVar [("t","any")] [ExpTableConstructor ([ExpTableConstructor (
 r = parse(s)
 assert(r == e)
 
+-- vararg
+
+s = [=[
+function f (...)
+  return ...
+end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f ()
+  function g (x, y, ...)
+    return ...,...,...
+  end
+end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([]) "any" (StmBlock [StmFunction (Function ["g"]) ([("x","any"),("y","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots,ExpDots,ExpDots]])])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x, ...)
+  return ...
+end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local f = function (x, ...)
+  return ...
+end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("f","any")] [ExpFunction ([("x","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- while
 
 s = [=[
@@ -1761,6 +1813,58 @@ t = { , }
 ]=]
 e = [=[
 test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not', 'Name', '['
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- vararg
+
+s = [=[
+function f ()
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f ()
+  function g (x, y)
+    return ...,...,...
+  end
+end
+]=]
+e = [=[
+test.lua:3:12: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x)
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local f = function (x)
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)

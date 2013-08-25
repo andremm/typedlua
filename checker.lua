@@ -35,12 +35,6 @@ local function errormsg (pos)
   return string.format("%s:%d:%d:", st["filename"], l, c)
 end
 
-local function semerror (msg, pos)
-  local error_msg = "%s semantic error, %s"
-  error_msg = string.format(error_msg, errormsg(pos), msg)
-  table.insert(st["messages"], error_msg)
-end
-
 local function typeerror (msg, pos)
   local error_msg = "%s type error, %s"
   error_msg = string.format(error_msg, errormsg(pos), msg)
@@ -756,10 +750,6 @@ local function check_vararg (exp)
   local vararg_type
   if st["function"][fscope]["is_vararg"] then
     vararg_type = st["function"][fscope]["vararg"]
-  else
-    local msg = "cannot use '...' outside a vararg function"
-    semerror(msg, exp["pos"])
-    vararg_type = types.VarArg(Any)
   end
   set_node_type(exp, vararg_type)
 end

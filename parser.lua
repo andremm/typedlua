@@ -124,14 +124,14 @@ end
 
 local function expl2varl (s, i, el)
   local vl = {}
-  for k,v in ipairs(el) do
+  for k, v in ipairs(el) do
     if v.tag == "ExpVar" then
       vl[k] = v[1]
     else
       return false
     end
   end
-  return true,vl
+  return true, vl
 end
 
 local function fix_str (str)
@@ -192,7 +192,7 @@ local G = { V"TypedLua",
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
              taggedCap("ExpList", V"Constructor") +
-             taggedCap("ExpList", taggedCap("ExpStr", token(V"String","String")));
+             taggedCap("ExpList", taggedCap("ExpStr", token(V"String", "String")));
   Expr = V"SubExpr_1";
   SubExpr_1 = chainl1(V"SubExpr_2", V"OrOp");
   SubExpr_2 = chainl1(V"SubExpr_3", V"AndOp");
@@ -214,7 +214,7 @@ local G = { V"TypedLua",
               V"Constructor" +
               V"SuffixedExp";
   SuffixedExp = Cf(V"PrimaryExp" * (
-                  taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name","Name"))) +
+                  taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name", "Name"))) +
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
                   taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name", "Name") * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
@@ -382,6 +382,20 @@ local function end_scope (env)
   env.scope = env.scope - 1
 end
 
+local function begin_function (env)
+  if not env.fscope then
+    env.fscope = 0
+  else
+    env.fscope = env.fscope + 1
+  end
+  local fscope = env.fscope
+  env["function"][fscope] = {}
+end
+
+local function end_function (env)
+  env.fscope = env.fscope - 1
+end
+
 local function begin_loop (env)
   if not env.loop then
     env.loop = 1
@@ -442,8 +456,26 @@ local function verify_pending_gotos (env)
   return true
 end
 
+local function set_vararg (env, is_vararg)
+  local fscope = env.fscope
+  env["function"][fscope]["is_vararg"] = is_vararg
+end
+
 local traverse_stm, traverse_exp, traverse_var
-local traverse_block, traverse_explist, traverse_varlist
+local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
+
+local function traverse_anonymous_function (env, exp)
+  begin_function(env)
+  begin_scope(env)
+  local status, msg
+  status, msg = traverse_parlist(env, exp[1])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, exp[3])
+  if not status then return status, msg end
+  end_scope(env)
+  end_function(env)
+  return true
+end
 
 local function traverse_bin_exp (env, exp1, exp2)
   local status, msg
@@ -474,6 +506,15 @@ local function traverse_table (env, fieldlist)
     if not status then return status, msg end
     status, msg = traverse_exp(env, v[2])
     if not status then return status, msg end
+  end
+  return true
+end
+
+local function traverse_vararg (env, exp)
+  local fscope = env.fscope
+  if not env["function"][fscope]["is_vararg"] then
+    local msg = "cannot use '...' outside a vararg function"
+    return nil, syntaxerror(env.errorinfo, exp.pos, msg)
   end
   return true
 end
@@ -528,9 +569,16 @@ local function traverse_for_numeric (env, stm)
   return true
 end
 
-local function traverse_function (env, stm)
-  local status, msg = traverse_stm(env, stm[4])
+local function traverse_global_function (env, stm)
+  begin_function(env)
+  begin_scope(env)
+  local status, msg
+  status, msg = traverse_parlist(env, stm[2])
   if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[4])
+  if not status then return status, msg end
+  end_scope(env)
+  end_function(env)
   return true
 end
 
@@ -548,6 +596,19 @@ end
 local function traverse_label (env, stm)
   local status, msg = set_label(env, stm[1], stm.pos)
   if not status then return status, msg end
+  return true
+end
+
+local function traverse_local_function (env, stm)
+  begin_function(env)
+  begin_scope(env)
+  local status, msg
+  status, msg = traverse_parlist(env, stm[2])
+  if not status then return status, msg end
+  status, msg = traverse_stm(env, stm[4])
+  if not status then return status, msg end
+  end_scope(env)
+  end_function(env)
   return true
 end
 
@@ -591,6 +652,18 @@ local function traverse_while (env, stm)
   return true
 end
 
+function traverse_parlist (env, idlist)
+  local len = #idlist
+  if len > 0 then
+    if idlist[len][1] == "..." then
+      set_vararg(env, true)
+      return true
+    end
+  end
+  set_vararg(env, false)
+  return true
+end
+
 function traverse_varlist (env, varlist)
   for k, v in ipairs(varlist) do
     local status, msg = traverse_var(env, v)
@@ -628,14 +701,15 @@ function traverse_exp (env, exp)
   if tag == "ExpNil" or
      tag == "ExpFalse" or
      tag == "ExpTrue" or
-     tag == "ExpDots" or
      tag == "ExpNum" or -- ExpNum Double
      tag == "ExpStr" then -- ExpStr String
     return true
+  elseif tag == "ExpDots" then
+    return traverse_vararg(env, exp)
   elseif tag == "ExpVar" then -- ExpVar Var
     return traverse_var(env, exp[1])
   elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
-    return traverse_stm(env, exp[3])
+    return traverse_anonymous_function(env, exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return traverse_table(env, exp[1])
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
@@ -681,9 +755,10 @@ function traverse_stm (env, stm)
     return traverse_for_generic(env, stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     return traverse_repeat(env, stm)
-  elseif tag == "StmFunction" or -- StmFunction FuncName [ID] Type Stm
-         tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
-    return traverse_function(env, stm)
+  elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
+    return traverse_global_function(env, stm)
+  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
+    return traverse_local_function(env, stm)
   elseif tag == "StmLabel" then -- StmLabel Name
     return traverse_label(env, stm)
   elseif tag == "StmGoTo" then -- StmGoTo Name
@@ -720,10 +795,13 @@ end
 local function traverse (ast, errorinfo)
   assert(type(ast) == "table")
   assert(type(errorinfo) == "table")
-  local env = { errorinfo = errorinfo }
+  local env = { errorinfo = errorinfo, ["function"] = {} }
   local status, msg
+  begin_function(env)
+  set_vararg(env, true)
   status, msg = traverse_block(env, ast)
   if not status then return status, msg end
+  end_function(env)
   status, msg = verify_pending_gotos(env)
   if not status then return status, msg end
   return ast
