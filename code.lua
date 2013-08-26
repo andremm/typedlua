@@ -65,10 +65,57 @@ local function unop (tag)
   end
 end
 
+local function tag_priority (tag)
+  if tag == "ExpOr" then
+    return 1
+  elseif tag == "ExpAnd" then
+    return 2
+  elseif tag == "ExpLT" or
+         tag == "ExpLE" or
+         tag == "ExpGT" or
+         tag == "ExpGE" then
+    return 3
+  elseif tag == "ExpConcat" then
+    return 4
+  elseif tag == "ExpAdd" or
+         tag == "ExpSub" then
+    return 5
+  elseif tag == "ExpMul" or
+         tag == "ExpDiv" or
+         tag == "ExpMod" then
+    return 6
+  elseif tag == "ExpNot" or
+         tag == "ExpMinus" or
+         tag == "ExpLen" then
+    return 7
+  elseif tag == "ExpPow" then
+    return 8
+  elseif tag == "ExpNum" or
+         tag == "ExpStr" or
+	 tag == "ExpNil" or
+         tag == "ExpFalse" or
+         tag == "ExpTrue" or
+         tag == "ExpDots" or
+         tag == "ExpFunction" or
+         tag == "ExpTableConstructor" or
+         tag == "ExpMethodCall" or
+         tag == "ExpFunctionCall" or
+         tag == "ExpVar" then
+    return 9
+  end
+  return 0
+end
+
+local function insert_parentheses (tag1, tag2)
+  local left, right = tag_priority(tag1), tag_priority(tag2)
+  if left < right then return true end
+  return false
+end
+
 function code_explist (explist, i)
   local l = {}
   for k,v in ipairs(explist) do
-    l[k] = code_exp(v, i)
+    l[k] = code_exp(v, i, "ExpList")
   end
   return table.concat(l, ", ")
 end
@@ -84,10 +131,11 @@ end
 function code_fieldlist (fieldlist, i)
   local l = {{},{}}
   for k,v in ipairs(fieldlist[1]) do
-    l[1][k] = code_exp(v[1], i) .. ","
+    l[1][k] = code_exp(v[1], i, "FieldList") .. ","
   end
   for k,v in ipairs(fieldlist[2]) do
-    l[2][k] = "[ " .. code_exp(v[1], i) .. " ] = " .. code_exp(v[2], i) .. ","
+    l[2][k] = "[ " .. code_exp(v[1], i, "FieldList")
+    l[2][k] = l[2][k] .. " ] = " .. code_exp(v[2], i, "FieldList") .. ","
   end
   return table.concat(l[1], " ") .. table.concat(l[2], " ")
 end
@@ -105,13 +153,13 @@ function code_var (var, i)
   if tag == "VarID" then -- VarID ID
     return var[1]
   elseif tag == "VarIndex" then -- VarIndex Exp Exp
-    return code_exp(var[1], i) .. "[" .. code_exp(var[2], i) .. "]"
+    return code_exp(var[1], i, tag) .. "[" .. code_exp(var[2], i, tag) .. "]"
   else
     error("expecting a variable, but got a " .. tag)
   end
 end
 
-function code_exp (exp, i)
+function code_exp (exp, i, parent)
   local tag = exp.tag
   local str
   if tag == "ExpNil" then
@@ -138,11 +186,11 @@ function code_exp (exp, i)
     str = "{ " .. code_fieldlist(exp[1], i) .. " }"
     return str
   elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    str = code_exp(exp[1], i) .. ":" .. exp[2]
+    str = code_exp(exp[1], i, tag) .. ":" .. exp[2]
     str = str .. "(" .. code_explist(exp[3], i) .. ")"
     return str
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
-    str = code_exp(exp[1], i)
+    str = code_exp(exp[1], i, tag)
     str = str .. "(" .. code_explist(exp[2], i) .. ")"
     return str
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
@@ -160,16 +208,18 @@ function code_exp (exp, i)
          tag == "ExpGE" or -- ExpGE Exp Exp
          tag == "ExpAnd" or -- ExpAnd Exp Exp
          tag == "ExpOr" then -- ExpOr Exp Exp
-    str = "(" .. code_exp(exp[1], i)
+    local p = insert_parentheses(tag, parent)
+    str = ""
+    if p then str = str .. "(" end
+    str = str .. code_exp(exp[1], i, tag)
     str = str .. binop(tag)
-    str = str .. code_exp(exp[2], i) .. ")"
+    str = str .. code_exp(exp[2], i, tag)
+    if p then str = str .. ")" end
     return str
   elseif tag == "ExpNot" or -- ExpNot Exp
          tag == "ExpMinus" or -- ExpMinus Exp
          tag == "ExpLen" then -- ExpLen Exp
-    str = "(" .. unop(tag)
-    str = str .. code_exp(exp[1], i)
-    str = str .. ")"
+    str = unop(tag) .. code_exp(exp[1], i, tag)
     return str
   else
     error("expecting an expression, but got a " .. tag)
@@ -180,7 +230,7 @@ local function code_else (stm, i)
   local tag = stm.tag
   local str
   if tag == "StmIfElse" then
-    str = ident("elseif ", i) .. code_exp(stm[1], 0) .. " then\n"
+    str = ident("elseif ", i) .. code_exp(stm[1], 0, tag) .. " then\n"
     str = str .. code_block(stm[2], i)
     str = str .. code_else(stm[3], i)
     return str
@@ -222,21 +272,21 @@ function code_stm (stm, i)
     str = str .. ident("end", i)
     return str
   elseif tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
-    str = ident("if ", i) .. code_exp(stm[1], 0) .. " then\n"
+    str = ident("if ", i) .. code_exp(stm[1], 0, tag) .. " then\n"
     str = str .. code_block(stm[2], i)
     str = str .. code_else(stm[3], i)
     str = str .. ident("end", i)
     return str
   elseif tag == "StmWhile" then -- StmWhile Exp Stm
-    str = ident("while ", i) .. code_exp(stm[1], 0) .. " do\n"
+    str = ident("while ", i) .. code_exp(stm[1], 0, tag) .. " do\n"
     str = str .. code_block(stm[2], i)
     str = str .. ident("end", i)
     return str
   elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
     str = ident("for ", i)
-    str = str .. stm[1][1] .. "=" .. code_exp(stm[2], i)
-    str = str .. "," .. code_exp(stm[3], i)
-    str = str .. "," .. code_exp(stm[4], i) .. " do\n"
+    str = str .. stm[1][1] .. "=" .. code_exp(stm[2], i, tag)
+    str = str .. "," .. code_exp(stm[3], i, tag)
+    str = str .. "," .. code_exp(stm[4], i, tag) .. " do\n"
     str = str .. code_block(stm[5], i)
     str = str .. ident("end", i)
     return str
@@ -251,7 +301,7 @@ function code_stm (stm, i)
     str = ident("repeat\n", i)
     str = str .. code_block(stm[1], i)
     str = str .. ident("until ", i)
-    str = str .. code_exp(stm[2], i)
+    str = str .. code_exp(stm[2], i, tag)
     return str
   elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
     str = ident("function ", i) .. code_funcname(stm[1], i)
@@ -292,7 +342,7 @@ function code_stm (stm, i)
     str = ident("return ", i) .. code_explist(stm[1], i)
     return str
   elseif tag == "StmCall" then -- StmCall Exp
-    str = spaces(i) .. code_exp(stm[1], i)
+    str = spaces(i) .. code_exp(stm[1], i, tag)
     return str
   else
     error("expecting a statement, but got a " .. tag)
