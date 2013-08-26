@@ -5,8 +5,6 @@ Abstract Syntax Tree
 
 type Name = String
 
-type Type = String
-
 type ID = (Name,Type)
 
 type FieldList = ([Exp],[(Exp,Exp)])
@@ -68,10 +66,16 @@ tostring :: AST -> String
 print :: AST -> Void
 ]]
 
+local types = require "types"
+
 local ast = {}
 
-local block2str, stm2str, exp2str, var2str, id2str, type2str
+local block2str, stm2str, exp2str, var2str, id2str
 local explist2str, varlist2str, fieldlist2str, namelist2str, idlist2str
+
+local function type2str (t)
+  return '"' .. types.tostring(t) .. '"'
+end
 
 local function iscntrl (x)
   if (x >= 0 and x <= 31) or (x == 127) then return true end
@@ -104,10 +108,6 @@ local function fixed_string (str)
     end
   end
   return new_str
-end
-
-function type2str (t)
-  return '"' .. tostring(t) .. '"'
 end
 
 function id2str (id)

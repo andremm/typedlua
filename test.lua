@@ -83,7 +83,7 @@ s = [=[
 _nil,_false,_true,_dots = nil,false,true,...
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("_nil","any"),VarID ("_false","any"),VarID ("_true","any"),VarID ("_dots","any")] [ExpNil,ExpFalse,ExpTrue,ExpDots]]
+StmBlock [StmAssign [VarID ("_nil","?"),VarID ("_false","?"),VarID ("_true","?"),VarID ("_dots","?")] [ExpNil,ExpFalse,ExpTrue,ExpDots]]
 ]=]
 
 r = parse(s)
@@ -96,7 +96,7 @@ f1 = 1.
 f2 = 1.1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 1.0],StmAssign [VarID ("f2","any")] [ExpNum 1.1]]
+StmBlock [StmAssign [VarID ("f1","?")] [ExpNum 1.0],StmAssign [VarID ("f2","?")] [ExpNum 1.1]]
 ]=]
 
 r = parse(s)
@@ -107,7 +107,7 @@ f1 = 1.e-1
 f2 = 1.e1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 0.1],StmAssign [VarID ("f2","any")] [ExpNum 10.0]]
+StmBlock [StmAssign [VarID ("f1","?")] [ExpNum 0.1],StmAssign [VarID ("f2","?")] [ExpNum 10.0]]
 ]=]
 
 r = parse(s)
@@ -118,7 +118,7 @@ f1 = 1.1e+1
 f2 = 1.1e1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 11.0],StmAssign [VarID ("f2","any")] [ExpNum 11.0]]
+StmBlock [StmAssign [VarID ("f1","?")] [ExpNum 11.0],StmAssign [VarID ("f2","?")] [ExpNum 11.0]]
 ]=]
 
 r = parse(s)
@@ -129,7 +129,7 @@ f1 = .1
 f2 = .1e1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 0.1],StmAssign [VarID ("f2","any")] [ExpNum 1.0]]
+StmBlock [StmAssign [VarID ("f1","?")] [ExpNum 0.1],StmAssign [VarID ("f2","?")] [ExpNum 1.0]]
 ]=]
 
 r = parse(s)
@@ -140,7 +140,7 @@ f1 = 1E1
 f2 = 1e-1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("f1","any")] [ExpNum 10.0],StmAssign [VarID ("f2","any")] [ExpNum 0.1]]
+StmBlock [StmAssign [VarID ("f1","?")] [ExpNum 10.0],StmAssign [VarID ("f2","?")] [ExpNum 0.1]]
 ]=]
 
 r = parse(s)
@@ -153,7 +153,7 @@ i = 1
 h = 0xff
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("i","any")] [ExpNum 1.0],StmAssign [VarID ("h","any")] [ExpNum 255.0]]
+StmBlock [StmAssign [VarID ("i","?")] [ExpNum 1.0],StmAssign [VarID ("h","?")] [ExpNum 255.0]]
 ]=]
 
 r = parse(s)
@@ -164,7 +164,7 @@ h = 0x76c
 i = 4294967296 -- 2^32
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("h","any")] [ExpNum 1900.0],StmAssign [VarID ("i","any")] [ExpNum 4294967296.0]]
+StmBlock [StmAssign [VarID ("h","?")] [ExpNum 1900.0],StmAssign [VarID ("i","?")] [ExpNum 4294967296.0]]
 ]=]
 
 r = parse(s)
@@ -207,7 +207,7 @@ testing long string1 end
 ]]
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ls1","any")] [ExpStr "testing long string\n"]]
+StmBlock [StmAssign [VarID ("ls1","?")] [ExpStr "testing long string\n"]]
 ]=]
 
 r = parse(s)
@@ -226,7 +226,7 @@ ls2 = [==[ testing \n [[ long ]] \t [===[ string ]===]
 ]==]
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ls2","any")] [ExpStr " testing \\n [[ long ]] \\t [===[ string ]===]\n\\a "]]
+StmBlock [StmAssign [VarID ("ls2","?")] [ExpStr " testing \\n [[ long ]] \\t [===[ string ]===]\n\\a "]]
 ]=]
 
 r = parse(s)
@@ -243,7 +243,7 @@ ss1_b = 'ola mundo\a'
 -- short string test end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ss1_a","any")] [ExpStr "ola mundo\a"],StmAssign [VarID ("ss1_b","any")] [ExpStr "ola mundo\a"]]
+StmBlock [StmAssign [VarID ("ss1_a","?")] [ExpStr "ola mundo\a"],StmAssign [VarID ("ss1_b","?")] [ExpStr "ola mundo\a"]]
 ]=]
 
 r = parse(s)
@@ -258,7 +258,7 @@ ss2_b = 'testando,\tteste\n1\n2\n3 --> \'tchau\''
 -- short string test end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ss2_a","any")] [ExpStr "testando,\tteste\n1\n2\n3 --> \"tchau\""],StmAssign [VarID ("ss2_b","any")] [ExpStr "testando,\tteste\n1\n2\n3 --> 'tchau'"]]
+StmBlock [StmAssign [VarID ("ss2_a","?")] [ExpStr "testando,\tteste\n1\n2\n3 --> \"tchau\""],StmAssign [VarID ("ss2_b","?")] [ExpStr "testando,\tteste\n1\n2\n3 --> 'tchau'"]]
 ]=]
 
 r = parse(s)
@@ -276,7 +276,7 @@ ss3_b = 'ola \
 -- short string test end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ss3_a","any")] [ExpStr "ola \n'mundo'!"],StmAssign [VarID ("ss3_b","any")] [ExpStr "ola \n\"mundo\"!"]]
+StmBlock [StmAssign [VarID ("ss3_a","?")] [ExpStr "ola \n'mundo'!"],StmAssign [VarID ("ss3_b","?")] [ExpStr "ola \n\"mundo\"!"]]
 ]=]
 
 r = parse(s)
@@ -292,7 +292,7 @@ ss4_b = 'C:\\Temp/'
 -- short string test end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ss4_a","any")] [ExpStr "C:\\Temp/"],StmAssign [VarID ("ss4_b","any")] [ExpStr "C:\\Temp/"]]
+StmBlock [StmAssign [VarID ("ss4_a","?")] [ExpStr "C:\\Temp/"],StmAssign [VarID ("ss4_b","?")] [ExpStr "C:\\Temp/"]]
 ]=]
 
 r = parse(s)
@@ -312,7 +312,7 @@ cruel'
 -- short string test end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("ss5_a","any")] [ExpStr "ola \nmundo \\ \ncruel"],StmAssign [VarID ("ss5_b","any")] [ExpStr "ola \nmundo \\ \ncruel"]]
+StmBlock [StmAssign [VarID ("ss5_a","?")] [ExpStr "ola \nmundo \\ \ncruel"],StmAssign [VarID ("ss5_b","?")] [ExpStr "ola \nmundo \\ \ncruel"]]
 ]=]
 
 r = parse(s)
@@ -455,7 +455,7 @@ s = [=[
 local a,b,c = function () end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpFunction ([]) "any" (StmBlock [])]]
+StmBlock [StmLocalVar [("a","?"),("b","?"),("c","?")] [ExpFunction ([]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -465,7 +465,7 @@ s = [=[
 local test = function ( a , b , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("a","any"),("b","any"),("...","any")]) "any" (StmBlock [])]]
+StmBlock [StmLocalVar [("test","?")] [ExpFunction ([("a","?"),("b","?"),("...","?")]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -475,7 +475,7 @@ s = [=[
 local test = function (x:number,y:string) : nil end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("y","string")]) "nil" (StmBlock [])]]
+StmBlock [StmLocalVar [("test","?")] [ExpFunction ([("x","number"),("y","string")]) "nil" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -485,7 +485,7 @@ s = [=[
 local test = function (x:number,t,a:boolean) : nil end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("test","any")] [ExpFunction ([("x","number"),("t","any"),("a","boolean")]) "nil" (StmBlock [])]]
+StmBlock [StmLocalVar [("test","?")] [ExpFunction ([("x","number"),("t","?"),("a","boolean")]) "nil" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -495,7 +495,7 @@ s = [=[
 test = function (...) return ...,0 end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("test","any")] [ExpFunction ([("...","any")]) "any" (StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("...","?")]) "?" (StmBlock [StmRet [ExpDots,ExpNum 0.0]])]]
 ]=]
 
 r = parse(s)
@@ -507,7 +507,7 @@ s = [=[
 arithmetic = 1 - 2 * 3 + 4
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("arithmetic","any")] [ExpAdd (ExpSub (ExpNum 1.0) (ExpMul (ExpNum 2.0) (ExpNum 3.0))) (ExpNum 4.0)]]
+StmBlock [StmAssign [VarID ("arithmetic","?")] [ExpAdd (ExpSub (ExpNum 1.0) (ExpMul (ExpNum 2.0) (ExpNum 3.0))) (ExpNum 4.0)]]
 ]=]
 
 r = parse(s)
@@ -517,7 +517,7 @@ s = [=[
 pow = -3^-2^2
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("pow","any")] [ExpMinus (ExpPow (ExpNum 3.0) (ExpMinus (ExpPow (ExpNum 2.0) (ExpNum 2.0))))]]
+StmBlock [StmAssign [VarID ("pow","?")] [ExpMinus (ExpPow (ExpNum 3.0) (ExpMinus (ExpPow (ExpNum 2.0) (ExpNum 2.0))))]]
 ]=]
 
 r = parse(s)
@@ -529,7 +529,7 @@ s = [=[
 a = f()[1]
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("a","any")] [ExpVar (VarIndex (ExpFunctionCall (ExpVar (VarID ("f","any"))) []) (ExpNum 1.0))]]
+StmBlock [StmAssign [VarID ("a","?")] [ExpVar (VarIndex (ExpFunctionCall (ExpVar (VarID ("f","?"))) []) (ExpNum 1.0))]]
 ]=]
 
 r = parse(s)
@@ -539,7 +539,7 @@ s = [=[
 a()[1] = 1;
 ]=]
 e = [=[
-StmBlock [StmAssign [VarIndex (ExpFunctionCall (ExpVar (VarID ("a","any"))) []) (ExpNum 1.0)] [ExpNum 1.0]]
+StmBlock [StmAssign [VarIndex (ExpFunctionCall (ExpVar (VarID ("a","?"))) []) (ExpNum 1.0)] [ExpNum 1.0]]
 ]=]
 
 r = parse(s)
@@ -549,7 +549,7 @@ s = [=[
 i = a.f(1)
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("i","any")] [ExpFunctionCall (ExpVar (VarIndex (ExpVar (VarID ("a","any"))) (ExpStr "f"))) [ExpNum 1.0]]]
+StmBlock [StmAssign [VarID ("i","?")] [ExpFunctionCall (ExpVar (VarIndex (ExpVar (VarID ("a","?"))) (ExpStr "f"))) [ExpNum 1.0]]]
 ]=]
 
 r = parse(s)
@@ -559,7 +559,7 @@ s = [=[
 i = a[f(1)]
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("i","any")] [ExpVar (VarIndex (ExpVar (VarID ("a","any"))) (ExpFunctionCall (ExpVar (VarID ("f","any"))) [ExpNum 1.0]))]]
+StmBlock [StmAssign [VarID ("i","?")] [ExpVar (VarIndex (ExpVar (VarID ("a","?"))) (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0]))]]
 ]=]
 
 r = parse(s)
@@ -570,7 +570,7 @@ a[f()] = sub
 i = i + 1
 ]=]
 e = [=[
-StmBlock [StmAssign [VarIndex (ExpVar (VarID ("a","any"))) (ExpFunctionCall (ExpVar (VarID ("f","any"))) [])] [ExpVar (VarID ("sub","any"))],StmAssign [VarID ("i","any")] [ExpAdd (ExpVar (VarID ("i","any"))) (ExpNum 1.0)]]
+StmBlock [StmAssign [VarIndex (ExpVar (VarID ("a","?"))) (ExpFunctionCall (ExpVar (VarID ("f","?"))) [])] [ExpVar (VarID ("sub","?"))],StmAssign [VarID ("i","?")] [ExpAdd (ExpVar (VarID ("i","?"))) (ExpNum 1.0)]]
 ]=]
 
 r = parse(s)
@@ -580,7 +580,7 @@ s = [=[
 a:b(1)._ = some_value
 ]=]
 e = [=[
-StmBlock [StmAssign [VarIndex (ExpMethodCall (ExpVar (VarID ("a","any"))) "b" [ExpNum 1.0]) (ExpStr "_")] [ExpVar (VarID ("some_value","any"))]]
+StmBlock [StmAssign [VarIndex (ExpMethodCall (ExpVar (VarID ("a","?"))) "b" [ExpNum 1.0]) (ExpStr "_")] [ExpVar (VarID ("some_value","?"))]]
 ]=]
 
 r = parse(s)
@@ -600,7 +600,7 @@ s = [=[
 x:number,t.f,a:b()[0],z:nil = 1,function () end,"alo"
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","any"))) (ExpStr "f"),VarIndex (ExpMethodCall (ExpVar (VarID ("a","any"))) "b" []) (ExpNum 0.0),VarID ("z","nil")] [ExpNum 1.0,ExpFunction ([]) "any" (StmBlock []),ExpStr "alo"]]
+StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","?"))) (ExpStr "f"),VarIndex (ExpMethodCall (ExpVar (VarID ("a","?"))) "b" []) (ExpNum 0.0),VarID ("z","nil")] [ExpNum 1.0,ExpFunction ([]) "?" (StmBlock []),ExpStr "alo"]]
 ]=]
 
 r = parse(s)
@@ -672,7 +672,7 @@ do
 end
 ]=]
 e = [=[
-StmBlock [StmBlock [StmAssign [VarID ("var","any")] [ExpAdd (ExpNum 2.0) (ExpNum 2.0)],StmRet []]]
+StmBlock [StmBlock [StmAssign [VarID ("var","?")] [ExpAdd (ExpNum 2.0) (ExpNum 2.0)],StmRet []]]
 ]=]
 
 r = parse(s)
@@ -684,7 +684,7 @@ s = [=[
 concat1 = 1 .. 2^3
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("concat1","any")] [ExpConcat (ExpNum 1.0) (ExpPow (ExpNum 2.0) (ExpNum 3.0))]]
+StmBlock [StmAssign [VarID ("concat1","?")] [ExpConcat (ExpNum 1.0) (ExpPow (ExpNum 2.0) (ExpNum 3.0))]]
 ]=]
 
 r = parse(s)
@@ -708,7 +708,7 @@ s = [=[
 for k,v in pairs(t) do print (k,v) end
 ]=]
 e = [=[
-StmBlock [StmForGen [("k","any"),("v","any")] [ExpFunctionCall (ExpVar (VarID ("pairs","any"))) [ExpVar (VarID ("t","any"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","any"))) [ExpVar (VarID ("k","any")),ExpVar (VarID ("v","any"))])])]
+StmBlock [StmForGen [("k","?"),("v","?")] [ExpFunctionCall (ExpVar (VarID ("pairs","?"))) [ExpVar (VarID ("t","?"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","?"))) [ExpVar (VarID ("k","?")),ExpVar (VarID ("v","?"))])])]
 ]=]
 
 r = parse(s)
@@ -718,7 +718,7 @@ s = [=[
 for k:number,v:any in pairs(t) do print (k,v) end
 ]=]
 e = [=[
-StmBlock [StmForGen [("k","number"),("v","any")] [ExpFunctionCall (ExpVar (VarID ("pairs","any"))) [ExpVar (VarID ("t","any"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","any"))) [ExpVar (VarID ("k","any")),ExpVar (VarID ("v","any"))])])]
+StmBlock [StmForGen [("k","number"),("v","any")] [ExpFunctionCall (ExpVar (VarID ("pairs","?"))) [ExpVar (VarID ("t","?"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","?"))) [ExpVar (VarID ("k","?")),ExpVar (VarID ("v","?"))])])]
 ]=]
 
 r = parse(s)
@@ -752,7 +752,7 @@ s = [=[
 function test(a , b , ...) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("a","any"),("b","any"),("...","any")]) "any" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("a","?"),("b","?"),("...","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -762,7 +762,7 @@ s = [=[
 function test (...) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("...","any")]) "any" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("...","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -772,7 +772,7 @@ s = [=[
 function t.a:b() end
 ]=]
 e = [=[
-StmBlock [StmFunction (Method ["t","a","b"]) ([]) "any" (StmBlock [])]
+StmBlock [StmFunction (Method ["t","a","b"]) ([]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -782,7 +782,7 @@ s = [=[
 function t.a() end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["t","a"]) ([]) "any" (StmBlock [])]
+StmBlock [StmFunction (Function ["t","a"]) ([]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -792,7 +792,7 @@ s = [=[
 function testando . funcao . com : espcacos ( e, com , parametros, ... ) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) ([("e","any"),("com","any"),("parametros","any"),("...","any")]) "any" (StmBlock [])]
+StmBlock [StmFunction (Method ["testando","funcao","com","espcacos"]) ([("e","?"),("com","?"),("parametros","?"),("...","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -812,7 +812,7 @@ s = [=[
 function f (x:number,y:string,...) : nil end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["f"]) ([("x","number"),("y","string"),("...","any")]) "nil" (StmBlock [])]
+StmBlock [StmFunction (Function ["f"]) ([("x","number"),("y","string"),("...","?")]) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -822,7 +822,7 @@ s = [=[
 function f (x:number,t,a:boolean) : nil end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["f"]) ([("x","number"),("t","any"),("a","boolean")]) "nil" (StmBlock [])]
+StmBlock [StmFunction (Function ["f"]) ([("x","number"),("t","?"),("a","boolean")]) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -944,7 +944,7 @@ s = [=[
 if a then end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock []) (StmBlock [])]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock []) (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -954,7 +954,7 @@ s = [=[
 if a then return a else return end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet [ExpVar (VarID ("a","any"))]]) (StmBlock [StmRet []])]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet [ExpVar (VarID ("a","?"))]]) (StmBlock [StmRet []])]
 ]=]
 
 r = parse(s)
@@ -970,7 +970,7 @@ else
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet [ExpVar (VarID ("a","any"))]]) (StmBlock [StmLocalVar [("c","any")] [ExpVar (VarID ("d","any"))],StmAssign [VarID ("d","any")] [ExpAdd (ExpVar (VarID ("d","any"))) (ExpNum 1.0)],StmRet [ExpVar (VarID ("d","any"))]])]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet [ExpVar (VarID ("a","?"))]]) (StmBlock [StmLocalVar [("c","?")] [ExpVar (VarID ("d","?"))],StmAssign [VarID ("d","?")] [ExpAdd (ExpVar (VarID ("d","?"))) (ExpNum 1.0)],StmRet [ExpVar (VarID ("d","?"))]])]
 ]=]
 
 r = parse(s)
@@ -986,7 +986,7 @@ elseif c then
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet [ExpVar (VarID ("a","any"))]]) (StmIfElse (ExpVar (VarID ("b","any"))) (StmBlock [StmRet [ExpVar (VarID ("b","any"))]]) (StmIfElse (ExpVar (VarID ("c","any"))) (StmBlock [StmRet [ExpVar (VarID ("c","any"))]]) (StmBlock [])))]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet [ExpVar (VarID ("a","?"))]]) (StmIfElse (ExpVar (VarID ("b","?"))) (StmBlock [StmRet [ExpVar (VarID ("b","?"))]]) (StmIfElse (ExpVar (VarID ("c","?"))) (StmBlock [StmRet [ExpVar (VarID ("c","?"))]]) (StmBlock [])))]
 ]=]
 
 r = parse(s)
@@ -999,7 +999,7 @@ else ;
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet [ExpVar (VarID ("a","any"))]]) (StmIfElse (ExpVar (VarID ("b","any"))) (StmBlock [StmRet []]) (StmBlock []))]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet [ExpVar (VarID ("a","?"))]]) (StmIfElse (ExpVar (VarID ("b","?"))) (StmBlock [StmRet []]) (StmBlock []))]
 ]=]
 
 r = parse(s)
@@ -1012,7 +1012,7 @@ elseif c then
 end
 ]=]
 e = [=[
-StmBlock [StmIfElse (ExpVar (VarID ("a","any"))) (StmBlock [StmRet []]) (StmIfElse (ExpVar (VarID ("c","any"))) (StmBlock []) (StmBlock []))]
+StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet []]) (StmIfElse (ExpVar (VarID ("c","?"))) (StmBlock []) (StmBlock []))]
 ]=]
 
 r = parse(s)
@@ -1038,7 +1038,7 @@ s = [=[
 local a
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","any")] []]
+StmBlock [StmLocalVar [("a","?")] []]
 ]=]
 
 r = parse(s)
@@ -1048,7 +1048,7 @@ s = [=[
 local a,b,c
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] []]
+StmBlock [StmLocalVar [("a","?"),("b","?"),("c","?")] []]
 ]=]
 
 r = parse(s)
@@ -1058,7 +1058,7 @@ s = [=[
 local a = 1 , 1 + 2, 5.1
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","any")] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
+StmBlock [StmLocalVar [("a","?")] [ExpNum 1.0,ExpAdd (ExpNum 1.0) (ExpNum 2.0),ExpNum 5.1]]
 ]=]
 
 r = parse(s)
@@ -1068,7 +1068,7 @@ s = [=[
 local a,b,c = 1.9
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","any"),("b","any"),("c","any")] [ExpNum 1.9]]
+StmBlock [StmLocalVar [("a","?"),("b","?"),("c","?")] [ExpNum 1.9]]
 ]=]
 
 r = parse(s)
@@ -1088,7 +1088,7 @@ s = [=[
 local a:number,b,c:nil = 1.9
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","number"),("b","any"),("c","nil")] [ExpNum 1.9]]
+StmBlock [StmLocalVar [("a","number"),("b","?"),("c","nil")] [ExpNum 1.9]]
 ]=]
 
 r = parse(s)
@@ -1098,7 +1098,7 @@ s = [=[
 local function test() end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([]) "any" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1108,7 +1108,7 @@ s = [=[
 local function test ( a , b , c , ... ) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("a","any"),("b","any"),("c","any"),("...","any")]) "any" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("a","?"),("b","?"),("c","?"),("...","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1118,7 +1118,7 @@ s = [=[
 local function test(...) return ... end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]
+StmBlock [StmLocalFunction "test" ([("...","?")]) "?" (StmBlock [StmRet [ExpDots]])]
 ]=]
 
 r = parse(s)
@@ -1138,7 +1138,7 @@ s = [=[
 local function test(x:number,t:any,...) : nil end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","number"),("t","any"),("...","any")]) "nil" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","number"),("t","any"),("...","?")]) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1148,7 +1148,7 @@ s = [=[
 local function test(x:number,t,a:boolean) : nil end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","number"),("t","any"),("a","boolean")]) "nil" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","number"),("t","?"),("a","boolean")]) "nil" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1160,7 +1160,7 @@ s = [=[
 relational = 1 < 2 >= 3 == 4 ~= 5 < 6 <= 7
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("relational","any")] [ExpLE (ExpLT (ExpNE (ExpEQ (ExpGE (ExpLT (ExpNum 1.0) (ExpNum 2.0)) (ExpNum 3.0)) (ExpNum 4.0)) (ExpNum 5.0)) (ExpNum 6.0)) (ExpNum 7.0)]]
+StmBlock [StmAssign [VarID ("relational","?")] [ExpLE (ExpLT (ExpNE (ExpEQ (ExpGE (ExpLT (ExpNum 1.0) (ExpNum 2.0)) (ExpNum 3.0)) (ExpNum 4.0)) (ExpNum 5.0)) (ExpNum 6.0)) (ExpNum 7.0)]]
 ]=]
 
 r = parse(s)
@@ -1175,7 +1175,7 @@ repeat
 until a < 1
 ]=]
 e = [=[
-StmBlock [StmRepeat (StmBlock [StmAssign [VarID ("a","any"),VarID ("b","any"),VarID ("c","any")] [ExpAdd (ExpNum 1.0) (ExpNum 1.0),ExpAdd (ExpNum 2.0) (ExpNum 2.0),ExpAdd (ExpNum 3.0) (ExpNum 3.0)],StmBreak]) (ExpLT (ExpVar (VarID ("a","any"))) (ExpNum 1.0))]
+StmBlock [StmRepeat (StmBlock [StmAssign [VarID ("a","?"),VarID ("b","?"),VarID ("c","?")] [ExpAdd (ExpNum 1.0) (ExpNum 1.0),ExpAdd (ExpNum 2.0) (ExpNum 2.0),ExpAdd (ExpNum 3.0) (ExpNum 3.0)],StmBreak]) (ExpLT (ExpVar (VarID ("a","?"))) (ExpNum 1.0))]
 ]=]
 
 r = parse(s)
@@ -1249,7 +1249,7 @@ s = [=[
 t = { [1] = "alo", alo = 1, 2; }
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("t","any")] [ExpTableConstructor ([ExpNum 2.0],[(ExpNum 1.0,ExpStr "alo"),(ExpStr "alo",ExpNum 1.0)])]]
+StmBlock [StmAssign [VarID ("t","?")] [ExpTableConstructor ([ExpNum 2.0],[(ExpNum 1.0,ExpStr "alo"),(ExpStr "alo",ExpNum 1.0)])]]
 ]=]
 
 r = parse(s)
@@ -1259,7 +1259,7 @@ s = [=[
 t = { 1.5 }
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("t","any")] [ExpTableConstructor ([ExpNum 1.5],[])]]
+StmBlock [StmAssign [VarID ("t","?")] [ExpTableConstructor ([ExpNum 1.5],[])]]
 ]=]
 
 r = parse(s)
@@ -1275,7 +1275,7 @@ t = {1,2;
 5}
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("t","any")] [ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0,ExpNum 4.0,ExpNum 5.0],[])]]
+StmBlock [StmAssign [VarID ("t","?")] [ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0,ExpNum 4.0,ExpNum 5.0],[])]]
 ]=]
 
 r = parse(s)
@@ -1291,7 +1291,7 @@ t = {[1]=1,[2]=2;
 [5]=5}
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("t","any")] [ExpTableConstructor ([],[(ExpNum 1.0,ExpNum 1.0),(ExpNum 2.0,ExpNum 2.0),(ExpNum 3.0,ExpNum 3.0),(ExpNum 4.0,ExpNum 4.0),(ExpNum 5.0,ExpNum 5.0)])]]
+StmBlock [StmAssign [VarID ("t","?")] [ExpTableConstructor ([],[(ExpNum 1.0,ExpNum 1.0),(ExpNum 2.0,ExpNum 2.0),(ExpNum 3.0,ExpNum 3.0),(ExpNum 4.0,ExpNum 4.0),(ExpNum 5.0,ExpNum 5.0)])]]
 ]=]
 
 r = parse(s)
@@ -1301,7 +1301,7 @@ s = [=[
 local t = {{{}}, {"alo"}}
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("t","any")] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
+StmBlock [StmLocalVar [("t","?")] [ExpTableConstructor ([ExpTableConstructor ([ExpTableConstructor ([],[])],[]),ExpTableConstructor ([ExpStr "alo"],[])],[])]]
 ]=]
 
 r = parse(s)
@@ -1315,7 +1315,7 @@ function f (...)
 end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["f"]) ([("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]
+StmBlock [StmFunction (Function ["f"]) ([("...","?")]) "?" (StmBlock [StmRet [ExpDots]])]
 ]=]
 
 r = parse(s)
@@ -1329,7 +1329,7 @@ function f ()
 end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["f"]) ([]) "any" (StmBlock [StmFunction (Function ["g"]) ([("x","any"),("y","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots,ExpDots,ExpDots]])])]
+StmBlock [StmFunction (Function ["f"]) ([]) "?" (StmBlock [StmFunction (Function ["g"]) ([("x","?"),("y","?"),("...","?")]) "?" (StmBlock [StmRet [ExpDots,ExpDots,ExpDots]])])]
 ]=]
 
 r = parse(s)
@@ -1341,7 +1341,7 @@ local function f (x, ...)
 end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]
+StmBlock [StmLocalFunction "f" ([("x","?"),("...","?")]) "?" (StmBlock [StmRet [ExpDots]])]
 ]=]
 
 r = parse(s)
@@ -1353,7 +1353,7 @@ local f = function (x, ...)
 end
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("f","any")] [ExpFunction ([("x","any"),("...","any")]) "any" (StmBlock [StmRet [ExpDots]])]]
+StmBlock [StmLocalVar [("f","?")] [ExpFunction ([("x","?"),("...","?")]) "?" (StmBlock [StmRet [ExpDots]])]]
 ]=]
 
 r = parse(s)
@@ -1369,7 +1369,7 @@ do
 end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("i","any")] [ExpNum 0.0],StmWhile (ExpLT (ExpVar (VarID ("i","any"))) (ExpNum 10.0)) (StmBlock [StmAssign [VarID ("i","any")] [ExpAdd (ExpVar (VarID ("i","any"))) (ExpNum 1.0)]])]
+StmBlock [StmAssign [VarID ("i","?")] [ExpNum 0.0],StmWhile (ExpLT (ExpVar (VarID ("i","?"))) (ExpNum 10.0)) (StmBlock [StmAssign [VarID ("i","?")] [ExpAdd (ExpVar (VarID ("i","?"))) (ExpNum 1.0)]])]
 ]=]
 
 r = parse(s)
@@ -1916,10 +1916,10 @@ assert(types.isConstant(Integer))
 assert(types.isConstant(Word))
 assert(not types.isConstant(String))
 
-assert(types.isBasic(Boolean))
-assert(types.isBasic(Number))
-assert(types.isBasic(String))
-assert(not types.isBasic(Word))
+assert(types.isBase(Boolean))
+assert(types.isBase(Number))
+assert(types.isBase(String))
+assert(not types.isBase(Word))
 
 assert(types.isObject(Object))
 assert(not types.isObject(Any))
@@ -1985,7 +1985,7 @@ assert(not types.subtype(Object,Number))
 assert(not types.subtype(Object,String))
 assert(not types.subtype(Object,Any))
 
--- any
+-- ?
 
 assert(types.subtype(Any,Any))
 
@@ -2089,7 +2089,7 @@ x:number,y:number,z:string = 1,2,""
 z = "alo"
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("x","number"),VarID ("y","number"),VarID ("z","string")] [ExpNum 1.0,ExpNum 2.0,ExpStr ""],StmAssign [VarID ("z","any")] [ExpStr "alo"]]
+StmBlock [StmAssign [VarID ("x","number"),VarID ("y","number"),VarID ("z","string")] [ExpNum 1.0,ExpNum 2.0,ExpStr ""],StmAssign [VarID ("z","?")] [ExpStr "alo"]]
 ]=]
 
 r = typecheck(s)

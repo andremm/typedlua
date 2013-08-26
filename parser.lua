@@ -4,8 +4,8 @@ This file implements the Typed Lua parser using LPeg
 
 local parser = {}
 
-local lpeg = require("lpeg")
-local st = require("st")
+local lpeg = require "lpeg"
+local st = require "st"
 
 lpeg.locale(lpeg)
 
@@ -151,16 +151,27 @@ local G = { V"TypedLua",
   -- parser
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   Chunk = V"Block";
-  Type = token(V"Name", "Type") +
-         token(C"nil", "Type");
-  OptionalType = (symb(":") * V"Type") + V"DynamicType";
-  DynamicType = Cc("any");
+  Type = V"ObjectType" +
+         V"DynamicType" +
+         V"NilType" +
+         V"BaseType" +
+         V"NameType";
+  ObjectType = taggedCap("TypeObject", token("object", "Type"));
+  DynamicType = taggedCap("TypeAny", token("any", "Type"));
+  NilType = taggedCap("TypeConstant", token("nil", "Type"));
+  BaseType = taggedCap("TypeBase", V"GroundType");
+  GroundType = token(C"boolean", "Type") +
+               token(C"number", "Type") +
+               token(C"string", "Type");
+  NameType = taggedCap("TypeName", token(V"Name", "Type"));
+  OptionalType = (symb(":") * V"Type") + V"UndefinedType";
+  UndefinedType = taggedCap("TypeUndefined", P(true));
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
   TypedVar = taggedCap("VarID", token(V"Name", "Name") * symb(":") * V"Type");
   TypedGlobal = taggedCap("ExpVar", V"TypedVar" * -V"FuncArgs");
   TypedVarArg = taggedCap("Name", token(C("..."), "...") * V"OptionalType");
   StatList = (symb(";") + V"Stat")^0;
-  Var = taggedCap("VarID", token(V"Name", "Name") * V"DynamicType");
+  Var = taggedCap("VarID", token(V"Name", "Name") * V"UndefinedType");
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
@@ -239,7 +250,7 @@ local G = { V"TypedLua",
                 kw("do") * V"Block" * kw("end"));
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
-  ForName = taggedCap("Name", token(V"Name", "Name") * Cc("number"));
+  ForName = taggedCap("Name", token(V"Name", "Name") * taggedCap("TypeBase", Cc("number")));
   ForNum = taggedCap("StmForNum",
              V"ForName" * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *

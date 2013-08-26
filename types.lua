@@ -3,12 +3,14 @@ This file implements the available types in Typed Lua
 
 Constant = nil | false | true | <integer> | <double> | <word>
 
-Basic = "boolean" | "number" | "string"
+Base = "boolean" | "number" | "string"
 
 Type = TypeConstant Constant
-     | TypeBasic Basic
+     | TypeBase Base
      | TypeObject
      | TypeAny
+     | TypeName String
+     | TypeUndefined
      | TypeFunction [Type] Type
      | TypeUnion Type Type
      | TypeVarArg Type
@@ -46,20 +48,20 @@ end
 
 -- functions that create basic types
 
-function types.Basic (t)
-  return { tag = "TypeBasic", [1] = t }
+function types.Base (t)
+  return { tag = "TypeBase", [1] = t }
 end
 
 function types.Boolean ()
-  return types.Basic("boolean")
+  return types.Base("boolean")
 end
 
 function types.Number ()
-  return types.Basic("number")
+  return types.Base("number")
 end
 
 function types.String ()
-  return types.Basic("string")
+  return types.Base("string")
 end
 
 -- function that create object type
@@ -72,6 +74,18 @@ end
 
 function types.Any ()
   return { tag = "TypeAny" }
+end
+
+-- function that create type name
+
+function types.Name (name)
+  return { tag = "TypeName", [1] = name }
+end
+
+-- function that create type undefined
+
+function types.Undefined ()
+  return { tag = "TypeUndefined" }
 end
 
 -- function that create function type
@@ -152,29 +166,29 @@ end
 
 -- functions that check basic types
 
-function types.isBasic (t)
-  if t.tag == "TypeBasic" then
+function types.isBase (t)
+  if t.tag == "TypeBase" then
     return true
   end
   return false
 end
 
 function types.isBoolean (t)
-  if types.isBasic(t) and t[1] == "boolean" then
+  if types.isBase(t) and t[1] == "boolean" then
     return true
   end
   return false
 end
 
 function types.isNumber (t)
-  if types.isBasic(t) and t[1] == "number" then
+  if types.isBase(t) and t[1] == "number" then
     return true
   end
   return false
 end
 
 function types.isString (t)
-  if types.isBasic(t) and t[1] == "string" then
+  if types.isBase(t) and t[1] == "string" then
     return true
   end
   return false
@@ -193,6 +207,24 @@ end
 
 function types.isAny (t)
   if t.tag == "TypeAny" then
+    return true
+  end
+  return false
+end
+
+-- function that check name type
+
+function types.isName (t)
+  if t.tag == "TypeName" then
+    return true
+  end
+  return false
+end
+
+-- function that check undefined type
+
+function types.isUndefined (t)
+  if t.tag == "TypeUndefined" then
     return true
   end
   return false
@@ -253,7 +285,7 @@ function types.subtype (t1, t2)
     elseif types.isConstantString(t1) and types.isConstantString(t2) then
       return true
     end
-  elseif types.isConstant(t1) and types.isBasic(t2) then
+  elseif types.isConstant(t1) and types.isBase(t2) then
     if types.isFalse(t1) and types.isBoolean(t2) then -- S-FALSE
       return true
     elseif types.isTrue(t1) and types.isBoolean(t2) then -- S-TRUE
@@ -265,7 +297,7 @@ function types.subtype (t1, t2)
     elseif types.isConstantString(t1) and types.isString(t2) then -- S-STRING
       return true
     end
-  elseif types.isBasic(t1) and types.isBasic(t2) then -- S-BASIC
+  elseif types.isBase(t1) and types.isBase(t2) then -- S-BASIC
     if types.isBoolean(t1) and types.isBoolean(t2) then
       return true
     elseif types.isNumber(t1) and types.isNumber(t2) then
@@ -312,9 +344,11 @@ function types.name2type (name)
 end
 
 local function type2str (t)
-  if types.isConstant(t) then
+  if types.isUndefined(t) then
+    return "?"
+  elseif types.isConstant(t) then
     return type(t[1])
-  elseif types.isBasic(t) then
+  elseif types.isBase(t) or types.isName(t) then
     return t[1]
   elseif types.isObject(t) then
     return "object"

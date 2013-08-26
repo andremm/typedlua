@@ -40,11 +40,10 @@ local function warning (env, msg, pos)
   table.insert(env["messages"], error_msg)
 end
 
-local function name2type (name)
-  local t = types.name2type(name)
-  if not t then
+local function check_dec_type (t)
+  if types.isName(t) then
     local msg = "type '%s' is not defined, so it will be interpreted as 'any'"
-    msg = string.format(msg, name)
+    msg = string.format(msg, types.tostring(t))
     return nil,msg
   end
   return t
@@ -120,20 +119,23 @@ local function new_var (name, dec_type, pos, inf_type)
   return var
 end
 
-local function id2var (id)
-  local var_type,msg = name2type(id[2])
+local function id2var (env, id)
+  local var_type,msg = check_dec_type(id[2])
   if not var_type then
-    id[2] = "any"
+    id[2] = Any
     var_type = Any
     typeerror(env, msg, id["pos"])
+  elseif types.isUndefined(id[2]) then
+    id[2] = Any
+    var_type = Any
   end
   return new_var(id[1], id[2], id["pos"], var_type)
 end
 
-local function idlist2varlist (idlist)
+local function idlist2varlist (env, idlist)
   local list = {}
   for k,v in ipairs(idlist) do
-    local var = id2var(v)
+    local var = id2var(env, v)
     table.insert(list, var)
   end
   return list
@@ -184,7 +186,9 @@ local function set_var (env, var, inf_type, scope)
   local pos = var["pos"]
   local dec_type = var["type"]
   local shadowing
-  if types.subtype(inf_type, dec_type) then
+  if types.isUndefined(dec_type) then
+    var["type"] = inf_type
+  elseif types.subtype(inf_type, dec_type) then
     var["type"] = dec_type
   elseif types.isAny(dec_type) then
     if not types.isNil(inf_type) then
@@ -271,10 +275,12 @@ end
 function check_var (env, var)
   local tag = var.tag
   if tag == "VarID" then
-    local t,msg = name2type(var[2])
+    local t,msg = check_dec_type(var[2])
     if not t then
       t = Any
       typeerror(env, msg, var["pos"])
+    elseif types.isUndefined(var[2]) then
+      t = Any
     end
     set_node_type(var, t)
   elseif tag == "VarIndex" then
@@ -319,7 +325,7 @@ local function check_function_stm (env, ret_type, stm)
 end
 
 local function check_function_prototype (env, idlist, dec_type)
-  local varlist = idlist2varlist(idlist)
+  local varlist = idlist2varlist(env, idlist)
   local len = #varlist
   local args_type = {}
   if len == 0 then
@@ -342,10 +348,12 @@ local function check_function_prototype (env, idlist, dec_type)
       table.insert(args_type, types.VarArg(vararg_type))
     end
   end
-  local ret_type,msg = name2type(dec_type)
+  local ret_type,msg = check_dec_type(dec_type)
   if not ret_type then
     ret_type = Any
     typeerror(env, msg, exp["pos"])
+  elseif types.isUndefined(ret_type) then
+    ret_type = Any
   end
   return types.Function(args_type, ret_type)
 end
@@ -740,7 +748,7 @@ end
 
 local function check_for_numeric (env, id, exp1, exp2, exp3, stm)
   begin_scope(env)
-  local var = id2var(id)
+  local var = id2var(env, id)
   set_var(env, var, Number, env["scope"])
   check_exp(env, exp1)
   check_exp(env, exp2)
@@ -777,7 +785,7 @@ local function check_global_function (env, stm)
   begin_scope(env)
   local name, idlist, dec_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
   local t = check_function_prototype(env, idlist, dec_type)
-  local var = new_var(name, "any", stm["pos"], t)
+  local var = new_var(name, Any, stm["pos"], t)
   set_var(env, var, t)
   local ret_type = t[2]
   check_function_stm(env, ret_type, stm1)
@@ -796,7 +804,7 @@ local function check_local_function (env, stm)
   begin_scope(env)
   local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
   local t = check_function_prototype(env, idlist, dec_type)
-  local var = new_var(name, "any", stm["pos"], t)
+  local var = new_var(name, Any, stm["pos"], t)
   set_var(env, var, t, env["scope"])
   local ret_type = t[2]
   check_function_stm(env, ret_type, stm1)
@@ -805,7 +813,7 @@ local function check_local_function (env, stm)
 end
 
 local function check_local_var (env, idlist, explist)
-  local varlist = idlist2varlist(idlist)
+  local varlist = idlist2varlist(env, idlist)
   check_explist(env, explist)
   local fill_type = get_fill_type(explist)
   for k,v in ipairs(varlist) do
