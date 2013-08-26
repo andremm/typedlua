@@ -320,33 +320,16 @@ function types.subtype (t1, t2)
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
   elseif types.isUnion(t1) then -- S-UNION3
     return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
-  elseif types.isVarArg(t1) then
-    return types.subtype(t1[1], types.Union(t2, types.Nil()))
+  elseif types.isVarArg(t1) and types.isVarArg(t2) then -- S-VARARG1
+    return types.subtype(t1[1], t2[1])
+  elseif types.isVarArg(t1) and types.isUnion(t2) then -- S-VARARG2
+    return types.subtype(t1[1], t2[1]) and types.isNil(t2[2])
   end
   return false
 end
 
-function types.name2type (name)
-  if name == "any" then
-    return types.Any()
-  elseif name == "boolean" then
-    return types.Boolean()
-  elseif name == "nil" then
-    return types.Nil()
-  elseif name == "number" then
-    return types.Number()
-  elseif name == "object" then
-    return types.Object()
-  elseif name == "string" then
-    return types.String()
-  end
-  return nil
-end
-
 local function type2str (t)
-  if types.isUndefined(t) then
-    return "?"
-  elseif types.isConstant(t) then
+  if types.isConstant(t) then
     return type(t[1])
   elseif types.isBase(t) or types.isName(t) then
     return t[1]
@@ -354,6 +337,8 @@ local function type2str (t)
     return "object"
   elseif types.isAny(t) then
     return "any"
+  elseif types.isUndefined(t) then
+    return "?"
   elseif types.isFunction(t) then
     local l = {}
     for k,v in ipairs(t[1]) do
