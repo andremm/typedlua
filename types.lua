@@ -328,6 +328,17 @@ function types.subtype (t1, t2)
   return false
 end
 
+function types.supertypeof (t)
+  if types.isFalse(t) or types.isTrue(t) then
+    return types.Boolean()
+  elseif types.isDouble(t) or types.isInteger(t) then
+    return types.Number()
+  elseif types.isConstantString(t) then
+    return types.String()
+  end
+  return t
+end
+
 local function type2str (t)
   if types.isConstant(t) then
     return type(t[1])
