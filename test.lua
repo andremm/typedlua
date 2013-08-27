@@ -2506,8 +2506,8 @@ local function f (x)
 end
 ]=]
 
-r = generatecode(s)
-assert(r == e)
+--r = generatecode(s)
+--assert(r == e)
 
 -- repeat
 

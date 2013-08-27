@@ -55,15 +55,6 @@ local function check_type_name (env, t)
   return true
 end
 
-local function check_dec_type (t)
-  if types.isName(t) then
-    local msg = "type '%s' is not defined, so it will be interpreted as 'any'"
-    msg = string.format(msg, types.tostring(t))
-    return nil,msg
-  end
-  return t
-end
-
 local function get_fill_type (list)
   local len = #list
   if len > 0 then
@@ -111,41 +102,10 @@ end
 
 -- functions that handle identifiers
 
-local function new_id (id_name, id_pos, id_type)
-  local id = {}
-  id["name"] = id_name
-  id["pos"] = id_pos
-  id["type"] = id_type
-  return id
-end
-
 local check_block, check_stm, check_exp, check_var
 local check_explist
 
 -- variables
-
-local function new_var (name, dec_type, pos, inf_type)
-  local var = {}
-  var["tag"] = "VarID"
-  var[1] = name
-  var[2] = dec_type
-  var["pos"] = pos
-  var["type"] = inf_type
-  return var
-end
-
-local function id2var (env, id)
-  local var_type,msg = check_dec_type(id[2])
-  if not var_type then
-    id[2] = Any
-    var_type = Any
-    typeerror(env, msg, id["pos"])
-  elseif types.isUndefined(id[2]) then
-    id[2] = Any
-    var_type = Any
-  end
-  return new_var(id[1], id[2], id["pos"], var_type)
-end
 
 local function var_id (var_name, var_type, var_pos)
   local var = {}
@@ -156,17 +116,17 @@ local function var_id (var_name, var_type, var_pos)
   return var
 end
 
-local function __id2var (env, id)
+local function id2var (env, id)
   if check_type_name(env, id[2]) then
     return var_id(id[1], id[2], id.pos)
   end
   return var_id(id[1], Undefined, id.pos)
 end
 
-local function __idlist2varlist (env, idlist)
+local function idlist2varlist (env, idlist)
   local list = {}
   for k, v in ipairs(idlist) do
-    table.insert(list, __id2var(env, v))
+    table.insert(list, id2var(env, v))
   end
   return list
 end
@@ -182,15 +142,6 @@ local function parlist2varlist (env, idlist)
   local list = {}
   for k, v in ipairs(idlist) do
     table.insert(list, par2var(env, v))
-  end
-  return list
-end
-
-local function idlist2varlist (env, idlist)
-  local list = {}
-  for k,v in ipairs(idlist) do
-    local var = id2var(env, v)
-    table.insert(list, var)
   end
   return list
 end
@@ -261,7 +212,7 @@ local function get_var_pos (var)
   end
 end
 
-local function __set_var (env, var_name, var_type, pos, scope)
+local function set_var (env, var_name, var_type, pos, scope)
   local v = { var_name = var_name, var_type = var_type, pos = pos }
   local shadow, shadow_scope
   if not scope then -- global
@@ -362,75 +313,6 @@ local function __update_var (env, var_name, dec_type, inf_type, pos, scope)
   match_dec_type(env, var_type, inf_type, pos)
 end
 
-local function set_var (env, var, inf_type, scope)
-  local msg
-  local name = var[1]
-  local pos = var["pos"]
-  local dec_type = var["type"]
-  local shadowing
-  if types.isUndefined(dec_type) then
-    var["type"] = inf_type
-  elseif types.subtype(inf_type, dec_type) then
-    var["type"] = dec_type
-  elseif types.isAny(dec_type) then
-    if not types.isNil(inf_type) then
-      if types.isConstant(inf_type) then
-        local c = inf_type[1]
-        local t = type(c)
-        if t == "boolean" then
-          inf_type = Boolean
-        elseif t == "number" then
-          inf_type = Number
-        elseif t == "string" then
-          inf_type = String
-        else
-          inf_type = Nil
-        end
-      end
-      var["type"] = inf_type
-    else
-      var["type"] = dec_type
-    end
-    msg = "attempt to cast 'any' to '%s'"
-    msg = msg:format(types.tostring(inf_type))
-    warning(env, msg, var["pos"])
-  elseif types.isAny(inf_type) then
-    var["type"] = dec_type
-    msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(dec_type))
-    warning(env, msg, var["pos"])
-  else
-    var["type"] = dec_type
-    msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
-    typeerror(env, msg, var["pos"])
-  end
-  local shadowing, local_or_global
-  if scope then -- local
-    shadowing = env[scope]["local"][name]
-    if shadowing then
-      local_or_global = "local"
-    end
-    env[scope]["local"][name] = var
-  else -- global
-    shadowing = env["global"][name]
-    if shadowing then
-      local_or_global = "global"
-    end
-    env["global"][name] = var
-  end
-  if shadowing then
-    local line,col = lineno(shadowing["pos"])
-    local t1,t2 = types.tostring(shadowing["type"]), types.tostring(var["type"])
-    msg = "%s '%s' was previously defined on line %d"
-    msg = msg:format(local_or_global, name, line)
-    warning(env, msg, var["pos"])
-    msg = "shadowing local '%s' from '%s' to '%s'"
-    msg = msg:format(name, t1, t2)
-    warning(env, msg, var["pos"])
-  end
-end
-
 local function update_var (env, name, pos, inf_type, scope)
   local var
   if scope then -- local
@@ -455,27 +337,6 @@ local function update_var (env, name, pos, inf_type, scope)
 end
 
 function check_var (env, var)
-  local tag = var.tag
-  if tag == "VarID" then
-    local t,msg = check_dec_type(var[2])
-    if not t then
-      t = Any
-      typeerror(env, msg, var["pos"])
-    elseif types.isUndefined(var[2]) then
-      t = Any
-    end
-    set_node_type(var, t)
-  elseif tag == "VarIndex" then
-    local exp1, exp2 = var[1], var[2]
-    check_exp(env, exp1)
-    check_exp(env, exp2)
-    set_node_type(var, Any)
-  else
-    error("cannot type check a variable " .. tag)
-  end
-end
-
-function __check_var (env, var)
   local tag = var.tag
   if tag == "VarID" then
     if not check_type_name(env, var[2]) then var[2] = Undefined end
@@ -541,7 +402,7 @@ local function check_parameters_list (env, varlist)
       local var_type = get_var_type(v)
       local var_pos = get_var_pos(v)
       var_type = check_par_dec(env, var_type)
-      __set_var(env, var_name, var_type, var_pos, scope)
+      set_var(env, var_name, var_type, var_pos, scope)
       table.insert(list, var_type)
     end
     if is_vararg then
@@ -551,45 +412,11 @@ local function check_parameters_list (env, varlist)
   return list
 end
 
-local function __check_function_prototype (env, idlist, ret_type)
+local function check_function_prototype (env, idlist, ret_type)
   local varlist = parlist2varlist(env, idlist)
   local par_type = check_parameters_list(env, varlist)
   ret_type = check_ret_dec(env, ret_type)
   return types.Function(par_type, ret_type)
-end
-
-local function check_function_prototype (env, idlist, dec_type)
-  local varlist = idlist2varlist(env, idlist)
-  local len = #varlist
-  local args_type = {}
-  if len == 0 then
-    table.insert(args_type, types.VarArg(Object))
-  else
-    local is_vararg = false
-    local vararg_type
-    if varlist[len][1] == "..." then
-      is_vararg = true
-      set_vararg(env, varlist[len]["type"])
-      vararg_type = varlist[len]["type"]
-      table.remove(varlist)
-      len = #varlist
-    end
-    for k,v in ipairs(varlist) do
-      set_var(env, v, v["type"], env["scope"])
-      table.insert(args_type, v["type"])
-    end
-    if is_vararg then
-      table.insert(args_type, types.VarArg(vararg_type))
-    end
-  end
-  local ret_type,msg = check_dec_type(dec_type)
-  if not ret_type then
-    ret_type = Any
-    typeerror(env, msg, exp["pos"])
-  elseif types.isUndefined(ret_type) then
-    ret_type = Any
-  end
-  return types.Function(args_type, ret_type)
 end
 
 -- expressions
@@ -619,20 +446,8 @@ local function check_anonymous_function (env, exp)
   begin_function(env)
   begin_scope(env)
   local idlist, ret_type, stm = exp[1], exp[2], exp[3]
-  local t = __check_function_prototype(env, idlist, ret_type)
+  local t = check_function_prototype(env, idlist, ret_type)
   ret_type = t[2]
-  check_function_stm(env, ret_type, stm)
-  set_node_type(exp, t)
-  end_scope(env)
-  end_function(env)
-end
-
-local function check_anonymous_function1 (env, exp)
-  begin_function(env)
-  begin_scope(env)
-  local idlist, dec_type, stm = exp[1], exp[2], exp[3]
-  local t = check_function_prototype(env, idlist, dec_type)
-  local ret_type = t[2]
   check_function_stm(env, ret_type, stm)
   set_node_type(exp, t)
   end_scope(env)
@@ -812,9 +627,9 @@ local function check_calling_function (env, exp)
     local var_type
     if isvisible == "local" then
       local scope = get_local_scope(env, var_name)
-      var_type = env[scope]["local"][var_name]["type"]
+      var_type = env[scope]["local"][var_name]["var_type"]
     else
-      var_type = env["global"][var_name]["type"]
+      var_type = env["global"][var_name]["var_type"]
     end
     ret_type = check_call(env, var_name, var_type, explist, pos, isvisible)
   else
@@ -860,21 +675,20 @@ local function check_equal (env, exp)
 end
 
 local function check_expvar (env, exp)
-  local var = exp[1]
-  local name = var[1]
+  local name = get_var_name(exp[1])
   local scope = get_local_scope(env, name)
-  local t,msg
+  local t, msg
   if scope then -- local
-    t = env[scope]["local"][name]["type"]
+    t = env[scope]["local"][name]["var_type"]
   else -- global
     local g = env["global"][name]
     if g then
-      t = g["type"]
+      t = g["var_type"]
     else
       t = types.Nil()
       msg = "using variable '%s' without initialize"
       msg = string.format(msg, name)
-      typeerror(env, msg, exp["pos"])
+      typeerror(env, msg, exp.pos)
     end
   end
   set_node_type(exp, t)
@@ -965,7 +779,7 @@ local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
   local fill_type = get_fill_type(explist)
   for k, v in ipairs(varlist) do
-    __check_var(env, v)
+    check_var(env, v)
     local var_name = get_var_name(v)
     local dec_type = get_var_type(v)
     local pos = get_var_pos(v)
@@ -979,7 +793,7 @@ local function check_assignment (env, varlist, explist)
         __update_var(env, var_name, dec_type, inf_type, pos)
       else
         local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
-        __set_var(env, var_name, t, pos)
+        set_var(env, var_name, t, pos)
       end
     end
   end
@@ -998,8 +812,7 @@ end
 
 local function check_for_numeric (env, id, exp1, exp2, exp3, stm)
   begin_scope(env)
-  local var = id2var(env, id)
-  set_var(env, var, Number, env["scope"])
+  set_var(env, id[1], Number, id.pos, env.scope)
   check_exp(env, exp1)
   check_exp(env, exp2)
   check_exp(env, exp3)
@@ -1030,27 +843,14 @@ local function check_for_numeric (env, id, exp1, exp2, exp3, stm)
   end_scope(env)
 end
 
-local function check_global_function1 (env, stm)
-  begin_function(env)
-  begin_scope(env)
-  local name, idlist, dec_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
-  local t = check_function_prototype(env, idlist, dec_type)
-  local var = new_var(name, Any, stm["pos"], t)
-  set_var(env, var, t)
-  local ret_type = t[2]
-  check_function_stm(env, ret_type, stm1)
-  end_scope(env)
-  end_function(env)
-end
-
 local function check_global_function (env, stm)
   local pos = stm.pos
   begin_function(env)
   begin_scope(env)
   -- TODO: adjust name when implement tables
   local name, idlist, ret_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
-  local t = __check_function_prototype(env, idlist, ret_type)
-  __set_var(env, name, t, pos)
+  local t = check_function_prototype(env, idlist, ret_type)
+  set_var(env, name, t, pos)
   ret_type = t[2]
   check_function_stm(env, ret_type, stm1)
   end_scope(env)
@@ -1068,22 +868,9 @@ local function check_local_function (env, stm)
   begin_function(env)
   begin_scope(env)
   local name, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
-  local t = __check_function_prototype(env, idlist, ret_type)
-  __set_var(env, name, t, scope)
+  local t = check_function_prototype(env, idlist, ret_type)
+  set_var(env, name, t, scope)
   ret_type = t[2]
-  check_function_stm(env, ret_type, stm1)
-  end_scope(env)
-  end_function(env)
-end
-
-local function check_local_function1 (env, stm)
-  begin_function(env)
-  begin_scope(env)
-  local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
-  local t = check_function_prototype(env, idlist, dec_type)
-  local var = new_var(name, Any, stm["pos"], t)
-  set_var(env, var, t, env["scope"])
-  local ret_type = t[2]
   check_function_stm(env, ret_type, stm1)
   end_scope(env)
   end_function(env)
@@ -1091,7 +878,7 @@ end
 
 local function check_local_var (env, idlist, explist)
   local scope = env.scope
-  local varlist = __idlist2varlist(env, idlist)
+  local varlist = idlist2varlist(env, idlist)
   check_explist(env, explist)
   local fill_type = get_fill_type(explist)
   for k, v in ipairs(varlist) do
@@ -1100,7 +887,7 @@ local function check_local_var (env, idlist, explist)
     local pos = get_var_pos(v)
     local inf_type = get_node_type(explist[k], fill_type)
     local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
-    __set_var(env, var_name, t, pos, scope)
+    set_var(env, var_name, t, pos, scope)
   end
 end
 
@@ -1244,11 +1031,11 @@ local function init_symbol_table (env, subject, filename)
     local t = type(v)
     local obj_star = types.VarArg(Object)
     if t == "string" then
-      env["global"][k] = new_id(k, 0, types.ConstantString(v))
+      set_var(env, k, types.ConstantString(v), 0)
     elseif t == "function" then
-      env["global"][k] = new_id(k, 0, types.Function({obj_star},obj_star))
+      set_var(env, k, types.Function({obj_star},obj_star), 0)
     else
-      env["global"][k] = new_id(k, 0, any)
+      set_var(env, k, Any, 0)
     end
   end
 end
