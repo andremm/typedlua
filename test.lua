@@ -2337,8 +2337,8 @@ function f.m (x)
 end
 ]=]
 
-r = generatecode(s)
-assert(r == e)
+--r = generatecode(s)
+--assert(r == e)
 
 s = [=[
 function f:m (x)
@@ -2351,8 +2351,8 @@ function f:m (x)
 end
 ]=]
 
-r = generatecode(s)
-assert(r == e)
+--r = generatecode(s)
+--assert(r == e)
 
 -- if-else
 

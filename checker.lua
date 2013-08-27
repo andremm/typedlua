@@ -45,6 +45,16 @@ local function type2str (t)
   return types.tostring(t)
 end
 
+local function check_type_name (env, t)
+  if types.isName(t) then
+    local msg = "type '%s' is not defined"
+    msg = string.format(msg, type2str(t))
+    warning(env, msg, t.pos)
+    return false
+  end
+  return true
+end
+
 local function check_dec_type (t)
   if types.isName(t) then
     local msg = "type '%s' is not defined, so it will be interpreted as 'any'"
@@ -146,14 +156,32 @@ local function var_id (var_name, var_type, var_pos)
   return var
 end
 
-local function __id2var (id)
-  return var_id(id[1], id[2], id.pos)
+local function __id2var (env, id)
+  if check_type_name(env, id[2]) then
+    return var_id(id[1], id[2], id.pos)
+  end
+  return var_id(id[1], Undefined, id.pos)
 end
 
-local function __idlist2varlist (idlist)
+local function __idlist2varlist (env, idlist)
   local list = {}
   for k, v in ipairs(idlist) do
-    table.insert(list, __id2var(v))
+    table.insert(list, __id2var(env, v))
+  end
+  return list
+end
+
+local function par2var (env, id)
+  if check_type_name(env, id[2]) then
+    return var_id(id[1], id[2], id.pos)
+  end
+  return var_id(id[1], Any, id.pos)
+end
+
+local function parlist2varlist (env, idlist)
+  local list = {}
+  for k, v in ipairs(idlist) do
+    table.insert(list, par2var(env, v))
   end
   return list
 end
@@ -233,28 +261,27 @@ local function get_var_pos (var)
   end
 end
 
-local function insert_var (env, var_name, var_type, pos, scope)
+local function __set_var (env, var_name, var_type, pos, scope)
   local v = { var_name = var_name, var_type = var_type, pos = pos }
+  local shadow, shadow_scope
   if not scope then -- global
+    shadow = env["global"][var_name]
+    if shadow then shadow_scope = "global" end
     env["global"][var_name] = v
   else -- local
-    local shadow = env[scope]["local"][var_name]
-    local shadow_scope = "local"
-    if not shadow then
-      shadow = env["global"][var_name]
-      shadow_scope = "global"
-    end
+    shadow = env[scope]["local"][var_name]
+    if shadow then shadow_scope = "local" end
     env[scope]["local"][var_name] = v
-    if shadow then
-      local line = lineno(env.subject, shadow.pos)
-      local t1, t2 = type2str(shadow.var_type), type2str(var_type)
-      local msg = "%s '%s' was previously defined at line %d"
-      msg = string.format(msg, shadow_scope, var_name, line)
-      warning(env, msg, pos)
-      msg = "shadowing %s '%s' from '%s' to '%s'"
-      msg = string.format(msg, shadow_scope, var_name, t1, t2)
-      warning(env, msg, pos)
-    end
+  end
+  if shadow then
+    local line = lineno(env.subject, shadow.pos)
+    local t1, t2 = type2str(shadow.var_type), type2str(var_type)
+    local msg = "%s '%s' was previously defined at line %d"
+    msg = string.format(msg, shadow_scope, var_name, line)
+    warning(env, msg, pos)
+    msg = "shadowing %s '%s' from '%s' to '%s'"
+    msg = string.format(msg, shadow_scope, var_name, t1, t2)
+    warning(env, msg, pos)
   end
 end
 
@@ -289,14 +316,30 @@ local function match_dec_type (env, dec_type, inf_type, pos)
   end
 end
 
-local function __set_var (env, var_name, dec_type, inf_type, pos, scope)
+local function check_var_dec (env, var_name, dec_type, inf_type, pos, scope)
   local msg
   if types.isUndefined(dec_type) then
     dec_type = adjust_dec_type(env, var_name, inf_type, pos, scope)
   else
     match_dec_type(env, dec_type, inf_type, pos)
   end
-  insert_var(env, var_name, dec_type, pos, scope)
+  return dec_type
+end
+
+local function check_par_dec (env, par_type)
+  if types.isUndefined(par_type) or
+     not check_type_name(env, par_type) then
+    return Any
+  end
+  return par_type
+end
+
+local function check_ret_dec (env, ret_type)
+  if types.isUndefined(ret_type) or
+     not check_type_name(env, ret_type) then
+    return types.VarArg(Any)
+  end
+  return ret_type
 end
 
 local function __update_var (env, var_name, dec_type, inf_type, pos, scope)
@@ -435,12 +478,7 @@ end
 function __check_var (env, var)
   local tag = var.tag
   if tag == "VarID" then
-    if types.isName(var[2]) then
-      local msg = "type '%s' is not defined"
-      msg = string.format(msg, type2str(var[2]))
-      warning(env, msg, var[2].pos)
-      var[2] = Undefined
-    end
+    if not check_type_name(env, var[2]) then var[2] = Undefined end
     var["type"] = var[2]
   elseif tag == "VarIndex" then
     check_exp(env, var[1])
@@ -480,6 +518,44 @@ local function check_function_stm (env, ret_type, stm)
     msg = msg:format(types.tostring(inf_type), types.tostring(ret_type))
     typeerror(env, msg, stm["pos"])
   end
+end
+
+local function check_parameters_list (env, varlist)
+  local len = #varlist
+  local list = {}
+  if len == 0 then
+    table.insert(list, types.VarArg(Object))
+  else
+    local is_vararg = false
+    local vararg_type
+    if varlist[len][1] == "..." then
+      is_vararg = true
+      vararg_type = check_par_dec(env, varlist[len][2])
+      set_vararg(env, vararg_type)
+      table.remove(varlist)
+      len = #varlist
+    end
+    local scope = env.scope
+    for k, v in ipairs(varlist) do
+      local var_name = get_var_name(v)
+      local var_type = get_var_type(v)
+      local var_pos = get_var_pos(v)
+      var_type = check_par_dec(env, var_type)
+      __set_var(env, var_name, var_type, var_pos, scope)
+      table.insert(list, var_type)
+    end
+    if is_vararg then
+      table.insert(list, types.VarArg(vararg_type))
+    end
+  end
+  return list
+end
+
+local function __check_function_prototype (env, idlist, ret_type)
+  local varlist = parlist2varlist(env, idlist)
+  local par_type = check_parameters_list(env, varlist)
+  ret_type = check_ret_dec(env, ret_type)
+  return types.Function(par_type, ret_type)
 end
 
 local function check_function_prototype (env, idlist, dec_type)
@@ -540,6 +616,18 @@ local function check_and (env, exp)
 end
 
 local function check_anonymous_function (env, exp)
+  begin_function(env)
+  begin_scope(env)
+  local idlist, ret_type, stm = exp[1], exp[2], exp[3]
+  local t = __check_function_prototype(env, idlist, ret_type)
+  ret_type = t[2]
+  check_function_stm(env, ret_type, stm)
+  set_node_type(exp, t)
+  end_scope(env)
+  end_function(env)
+end
+
+local function check_anonymous_function1 (env, exp)
   begin_function(env)
   begin_scope(env)
   local idlist, dec_type, stm = exp[1], exp[2], exp[3]
@@ -890,7 +978,8 @@ local function check_assignment (env, varlist, explist)
       if g then
         __update_var(env, var_name, dec_type, inf_type, pos)
       else
-        __set_var(env, var_name, dec_type, inf_type, pos)
+        local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
+        __set_var(env, var_name, t, pos)
       end
     end
   end
@@ -941,7 +1030,7 @@ local function check_for_numeric (env, id, exp1, exp2, exp3, stm)
   end_scope(env)
 end
 
-local function check_global_function (env, stm)
+local function check_global_function1 (env, stm)
   begin_function(env)
   begin_scope(env)
   local name, idlist, dec_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
@@ -954,6 +1043,20 @@ local function check_global_function (env, stm)
   end_function(env)
 end
 
+local function check_global_function (env, stm)
+  local pos = stm.pos
+  begin_function(env)
+  begin_scope(env)
+  -- TODO: adjust name when implement tables
+  local name, idlist, ret_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
+  local t = __check_function_prototype(env, idlist, ret_type)
+  __set_var(env, name, t, pos)
+  ret_type = t[2]
+  check_function_stm(env, ret_type, stm1)
+  end_scope(env)
+  end_function(env)
+end
+
 local function check_if_else (env, exp, stm1, stm2)
   check_exp(env, exp)
   check_stm(env, stm1)
@@ -961,6 +1064,19 @@ local function check_if_else (env, exp, stm1, stm2)
 end
 
 local function check_local_function (env, stm)
+  local scope, pos = env.scope, stm.pos
+  begin_function(env)
+  begin_scope(env)
+  local name, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  local t = __check_function_prototype(env, idlist, ret_type)
+  __set_var(env, name, t, scope)
+  ret_type = t[2]
+  check_function_stm(env, ret_type, stm1)
+  end_scope(env)
+  end_function(env)
+end
+
+local function check_local_function1 (env, stm)
   begin_function(env)
   begin_scope(env)
   local name, idlist, dec_type, stm1 = stm[1], stm[2], stm[3], stm[4]
@@ -975,16 +1091,16 @@ end
 
 local function check_local_var (env, idlist, explist)
   local scope = env.scope
-  local varlist = __idlist2varlist(idlist)
+  local varlist = __idlist2varlist(env, idlist)
   check_explist(env, explist)
   local fill_type = get_fill_type(explist)
   for k, v in ipairs(varlist) do
-    __check_var(env, v)
     local var_name = get_var_name(v)
     local dec_type = get_var_type(v)
     local pos = get_var_pos(v)
     local inf_type = get_node_type(explist[k], fill_type)
-    __set_var(env, var_name, dec_type, inf_type, pos, scope)
+    local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
+    __set_var(env, var_name, t, pos, scope)
   end
 end
 
@@ -1083,7 +1199,11 @@ function check_stm (env, stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_repeat(env, stm[1], stm[2])
   elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
-    check_global_function(env, stm)
+    if #stm[1] == 1 then
+      check_global_function(env, stm)
+    else
+      warning(env, "cannot type check function inside table", stm.pos)
+    end
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     check_local_function(env, stm)
   elseif tag == "StmLabel" or -- StmLabel Name
