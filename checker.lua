@@ -84,20 +84,14 @@ end
 local function get_return_type (env, fscope)
   local ret_type = env["function"][fscope]["ret_type"]
   if not ret_type then
-    return Nil
+    return types.VarArg(Any)
   end
   return ret_type
 end
 
-local function set_return_type (env, fscope, rtype)
-  local ret_type = env["function"][fscope]["ret_type"]
-  if not ret_type then
-    env["function"][fscope]["ret_type"] = rtype
-  else
-    if not types.subtype(ret_type, rtype) then
-      env["function"][fscope]["ret_type"] = types.Union(ret_type, rtype)
-    end
-  end
+local function set_return_type (env, ret_type)
+  local fscope = env.fscope
+  env["function"][fscope]["ret_type"] = ret_type
 end
 
 -- functions that handle identifiers
@@ -221,7 +215,12 @@ local function set_var (env, var_name, var_type, pos, scope)
     env["global"][var_name] = v
   else -- local
     shadow = env[scope]["local"][var_name]
-    if shadow then shadow_scope = "local" end
+    if shadow then
+      shadow_scope = "local"
+    else
+      shadow = env["global"][var_name]
+      if shadow then shadow_scope = "global" end
+    end
     env[scope]["local"][var_name] = v
   end
   if shadow then
@@ -293,7 +292,7 @@ local function check_ret_dec (env, ret_type)
   return ret_type
 end
 
-local function __update_var (env, var_name, dec_type, inf_type, pos, scope)
+local function update_var (env, var_name, dec_type, inf_type, pos, scope)
   local v, var_scope, msg
   if scope then -- local
     v = env[scope]["local"][var_name]
@@ -311,29 +310,6 @@ local function __update_var (env, var_name, dec_type, inf_type, pos, scope)
     warning(env, msg, pos)
   end
   match_dec_type(env, var_type, inf_type, pos)
-end
-
-local function update_var (env, name, pos, inf_type, scope)
-  local var
-  if scope then -- local
-    var = env[scope]["local"][name]
-  else -- global
-    var = env["global"][name]
-  end
-  local dec_type = var["type"]
-  if types.isAny(dec_type) then
-    local msg = "attempt to cast 'any' to '%s'"
-    msg = msg:format(types.tostring(inf_type))
-    warning(env, msg, pos)
-  elseif types.isAny(inf_type) then
-    local msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(dec_type))
-    warning(env, msg, pos)
-  elseif not types.subtype(inf_type, dec_type) then
-    local msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(dec_type))
-    typeerror(env, msg, pos)
-  end
 end
 
 function check_var (env, var)
@@ -356,29 +332,6 @@ local function set_vararg (env, btype)
   local fscope = env["fscope"]
   env["function"][fscope]["is_vararg"] = true
   env["function"][fscope]["vararg"] = types.VarArg(btype)
-end
-
-local function check_function_stm (env, ret_type, stm)
-  check_stm(env, stm)
-  local fscope = env["fscope"]
-  local inf_type = get_return_type(env, fscope)
-  local msg
-  if types.subtype(inf_type, ret_type) then
-    env["function"][fscope]["ret_type"] = ret_type
-  elseif types.isAny(ret_type) then
-    ret_type = inf_type
-    msg = "attempt to cast 'any' to '%s'"
-    msg = msg:format(types.tostring(inf_type))
-    warning(env, msg, stm["pos"])
-  elseif types.isAny(inf_type) then
-    msg = "attempt to cast '%s' to 'any'"
-    msg = msg:format(types.tostring(ret_type))
-    warning(env, msg, stm["pos"])
-  else
-    msg = "attempt to assign '%s' to '%s'"
-    msg = msg:format(types.tostring(inf_type), types.tostring(ret_type))
-    typeerror(env, msg, stm["pos"])
-  end
 end
 
 local function check_parameters_list (env, varlist)
@@ -447,8 +400,8 @@ local function check_anonymous_function (env, exp)
   begin_scope(env)
   local idlist, ret_type, stm = exp[1], exp[2], exp[3]
   local t = check_function_prototype(env, idlist, ret_type)
-  ret_type = t[2]
-  check_function_stm(env, ret_type, stm)
+  set_return_type(env, t[2])
+  check_stm(env, stm)
   set_node_type(exp, t)
   end_scope(env)
   end_function(env)
@@ -572,10 +525,11 @@ local function check_call_args (env, fname, args, explist, pos)
     dec_type = args[i]
     local j = i
     if types.isVarArg(dec_type) then
+      dec_type = types.typeofVarArg(dec_type)
       while j < len_list do
         given_type = explist[j]["type"]
         pos = explist[j]["pos"]
-        if types.typeofVarArg(given_type) then
+        if types.isVarArg(given_type) then
           given_type = types.typeofVarArg(given_type)
         end
         check_call_arg(env, fname, j, dec_type, given_type, pos)
@@ -590,26 +544,21 @@ local function check_call_args (env, fname, args, explist, pos)
   end
 end
 
-local function check_call_ret (env, fname, ftype, pos)
-
-end
-
 local function check_call (env, fname, ftype, explist, pos, visibility)
   local msg
   if types.isAny(ftype) then
     msg = "attempt to call %s '%s' of type 'any'"
-    msg = msg:format(local_or_global, var_name)
+    msg = msg:format(visibility, fname)
     warning(env, msg, pos)
     return Any
   elseif types.isFunction(ftype) then
     check_call_args(env, fname, ftype[1], explist, pos, visibility)
-    check_call_ret(env, fname, ftype[2], pos)
     return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"
-    msg = msg:format(local_or_global, var_name, types.tostring(var_type))
+    msg = msg:format(visibility, fname, type2str(ftype))
     typeerror(env, msg, pos)
-    return var_type
+    return Nil
   end
 end
 
@@ -619,7 +568,7 @@ end
 
 local function check_calling_function (env, exp)
   local var, explist, pos = exp[1][1], exp[2], exp["pos"]
-  local var_name = var[1]
+  local var_name = get_var_name(var)
   local isvisible = get_visibility(env, var_name)
   local ret_type = Nil
   check_explist(env, explist)
@@ -634,7 +583,7 @@ local function check_calling_function (env, exp)
     ret_type = check_call(env, var_name, var_type, explist, pos, isvisible)
   else
     local msg = "attempt to call undeclared function '%s'"
-    msg = msg:format(var_name)
+    msg = string.format(msg, var_name)
     typeerror(env, msg, pos)
   end
   set_node_type(exp, ret_type)
@@ -786,11 +735,11 @@ local function check_assignment (env, varlist, explist)
     local scope = get_local_scope(env, var_name)
     local inf_type = get_node_type(explist[k], fill_type)
     if scope then -- local
-      __update_var(env, var_name, dec_type, inf_type, pos, scope)
+      update_var(env, var_name, dec_type, inf_type, pos, scope)
     else -- global
       local g = get_global(env, var_name)
       if g then
-        __update_var(env, var_name, dec_type, inf_type, pos)
+        update_var(env, var_name, dec_type, inf_type, pos)
       else
         local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
         set_var(env, var_name, t, pos)
@@ -851,8 +800,8 @@ local function check_global_function (env, stm)
   local name, idlist, ret_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
   local t = check_function_prototype(env, idlist, ret_type)
   set_var(env, name, t, pos)
-  ret_type = t[2]
-  check_function_stm(env, ret_type, stm1)
+  set_return_type(env, t[2])
+  check_stm(env, stm1)
   end_scope(env)
   end_function(env)
 end
@@ -870,8 +819,8 @@ local function check_local_function (env, stm)
   local name, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
   local t = check_function_prototype(env, idlist, ret_type)
   set_var(env, name, t, scope)
-  ret_type = t[2]
-  check_function_stm(env, ret_type, stm1)
+  set_return_type(env, t[2])
+  check_stm(env, stm1)
   end_scope(env)
   end_function(env)
 end
@@ -886,7 +835,7 @@ local function check_local_var (env, idlist, explist)
     local dec_type = get_var_type(v)
     local pos = get_var_pos(v)
     local inf_type = get_node_type(explist[k], fill_type)
-    local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
+    local t = check_var_dec(env, var_name, dec_type, inf_type, pos, scope)
     set_var(env, var_name, t, pos, scope)
   end
 end
@@ -896,11 +845,55 @@ local function check_repeat (env, stm, exp)
   check_exp(env, exp)
 end
 
-local function check_return (env, explist)
+local function check_ret_type (env, dec_type, inf_type, pos)
+  local msg
+  if not types.subtype(inf_type, dec_type) then
+    msg = "attempt to return '%s' instead of '%s'"
+    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
+    typeerror(env, msg, pos)
+  elseif types.isAny(inf_type) then
+    msg = "attempt to return 'any' instead of '%s'"
+    msg = string.format(msg, type2str(dec_type))
+    warning(env, msg, pos)
+  elseif types.isAny(dec_type) then
+    msg = "attempt to return '%s' instead of 'any'"
+    msg = string.format(msg, type2str(dec_type))
+    warning(env, msg, pos)
+  end
+end
+
+local function check_return (env, stm)
+  local explist = stm[1]
+  local len = #explist
   check_explist(env, explist)
-  if #explist > 0 then
-    local fscope = env["fscope"]
-    set_return_type(env, fscope, explist[1]["type"])
+  local dec_type = get_return_type(env, env.fscope)
+  local inf_type
+  if types.isVarArg(dec_type) then
+    dec_type = types.typeofVarArg(dec_type)
+    if len == 0 then
+      check_ret_type(env, dec_type, Nil, stm.pos)
+    else
+      for k, v in ipairs(explist) do
+        inf_type = explist[k]["type"]
+        check_ret_type(env, dec_type, inf_type, explist[k]["pos"])
+      end
+    end
+  else
+    if len == 0 then
+      check_ret_type(env, dec_type, Nil, stm.pos)
+    elseif len == 1 then
+      inf_type = explist[1]["type"]
+      check_ret_type(env, dec_type, inf_type, explist[1]["pos"])
+    else
+      local msg = "attempt to return '%s' instead of '%s'"
+      local t = {}
+      for k, v in ipairs(explist) do
+        t[k] = type2str(v["type"])
+      end
+      t = "(" .. table.concat(t, ", ") .. ")"
+      msg = string.format(msg, t, type2str(dec_type))
+      warning(env, msg, explist.pos)
+    end
   end
 end
 
@@ -1001,7 +994,7 @@ function check_stm (env, stm)
   elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
     check_local_var(env, stm[1], stm[2])
   elseif tag == "StmRet" then -- StmRet [Exp]
-    check_return(env, stm[1])
+    check_return(env, stm)
   elseif tag == "StmCall" then -- StmCall Exp
     check_stmcall(env, stm[1])
   else
@@ -1047,6 +1040,7 @@ function checker.typecheck (ast, subject, filename)
   local env = {}
   init_symbol_table(env, subject, filename)
   begin_function(env)
+  set_return_type(env, types.VarArg(Object))
   set_vararg(env, String)
   check_block(env, ast)
   end_function(env)
