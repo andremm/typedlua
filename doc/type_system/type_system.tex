@@ -133,8 +133,8 @@ s ::= \; & \kw{skip} \pipe s_{1} \;;\; s_{2} \; \pipe
 \kw{if} e \; \kw{then} s_{1} \; \kw{else} s_{2} \; \pipe\\
 & \kw{while} e \; \kw{do} s \; \pipe
 \kw{repeat} s \; \kw{until} e \; \pipe\\
-& \kw{for} i=e,e,e \; \kw{do} s \; \pipe
-\kw{for} \vec{i} \; \kw{in} e(el) \; \kw{do} s \; \pipe\\
+& \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s \; \pipe
+\kw{for} \vec{i} \; \kw{in} el \; \kw{do} s \; \pipe\\
 & \kw{local} \overrightarrow{i:t} = el \; \kw{in} s \; \pipe
 \kw{local} i = f \; \kw{in} s \; \pipe\\
 & \kw{::} i \; \kw{::} \pipe \kw{goto} i \; \pipe \kw{break} \pipe
@@ -197,22 +197,38 @@ w ::= \; & {<}strings{>}
 \]
 
 \[
-\env \vdash \kw{for} i=e,e,e \; \kw{do} s
+\frac{\begin{aligned}
+      & \env \vdash e_{1}:T_{1} \;\;\;
+        \env \vdash e_{2}:T_{2} \;\;\;
+        \env \vdash e_{3}:T_{3} \\
+      & T_{1} \subtype Number \;\;\;
+        T_{2} \subtype Number \;\;\;
+        T_{3} \subtype Number \\
+      & \env[i \mapsto Number] \vdash s
+      \end{aligned}}
+     {\env \vdash \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s}
 \mylabel{FOR-NUM}
 \]
 
 \[
-\env \vdash \kw{for} \vec{i} \; \kw{in} e(el) \; \kw{do} s
+\frac{\env \vdash el:S \;\;\;
+      \env[\vec{i} \mapsto S] \vdash s}
+     {\env \vdash \kw{for} \vec{i} \; \kw{in} e \; \kw{do} s}
 \mylabel{FOR-GEN}
 \]
 
 \[
-\env \vdash \kw{local} \overrightarrow{i:t} = el \; \kw{in} s
+\frac{\env \vdash el:S \;\;\;
+      S \lesssim T_{1} \times ... \times T_{n} \times {Object*} \;\;\;
+      \env[\vec{i} \mapsto \vec{t}] \vdash s}
+     {\env \vdash \kw{local} \overrightarrow{i:t} = el \; \kw{in} s}
 \mylabel{T-LOCALVAR}
 \]
 
 \[
-\kw{local} i = f \; \kw{in} s
+\frac{\env \vdash f:S_{1} \rightarrow S_{2} \;\;\;
+  \env[i \mapsto S_{1} \rightarrow S_{2}, \string_ret \mapsto S_{2}] \vdash s}
+     {\env \vdash \kw{local} i = f \; \kw{in} s}
 \mylabel{T-LOCALFUN}
 \]
 
@@ -232,18 +248,34 @@ w ::= \; & {<}strings{>}
 \]
 
 \[
-\env \vdash \vec{l} = el
+\frac{\env \vdash \vec{l}:S_{1} \;\;\;
+      \env \vdash el:S_{2} \;\;\;
+      \env \vdash S_{2} \lesssim S_{1}}
+     {\env \vdash \vec{l} = el}
 \mylabel{T-ASSIGNMENT}
 \]
 
 \[
-\env \vdash \kw{return} el
+\frac{\env \vdash el:S_{1} \;\;\;
+      \env(\string_ret) = S_{2} \;\;\;
+      S_{1} \lesssim S_{2}}
+     {\env \vdash \kw{return} el}
 \mylabel{T-RETURN}
 \]
 
 \[
-\env \vdash \pipe e(el)
-\mylabel{T-STMCALL}
+\frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash el:S_{2} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e(el)}
+\mylabel{T-STMCALL1}
+\]
+
+\[
+\frac{\env \vdash e:Any \;\;\;
+      \env \vdash el:S}
+     {\env \vdash e(el)}
+\mylabel{T-STMCALL2}
 \]
 
 \subsubsection{Expression lists}
