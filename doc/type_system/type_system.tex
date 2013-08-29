@@ -142,11 +142,11 @@ s ::= \; & \kw{skip} \pipe s_{1} \;;\; s_{2} \; \pipe
 l ::= \; & i \; \pipe e_{1}[e_{2}]\\
 el ::= \; & \kw{nothing} \pipe \vec{e}\\
 e ::= \; & k \; \pipe {...} \; \pipe i \; \pipe e_{1}[e_{2}] \; \pipe
-f \; \pipe \{\} \; \pipe e_{1} + e_{2} \; \pipe
-e_{1} \; {..} \; e_{2} \; \pipe\\
-& e_{1} == e_{2} \; \pipe e_{1} < e_{2} \pipe
-e_{1} \; \kw{and} e_{2} \; \pipe e_{1} \; \kw{or} e_{2} \; \pipe\\
-& \kw{not} e \; | - e \; \pipe \# \; e\\
+f \; \pipe e(el) \; \pipe \{\} \; \pipe\\
+& e_{1} + e_{2} \; \pipe e_{1} \; {..} \; e_{2} \; \pipe
+e_{1} == e_{2} \; \pipe e_{1} < e_{2} \; \pipe\\
+& e_{1} \; \kw{and} e_{2} \; \pipe e_{1} \; \kw{or} e_{2} \; \pipe
+\kw{not} e \; | - e \; \pipe \# \; e\\
 f ::= \; & \kw{fun} ():t_{r} \; b \; \pipe
 \kw{fun} ({...}:t):t_{r} \; b \; \pipe\\
 & \kw{fun} (\overrightarrow{i:t}):t_{r} \; b \; \pipe
@@ -159,5 +159,271 @@ w ::= \; & {<}strings{>}
 \end{align*}
 
 \subsection{Typing rules}
+
+\subsubsection{Statements}
+
+\[
+\env \vdash \kw{skip}
+\mylabel{T-SKIP}
+\]
+
+\[
+\frac{\env \vdash s_{1} \;\;\;
+      \env \vdash s_{2}}
+     {\env \vdash s_{1} \;;\; s_{2}}
+\mylabel{T-SEQ}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      \env \vdash s_{1} \;\;\;
+      \env \vdash s_{2}}
+     {\env \vdash \kw{if} e \; \kw{then} s_{1} \; \kw{else} s_{2}}
+\mylabel{T-IF-ELSE}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      \env \vdash s}
+     {\env \vdash \kw{while} e \; \kw{do} s}
+\mylabel{T-WHILE}
+\]
+
+\[
+\frac{\env \vdash s \;\;\;
+      \env \vdash e:T}
+     {\env \vdash \kw{repeat} s \; \kw{until} e}
+\mylabel{T-REPEAT}
+\]
+
+\[
+\env \vdash \kw{for} i=e,e,e \; \kw{do} s
+\mylabel{FOR-NUM}
+\]
+
+\[
+\env \vdash \kw{for} \vec{i} \; \kw{in} e(el) \; \kw{do} s
+\mylabel{FOR-GEN}
+\]
+
+\[
+\env \vdash \kw{local} \overrightarrow{i:t} = el \; \kw{in} s
+\mylabel{T-LOCALVAR}
+\]
+
+\[
+\kw{local} i = f \; \kw{in} s
+\mylabel{T-LOCALFUN}
+\]
+
+\[
+\env \vdash \kw{::} i \; \kw{::}
+\mylabel{T-LABEL}
+\]
+
+\[
+\env \vdash \kw{goto} i
+\mylabel{T-GOTO}
+\]
+
+\[
+\env \vdash \kw{break}
+\mylabel{T-BREAK}
+\]
+
+\[
+\env \vdash \vec{l} = el
+\mylabel{T-ASSIGNMENT}
+\]
+
+\[
+\env \vdash \kw{return} el
+\mylabel{T-RETURN}
+\]
+
+\[
+\env \vdash \pipe e(el)
+\mylabel{T-STMCALL}
+\]
+
+\subsubsection{Expression lists}
+
+\[
+\env \vdash \kw{nothing}
+\mylabel{T-EL1}
+\]
+
+\[
+\env \vdash \vec{e}
+\mylabel{T-EL2}
+\]
+
+\subsubsection{Expressions}
+
+\[
+\env \vdash k : k
+\mylabel{T-CONSTANT}
+\]
+
+\[
+\frac{\env({...}) = T}
+     {\env \vdash {...} : T*}
+\mylabel{T-VARARG}
+\]
+
+\[
+\frac{\env(i) = T}
+     {\env \vdash i : T}
+\mylabel{T-VAR-ID}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1}[e_{2}] : Any}
+\mylabel{T-VAR-INDEX}
+\]
+
+\[
+\env \vdash f : Any
+\mylabel{T-FUNC}
+\]
+
+\[
+\env \vdash \{\} : Any
+\mylabel{T-TABLE}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\;
+      T_{2} \subtype Number}
+     {\env \vdash e_{1} + e_{2} : Number}
+\mylabel{T-ARITH1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} + e_{2} : Any}
+\mylabel{T-ARITH3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\;
+      T_{2} \subtype String}
+     {\env \vdash e_{1} \; {..} \;  e_{2} : String}
+\mylabel{T-CONCAT1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
+\mylabel{T-CONCAT3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} == e_{2} : Boolean}
+\mylabel{T-EQUAL}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype Number \;\;\;
+      T_{2} \subtype Number}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype String \;\;\;
+      T_{2} \subtype String}
+     {\env \vdash e_{1} < e_{2} : Boolean}
+\mylabel{T-ORDER2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:Any}
+     {\env \vdash e_{1} < e_{2} : Any}
+\mylabel{T-ORDER4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{and} e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-AND}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{or} e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR}
+\]
+
+\[
+\frac{\env \vdash e:T}
+     {\env \vdash \kw{not} e : Boolean}
+\mylabel{T-NOT}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype Number}
+     {\env \vdash - \; e : Number}
+\mylabel{T-MINUS1}
+\]
+
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash - \; e : Any}
+\mylabel{T-MINUS2}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype String}
+     {\env \vdash \# \; e : Number}
+\mylabel{T-LEN1}
+\]
+
+\[
+\frac{\env \vdash e:Any}
+     {\env \vdash \# \; e : Any}
+\mylabel{T-LEN2}
+\]
+
 
 \end{document}
