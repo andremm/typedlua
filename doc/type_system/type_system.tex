@@ -281,12 +281,12 @@ w ::= \; & {<}strings{>}
 \subsubsection{Expression lists}
 
 \[
-\env \vdash \kw{nothing}
+\env \vdash \kw{nothing}:{Nil*}
 \mylabel{T-EL1}
 \]
 
 \[
-\env \vdash \vec{e}
+\env \vdash \vec{e}:S \times {Nil*}
 \mylabel{T-EL2}
 \]
 
@@ -299,7 +299,7 @@ w ::= \; & {<}strings{>}
 
 \[
 \frac{\env({...}) = T}
-     {\env \vdash {...} : T*}
+     {\env \vdash {...} : {T*}}
 \mylabel{T-VARARG}
 \]
 
@@ -317,8 +317,44 @@ w ::= \; & {<}strings{>}
 \]
 
 \[
-\env \vdash f : Any
-\mylabel{T-FUNC}
+\frac{\env[\string_ret \mapsto T_{r}] \vdash b}
+     {\kw{fun} ():t_{r} \; b : {Object*} \rightarrow T_{r}}
+\mylabel{T-FUNCTION1}
+\]
+
+\[
+\frac{\env[\string_ret \mapsto T_{r}] \vdash b}
+     {\kw{fun} ({...}:t):t_{r} \; b : {T*} \rightarrow T_{r}}
+\mylabel{T-FUNCTION2}
+\]
+
+\[
+\frac{\env[\vec{i} \mapsto \vec{t}, \string_ret \mapsto T_{r}] \vdash b}
+     {\kw{fun} (\overrightarrow{i:t}):t_{r} \; b :
+      T_{1} \times ... \times T_{n} \rightarrow T_{r}}
+\mylabel{T-FUNCTION3}
+\]
+
+\[
+\frac{\env[\vec{i} \mapsto \vec{t}, \string_ret \mapsto T_{r}] \vdash b}
+     {\kw{fun} (\overrightarrow{i:t}, {...}:t):t_{r} \; b :
+      T_{1} \times ... \times T_{n} \times {T*} \rightarrow T_{r}}
+\mylabel{T-FUNCTION4}
+\]
+
+\[
+\frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash el:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e(el) : S_{2}}
+\mylabel{T-CALL1}
+\]
+
+\[
+\frac{\env \vdash e:Any \;\;\;
+      \env \vdash el:S}
+     {\env \vdash e(el) : {Any*}}
+\mylabel{T-CALL2}
 \]
 
 \[
@@ -456,6 +492,5 @@ w ::= \; & {<}strings{>}
      {\env \vdash \# \; e : Any}
 \mylabel{T-LEN2}
 \]
-
 
 \end{document}
