@@ -155,7 +155,17 @@ local G = { V"TypedLua",
          V"DynamicType" +
          V"NilType" +
          V"BaseType" +
-         V"NameType";
+         V"NameType" +
+         V"FuncType";
+--[[
+  ParList = V"NameList" * (symb(",") * V"TypedVarArg")^-1 /
+            function (t, v)
+              if v then table.insert(t, v) end
+              return t
+            end +
+            taggedCap("NameList", V"TypedVarArg"^-1);
+  FuncBody = symb("(") * V"ParList" * symb(")") *
+]]
   ObjectType = taggedCap("TypeObject", token("object", "Type"));
   DynamicType = taggedCap("TypeAny", token("any", "Type"));
   NilType = taggedCap("TypeConstant", token("nil", "Type"));
@@ -164,6 +174,20 @@ local G = { V"TypedLua",
                token(C"number", "Type") +
                token(C"string", "Type");
   NameType = taggedCap("TypeName", token(V"Name", "Type"));
+  FuncType = taggedCap("TypeFunction",
+             token("(", "Type") * V"TupleType" * token(")", "Type") *
+             token("->") *
+             token("(", "Type") * V"TupleType" * token(")", "Type"));
+  TypeList = sepby1(V"Type", symb(","), "TypeList") * token(C"*", "*")^-1 /
+             function (t, is_vararg)
+               if is_vararg then
+                 local v = t[#t]
+                 table.remove(t)
+                 table.insert(t, { tag = "TypeVarArg", pos = v.pos, [1] = v })
+               end
+               return t
+             end;
+  TupleType = taggedCap("TypeTuple", V"TypeList");
   OptionalType = (symb(":") * V"Type") + V"UndefinedType";
   UndefinedType = taggedCap("TypeUndefined", P(true));
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
