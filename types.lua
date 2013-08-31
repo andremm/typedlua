@@ -375,10 +375,14 @@ local function type2str (t)
     for k,v in ipairs(t[1]) do
       l[k] = type2str(v)
     end
-    local v = table.concat(l, " x ")
-    return "(" .. v .. ")"
+    local v = table.concat(l, ", ")
+    if #l > 1 then
+      return "(" .. v .. ")"
+    else
+      return v
+    end
   elseif types.isUnion(t) then
-    return type2str(t[1]) .. " + " .. type2str(t[2])
+    return type2str(t[1]) .. " | " .. type2str(t[2])
   elseif types.isVarArg(t) then
     return type2str(t[1]) .. "*"
   else
