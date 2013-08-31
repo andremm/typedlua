@@ -287,7 +287,7 @@ end
 local function check_ret_dec (env, ret_type)
   if types.isUndefined(ret_type) or
      not check_type_name(env, ret_type) then
-    return types.VarArg(Any)
+    return types.Tuple({types.VarArg(Any)})
   end
   return ret_type
 end
@@ -362,7 +362,7 @@ local function check_parameters_list (env, varlist)
       table.insert(list, types.VarArg(vararg_type))
     end
   end
-  return list
+  return types.Tuple(list)
 end
 
 local function check_function_prototype (env, idlist, ret_type)
@@ -1020,13 +1020,15 @@ local function init_symbol_table (env, subject, filename)
   env["function"] = {} -- store function attributes
   env["global"] = {} -- store global names
   env["messages"] = {} -- store errors and warnings
+  local obj_star = types.VarArg(Object)
+  local args_and_ret = types.Tuple({obj_star})
+  local ftype = types.Function(args_and_ret, args_and_ret)
   for k,v in pairs(_ENV) do
     local t = type(v)
-    local obj_star = types.VarArg(Object)
     if t == "string" then
       set_var(env, k, types.ConstantString(v), 0)
     elseif t == "function" then
-      set_var(env, k, types.Function({obj_star},obj_star), 0)
+      set_var(env, k, ftype, 0)
     else
       set_var(env, k, Any, 0)
     end
