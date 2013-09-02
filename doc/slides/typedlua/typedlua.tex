@@ -4,6 +4,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage{beamerthemesplit}
 
+\newcommand{\mylabel}[1]{\; (\textsc{#1})}
+\newcommand{\subtype}{<:}
+\newcommand{\pipe}{|\;}
+\newcommand{\kw}[1]{\mathbf{#1} \;}
+\newcommand{\env}{\Gamma}
+
 \begin{document}
 
 \title{Typed Lua}
@@ -96,6 +102,71 @@ failure back to the source of the error.
 \item Type system and typing rules.
 \end{itemize}
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Changes in the syntax of Lua}
+\begin{align*}
+stat ::= & \; ... \; |\\
+& \textcolor{blue}{varlist} \; \texttt{`='} \; explist \; |\\
+& \; ... \; |\\
+& \textbf{function} \; funcname \; \textcolor{blue}{funcbody} \; |\\
+& \textbf{local} \; \textbf{function} \; Name \; \textcolor{blue}{funcbody} \; |\\
+& \textbf{local} \; \textcolor{blue}{namelist} \; [\texttt{`='} \; explist]\\
+exp ::= & \; ... \; |\\
+& functiondef \; |\\
+& \; ...\\
+functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}
+\end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Declaration of variables}
+\begin{align*}
+stat ::= & \; ... \; |\\
+& \textcolor{blue}{varlist} \; \texttt{`='} \; explist \; |\\
+& \; ... \; |\\
+& \textbf{local} \; \textcolor{blue}{namelist} \; [\texttt{`='} \; explist]\\
+varlist ::= & \; \textcolor{blue}{var} \; \{\texttt{`,'} \; \textcolor{blue}{var}\}\\
+var ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \; |\\
+& prefixexp \; \texttt{`['} \; exp \; \texttt{`]'} \; |\\
+& prefixexp \; \texttt{`.'} \; Name\\
+namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+\{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
+\end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Declaration of functions}
+\begin{align*}
+stat ::= & \; ... \; |\\
+& \textbf{function} \; funcname \; \textcolor{blue}{funcbody} \; |\\
+& \textbf{local} \; \textbf{function} \; Name \; \textcolor{blue}{funcbody} \; |\\
+& \; ... \\
+exp ::= & \; ... \; |\\
+& functiondef \; |\\
+& \; ...\\
+functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}\\
+funcbody ::= & \; \texttt{`('} \; [\textcolor{blue}{parlist}] \; \texttt{`)'} \;
+\textcolor{blue}{[\texttt{`:'} \; type]} \; block \; \textbf{end}\\
+parlist ::= & \; \textcolor{blue}{namelist} \; [\texttt{`,'} \; \texttt{`...'} \;
+\textcolor{blue}{[\texttt{`:'} \; type]}] \; | \;
+\texttt{`...'} \; \textcolor{blue}{[\texttt{`:'} \; type]}\\
+namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+\{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
+\end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Type language}
+\begin{align*}
+T ::= \; & C \; \pipe B \; \pipe Object \; \pipe Any \; \pipe
+S \rightarrow S \; \pipe T \cup T\\
+C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
+\pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
+B ::= \; & Boolean \; \pipe Number \; \pipe String\\
+S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
+\end{align*}
 \end{frame}
 
 \end{document}
