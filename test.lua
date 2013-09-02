@@ -1569,7 +1569,7 @@ s = [=[
 function func(...:) end
 ]=]
 e = [=[
-test.lua:1:19: syntax error, unexpected ')', expecting 'Type', '('
+test.lua:1:19: syntax error, unexpected ')', expecting '(', 'Type'
 ]=]
 
 r = parse(s)
@@ -1579,7 +1579,7 @@ s = [=[
 function func(a,...:) end
 ]=]
 e = [=[
-test.lua:1:21: syntax error, unexpected ')', expecting 'Type', '('
+test.lua:1:21: syntax error, unexpected ')', expecting '(', 'Type'
 ]=]
 
 r = parse(s)

@@ -150,19 +150,18 @@ end
 local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   -- type language
-  Type = V"FunctionType" +
-         V"UnionType";
+  Type = V"UnionType";
   UnionType = chainl1(V"PrimaryType", V"UnionOp");
   UnionOp = symb("|") / "TypeUnion";
   FunctionType = taggedCap("TypeFunction",
-                 symb("(") * (V"ArgsType" + V"VoidType") * symb(")") *
-                 symb("->") * V"RetType");
+                 symb("(") * (V"Type2" + V"VoidType") * symb(")") *
+                 symb("->") * V"Type2");
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
                 V"BaseType" +
                 V"NameType" +
-                symb("(") * V"Type" * symb(")");
+                V"FunctionType";
   ObjectType = taggedCap("TypeObject", token("object", "Type"));
   DynamicType = taggedCap("TypeAny", token("any", "Type"));
   NilType = taggedCap("TypeConstant", token("nil", "Type"));
@@ -171,17 +170,6 @@ local G = { V"TypedLua",
                token(C"number", "Type") +
                token(C"string", "Type");
   NameType = taggedCap("TypeName", token(V"Name", "Type"));
-  TypeList1 = sepby1(V"Type", symb(","), "TypeList") * V"VarArgOp"^-1 /
-              function (t, is_vararg)
-                if is_vararg then
-                  local v = t[#t]
-                  table.remove(t)
-                  table.insert(t, { tag = is_vararg, pos = v.pos, [1] = v })
-                end
-                return t
-              end;
-  VarArgOp = symb("*") / "TypeVarArg";
-  ArgsType = taggedCap("TypeTuple", V"TypeList1");
   VoidType = Cp() /
              function (p)
                local t = { tag = "TypeTuple", pos = p, [1] = {} }
@@ -190,24 +178,20 @@ local G = { V"TypedLua",
                t[1][1][1] = { tag = "TypeObject", pos = p }
                return t
              end;
-  RetType = chainl1(V"TypeTuple2", V"UnionOp");
-  TypeTuple2 = taggedCap("TypeTuple", V"TypeList2");
-  TypeList2 = sepby1(V"Type2", symb(","), "TypeList") * V"VarArgOp"^-1 /
-              function (t, is_vararg)
-                if is_vararg then
-                  local v = t[#t]
-                  table.remove(t)
-                  table.insert(t, { tag = is_vararg, pos = v.pos, [1] = v })
-                end
-                return t
-              end;
-  Type2 = V"ObjectType" +
-          V"DynamicType" +
-          V"NilType" +
-          V"BaseType" +
-          V"NameType" +
-          V"FunctionType" +
-          symb("(") * V"RetType" * symb(")");
+  Type2 = V"TupleType";
+  TupleType = taggedCap("TypeTuple", V"TypeList");
+  TypeList = sepby1(V"PrimaryType2", symb(","), "TypeList") * V"VarArgOp"^-1 /
+             function (t, is_vararg)
+               if is_vararg then
+                 local v = t[#t]
+                 table.remove(t)
+                 table.insert(t, { tag = is_vararg, pos = v.pos, [1] = v })
+               end
+               return t
+             end;
+  VarArgOp = symb("*") / "TypeVarArg";
+  PrimaryType2 = V"Type" +
+                 symb("(") * V"Type2" * symb(")");
   OptionalType = (symb(":") * V"Type") + V"UndefinedType";
   UndefinedType = taggedCap("TypeUndefined", P(true));
   UntypedName = taggedCap("Name", token(V"Name", "Name") * V"UndefinedType");
