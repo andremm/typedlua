@@ -552,7 +552,7 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
     warning(env, msg, pos)
     return Any
   elseif types.isFunction(ftype) then
-    check_call_args(env, fname, ftype[1], explist, pos, visibility)
+    check_call_args(env, fname, ftype[1][1], explist, pos, visibility)
     return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"

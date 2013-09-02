@@ -382,7 +382,7 @@ local function type2str (t)
       return v
     end
   elseif types.isUnion(t) then
-    return type2str(t[1]) .. " | " .. type2str(t[2])
+    return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
   elseif types.isVarArg(t) then
     return type2str(t[1]) .. "*"
   else
