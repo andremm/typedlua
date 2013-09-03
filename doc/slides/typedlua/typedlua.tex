@@ -158,7 +158,21 @@ namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \end{frame}
 
 \begin{frame}
-\frametitle{Type language}
+\frametitle{Type language - Typed Lua syntax}
+\begin{align*}
+type ::= & \; \textbf{object} \;|\; \textbf{any} \;|\; \textbf{nil} \;|\\
+& basetype \;|\; uniontype \;|\; functiontype\\
+basetype ::= & \; \textbf{boolean} \;|\; \textbf{number} \;|\; \textbf{string}\\
+uniontype ::= & \; type \;\texttt{`|'}\; type\\
+functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
+\texttt{`->'} \; 2ndclasstype\\
+2ndclasstype ::= & \; type \; \{\texttt{`,'} \; type\} \; [\texttt{`*'}] \;|\;
+\texttt{`('} \; 2ndclasstype \; \texttt{`)'}
+\end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Type language - Formal syntax}
 \begin{align*}
 T ::= \; & C \; \pipe B \; \pipe Object \; \pipe Any \; \pipe
 S \rightarrow S \; \pipe T \cup T\\
