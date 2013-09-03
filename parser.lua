@@ -180,7 +180,7 @@ local G = { V"TypedLua",
              end;
   Type2 = V"TupleType";
   TupleType = taggedCap("TypeTuple", V"TypeList");
-  TypeList = sepby1(V"PrimaryType2", symb(","), "TypeList") * V"VarArgOp"^-1 /
+  TypeList = sepby1(V"Type", symb(","), "TypeList") * V"VarArgOp"^-1 /
              function (t, is_vararg)
                if is_vararg then
                  local v = t[#t]
@@ -190,8 +190,6 @@ local G = { V"TypedLua",
                return t
              end;
   VarArgOp = symb("*") / "TypeVarArg";
-  PrimaryType2 = V"Type" +
-                 symb("(") * V"Type2" * symb(")");
   OptionalType = (symb(":") * V"Type") + V"UndefinedType";
   UndefinedType = taggedCap("TypeUndefined", P(true));
   UntypedName = taggedCap("Name", token(V"Name", "Name") * V"UndefinedType");
