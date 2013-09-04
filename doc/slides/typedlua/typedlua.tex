@@ -1,8 +1,11 @@
-\documentclass{beamer}
+\documentclass[mathserif]{beamer}
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{beamerthemesplit}
+%\usecolortheme{dove}
 
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
@@ -15,7 +18,7 @@
 \title{Typed Lua}
 \subtitle{An Optional Type System for Lua}
 \author{André Murbach Maidl}
-\institute{LabLua\\PUC-Rio}
+\institute{Colóquios do LabLua}
 \date{September 13th 2013}
 
 \frame{\titlepage}
@@ -37,6 +40,60 @@
 \begin{itemize}
 \item Because, first of all, gradual is optional!
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Gradual Typing}
+Gradual type systems use consistency ($\sim$) instead of equality ($=$).
+\begin{Large}
+\[
+\tau ::= \gamma \;|\; ? \;|\; \tau \rightarrow \tau
+\]
+\[
+\tau \sim \tau
+\]
+\[
+\tau \sim \;?
+\]
+\[
+?\; \sim \tau
+\]
+
+\[
+\frac{\sigma_{1} \sim \tau_{1} \;\;\; \sigma_{2} \sim \tau_{2}}
+     {\sigma_{1} \rightarrow \sigma_{2} \sim \tau_{1} \rightarrow \tau_{2}}
+\]
+\end{Large}
+\end{frame}
+
+\begin{frame}
+\frametitle{Gradual Typing}
+Gradual type systems use consistency (\textcolor{blue}{$\sim$}) instead of equality ($=$).
+\begin{Large}
+\[
+e ::= c \;|\; x \;|\; \lambda x:\tau.e \;|\; e\;e \;\;\;
+(\lambda x.e \equiv \lambda x:?.e)
+\]
+\[
+\frac{\Gamma x = \lfloor\tau\rfloor}
+     {\Gamma \vdash_{G} x:\tau} \;\;\;\;\;
+\frac{\Delta c = \tau}
+     {\Gamma \vdash_{G} c:\tau}
+\]
+
+\[
+\frac{\Gamma(x \mapsto \sigma) \vdash_{G} e:\tau}
+     {\Gamma \vdash_{G} \lambda x:\sigma.e:\sigma \rightarrow \tau} \;\;\;\;\;
+\frac{\Gamma \vdash_{G} e_{1}:\;? \;\;\; \Gamma \vdash_{G} e_{2}:\tau_{2}}
+     {\Gamma \vdash_{G} e_{1}\;e_{2}:\;?}
+\]
+
+\[
+\frac{\Gamma \vdash_{G} e_{1}:\tau \rightarrow \tau' \;\;\;
+      \Gamma \vdash_{G} e_{2}:\tau_{2} \;\;\; \textcolor{blue}{\tau_{2} \sim \tau}}
+     {\Gamma \vdash_{G} e_{1}\;e_{2}:\tau'}
+\]
+\end{Large}
 \end{frame}
 
 \begin{frame}
@@ -83,24 +140,17 @@ failure back to the source of the error.
 \begin{frame}
 \frametitle{Examples of Gradually Typed Languages}
 \begin{enumerate}
-\item Strongtalk, TypeScript.
+\item Strongtalk, TypeScript, and Typed Lua.
 \item ActionScript.
-\item Typed Scheme.
+\item Typed Racket.
 \end{enumerate}
 \end{frame}
 
 \begin{frame}
-\frametitle{Overview of what comes next in the presentation}
-\begin{itemize}
-\item Optional type annotations.
+\frametitle{Overview of rest of the presentation}
 \begin{itemize}
 \item Changes in the syntax of Lua.
-\item Type language.
-\end{itemize}
-\item Compile-time type checking.
-\begin{itemize}
-\item Type system and typing rules.
-\end{itemize}
+\item Typed Lua Type System.
 \end{itemize}
 \end{frame}
 
@@ -158,7 +208,7 @@ namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \end{frame}
 
 \begin{frame}
-\frametitle{Type language - Typed Lua syntax}
+\frametitle{Type annotations}
 \begin{align*}
 type ::= & \; \textbf{object} \;|\; \textbf{any} \;|\; \textbf{nil} \;|\\
 & basetype \;|\; uniontype \;|\; functiontype\\
@@ -166,13 +216,58 @@ basetype ::= & \; \textbf{boolean} \;|\; \textbf{number} \;|\; \textbf{string}\\
 uniontype ::= & \; type \;\texttt{`|'}\; type\\
 functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
 \texttt{`->'} \; 2ndclasstype\\
-2ndclasstype ::= & \; type \; \{\texttt{`,'} \; type\} \; [\texttt{`*'}] \;|\;
-\texttt{`('} \; 2ndclasstype \; \texttt{`)'}
+2ndclasstype ::= & \; type \; \{\texttt{`,'} \; type\} \; [\texttt{`*'}]
 \end{align*}
 \end{frame}
 
 \begin{frame}
-\frametitle{Type language - Formal syntax}
+\frametitle{Example}
+\end{frame}
+
+\begin{frame}
+\frametitle{Typed Lua Type System}
+\begin{itemize}
+\item Our aim is to design an object oriented language.
+\item Most OO languages use the following subsumption rule:
+\[
+\frac{\env \vdash e:T_{1} \;\;\; T_{1} \subtype T_{2}}
+     {\env \vdash e:T_{2}}
+\]
+\item However, we also aim to have gradual typing, so we also
+need the consistency relation.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Typed Lua Type System}
+First, we do not use the subsumption rule, but we use subtyping
+instead of equality:
+\[
+\frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash el:S_{3} \;\;\;
+      S_{3} \subtype S_{1}}
+     {\env \vdash e(el):S_{2}}
+\]
+Second, we also use the consistency rule:
+\[
+\frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash el:S_{3} \;\;\;
+      S_{3} \subtype S_{1}' \;\;\;
+      S_{1}' \sim S_{1}}
+     {\env \vdash e(el):S_{2}}
+\]
+Finally, we can use one relation that composes the two:
+\[
+\frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash el:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e(el):S_{2}}
+\]
+which we can call consistent-subtyping.
+\end{frame}
+
+\begin{frame}
+\frametitle{Type language}
 \begin{align*}
 T ::= \; & C \; \pipe B \; \pipe Object \; \pipe Any \; \pipe
 S \rightarrow S \; \pipe T \cup T\\
@@ -181,6 +276,15 @@ C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
 B ::= \; & Boolean \; \pipe Number \; \pipe String\\
 S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
 \end{align*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Typing rules}
+\begin{itemize}
+\item Type consistency.
+\item Subtyping.
+\item Typed Lua typing rules.
+\end{itemize}
 \end{frame}
 
 \end{document}
