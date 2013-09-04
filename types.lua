@@ -298,6 +298,8 @@ function types.subtype (t1, t2)
       return true
     elseif types.isInteger(t1) and types.isInteger(t2) then
       return true
+    elseif types.isInteger(t1) and types.isDouble(t2) then -- S-INTEGER1
+      return true
     elseif types.isConstantString(t1) and types.isConstantString(t2) then
       return true
     end
@@ -308,7 +310,7 @@ function types.subtype (t1, t2)
       return true
     elseif types.isDouble(t1) and types.isNumber(t2) then -- S-DOUBLE
       return true
-    elseif types.isInteger(t1) and types.isNumber(t2) then -- S-INTEGER
+    elseif types.isInteger(t1) and types.isNumber(t2) then -- S-INTEGER2
       return true
     elseif types.isConstantString(t1) and types.isString(t2) then -- S-STRING
       return true
@@ -342,6 +344,24 @@ function types.subtype (t1, t2)
     return types.subtype(t1[1], t2[1])
   elseif types.isVarArg(t1) and types.isUnion(t2) then -- S-VARARG2
     return types.subtype(t1[1], t2[1]) and types.isNil(t2[2])
+  end
+  return false
+end
+
+function types.consistent (t1, t2)
+  if types.isAny(t1) or types.isAny(t2) then
+    return true
+  end
+  return false
+end
+
+function types.consistent_subtyping (t1, t2)
+  if types.subtype(t1, t2) then
+    return true, "subtype"
+  elseif types.isAny(t1) and not types.isAny(t2) then
+    return true, "left"
+  elseif types.isAny(t2) and not types.isAny(t1) then
+    return true, "right"
   end
   return false
 end

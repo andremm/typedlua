@@ -191,6 +191,7 @@ local G = { V"TypedLua",
              end;
   VarArgOp = symb("*") / "TypeVarArg";
   OptionalType = (symb(":") * V"Type") + V"UndefinedType";
+  OptionalType2 = (symb(":") * V"Type2") + V"UndefinedType";
   UndefinedType = taggedCap("TypeUndefined", P(true));
   UntypedName = taggedCap("Name", token(V"Name", "Name") * V"UndefinedType");
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
@@ -310,7 +311,7 @@ local G = { V"TypedLua",
             end +
             taggedCap("TypedNameList", V"TypedVarArg"^-1);
   FuncBody = symb("(") * V"ParList" * symb(")") *
-             V"OptionalType" * V"Block" * kw("end");
+             V"OptionalType2" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name", "Name") * V"FuncBody");
   LocalAssign = taggedCap("StmLocalVar", V"TypedNameList" * ((symb("=") * V"ExpList") + Ct(Cc())));

@@ -864,37 +864,16 @@ end
 
 local function check_return (env, stm)
   local explist = stm[1]
-  local len = #explist
   check_explist(env, explist)
-  local dec_type = get_return_type(env, env.fscope)
-  local inf_type
-  if types.isVarArg(dec_type) then
-    dec_type = types.typeofVarArg(dec_type)
-    if len == 0 then
-      check_ret_type(env, dec_type, Nil, stm.pos)
-    else
-      for k, v in ipairs(explist) do
-        inf_type = explist[k]["type"]
-        check_ret_type(env, dec_type, inf_type, explist[k]["pos"])
-      end
-    end
-  else
-    if len == 0 then
-      check_ret_type(env, dec_type, Nil, stm.pos)
-    elseif len == 1 then
-      inf_type = explist[1]["type"]
-      check_ret_type(env, dec_type, inf_type, explist[1]["pos"])
-    else
-      local msg = "attempt to return '%s' instead of '%s'"
-      local t = {}
-      for k, v in ipairs(explist) do
-        t[k] = type2str(v["type"])
-      end
-      t = "(" .. table.concat(t, ", ") .. ")"
-      msg = string.format(msg, t, type2str(dec_type))
-      warning(env, msg, explist.pos)
-    end
+  local ret_type = get_return_type(env, env.fscope)
+  local list = {}
+  for k, v in ipairs(explist) do
+    table.insert(list, v["type"])
   end
+  if #list == 0 then
+    table.insert(list, types.VarArg(Nil))
+  end
+  check_ret_type(env, ret_type, types.Tuple(list), stm.pos)
 end
 
 local function check_while (env, exp, stm)
