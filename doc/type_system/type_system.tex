@@ -10,6 +10,7 @@
 \newcommand{\pipe}{|\;}
 \newcommand{\kw}[1]{\mathbf{#1} \;}
 \newcommand{\env}{\Gamma}
+\newcommand{\ret}{\string_RET}
 
 \title{Typed Lua Type System}
 
@@ -22,13 +23,25 @@
 \section{Type Language}
 
 \begin{align*}
-T ::= \; & C \pipe B \pipe Object \pipe Any \pipe
-S \rightarrow S \pipe T \cup T\\
-C ::= \; & \mathbf{nil} \pipe \mathbf{false} \pipe \mathbf{true}
-\pipe {<}double{>} \pipe {<}integer{>} \pipe {<}string{>}\\
-B ::= \; & Boolean \pipe Number \pipe String\\
-S ::= \; & T \pipe {T*} \pipe T \times S\\ 
+T ::= \; & C \; \pipe B \; \pipe Object \; \pipe Any \; \pipe
+S \rightarrow S \; \pipe T \cup T\\
+C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
+\pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
+B ::= \; & Boolean \; \pipe Number \; \pipe String\\
+S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
 \end{align*}
+
+\section{Consistency}
+
+\[
+T \sim Any
+\mylabel{C-LEFT}
+\]
+
+\[
+Any \sim T
+\mylabel{C-RIGHT}
+\]
 
 \section{Subtyping}
 
@@ -38,32 +51,42 @@ S ::= \; & T \pipe {T*} \pipe T \times S\\
 C \subtype C
 \mylabel{S-CONSTANT}
 \]
+
 \[
 \mathbf{false} \subtype Boolean
 \mylabel{S-FALSE}
 \]
+
 \[
 \mathbf{true} \subtype Boolean
 \mylabel{S-TRUE}
 \]
+
 \[
 {<}double{>} \subtype Number
 \mylabel{S-DOUBLE}
 \]
+
+\[
+{<}integer{>} \subtype {<}double{>}
+\mylabel{S-INTEGER1}
+\]
+
 \[
 {<}integer{>} \subtype Number
-\mylabel{S-INTEGER}
+\mylabel{S-INTEGER2}
 \]
+
 \[
-{<}string{>} \subtype Number
+{<}string{>} \subtype String
 \mylabel{S-STRING}
 \]
 
-\subsection{Basic types}
+\subsection{Base types}
 
 \[
 B \subtype B
-\mylabel{S-BASIC}
+\mylabel{S-BASE}
 \]
 
 \subsection{Object (Top) type}
@@ -94,10 +117,12 @@ Any \subtype Any
 T_{1} \subtype T_{1} \cup T_{2}
 \mylabel{S-UNION1}
 \]
+
 \[
 T_{2} \subtype T_{1} \cup T_{2}
 \mylabel{S-UNION2}
 \]
+
 \[
 \frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
      {T_{1} \cup T_{2} \subtype T}
@@ -119,6 +144,7 @@ T_{2} \subtype T_{1} \cup T_{2}
      {T_{1}* \subtype T_{2}*}
 \mylabel{VARARG-1}
 \]
+
 \[
 {T*} \subtype (T \cup Nil) \times {T*}
 \mylabel{VARARG-2}
@@ -200,11 +226,11 @@ w ::= \; & {<}strings{>}
 \frac{\begin{aligned}
       & \env \vdash e_{1}:T_{1} \;\;\;
         \env \vdash e_{2}:T_{2} \;\;\;
-        \env \vdash e_{3}:T_{3} \\
+        \env \vdash e_{3}:T_{3} &\\
       & T_{1} \subtype Number \;\;\;
         T_{2} \subtype Number \;\;\;
-        T_{3} \subtype Number \\
-      & \env[i \mapsto Number] \vdash s
+        T_{3} \subtype Number &\\
+      & \env, i:Number \vdash s &
       \end{aligned}}
      {\env \vdash \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s}
 \mylabel{FOR-NUM}
@@ -212,7 +238,7 @@ w ::= \; & {<}strings{>}
 
 \[
 \frac{\env \vdash el:S \;\;\;
-      \env[\vec{i} \mapsto S] \vdash s}
+      \env, \vec{i}:S \vdash s}
      {\env \vdash \kw{for} \vec{i} \; \kw{in} e \; \kw{do} s}
 \mylabel{FOR-GEN}
 \]
@@ -220,14 +246,14 @@ w ::= \; & {<}strings{>}
 \[
 \frac{\env \vdash el:S \;\;\;
       S \lesssim T_{1} \times ... \times T_{n} \times {Object*} \;\;\;
-      \env[\vec{i} \mapsto \vec{t}] \vdash s}
+      \env, \overrightarrow{i:t} \vdash s}
      {\env \vdash \kw{local} \overrightarrow{i:t} = el \; \kw{in} s}
 \mylabel{T-LOCALVAR}
 \]
 
 \[
 \frac{\env \vdash f:S_{1} \rightarrow S_{2} \;\;\;
-  \env[i \mapsto S_{1} \rightarrow S_{2}, \string_ret \mapsto S_{2}] \vdash s}
+      \env, i:S_{1} \rightarrow S_{2}, \ret:S_{2} \vdash s}
      {\env \vdash \kw{local} i = f \; \kw{in} s}
 \mylabel{T-LOCALFUN}
 \]
@@ -257,7 +283,7 @@ w ::= \; & {<}strings{>}
 
 \[
 \frac{\env \vdash el:S_{1} \;\;\;
-      \env(\string_ret) = S_{2} \;\;\;
+      \env(\ret) = S_{2} \;\;\;
       S_{1} \lesssim S_{2}}
      {\env \vdash \kw{return} el}
 \mylabel{T-RETURN}
@@ -265,7 +291,7 @@ w ::= \; & {<}strings{>}
 
 \[
 \frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
-      \env \vdash el:S_{2} \;\;\;
+      \env \vdash el:S_{3} \;\;\;
       S_{3} \lesssim S_{1}}
      {\env \vdash e(el)}
 \mylabel{T-STMCALL1}
@@ -317,28 +343,28 @@ w ::= \; & {<}strings{>}
 \]
 
 \[
-\frac{\env[\string_ret \mapsto T_{r}] \vdash b}
+\frac{\env, \ret:t_{r} \vdash b}
      {\kw{fun} ():t_{r} \; b : {Object*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION1}
 \]
 
 \[
-\frac{\env[\string_ret \mapsto T_{r}] \vdash b}
+\frac{\env, \ret:t_{r} \vdash b}
      {\kw{fun} ({...}:t):t_{r} \; b : {T*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION2}
 \]
 
 \[
-\frac{\env[\vec{i} \mapsto \vec{t}, \string_ret \mapsto T_{r}] \vdash b}
+\frac{\env, \overrightarrow{i:t}, \ret:t_{r} \vdash b}
      {\kw{fun} (\overrightarrow{i:t}):t_{r} \; b :
-      T_{1} \times ... \times T_{n} \rightarrow T_{r}}
+      S \times {Object*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION3}
 \]
 
 \[
-\frac{\env[\vec{i} \mapsto \vec{t}, \string_ret \mapsto T_{r}] \vdash b}
+\frac{\env, \overrightarrow{i:t}, \ret:t_{r} \vdash b}
      {\kw{fun} (\overrightarrow{i:t}, {...}:t):t_{r} \; b :
-      T_{1} \times ... \times T_{n} \times {T*} \rightarrow T_{r}}
+      S \times {T*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION4}
 \]
 
