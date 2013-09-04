@@ -222,6 +222,7 @@ functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
 
 \begin{frame}
 \frametitle{Example}
+\textit{Pensar em um exemplo legal para colocar aqui.}
 \end{frame}
 
 \begin{frame}
@@ -233,37 +234,37 @@ functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
 \frac{\env \vdash e:T_{1} \;\;\; T_{1} \subtype T_{2}}
      {\env \vdash e:T_{2}}
 \]
-\item However, we also aim to have gradual typing, so we also
+\item We also aim to have gradual typing, so we also
 need the consistency relation.
 \end{itemize}
 \end{frame}
 
 \begin{frame}
 \frametitle{Typed Lua Type System}
-First, we do not use the subsumption rule, but we use subtyping
-instead of equality:
+We do not use the subsumption rule, but subtyping
+instead of equality.
 \[
 \frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
       \env \vdash el:S_{3} \;\;\;
-      S_{3} \subtype S_{1}}
+      \textcolor{red}{S_{3} \subtype S_{1}}}
      {\env \vdash e(el):S_{2}}
 \]
-Second, we also use the consistency rule:
+and also the consistency rule
 \[
 \frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
       \env \vdash el:S_{3} \;\;\;
-      S_{3} \subtype S_{1}' \;\;\;
-      S_{1}' \sim S_{1}}
+      \textcolor{red}{S_{3} \subtype S_{1}'} \;\;\;
+      \textcolor{blue}{S_{1}' \sim S_{1}}}
      {\env \vdash e(el):S_{2}}
 \]
-Finally, we can use one relation that composes the two:
+so we can compose the two relations:
 \[
 \frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
       \env \vdash el:S_{3} \;\;\;
-      S_{3} \lesssim S_{1}}
+      \textcolor{red!50!blue}{S_{3} \lesssim S_{1}}}
      {\env \vdash e(el):S_{2}}
 \]
-which we can call consistent-subtyping.
+which we call consistent-subtyping.
 \end{frame}
 
 \begin{frame}
@@ -285,6 +286,10 @@ S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\
 \item Subtyping.
 \item Typed Lua typing rules.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\textit{Colocar as regras do sistema de tipos.}
 \end{frame}
 
 \end{document}
