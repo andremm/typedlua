@@ -1,4 +1,5 @@
-\documentclass[mathserif]{beamer}
+%\documentclass[mathserif]{beamer}
+\documentclass{beamer}
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
@@ -40,6 +41,23 @@
 \begin{itemize}
 \item Because, first of all, gradual is optional!
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Optional versus Gradual}
+\begin{center}
+\begin{tabular}{|r|c|c|}
+\hline
+& Optional & Gradual\\
+\hline
+Optional type annotations & Yes & Yes \\ 
+\hline
+Compile-time type checking & Yes & Yes \\
+\hline
+Influence the run-time semantics & No & Yes \\
+\hline
+\end{tabular}
+\end{center}
 \end{frame}
 
 \begin{frame}
@@ -97,23 +115,6 @@ e ::= c \;|\; x \;|\; \lambda x:\tau.e \;|\; e\;e \;\;\;
 \end{frame}
 
 \begin{frame}
-\frametitle{Optional versus Gradual}
-\begin{center}
-\begin{tabular}{|r|c|c|}
-\hline
-& Optional & Gradual\\
-\hline
-Optional type annotations & Yes & Yes \\ 
-\hline
-Compile-time type checking & Yes & Yes \\
-\hline
-Influence the run-time semantics & No & Yes \\
-\hline
-\end{tabular}
-\end{center}
-\end{frame}
-
-\begin{frame}
 \frametitle{The levels of Gradual Typing according to Jeremy Siek}
 \begin{center}
 \begin{tabular}{|r|c|c|c|}
@@ -132,7 +133,7 @@ Blame tracking$^{2}$ & No & No & Yes\\
 \end{center}
 $1$ -- A compiler for a gradually typed language (level $>$ 1) infers
 where dynamic checks are needed and inserts casts into the intermediate
-language to performe these checks.\\
+language to perform these checks.\\
 $2$ -- Blame tracking solves the problem of tracing a run-time cast
 failure back to the source of the error.
 \end{frame}
@@ -257,7 +258,7 @@ and also the consistency rule
       \textcolor{blue}{S_{1}' \sim S_{1}}}
      {\env \vdash e(el):S_{2}}
 \]
-so we can compose the two relations:
+so we need to compose the two relations:
 \[
 \frac{\env \vdash e:S_{1} \rightarrow S_{2} \;\;\;
       \env \vdash el:S_{3} \;\;\;
