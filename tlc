@@ -1,9 +1,9 @@
 #!/usr/bin/env lua
 
-local ast = require "ast"
-local checker = require "checker"
-local code = require "code"
-local parser = require "parser"
+local ast = require "typedlua.ast"
+local checker = require "typedlua.checker"
+local code = require "typedlua.code"
+local parser = require "typedlua.parser"
 
 local VERSION = "0.1"
 local PROGNAME = "tlc"

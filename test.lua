@@ -1,10 +1,10 @@
 #!/usr/bin/env lua
 
-local ast = require "ast"
-local checker = require "checker"
-local code = require "code"
-local parser = require "parser"
-local types = require "types"
+local ast = require "typedlua.ast"
+local checker = require "typedlua.checker"
+local code = require "typedlua.code"
+local parser = require "typedlua.parser"
+local types = require "typedlua.types"
 
 -- expected result, result, subject
 local e, r, s
