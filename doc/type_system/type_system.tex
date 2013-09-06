@@ -114,12 +114,14 @@ Any \subtype Any
 \subsection{Union types}
 
 \[
-T_{1} \subtype T_{1} \cup T_{2}
+\frac{T \subtype T_{1}}
+     {T \subtype T_{1} \cup T_{2}}
 \mylabel{S-UNION1}
 \]
 
 \[
-T_{2} \subtype T_{1} \cup T_{2}
+\frac{T \subtype T_{2}}
+     {T \subtype T_{1} \cup T_{2}}
 \mylabel{S-UNION2}
 \]
 
@@ -140,14 +142,24 @@ T_{2} \subtype T_{1} \cup T_{2}
 \subsection{VarArg types}
 
 \[
-\frac{T_{1} \subtype T_{2}}
-     {T_{1}* \subtype T_{2}*}
+{Nil*} \subtype {T*}
 \mylabel{VARARG-1}
 \]
 
 \[
-{T*} \subtype (T \cup Nil) \times {T*}
+{T*} \subtype {(T \cup Nil)*}
 \mylabel{VARARG-2}
+\]
+
+\[
+\frac{T_{1} \subtype T_{2}}
+     {{T_{1}*} \subtype {T_{2}*}}
+\mylabel{VARARG-3}
+\]
+
+\[
+{T*} \subtype (T \cup Nil) \times {T*}
+\mylabel{VARARG-4}
 \]
 
 \section{Typing Rules}
