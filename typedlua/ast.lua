@@ -66,7 +66,7 @@ tostring :: AST -> String
 print :: AST -> Void
 ]]
 
-local types = require "types"
+local types = require "typedlua.types"
 
 local ast = {}
 

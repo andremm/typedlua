@@ -5,7 +5,7 @@ This file implements the Typed Lua parser using LPeg
 local parser = {}
 
 local lpeg = require "lpeg"
-local st = require "st"
+local st = require "typedlua.st"
 
 lpeg.locale(lpeg)
 

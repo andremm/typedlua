@@ -2,9 +2,9 @@
 This file implements the type checker for Typed Lua
 ]]
 
-local parser = require "parser"
-local st = require "st"
-local types = require "types"
+local parser = require "typedlua.parser"
+local st = require "typedlua.st"
+local types = require "typedlua.types"
 
 local lineno = st.lineno
 local begin_scope, end_scope = st.begin_scope, st.end_scope
