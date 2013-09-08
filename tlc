@@ -5,7 +5,7 @@ local checker = require "typedlua.checker"
 local code = require "typedlua.code"
 local parser = require "typedlua.parser"
 
-local VERSION = "0.1"
+local VERSION = "0.1-alpha1"
 local PROGNAME = "tlc"
 local OUTPUT = PROGNAME .. ".lua"
 
