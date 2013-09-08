@@ -3,7 +3,7 @@ local statistics = {}
 
 package.path = "../?.lua;" .. package.path
 
-local parser = require "parser"
+local parser = require "typedlua.parser"
 
 local number_of_functions = 0
 local anonymousf = 0
