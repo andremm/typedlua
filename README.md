@@ -1,7 +1,7 @@
 # Typed Lua
 
 Typed Lua is a typed superset of Lua that compiles to plain Lua.
-It provides optinal type annotations, compile-time type checking, and
+It provides optional type annotations, compile-time type checking, and
 class-based object oriented programming through the definition of classes,
 interfaces, and modules.
 
@@ -30,7 +30,7 @@ interfaces, and modules.
 * Add intersection type
 * Add recursive type
 * Add classes, interfaces, and modules
-* Reimplement consitent-subtyping
+* Reimplement consistent-subtyping
 
 # Typed Lua Syntax
 <p>
