@@ -177,12 +177,12 @@ functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}
 stat ::= & \; ... \; |\\
 & \textcolor{blue}{varlist} \; \texttt{`='} \; explist \; |\\
 & \; ... \; |\\
-& \textbf{local} \; \textcolor{blue}{namelist} \; [\texttt{`='} \; explist]\\
+& \textbf{local} \; \textcolor{blue}{typednamelist} \; [\texttt{`='} \; explist]\\
 varlist ::= & \; \textcolor{blue}{var} \; \{\texttt{`,'} \; \textcolor{blue}{var}\}\\
 var ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \; |\\
 & prefixexp \; \texttt{`['} \; exp \; \texttt{`]'} \; |\\
 & prefixexp \; \texttt{`.'} \; Name\\
-namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+typednamelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
 \end{align*}
 \end{frame}
@@ -199,11 +199,11 @@ exp ::= & \; ... \; |\\
 & \; ...\\
 functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}\\
 funcbody ::= & \; \texttt{`('} \; [\textcolor{blue}{parlist}] \; \texttt{`)'} \;
-\textcolor{blue}{[\texttt{`:'} \; type]} \; block \; \textbf{end}\\
-parlist ::= & \; \textcolor{blue}{namelist} \; [\texttt{`,'} \; \texttt{`...'} \;
-\textcolor{blue}{[\texttt{`:'} \; type]}] \; | \;
-\texttt{`...'} \; \textcolor{blue}{[\texttt{`:'} \; type]}\\
-namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+\textcolor{blue}{[\texttt{`:'} \; 2ndclasstype]} \; block \; \textbf{end}\\
+parlist ::= & \; \textcolor{blue}{typednamelist} \; [\texttt{`,'} \; \texttt{`...'} \;
+\textcolor{blue}{[\texttt{`:'} \; type]}] \; | \;\\
+& \texttt{`...'} \; \textcolor{blue}{[\texttt{`:'} \; type]}\\
+typednamelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
 \end{align*}
 \end{frame}
@@ -241,7 +241,7 @@ need the consistency relation.
 \end{frame}
 
 \begin{frame}
-\frametitle{Typed Lua Type System}
+\frametitle{Consistent-subtyping}
 We do not use the subsumption rule, but subtyping
 instead of equality.
 \[
@@ -265,7 +265,6 @@ so we need to compose the two relations:
       \textcolor{red!50!blue}{S_{3} \lesssim S_{1}}}
      {\env \vdash e(el):S_{2}}
 \]
-which we call consistent-subtyping.
 \end{frame}
 
 \begin{frame}
@@ -283,8 +282,7 @@ S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\
 \begin{frame}
 \frametitle{Typing rules}
 \begin{itemize}
-\item Type consistency.
-\item Subtyping.
+\item Consitent-subtyping.
 \item Typed Lua typing rules.
 \end{itemize}
 \end{frame}
