@@ -323,10 +323,61 @@ function types.subtype (t1, t2)
     elseif types.isString(t1) and types.isString(t2) then
       return true
     end
+  elseif not types.isUnion(t1) and types.isUnion(t2) then -- S-UNION1 and S-UNION2
+    return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
+  elseif types.isUnion(t1) then -- S-UNION3
+    return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
   elseif types.isFunction(t1) and types.isFunction(t2) then
     return types.subtype(t2[1], t1[1]) and types.subtype(t1[2], t2[2])
   elseif types.isTuple(t1) and types.isTuple(t2) then
     local s1, s2 = t1[1], t2[1]
+    if #s1 == #s2 then
+      for k, v in ipairs(s1) do
+        if not types.subtype(s1[k], s2[k]) then
+          return false
+        end
+      end
+      return true
+    elseif #s1 < #s2 then
+      if types.isVarArg(s1[#s1]) then
+        local i = 1
+        while i < #s1 do
+          if not types.subtype(s1[i], s2[i]) then
+            return false
+          end
+          i = i + 1
+        end
+        local j = i
+        while j <= #s2 do
+          if not types.subtype(s1[i], s2[j]) then
+            return false
+          end
+          j = j + 1
+        end
+        return true
+      end
+      return false
+    elseif #s1 > #s2 then
+      if types.isVarArg(s2[#s2]) then
+        local i = 1
+        while i < #s2 do
+          if not types.subtype(s1[i], s2[i]) then
+            return false
+          end
+          i = i + 1
+        end
+        local j = i
+        while j <= #s1 do
+          if not types.subtype(s1[j], s2[i]) then
+            return false
+          end
+          j = j + 1
+        end
+        return true
+      end
+      return false
+    end
+--[[
     if #s1 ~= #s2 then
       return false
     end
@@ -336,14 +387,36 @@ function types.subtype (t1, t2)
       end
     end
     return true
-  elseif not types.isUnion(t1) and types.isUnion(t2) then -- S-UNION1 and S-UNION2
-    return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
-  elseif types.isUnion(t1) then -- S-UNION3
-    return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
   elseif types.isVarArg(t1) and types.isVarArg(t2) then -- S-VARARG1
     return types.subtype(t1[1], t2[1])
   elseif types.isVarArg(t1) and types.isUnion(t2) then -- S-VARARG2
     return types.subtype(t1[1], t2[1]) and types.isNil(t2[2])
+]]
+  elseif types.isVarArg(t1) and types.isVarArg(t2) then
+    if types.isNil(t1[1]) then
+      return true
+    end
+    return types.subtype(t1[1], t2[1])
+  elseif types.isVarArg(t1) then
+    if types.isTuple(t2) then
+      for k, v in ipairs(t2[1]) do
+        if not types.subtype(t1, v) then
+          return false
+        end
+      end
+      return true
+    end
+    return types.subtype(t1[1], t2)
+  elseif types.isVarArg(t2) then
+    if types.isTuple(t1) then
+      for k, v in ipairs(t1[1]) do
+        if not types.subtype(v, t2) then
+          return false
+        end
+      end
+      return true
+    end
+    return types.subtype(t1, t2[1])
   end
   return false
 end

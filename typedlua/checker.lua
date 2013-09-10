@@ -870,9 +870,8 @@ local function check_return (env, stm)
   for k, v in ipairs(explist) do
     table.insert(list, v["type"])
   end
-  if #list == 0 then
-    table.insert(list, types.VarArg(Nil))
-  end
+  table.insert(list, types.VarArg(Nil))
+  table.insert(ret_type[1], types.VarArg(Nil))
   check_ret_type(env, ret_type, types.Tuple(list), stm.pos)
 end
 
