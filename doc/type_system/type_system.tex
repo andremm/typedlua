@@ -143,23 +143,39 @@ Any \subtype Any
 
 \[
 {Nil*} \subtype {T*}
-\mylabel{VARARG-1}
-\]
-
-\[
-{T*} \subtype {(T \cup Nil)*}
-\mylabel{VARARG-2}
+\mylabel{S-VARARG-1}
 \]
 
 \[
 \frac{T_{1} \subtype T_{2}}
      {{T_{1}*} \subtype {T_{2}*}}
-\mylabel{VARARG-3}
+\mylabel{S-VARARG-2}
 \]
 
 \[
-{T*} \subtype (T \cup Nil) \times {T*}
-\mylabel{VARARG-4}
+\frac{T_{1} \subtype T_{2}}
+     {{T_{1}*} \subtype T_{2}}
+\mylabel{S-VARARG3}
+\]
+
+\[
+\frac{T_{1} \subtype T_{2} \;\;\;
+      {T_{1}*} \subtype S_{2}}
+     {{T_{1}*} \subtype T_{2} \times S_{2}}
+\mylabel{S-VARARG4}
+\]
+
+\[
+\frac{T_{1} \subtype T_{2}}
+     {T_{1} \subtype {T_{2}*}}
+\mylabel{S-VARARG5}
+\]
+
+\[
+\frac{T_{1} \subtype T_{2} \;\;\;
+      S_{1} \subtype {T_{2}*}}
+     {T_{1} \times S_{1} \subtype {T_{2}*}}
+\mylabel{S-VARARG6}
 \]
 
 \section{Typing Rules}
