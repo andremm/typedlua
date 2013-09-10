@@ -32,7 +32,8 @@ subtype t1 t2 =
   subtype_any t1 t2 ||
   subtype_constants t1 t2 ||
   subtype_base t1 t2 ||
-  subtype_union t1 t2
+  subtype_union t1 t2 ||
+  subtype_function t1 t2
 
 subtype_top :: Type -> Type -> Bool
 subtype_top t1 t2 =
@@ -98,3 +99,28 @@ subtype_union t1 t2 =
             TUnion t2' t2'' -> (subtype t1 t2') || (subtype t1 t2'')
             _ -> False
 
+subtype_function :: Type -> Type -> Bool
+subtype_function t1 t2 =
+  case t1 of
+    TFunction s1 s2 -> case t2 of
+                         TFunction s3 s4 -> (subtype2 s3 s1) && (subtype2 s2 s4)
+                         _ -> False
+    _ -> False
+
+subtype2 :: SndClassType -> SndClassType -> Bool
+subtype2 a b =
+  case a of
+    TFirstClass t1 -> case b of
+                        TFirstClass t2 -> subtype t1 t2
+                        TVarArg t2 -> subtype t1 t2
+                        _ -> False
+    TVarArg t1 -> case b of
+                    TVarArg t2 -> subtype t1 t2
+                    TFirstClass t2 -> subtype t1 t2
+                    TProd t2 s2 -> (subtype t1 t2) && (subtype2 a s2)
+                    _ -> False
+    TProd t1 s1 -> case b of
+                     TProd t2 s2 -> (subtype t1 t2) && (subtype2 s1 s2)
+                     TVarArg t2 -> (subtype t1 t2) && (subtype2 s1 b)
+                     _ -> False
+    _ -> False
