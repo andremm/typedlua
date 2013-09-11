@@ -24,24 +24,12 @@
 
 \begin{align*}
 T ::= \; & C \; \pipe B \; \pipe Object \; \pipe Any \; \pipe
-S \rightarrow S \; \pipe T \cup T\\
+T \cup T \; \pipe S \rightarrow S \pipe \\
 C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
 \pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
 B ::= \; & Boolean \; \pipe Number \; \pipe String\\
 S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
 \end{align*}
-
-\section{Consistency}
-
-\[
-T \sim Any
-\mylabel{C-LEFT}
-\]
-
-\[
-Any \sim T
-\mylabel{C-RIGHT}
-\]
 
 \section{Subtyping}
 
@@ -103,32 +91,32 @@ Any \subtype Any
 \mylabel{S-ANY}
 \]
 
-\subsection{Function types}
-
-\[
-\frac{T_{3} \subtype T_{1} \;\;\; T_{2} \subtype T_{4}}
-     {T_{1} \rightarrow T_{2} \subtype T_{3} \rightarrow T_{4}}
-\mylabel{S-FUNCTION}
-\]
-
 \subsection{Union types}
 
 \[
-\frac{T \subtype T_{1}}
-     {T \subtype T_{1} \cup T_{2}}
+\frac{T_{1} \subtype T_{2}}
+     {T_{1} \subtype T_{2} \cup T_{3}}
 \mylabel{S-UNION1}
 \]
 
 \[
-\frac{T \subtype T_{2}}
-     {T \subtype T_{1} \cup T_{2}}
+\frac{T_{1} \subtype T_{3}}
+     {T_{1} \subtype T_{2} \cup T_{3}}
 \mylabel{S-UNION2}
 \]
 
 \[
-\frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
-     {T_{1} \cup T_{2} \subtype T}
+\frac{T_{1} \subtype T_{3} \;\;\; T_{2} \subtype T_{3}}
+     {T_{1} \cup T_{2} \subtype T_{3}}
 \mylabel{S-UNION3}
+\]
+
+\subsection{Function types}
+
+\[
+\frac{S_{3} \subtype S_{1} \;\;\; S_{2} \subtype S_{4}}
+     {S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
+\mylabel{S-FUNCTION}
 \]
 
 \subsection{Product types}
@@ -176,6 +164,146 @@ Any \subtype Any
       S_{1} \subtype {T_{2}*}}
      {T_{1} \times S_{1} \subtype {T_{2}*}}
 \mylabel{S-VARARG6}
+\]
+
+\section{Consistent-subtyping}
+
+\subsection{Constant types}
+
+\[
+C \lesssim C
+\mylabel{C-CONSTANT}
+\]
+
+\[
+\mathbf{false} \lesssim Boolean
+\mylabel{C-FALSE}
+\]
+
+\[
+\mathbf{true} \lesssim Boolean
+\mylabel{C-TRUE}
+\]
+
+\[
+{<}double{>} \lesssim Number
+\mylabel{C-DOUBLE}
+\]
+
+\[
+{<}integer{>} \lesssim {<}double{>}
+\mylabel{C-INTEGER1}
+\]
+
+\[
+{<}integer{>} \lesssim Number
+\mylabel{C-INTEGER2}
+\]
+
+\[
+{<}string{>} \lesssim String
+\mylabel{C-STRING}
+\]
+
+\subsection{Base types}
+
+\[
+B \lesssim B
+\mylabel{C-BASE}
+\]
+
+%\subsection{Object (Top) type}
+%
+%\[
+%T \subtype Object
+%\mylabel{S-OBJECT}
+%\]
+
+\subsection{Any type}
+
+\[
+T \lesssim Any
+\mylabel{C-ANY1}
+\]
+
+\[
+Any \lesssim T
+\mylabel{C-ANY2}
+\]
+
+\subsection{Union types}
+
+\[
+\frac{T_{1} \lesssim T_{2}}
+     {T_{1} \lesssim T_{2} \cup T_{3}}
+\mylabel{C-UNION1}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{3}}
+     {T_{1} \lesssim T_{2} \cup T_{3}}
+\mylabel{C-UNION2}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{3} \;\;\; T_{2} \lesssim T_{3}}
+     {T_{1} \cup T_{2} \lesssim T_{3}}
+\mylabel{C-UNION3}
+\]
+
+\subsection{Function types}
+
+\[
+\frac{S_{3} \lesssim S_{1} \;\;\; S_{2} \lesssim S_{4}}
+     {S_{1} \rightarrow S_{2} \lesssim S_{3} \rightarrow S_{4}}
+\mylabel{C-FUNCTION}
+\]
+
+\subsection{Product types}
+
+\[
+\frac{T_{1} \lesssim T_{2} \;\;\; S_{1} \lesssim S_{2}}
+     {T_{1} \times S_{1} \lesssim T_{2} \times S_{2}}
+\mylabel{C-PROD}
+\]
+
+\subsection{VarArg types}
+
+\[
+{Nil*} \lesssim {T*}
+\mylabel{C-VARARG-1}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2}}
+     {{T_{1}*} \lesssim {T_{2}*}}
+\mylabel{C-VARARG-2}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2}}
+     {{T_{1}*} \lesssim T_{2}}
+\mylabel{C-VARARG3}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2} \;\;\;
+      {T_{1}*} \lesssim S_{2}}
+     {{T_{1}*} \lesssim T_{2} \times S_{2}}
+\mylabel{C-VARARG4}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2}}
+     {T_{1} \lesssim {T_{2}*}}
+\mylabel{C-VARARG5}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2} \;\;\;
+      S_{1} \lesssim {T_{2}*}}
+     {T_{1} \times S_{1} \lesssim {T_{2}*}}
+\mylabel{C-VARARG6}
 \]
 
 \section{Typing Rules}
