@@ -412,7 +412,12 @@ end
 -- consistent-subtyping
 
 function types.csubtype (t1, t2)
-  if types.isAny(t1) then
+  if types.isObject(t2) then
+    if types.isTuple(t1) or types.isVarArg(t1) then
+      return false
+    end
+    return true
+  elseif types.isAny(t1) then
     if not types.isTuple(t2) and not types.isVarArg(t2) then
       return true
     end
