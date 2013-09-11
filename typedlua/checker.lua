@@ -94,6 +94,29 @@ local function set_return_type (env, ret_type)
   env["function"][fscope]["ret_type"] = ret_type
 end
 
+local function get_explist_type (explist)
+  local list = {}
+  local len = #explist
+  if len == 0 then
+    table.insert(list, types.VarArg(Nil))
+    return types.Tuple(list)
+  end
+  local t
+  for i=1,len-1 do
+    t = explist[i]["type"]
+    if types.VarArg(t) then t = types.typeofVarArg(t) end
+    table.insert(list, t)
+  end
+  t = explist[len]["type"]
+  if types.VarArg(t) then
+    table.insert(list, t)
+    return types.Tuple(list)
+  end
+  table.insert(list, t)
+  table.insert(list, types.VarArg(Nil))
+  return types.Tuple(list)
+end
+
 -- functions that handle identifiers
 
 local check_block, check_stm, check_exp, check_var
@@ -251,15 +274,15 @@ end
 
 local function match_dec_type (env, dec_type, inf_type, pos)
   local msg
-  if types.isAny(dec_type) then
+  if types.isAny(dec_type) and not types.isAny(inf_type) then
     msg = "attempt to cast 'any' to '%s'"
     msg = string.format(msg, type2str(inf_type))
     warning(env, msg, pos)
-  elseif types.isAny(inf_type) then
+  elseif types.isAny(inf_type) and not types.isAny(dec_type) then
     msg = "attempt to cast '%s' to 'any'"
     msg = string.format(msg, type2str(dec_type))
     warning(env, msg, pos)
-  elseif not types.subtype(inf_type, dec_type) then
+  elseif not types.csubtype(inf_type, dec_type) then
     msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inf_type), type2str(dec_type))
     typeerror(env, msg, pos)
@@ -438,18 +461,18 @@ end
 
 local function check_call_arg (env, fname, k, dtype, gtype, pos)
   local msg
-  if not types.subtype(gtype, dtype) then
-    msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
-    msg = msg:format(k, fname, types.tostring(gtype), types.tostring(dtype))
-    typeerror(env, msg, pos)
-  elseif types.isAny(gtype) then
+  if types.isAny(gtype) and not types.isAny(dtype) then
     msg = "parmeter %d of '%s', attempt to cast 'any' to '%s'"
     msg = msg:format(k, fname, types.tostring(dtype))
     warning(env, msg, pos)
-  elseif types.isAny(dtype) then
+  elseif types.isAny(dtype) and not types.isAny(gtype) then
     msg = "parameter %d of '%s', attempt to cast '%s' to 'any'"
     msg = msg:format(k, fname, types.tostring(gtype))
     warning(env, msg, pos)
+  elseif not types.csubtype(gtype, dtype) then
+    msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
+    msg = msg:format(k, fname, types.tostring(gtype), types.tostring(dtype))
+    typeerror(env, msg, pos)
   end
 end
 
@@ -847,18 +870,18 @@ end
 
 local function check_ret_type (env, dec_type, inf_type, pos)
   local msg
-  if not types.subtype(inf_type, dec_type) then
-    msg = "attempt to return '%s' instead of '%s'"
-    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
-    typeerror(env, msg, pos)
-  elseif types.isAny(inf_type) then
+  if types.isAny(inf_type) and not types.isAny(dec_type) then
     msg = "attempt to return 'any' instead of '%s'"
     msg = string.format(msg, type2str(dec_type))
     warning(env, msg, pos)
-  elseif types.isAny(dec_type) then
+  elseif types.isAny(dec_type) and not types.isAny(inf_type) then
     msg = "attempt to return '%s' instead of 'any'"
     msg = string.format(msg, type2str(dec_type))
     warning(env, msg, pos)
+  elseif not types.csubtype(inf_type, dec_type) then
+    msg = "attempt to return '%s' instead of '%s'"
+    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
+    typeerror(env, msg, pos)
   end
 end
 
@@ -881,7 +904,7 @@ local function check_while (env, exp, stm)
 end
 
 function check_explist (env, explist)
-  for k,v in ipairs(explist) do
+  for k, v in ipairs(explist) do
     check_exp(env, v)
   end
 end
