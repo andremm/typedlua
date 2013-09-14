@@ -106,7 +106,7 @@ basetype ::= <b>boolean</b> | <b>number</b> | <b>string</b>
 
 uniontype ::= type &lsquo;<b>|</b>&rsquo; type
 
-functiontype ::= &lsquo;<b>(</b>&rsquo; [2ndclasstype] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; 2ndclasstype
+functiontype ::= &lsquo;<b>(</b>&rsquo; [2ndclasstype] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; &lsquo;<b>(</b>&rsquo; 2ndclasstype &lsquo;<b>)</b>&rsquo;
 
 2ndclasstype ::= type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
 </pre>

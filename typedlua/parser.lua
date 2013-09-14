@@ -155,7 +155,7 @@ local G = { V"TypedLua",
   UnionOp = symb("|") / "TypeUnion";
   FunctionType = taggedCap("TypeFunction",
                  symb("(") * (V"Type2" + V"VoidType") * symb(")") *
-                 symb("->") * V"Type2");
+                 symb("->") * symb("(") * V"Type2" * symb(")"));
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
