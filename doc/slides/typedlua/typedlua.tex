@@ -5,6 +5,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{listings}
 \usepackage{beamerthemesplit}
 %\usecolortheme{dove}
 
@@ -223,7 +224,66 @@ functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
 
 \begin{frame}
 \frametitle{Example}
-\textit{Pensar em um exemplo legal para colocar aqui.}
+{\tt
+\textcolor{white}{$Number \;\rightarrow\; Number$}\\
+local function abs (n:number) : number\\
+\textcolor{white}{--} if n < 0 then return -n end\\
+\textcolor{white}{--} return n\\
+end\\
+\textcolor{white}{--}\\
+\textcolor{white}{$Any \;\times\; Any \;\rightarrow\; Any$}\\
+local function dist (x, y)\\
+\textcolor{white}{--} return abs(x - y)\\
+end\\
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{Example}
+{\tt
+\textcolor{white}{$Number \;\rightarrow\; Number$}\\
+local function abs (n:number) : number\\
+\textcolor{white}{--} if n < 0 then return -n end\\
+\textcolor{white}{--} return n\\
+end\\
+\textcolor{white}{--}\\
+\textcolor{white}{$Any \;\times\; Any \;\rightarrow\; Any$}\\
+local function dist (x\textcolor{blue}{:any}, y\textcolor{blue}{:any}) \textcolor{blue}{: any}\\
+\textcolor{white}{--} return abs(x - y)\\
+end\\
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{To be or not to be Lua?}
+{\tt
+\textcolor{blue}{$Number \;\rightarrow\; Number$}\\
+local function abs (n:number) : number\\
+\textcolor{white}{--} if n < 0 then return -n end\\
+\textcolor{white}{--} return n\\
+end\\
+\textcolor{white}{--}\\
+\textcolor{blue}{$Any \;\times\; Any \;\rightarrow\; Any$}\\
+local function dist (x\textcolor{blue}{:any}, y\textcolor{blue}{:any}) \textcolor{blue}{: any}\\
+\textcolor{white}{--} return abs(x - y)\\
+end\\
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{To be or not to be Lua?}
+{\tt
+\textcolor{blue}{$Number \;\rightarrow\; Number \;\times\; {Nil*}$}\\
+local function abs (n:number) : number\textcolor{blue}{, nil*}\\
+\textcolor{white}{--} if n < 0 then return -n end\\
+\textcolor{white}{--} return n\\
+end\\
+\textcolor{white}{--}\\
+\textcolor{blue}{$Any \;\times\; Any \;\rightarrow\; {Any*}$}\\
+local function dist (x\textcolor{blue}{:any}, y\textcolor{blue}{:any}) \textcolor{blue}{: any*}\\
+\textcolor{white}{--} return abs(x - y)\\
+end\\
+}
 \end{frame}
 
 \begin{frame}
