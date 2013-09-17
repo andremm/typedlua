@@ -406,7 +406,7 @@ local function check_parameters_list (env, varlist)
   local len = #varlist
   local list = {}
   if len == 0 then
-    table.insert(list, types.VarArg(Object))
+    table.insert(list, types.VarArg(Any))
   else
     local is_vararg = false
     local vararg_type
@@ -428,6 +428,8 @@ local function check_parameters_list (env, varlist)
     end
     if is_vararg then
       table.insert(list, types.VarArg(vararg_type))
+    else
+      table.insert(list, types.VarArg(Any))
     end
   end
   return types.Tuple(list)
@@ -535,92 +537,34 @@ local function check_call_arg (env, fname, k, dtype, gtype, pos)
 end
 
 local function check_call_args (env, fname, args, explist, pos)
-  local len_args, len_list = #args, #explist
-  local dec_type, given_type
-  local fill_type = Nil
-  if len_list == 0 then -- calling void
-    dec_type = args[1]
-    if types.isVarArg(dec_type) then
-      dec_type = types.typeofVarArg(dec_type)
-      if types.isObject(dec_type) then -- function is void
-        return
-      end
+  local typelist = explist2typelist(explist)
+  local argslist = args[1]
+  local len_dec, len_inf = #argslist, #typelist
+  if len_dec == len_inf then
+    for k, v in ipairs(argslist) do
+      check_call_arg(env, fname, k, argslist[k], typelist[k], explist[k].pos)
     end
-  end
-  if len_list < len_args then
+  elseif len_dec < len_inf then
     local i = 1
-    while i < len_list do
-      pos = explist[i]["pos"]
-      dec_type = args[i]
-      given_type = explist[i]["type"]
-      if types.isVarArg(given_type) then
-        given_type = types.typeofVarArg(given_type)
-      end
-      check_call_arg(env, fname, i, dec_type, given_type, pos)
+    while i < len_dec do
+      check_call_arg(env, fname, i, argslist[i], typelist[i], explist[i].pos)
       i = i + 1
     end
-    local exp = explist[i]
-    if not exp then
-      given_type = fill_type
-    else
-      pos = explist[i]["pos"]
-      given_type = explist[i]["type"]
-      if types.isVarArg(given_type) then
-        fill_type = types.typeofVarArg(given_type)
-        given_type = fill_type
-      end
+    local j = i
+    while j <= len_inf do
+      check_call_arg(env, fname, i, argslist[i], typelist[j], explist[i].pos)
+       j = j + 1
+    end
+  elseif len_dec > len_inf then
+    local i = 1
+    while i < len_inf do
+      check_call_arg(env, fname, i, argslist[i], typelist[i], explist[i].pos)
+      i = i + 1
     end
     local j = i
-    while j < len_args do
-      dec_type = args[j]
-      exp = explist[j]
-      if not exp then
-        given_type = fill_type
-      else
-        pos = exp["pos"]
-        given_type = exp["type"]
-        if types.isVarArg(given_type) then
-          given_type = types.typeofVarArg(given_type)
-        end
-      end
-      check_call_arg(env, fname, j, dec_type, given_type, pos)
+    while j <= len_dec do
+      check_call_arg(env, fname, j, argslist[j], typelist[i], explist.pos)
       j = j + 1
-    end
-    if types.isNil(fill_type) then
-      check_call_arg(env, fname, j, args[j], fill_type, pos)
-    else
-      check_call_arg(env, fname, j, args[j], explist[i]["type"], pos)
-    end
-  else
-    local i = 1
-    while i < len_args do
-      dec_type = args[i]
-      given_type = explist[i]["type"]
-      pos = explist[i]["pos"]
-      if types.isVarArg(given_type) then
-        given_type = types.typeofVarArg(given_type)
-      end
-      check_call_arg(env, fname, i, dec_type, given_type, pos)
-      i = i + 1
-    end
-    dec_type = args[i]
-    local j = i
-    if types.isVarArg(dec_type) then
-      dec_type = types.typeofVarArg(dec_type)
-      while j < len_list do
-        given_type = explist[j]["type"]
-        pos = explist[j]["pos"]
-        if types.isVarArg(given_type) then
-          given_type = types.typeofVarArg(given_type)
-        end
-        check_call_arg(env, fname, j, dec_type, given_type, pos)
-        j = j + 1
-      end
-      given_type = explist[j]["type"]
-      pos = explist[j]["pos"]
-      check_call_arg(env, fname, j, dec_type, given_type, pos)
-    else
-      check_call_arg(env, fname, j, args[i], explist[i]["type"], pos)
     end
   end
 end
@@ -633,7 +577,7 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
     warning(env, msg, pos)
     return Any
   elseif types.isFunction(ftype) then
-    check_call_args(env, fname, ftype[1][1], explist, pos, visibility)
+    check_call_args(env, fname, ftype[1], explist, pos, visibility)
     return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"
