@@ -112,13 +112,10 @@ end
 
 if TYPECHECK then
   t,e = checker.typecheck(t, subject, filename)
-  if not t then
-    print(e)
-    os.exit(1)
-  end
+  if e then print(e) end
 end
 
 local generated_code = code.generate(t)
-print(generated_code)
+setcontents(generated_code, OUTPUT)
 
 os.exit(0)
