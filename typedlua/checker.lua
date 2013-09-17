@@ -523,49 +523,56 @@ local function check_call_arg (env, fname, k, dtype, gtype, pos)
   local msg
   if types.isAny(gtype) and not types.isAny(dtype) then
     msg = "parmeter %d of '%s', attempt to cast 'any' to '%s'"
-    msg = msg:format(k, fname, types.tostring(dtype))
+    msg = msg:format(k, fname, type2str(dtype))
     warning(env, msg, pos)
   elseif types.isAny(dtype) and not types.isAny(gtype) then
     msg = "parameter %d of '%s', attempt to cast '%s' to 'any'"
-    msg = msg:format(k, fname, types.tostring(gtype))
+    msg = msg:format(k, fname, type2str(gtype))
     warning(env, msg, pos)
   elseif not types.csubtype(gtype, dtype) then
     msg = "parameter %d of '%s', attempt to assign '%s' to '%s'"
-    msg = msg:format(k, fname, types.tostring(gtype), types.tostring(dtype))
+    msg = msg:format(k, fname, type2str(gtype), type2str(dtype))
     typeerror(env, msg, pos)
   end
 end
 
-local function check_call_args (env, fname, args, explist, pos)
+local function check_call_args (env, fname, args, explist)
   local typelist = explist2typelist(explist)
   local argslist = args[1]
   local len_dec, len_inf = #argslist, #typelist
+  local pos = explist.pos
   if len_dec == len_inf then
     for k, v in ipairs(argslist) do
-      check_call_arg(env, fname, k, argslist[k], typelist[k], explist[k].pos)
+      if explist[k] then pos = explist[k].pos end
+      check_call_arg(env, fname, k, argslist[k], typelist[k], pos)
     end
   elseif len_dec < len_inf then
     local i = 1
     while i < len_dec do
-      check_call_arg(env, fname, i, argslist[i], typelist[i], explist[i].pos)
+      if explist[i] then pos = explist[i].pos end
+      check_call_arg(env, fname, i, argslist[i], typelist[i], pos)
       i = i + 1
     end
     local j = i
     while j <= len_inf do
-      check_call_arg(env, fname, i, argslist[i], typelist[j], explist[i].pos)
+      if explist[j] then pos = explist[j].pos end
+      check_call_arg(env, fname, i, argslist[i], typelist[j], pos)
        j = j + 1
     end
   elseif len_dec > len_inf then
     local i = 1
     while i < len_inf do
-      check_call_arg(env, fname, i, argslist[i], typelist[i], explist[i].pos)
+      if explist[i] then pos = explist[i].pos end
+      check_call_arg(env, fname, i, argslist[i], typelist[i], pos)
       i = i + 1
     end
     local j = i
-    while j <= len_dec do
-      check_call_arg(env, fname, j, argslist[j], typelist[i], explist.pos)
+    while j < len_dec do
+      if explist[i] then pos = explist[i].pos end
+      check_call_arg(env, fname, j, argslist[j], types.typeofVarArg(typelist[i]), pos)
       j = j + 1
     end
+    check_call_arg(env, fname, j, argslist[j], typelist[i], pos)
   end
 end
 
@@ -577,7 +584,7 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
     warning(env, msg, pos)
     return Any
   elseif types.isFunction(ftype) then
-    check_call_args(env, fname, ftype[1], explist, pos, visibility)
+    check_call_args(env, fname, ftype[1], explist)
     return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"
@@ -1029,7 +1036,7 @@ function checker.typecheck (ast, subject, filename)
   end_function(env)
   if #env["messages"] > 0 then
     local msg = table.concat(env["messages"], "\n")
-    return nil, msg
+    return ast, msg
   end
   return ast
 end

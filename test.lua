@@ -29,8 +29,8 @@ local function typecheck (s)
     error(m)
     os.exit(1)
   end
-  r,m = checker.typecheck(t,s,filename)
-  if not r then
+  t,m = checker.typecheck(t,s,filename)
+  if m then
     r = m
   else
     r = ast.tostring(t)
@@ -45,7 +45,7 @@ local function generatecode (s)
     os.exit(1)
   end
   t,m = checker.typecheck(t,s,filename)
-  if not t then
+  if m then
     error(m)
     os.exit(1)
   end
@@ -2096,6 +2096,59 @@ StmBlock [StmAssign [VarID ("x","number"),VarID ("y","number"),VarID ("z","strin
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+x, y, z = 1, true, "hello"
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","?"),VarID ("y","?"),VarID ("z","?")] [ExpNum 1.0,ExpTrue,ExpStr "hello"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x = function () end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","?")] [ExpFunction ([]) "?" (StmBlock [])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x = 1, 2, 3
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("x","?")] [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+function f () : number, number, number
+  return 1, 2, 3
+end
+a:number,b:number,c:number,d:number,e:number = f(),f(),f()
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["f"]) ([]) "(number, number, number, nil*)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmAssign [VarID ("a","number"),VarID ("b","number"),VarID ("c","number"),VarID ("d","number"),VarID ("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+a:string,b:string,c:string,d:string,e:string = ...,...,...
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("a","string"),VarID ("b","string"),VarID ("c","string"),VarID ("d","string"),VarID ("e","string")] [ExpDots,ExpDots,ExpDots]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2115,6 +2168,128 @@ for i=1,10 do end
 ]=]
 e = [=[
 StmBlock [StmForNum ("i","number") (ExpNum 1.0) (ExpNum 10.0) (ExpNum 1.0) (StmBlock [])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- function call
+
+s = [=[
+local function f () end
+f()
+f(1)
+f(1,2,3)
+f(...)
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:string, y:string) end
+f("hello", "world")
+f(...)
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","string"),("y","string")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:string, y:string, ...:string) end
+f("hello", "world", "hello")
+f(...)
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","string"),("y","string"),("...","string")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world",ExpStr "hello"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:number) : number
+  if x == 0 then return 0 end
+  return f(x-1)
+end
+f(1)
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","number")]) "(number, nil*)" (StmBlock [StmIfElse (ExpEQ (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpNum 0.0]]) (StmBlock []),StmRet [ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpSub (ExpVar (VarID ("x","?"))) (ExpNum 1.0)]]]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local f = function () end
+f()
+f(1,2,3)
+f(...)
+]=]
+e = [=[
+StmBlock [StmLocalVar [("f","?")] [ExpFunction ([]) "?" (StmBlock [])],StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- locals
+
+s = [=[
+local x, y, z = 1, true, "hello"
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","?"),("y","?"),("z","?")] [ExpNum 1.0,ExpTrue,ExpStr "hello"]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = function () end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","?")] [ExpFunction ([]) "?" (StmBlock [])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = 1, 2, 3
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","?")] [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f () : number, number, number
+  return 1, 2, 3
+end
+local a:number,b:number,c:number,d:number,e:number = f(),f(),f()
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([]) "(number, number, number, nil*)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmLocalVar [("a","number"),("b","number"),("c","number"),("d","number"),("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local a:string,b:string,c:string,d:string,e:string = ...,...,...
+]=]
+e = [=[
+StmBlock [StmLocalVar [("a","string"),("b","string"),("c","string"),("d","string"),("e","string")] [ExpDots,ExpDots,ExpDots]]
 ]=]
 
 r = typecheck(s)
@@ -2154,6 +2329,54 @@ StmBlock [StmLocalVar [("x","boolean")] [ExpLT (ExpStr "hello") (ExpStr "world")
 r = typecheck(s)
 assert(r == e)
 
+-- return statement
+
+s = [=[
+local function f () end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([]) "?" (StmBlock [])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f () : number*
+  return 1, 2, 3
+end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([]) "number*" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:number) : number|nil
+  if x > 0 then return x end
+end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","number")]) "((number | nil), nil*)" (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpVar (VarID ("x","?"))]]) (StmBlock [])])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (...:number) : number*
+  return ...
+end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("...","number")]) "number*" (StmBlock [StmRet [ExpDots]])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- tests that do not type check
 
 -- arithmetic expressions
@@ -2185,6 +2408,88 @@ x:number,y:number,z:boolean = 1,2
 ]=]
 e = [=[
 test.lua:1:19: type error, attempt to assign 'nil' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x, y, z = nil
+]=]
+e = [=[
+test.lua:1:1: warning, forwarding the declaration of global 'x'
+test.lua:1:4: warning, forwarding the declaration of global 'y'
+test.lua:1:7: warning, forwarding the declaration of global 'z'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x:number, y:string, z:any = nil
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign 'nil' to 'number'
+test.lua:1:11: type error, attempt to assign 'nil' to 'string'
+test.lua:1:21: warning, attempt to cast 'any' to 'nil'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x:number,y:string,z:any = true,...
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:19: warning, attempt to cast 'any' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x:number,y:string = true
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:10: type error, attempt to assign 'nil' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+x:number = 1
+x:boolean = true
+]=]
+e = [=[
+test.lua:2:1: warning, cannot cast global 'x' from 'number' to 'boolean'
+test.lua:2:1: type error, attempt to assign 'boolean' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+function f () : number, number, number
+  return 1, 2, 3
+end
+a:number,b:number,c:string,d:number,e:number = f(),f(),f()
+]=]
+e = [=[
+test.lua:4:19: type error, attempt to assign 'number' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+a:string,b:string,c:string,d:string,e:number,f:boolean = ...,...,...
+]=]
+e = [=[
+test.lua:1:37: type error, attempt to assign 'string' to 'number'
+test.lua:1:46: type error, attempt to assign 'string' to 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -2234,6 +2539,150 @@ test.lua:1:12: type error, 'for' step must be a number
 r = typecheck(s)
 assert(r == e)
 
+-- function call
+
+s = [=[
+local function f (x:number) end
+local x = "foo"
+f()
+f("hello")
+f(true)
+f(x,x)
+]=]
+e = [=[
+test.lua:3:3: type error, parameter 1 of 'f', attempt to assign 'nil' to 'number'
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number'
+test.lua:6:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:number, y:string, z:boolean) end
+f()
+f(1,2,3)
+f("1","2","3")
+f(true,"hello",1,5)
+]=]
+e = [=[
+test.lua:2:3: type error, parameter 1 of 'f', attempt to assign 'nil' to 'number'
+test.lua:2:3: type error, parameter 2 of 'f', attempt to assign 'nil' to 'string'
+test.lua:2:3: type error, parameter 3 of 'f', attempt to assign 'nil' to 'boolean'
+test.lua:3:5: type error, parameter 2 of 'f', attempt to assign 'number' to 'string'
+test.lua:3:7: type error, parameter 3 of 'f', attempt to assign 'number' to 'boolean'
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
+test.lua:4:11: type error, parameter 3 of 'f', attempt to assign 'string' to 'boolean'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number'
+test.lua:5:16: type error, parameter 3 of 'f', attempt to assign 'number' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (...:number) end
+local x = "foo"
+f()
+f("hello")
+f(true)
+f(x,x)
+]=]
+e = [=[
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number*'
+test.lua:6:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
+test.lua:6:5: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- locals
+
+s = [=[
+local x, y, z
+]=]
+e = [=[
+test.lua:1:7: warning, forwarding the declaration of local 'x'
+test.lua:1:10: warning, forwarding the declaration of local 'y'
+test.lua:1:13: warning, forwarding the declaration of local 'z'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string, z:any
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'nil' to 'number'
+test.lua:1:17: type error, attempt to assign 'nil' to 'string'
+test.lua:1:27: warning, attempt to cast 'any' to 'nil'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number,y:string,z:any = true,...
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:25: warning, attempt to cast 'any' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number,y:string = true
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:16: type error, attempt to assign 'nil' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number = 1
+local x:boolean = true
+]=]
+e = [=[
+test.lua:2:7: warning, local 'x' was previously defined at line 1
+test.lua:2:7: warning, shadowing local 'x' from 'number' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f () : number, number, number
+  return 1, 2, 3
+end
+local a:number,b:number,c:string,d:number,e:number = f(),f(),f()
+]=]
+e = [=[
+test.lua:4:25: type error, attempt to assign 'number' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local a:string,b:string,c:string,d:string,e:number,f:boolean = ...,...,...
+]=]
+e = [=[
+test.lua:1:43: type error, attempt to assign 'string' to 'number'
+test.lua:1:52: type error, attempt to assign 'string' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- length operator
 
 s = [=[
@@ -2253,6 +2702,56 @@ local x:boolean = 1 < "hello"
 ]=]
 e = [=[
 test.lua:1:19: type error, attempt to compare number with string
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- return statement
+
+s = [=[
+local function f () : boolean
+  return 1
+end
+]=]
+e = [=[
+test.lua:2:3: type error, attempt to return '(number, nil*)' instead of '(boolean, nil*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f () : number*
+  return "hello", "world"
+end
+]=]
+e = [=[
+test.lua:2:3: type error, attempt to return '(string, string, nil*)' instead of 'number*'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x:number) : number|nil
+  if x > 0 then return "greater than zero" end
+end
+]=]
+e = [=[
+test.lua:2:17: type error, attempt to return '(string, nil*)' instead of '((number | nil), nil*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (...:string) : number*
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:3: type error, attempt to return 'string*' instead of 'number*'
 ]=]
 
 r = typecheck(s)
@@ -2324,8 +2823,8 @@ function f (x, y, z)
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 s = [=[
 function f.m (x)
@@ -2368,8 +2867,8 @@ if 1 then
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 s = [=[
 if 1 then
@@ -2386,8 +2885,8 @@ else
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 s = [=[
 if 1 then
@@ -2412,8 +2911,8 @@ elseif 4 then
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 s = [=[
 if 1 then
@@ -2442,8 +2941,8 @@ else
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 s = [=[
 if 1 then
@@ -2490,8 +2989,8 @@ else
 end
 ]=]
 
---r = generatecode(s)
---assert(r == e)
+r = generatecode(s)
+assert(r == e)
 
 -- local functions
 
