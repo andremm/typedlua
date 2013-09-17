@@ -83,9 +83,6 @@ end
 
 local function get_return_type (env, fscope)
   local ret_type = env["function"][fscope]["ret_type"]
-  if not ret_type then
-    return types.VarArg(Any)
-  end
   return ret_type
 end
 
@@ -356,6 +353,10 @@ local function check_ret_dec (env, ret_type)
      not check_type_name(env, ret_type) then
     return types.Tuple({types.VarArg(Any)})
   end
+  local len = #ret_type[1]
+  if not types.isVarArg(ret_type[1][len]) then
+    table.insert(ret_type[1], types.VarArg(Nil))
+  end
   return ret_type
 end
 
@@ -439,6 +440,32 @@ local function check_function_prototype (env, idlist, ret_type)
   return types.Function(par_type, ret_type)
 end
 
+local function check_ret_type (env, dec_type, inf_type, pos)
+  local msg
+  if types.isAny(inf_type) and not types.isAny(dec_type) then
+    msg = "attempt to return 'any' instead of '%s'"
+    msg = string.format(msg, type2str(dec_type))
+    warning(env, msg, pos)
+  elseif types.isAny(dec_type) and not types.isAny(inf_type) then
+    msg = "attempt to return '%s' instead of 'any'"
+    msg = string.format(msg, type2str(dec_type))
+    warning(env, msg, pos)
+  elseif not types.csubtype(inf_type, dec_type) then
+    msg = "attempt to return '%s' instead of '%s'"
+    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
+    typeerror(env, msg, pos)
+  end
+end
+
+local function check_function_stm (env, stm, ret_type)
+  check_stm(env, stm)
+  local len = #stm
+  if len == 0 or
+     stm[len].tag ~= "StmRet" then
+    check_ret_type(env, ret_type, types.Tuple({types.VarArg(Nil)}), stm.pos)
+  end
+end
+
 -- expressions
 
 local function check_and (env, exp)
@@ -455,7 +482,7 @@ local function check_anonymous_function (env, exp)
   local idlist, ret_type, stm = exp[1], exp[2], exp[3]
   local t = check_function_prototype(env, idlist, ret_type)
   set_return_type(env, t[2])
-  check_stm(env, stm)
+  check_function_stm(env, stm, t[2])
   set_node_type(exp, t)
   end_scope(env)
   end_function(env)
@@ -855,7 +882,7 @@ local function check_global_function (env, stm)
   local t = check_function_prototype(env, idlist, ret_type)
   set_var(env, name, t, pos)
   set_return_type(env, t[2])
-  check_stm(env, stm1)
+  check_function_stm(env, stm1, t[2])
   end_scope(env)
   end_function(env)
 end
@@ -874,7 +901,7 @@ local function check_local_function (env, stm)
   local t = check_function_prototype(env, idlist, ret_type)
   set_var(env, name, t, scope)
   set_return_type(env, t[2])
-  check_stm(env, stm1)
+  check_function_stm(env, stm1, t[2])
   end_scope(env)
   end_function(env)
 end
@@ -899,34 +926,12 @@ local function check_repeat (env, stm, exp)
   check_exp(env, exp)
 end
 
-local function check_ret_type (env, dec_type, inf_type, pos)
-  local msg
-  if types.isAny(inf_type) and not types.isAny(dec_type) then
-    msg = "attempt to return 'any' instead of '%s'"
-    msg = string.format(msg, type2str(dec_type))
-    warning(env, msg, pos)
-  elseif types.isAny(dec_type) and not types.isAny(inf_type) then
-    msg = "attempt to return '%s' instead of 'any'"
-    msg = string.format(msg, type2str(dec_type))
-    warning(env, msg, pos)
-  elseif not types.csubtype(inf_type, dec_type) then
-    msg = "attempt to return '%s' instead of '%s'"
-    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
-    typeerror(env, msg, pos)
-  end
-end
-
 local function check_return (env, stm)
   local explist = stm[1]
   check_explist(env, explist)
+  local typelist = explist2typelist(explist)
   local ret_type = get_return_type(env, env.fscope)
-  local list = {}
-  for k, v in ipairs(explist) do
-    table.insert(list, v["type"])
-  end
-  table.insert(list, types.VarArg(Nil))
-  table.insert(ret_type[1], types.VarArg(Nil))
-  check_ret_type(env, ret_type, types.Tuple(list), stm.pos)
+  check_ret_type(env, ret_type, types.Tuple(typelist), stm.pos)
 end
 
 local function check_while (env, exp, stm)
@@ -1074,7 +1079,7 @@ function checker.typecheck (ast, subject, filename)
   local env = {}
   init_symbol_table(env, subject, filename)
   begin_function(env)
-  set_return_type(env, types.VarArg(Object))
+  set_return_type(env, types.Tuple({types.VarArg(Any)}))
   set_vararg(env, String)
   check_block(env, ast)
   end_function(env)
