@@ -117,6 +117,50 @@ local function get_explist_type (explist)
   return types.Tuple(list)
 end
 
+local function proj (t)
+  if types.isTuple(t) then
+    return proj(t[1][1])
+  elseif types.isVarArg(t) then
+    return t[1]
+  end
+  return t
+end
+
+local function explist2typelist (explist)
+  local len = #explist
+  local list = {}
+  if len == 0 then
+    table.insert(list, types.VarArg(Nil))
+  else
+    for i=1,len-1 do
+      table.insert(list, proj(explist[i]["type"]))
+    end
+    local last_type = explist[len]["type"]
+    if types.isTuple(last_type) then
+      for k, v in ipairs(last_type[1]) do
+        table.insert(list, v)
+      end
+    else
+      table.insert(list, last_type)
+    end
+    len = #list
+    if not types.isVarArg(list[len]) then
+      table.insert(list, types.VarArg(Nil))
+    end
+  end
+  return list
+end
+
+local function adjust_typelist (dec_list, inf_list)
+  local len_dec, len_inf = #dec_list, #inf_list
+  local fill_type = types.typeofVarArg(inf_list[len_inf])
+  table.remove(inf_list)
+  for i=len_inf,len_dec do
+    table.insert(inf_list, fill_type)
+  end
+  return inf_list
+end
+
 -- functions that handle identifiers
 
 local check_block, check_stm, check_exp, check_var
@@ -396,19 +440,6 @@ local function check_function_prototype (env, idlist, ret_type)
 end
 
 -- expressions
-
-local function explist2typelist (explist)
-  local list = {}
-  local len = #explist
-  if len == 0 then
-    table.insert(list, types.VarArg(Object))
-  else
-    for k,v in ipairs(explist) do
-      table.insert(list, explist[k]["type"])
-    end
-  end
-  return list
-end
 
 local function check_and (env, exp)
   local exp1, exp2 = exp[1], exp[2]
@@ -749,22 +780,22 @@ end
 
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
-  local fill_type = get_fill_type(explist)
+  local typelist = explist2typelist(explist)
+  adjust_typelist(varlist, typelist)
   for k, v in ipairs(varlist) do
     check_var(env, v)
     local var_name = get_var_name(v)
     local dec_type = get_var_type(v)
     local pos = get_var_pos(v)
     local scope = get_local_scope(env, var_name)
-    local inf_type = get_node_type(explist[k], fill_type)
     if scope then -- local
-      update_var(env, var_name, dec_type, inf_type, pos, scope)
+      update_var(env, var_name, dec_type, typelist[k], pos, scope)
     else -- global
       local g = get_global(env, var_name)
       if g then
-        update_var(env, var_name, dec_type, inf_type, pos)
+        update_var(env, var_name, dec_type, typelist[k], pos)
       else
-        local t = check_var_dec(env, var_name, dec_type, inf_type, pos)
+        local t = check_var_dec(env, var_name, dec_type, typelist[k], pos)
         set_var(env, var_name, t, pos)
       end
     end
@@ -852,13 +883,13 @@ local function check_local_var (env, idlist, explist)
   local scope = env.scope
   local varlist = idlist2varlist(env, idlist)
   check_explist(env, explist)
-  local fill_type = get_fill_type(explist)
+  local typelist = explist2typelist(explist)
+  adjust_typelist(varlist, typelist)
   for k, v in ipairs(varlist) do
     local var_name = get_var_name(v)
     local dec_type = get_var_type(v)
     local pos = get_var_pos(v)
-    local inf_type = get_node_type(explist[k], fill_type)
-    local t = check_var_dec(env, var_name, dec_type, inf_type, pos, scope)
+    local t = check_var_dec(env, var_name, dec_type, typelist[k], pos, scope)
     set_var(env, var_name, t, pos, scope)
   end
 end
