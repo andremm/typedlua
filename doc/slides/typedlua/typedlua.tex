@@ -264,7 +264,7 @@ local function abs (n:number) : number\\
 end\\
 \textcolor{white}{--}\\
 \textcolor{blue}{$Any \;\times\; Any \;\rightarrow\; Any$}\\
-local function dist (x\textcolor{blue}{:any}, y\textcolor{blue}{:any}) \textcolor{blue}{: any}\\
+local function dist (x:any, y:any) : any\\
 \textcolor{white}{--} return abs(x - y)\\
 end\\
 }
@@ -273,14 +273,14 @@ end\\
 \begin{frame}
 \frametitle{To be Lua!}
 {\tt
-\textcolor{blue}{$Number \;\times\; {Any*} \;\rightarrow\; Number \;\times\; {Nil*}$}\\
+$Number \;\textcolor{blue}{\times\; {Any*}} \;\rightarrow\; Number \;\textcolor{blue}{\times\; {Nil*}}$\\
 local function abs (n:number) : number\textcolor{blue}{, nil*}\\
 \textcolor{white}{--} if n < 0 then return -n end\\
 \textcolor{white}{--} return n\\
 end\\
 \textcolor{white}{--}\\
-\textcolor{blue}{$Any \;\times\; Any \;\times\; {Any*} \;\rightarrow\; {Any*}$}\\
-local function dist (x\textcolor{blue}{:any}, y\textcolor{blue}{:any}) \textcolor{blue}{: any*}\\
+$Any \;\times\; Any \;\textcolor{blue}{\times\; {Any*}} \;\rightarrow\; {Any\textcolor{blue}{*}}$\\
+local function dist (x:any, y:any) : any\textcolor{blue}{*}\\
 \textcolor{white}{--} return abs(x - y)\\
 end\\
 }
@@ -329,7 +329,7 @@ so we need to compose the two relations:
 
 \begin{frame}
 \frametitle{Type Language, Type Relations, and Typing Rules}
-See typesystem.pdf
+See type\_system.pdf
 \end{frame}
 
 \end{document}
