@@ -194,7 +194,6 @@ local G = { V"TypedLua",
   OptionalType = (symb(":") * V"Type") + V"UndefinedType";
   OptionalType2 = (symb(":") * V"Type2") + V"UndefinedType";
   UndefinedType = taggedCap("TypeUndefined", P(true));
-  UntypedName = taggedCap("Name", token(V"Name", "Name") * V"UndefinedType");
   TypedName = taggedCap("Name", token(V"Name", "Name") * V"OptionalType");
   TypedVar = taggedCap("VarID", token(V"Name", "Name") * symb(":") * V"Type");
   TypedGlobal = taggedCap("ExpVar", V"TypedVar" * -V"FuncArgs");
@@ -225,8 +224,7 @@ local G = { V"TypedLua",
                 return t
               end;
   Constructor = taggedCap("ExpTableConstructor", symb("{") * V"FieldList" * symb("}"));
-  NameList = sepby1(V"UntypedName", symb(","), "NameList");
-  TypedNameList = sepby1(V"TypedName", symb(","), "NameList");
+  NameList = sepby1(V"TypedName", symb(","), "NameList");
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
              taggedCap("ExpList", V"Constructor") +
@@ -282,7 +280,7 @@ local G = { V"TypedLua",
                 kw("do") * V"Block" * kw("end"));
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
-  ForNumName = taggedCap("Name", token(V"Name", "Name")) /
+  ForNumName = taggedCap("Name", token(V"Name", "Name") * -symb(":")) /
                function (t)
                  t[2] = { tag = "TypeBase", pos = t.pos, [1] = "number" }
                  return t
@@ -305,17 +303,17 @@ local G = { V"TypedLua",
                end
                return t
              end;
-  ParList = V"TypedNameList" * (symb(",") * V"TypedVarArg")^-1 /
+  ParList = V"NameList" * (symb(",") * V"TypedVarArg")^-1 /
             function (t, v)
               if v then table.insert(t, v) end
               return t
             end +
-            taggedCap("TypedNameList", V"TypedVarArg"^-1);
+            taggedCap("NameList", V"TypedVarArg"^-1);
   FuncBody = symb("(") * V"ParList" * symb(")") *
              V"OptionalType2" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name", "Name") * V"FuncBody");
-  LocalAssign = taggedCap("StmLocalVar", V"TypedNameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
+  LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
   LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
   LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name", "Name") * symb("::"));
   BreakStat = taggedCap("StmBreak", kw("break"));

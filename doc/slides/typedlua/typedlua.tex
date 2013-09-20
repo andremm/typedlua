@@ -94,7 +94,7 @@ e ::= c \;|\; x \;|\; \lambda x:\tau.e \;|\; e\;e \;\;\;
 (\lambda x.e \equiv \lambda x:?.e)
 \]
 \[
-\frac{\Gamma x = \lfloor\tau\rfloor}
+\frac{\Gamma x = \tau}
      {\Gamma \vdash_{G} x:\tau} \;\;\;\;\;
 \frac{\Delta c = \tau}
      {\Gamma \vdash_{G} c:\tau}
@@ -162,6 +162,8 @@ failure back to the source of the error.
 stat ::= & \; ... \; |\\
 & \textcolor{blue}{varlist} \; \texttt{`='} \; explist \; |\\
 & \; ... \; |\\
+& \textbf{for} \; \textcolor{blue}{namelist} \; \textbf{in} \;
+explist \; \textbf{do} \; block \; \textbf{end}\\
 & \textbf{function} \; funcname \; \textcolor{blue}{funcbody} \; |\\
 & \textbf{local} \; \textbf{function} \; Name \; \textcolor{blue}{funcbody} \; |\\
 & \textbf{local} \; \textcolor{blue}{namelist} \; [\texttt{`='} \; explist]\\
@@ -178,12 +180,15 @@ functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}
 stat ::= & \; ... \; |\\
 & \textcolor{blue}{varlist} \; \texttt{`='} \; explist \; |\\
 & \; ... \; |\\
-& \textbf{local} \; \textcolor{blue}{typednamelist} \; [\texttt{`='} \; explist]\\
+& \textbf{for} \; \textcolor{blue}{namelist} \; \textbf{in} \;
+explist \; \textbf{do} \; block \; \textbf{end}\\
+& \; ... \; |\\
+& \textbf{local} \; \textcolor{blue}{namelist} \; [\texttt{`='} \; explist]\\
 varlist ::= & \; \textcolor{blue}{var} \; \{\texttt{`,'} \; \textcolor{blue}{var}\}\\
 var ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \; |\\
 & prefixexp \; \texttt{`['} \; exp \; \texttt{`]'} \; |\\
 & prefixexp \; \texttt{`.'} \; Name\\
-typednamelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
 \end{align*}
 \end{frame}
@@ -200,11 +205,11 @@ exp ::= & \; ... \; |\\
 & \; ...\\
 functiondef ::= & \; \textbf{function} \; \textcolor{blue}{funcbody}\\
 funcbody ::= & \; \texttt{`('} \; [\textcolor{blue}{parlist}] \; \texttt{`)'} \;
-\textcolor{blue}{[\texttt{`:'} \; 2ndclasstype]} \; block \; \textbf{end}\\
-parlist ::= & \; \textcolor{blue}{typednamelist} \; [\texttt{`,'} \; \texttt{`...'} \;
+\textcolor{blue}{[\texttt{`:'} \; typelist]} \; block \; \textbf{end}\\
+parlist ::= & \; \textcolor{blue}{namelist} \; [\texttt{`,'} \; \texttt{`...'} \;
 \textcolor{blue}{[\texttt{`:'} \; type]}] \; | \;\\
 & \texttt{`...'} \; \textcolor{blue}{[\texttt{`:'} \; type]}\\
-typednamelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
+namelist ::= & \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]} \;
 \{\texttt{`,'} \; Name \; \textcolor{blue}{[\texttt{`:'} \; type]}\}
 \end{align*}
 \end{frame}
@@ -216,9 +221,9 @@ type ::= & \; basetype \;|\; \textbf{any} \;|\; \textbf{nil} \;|\\
 & uniontype \;|\; functiontype\\
 basetype ::= & \; \textbf{boolean} \;|\; \textbf{number} \;|\; \textbf{string}\\
 uniontype ::= & \; type \;\texttt{`|'}\; type\\
-functiontype ::= & \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'} \;
-\texttt{`->'} \; \texttt{`('} \; [2ndclasstype] \; \texttt{`)'}\\
-2ndclasstype ::= & \; type \; \{\texttt{`,'} \; type\} \; [\texttt{`*'}]
+functiontype ::= & \; \texttt{`('} \; [typelist] \; \texttt{`)'} \;
+\texttt{`->'} \; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+typelist ::= & \; type \; \{\texttt{`,'} \; type\} \; [\texttt{`*'}]
 \end{align*}
 \end{frame}
 

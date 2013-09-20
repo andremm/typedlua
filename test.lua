@@ -764,6 +764,16 @@ StmBlock [StmForGen [("k","?"),("v","?")] [ExpFunctionCall (ExpVar (VarID ("pair
 r = parse(s)
 assert(r == e)
 
+s = [=[
+for k:number,v:any in pairs(t) do print (k,v) end
+]=]
+e = [=[
+StmBlock [StmForGen [("k","number"),("v","any")] [ExpFunctionCall (ExpVar (VarID ("pairs","?"))) [ExpVar (VarID ("t","?"))]] (StmBlock [StmCall (ExpFunctionCall (ExpVar (VarID ("print","?"))) [ExpVar (VarID ("k","?")),ExpVar (VarID ("v","?"))])])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- for numeric
 
 s = [=[
@@ -1652,20 +1662,10 @@ assert(r == e)
 -- for generic
 
 s = [=[
-for k:number,v:any in pairs(t) do print (k,v) end
-]=]
-e = [=[
-test.lua:1:6: syntax error, unexpected ':number,v:any', expecting 'in', ',', '='
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '='
+test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '=', ':'
 ]=]
 
 r = parse(s)
@@ -1707,7 +1707,7 @@ s = [=[
 for i:number=1,10 do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ':number=1,10', expecting 'in', ',', '='
+test.lua:1:13: syntax error, unexpected '=1,10', expecting 'in', ',', '|'
 ]=]
 
 r = parse(s)
@@ -2288,6 +2288,16 @@ local x:number = -1
 ]=]
 e = [=[
 StmBlock [StmLocalVar [("x","number")] [ExpMinus (ExpNum 1.0)]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (x) return x + 1 end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "f" ([("x","?")]) "?" (StmBlock [StmRet [ExpAdd (ExpVar (VarID ("x","?"))) (ExpNum 1.0)]])]
 ]=]
 
 r = typecheck(s)

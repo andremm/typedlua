@@ -53,7 +53,7 @@ stat ::= &lsquo;<b>;</b>&rsquo; |
          <b>for</b> namelist <b>in</b> explist <b>do</b> block <b>end</b> |
          <b>function</b> funcname funcbody |
          <b>local</b> <b>function</b> Name funcbody |
-         <b>local</b> typednamelist [&lsquo;<b>=</b>&rsquo; explist]
+         <b>local</b> namelist [&lsquo;<b>=</b>&rsquo; explist]
 
 retstat ::= <b>return</b> [explist] [&lsquo;<b>;</b>&rsquo;]
 
@@ -65,9 +65,7 @@ varlist ::= var {&lsquo;<b>,</b>&rsquo; var}
 
 var ::=  Name [&lsquo;<b>:</b>&rsquo; type] | prefixexp &lsquo;<b>[</b>&rsquo; exp &lsquo;<b>]</b>&rsquo; | prefixexp &lsquo;<b>.</b>&rsquo; Name
 
-typednamelist ::= Name [&lsquo;<b>:</b>&rsquo; type] {&lsquo;<b>,</b>&rsquo; Name [&lsquo;<b>:</b>&rsquo; type]}
-
-namelist ::= Name {&lsquo;<b>,</b>&rsquo; Name}
+namelist ::= Name [&lsquo;<b>:</b>&rsquo; type] {&lsquo;<b>,</b>&rsquo; Name [&lsquo;<b>:</b>&rsquo; type]}
 
 explist ::= exp {&lsquo;<b>,</b>&rsquo; exp}
 
@@ -82,9 +80,9 @@ args ::=  &lsquo;<b>(</b>&rsquo; [explist] &lsquo;<b>)</b>&rsquo; | tableconstru
 
 functiondef ::= <b>function</b> funcbody
 
-funcbody ::= &lsquo;<b>(</b>&rsquo; [parlist] &lsquo;<b>)</b>&rsquo; [&lsquo;<b>:</b>&rsquo; 2ndclasstype] block <b>end</b>
+funcbody ::= &lsquo;<b>(</b>&rsquo; [parlist] &lsquo;<b>)</b>&rsquo; [&lsquo;<b>:</b>&rsquo; typelist] block <b>end</b>
 
-parlist ::= typednamelist [&lsquo;<b>,</b>&rsquo; &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]] | &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]
+parlist ::= namelist [&lsquo;<b>,</b>&rsquo; &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]] | &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]
 
 tableconstructor ::= &lsquo;<b>{</b>&rsquo; [fieldlist] &lsquo;<b>}</b>&rsquo;
 
@@ -106,9 +104,9 @@ basetype ::= <b>boolean</b> | <b>number</b> | <b>string</b>
 
 uniontype ::= type &lsquo;<b>|</b>&rsquo; type
 
-functiontype ::= &lsquo;<b>(</b>&rsquo; [2ndclasstype] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; &lsquo;<b>(</b>&rsquo; [2ndclasstype] &lsquo;<b>)</b>&rsquo;
+functiontype ::= &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo;
 
-2ndclasstype ::= type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
+typelist ::= type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
 </pre>
 <p>
 

@@ -418,15 +418,19 @@ function types.csubtype (t1, t2)
     end
     return true
   elseif types.isAny(t1) then
-    if not types.isTuple(t2) and not types.isVarArg(t2) then
-      return true
+    if types.isVarArg(t2) then
+      return types.csubtype(t1, t2[1])
+    elseif types.isTuple(t2) then
+      return false
     end
-    return false
+    return true
   elseif types.isAny(t2) then
-    if not types.isTuple(t1) and not types.isVarArg(t1) then
-      return true
+    if types.isVarArg(t1) then
+      return types.csubtype(t1[1], t2)
+    elseif types.isTuple(t1) then
+      return false
     end
-    return false
+    return true
   elseif types.isConstant(t1) and types.isConstant(t2) then
     if types.isNil(t1) and types.isNil(t2) then
       return true
