@@ -501,6 +501,56 @@ StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("...","?")]) "?" (StmBl
 r = parse(s)
 assert(r == e)
 
+s = [=[
+test = function (x:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any*")]) "?" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+test = function (x, y:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+test = function (x:() -> (), y) end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+test = function (x:(() -> ()) -> (() -> ()), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+test = function (x:((any,any) -> (boolean,string)) -> ((any,any) -> (string,boolean)), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","(any, any) -> (boolean, string) -> (any, any) -> (string, boolean)"),("y","number"),("z","any")]) "?" (StmBlock [])]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- arithmetic expressions
 
 s = [=[
@@ -838,6 +888,56 @@ StmBlock [StmFunction (Function ["f"]) ([("...","string")]) "nil" (StmBlock [])]
 r = parse(s)
 assert(r == e)
 
+s = [=[
+function test (x:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any*")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function test (x, y:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["test"]) ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function test (x:() -> (), y) end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function test (x:(() -> ()) -> (() -> ()), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function test (x:((any,any) -> (boolean,string)) -> ((any,any) -> (string,boolean)), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmFunction (Function ["test"]) ([("x","(any, any) -> (boolean, string) -> (any, any) -> (string, boolean)"),("y","number"),("z","any")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- goto
 
 s = [=[
@@ -1144,6 +1244,56 @@ StmBlock [StmLocalFunction "test" ([("x","number"),("t","?"),("a","boolean")]) "
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local function test (x:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","any* -> any*")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x, y:() -> ()) end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x:() -> (), y) end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x:(() -> ()) -> (() -> ()), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x:((any,any) -> (boolean,string)) -> ((any,any) -> (string,boolean)), y:number, z:any) end
+]=]
+e = [=[
+StmBlock [StmLocalFunction "test" ([("x","(any, any) -> (boolean, string) -> (any, any) -> (string, boolean)"),("y","number"),("z","any")]) "?" (StmBlock [])]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- relational expressions
 
 s = [=[
@@ -1409,6 +1559,26 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'N
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local test = function (x:() -> number)
+]=]
+e = [=[
+test.lua:1:32: syntax error, unexpected 'number)', expecting '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local test = function (x:() -> (number,x:boolean))
+]=]
+e = [=[
+test.lua:1:41: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- assignments
 
 s = [=[
@@ -1595,6 +1765,26 @@ test.lua:1:15: syntax error, unexpected ':d', expecting '('
 r = parse(s)
 assert(r == e)
 
+s = [=[
+function test (x:() -> number)
+]=]
+e = [=[
+test.lua:1:24: syntax error, unexpected 'number)', expecting '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function test (x:() -> (number,x:boolean))
+]=]
+e = [=[
+test.lua:1:33: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- goto
 
 s = [=[
@@ -1770,6 +1960,26 @@ local function (a, b, c, ...) end
 ]=]
 e = [=[
 test.lua:1:16: syntax error, unexpected '(a,', expecting 'Name'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x:() -> number)
+]=]
+e = [=[
+test.lua:1:30: syntax error, unexpected 'number)', expecting '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function test (x:() -> (number,x:boolean))
+]=]
+e = [=[
+test.lua:1:39: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
 ]=]
 
 r = parse(s)

@@ -155,7 +155,8 @@ local G = { V"TypedLua",
   UnionOp = symb("|") / "TypeUnion";
   FunctionType = taggedCap("TypeFunction",
                  symb("(") * (V"Type2" + V"VoidType") * symb(")") *
-                 symb("->") * symb("(") * V"Type2" * symb(")"));
+                 symb("->") *
+                 symb("(") * (V"Type2" + V"VoidType") * symb(")"));
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
@@ -175,7 +176,7 @@ local G = { V"TypedLua",
                local t = { tag = "TypeTuple", pos = p, [1] = {} }
                t[1] = { tag = "TypeList", pos = p, [1] = {} }
                t[1][1] = { tag = "TypeVarArg", pos = p, [1] = {} }
-               t[1][1][1] = { tag = "TypeObject", pos = p }
+               t[1][1][1] = { tag = "TypeAny", pos = p }
                return t
              end;
   Type2 = V"TupleType";
