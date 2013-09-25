@@ -140,22 +140,29 @@ local function explist2typelist (explist)
     else
       table.insert(list, last_type)
     end
-    len = #list
-    if not types.isVarArg(list[len]) then
-      table.insert(list, types.VarArg(Nil))
-    end
   end
   return list
 end
 
-local function adjust_typelist (dec_list, inf_list)
-  local len_dec, len_inf = #dec_list, #inf_list
-  local fill_type = types.typeofVarArg(inf_list[len_inf])
-  table.remove(inf_list)
-  for i=len_inf,len_dec do
-    table.insert(inf_list, fill_type)
+local function arglist2typelist (arglist)
+  local list = {}
+  for k, v in ipairs(arglist) do
+    table.insert(list, v)
   end
-  return inf_list
+  return list
+end
+
+local function adjust_typelist (declist, inflist)
+  local len_dec, len_inf = #declist, #inflist
+  local fill_type = Nil
+  if types.isVarArg(inflist[len_inf]) then
+    fill_type = types.typeofVarArg(inflist[len_inf])
+    table.remove(inflist)
+    table.insert(inflist, fill_type)
+  end
+  for i=len_inf,len_dec do
+    table.insert(inflist, fill_type)
+  end
 end
 
 -- functions that handle identifiers
@@ -353,10 +360,6 @@ local function check_ret_dec (env, ret_type)
      not check_type_name(env, ret_type) then
     return types.Tuple({types.VarArg(Any)})
   end
-  local len = #ret_type[1]
-  if not types.isVarArg(ret_type[1][len]) then
-    table.insert(ret_type[1], types.VarArg(Nil))
-  end
   return ret_type
 end
 
@@ -428,8 +431,6 @@ local function check_parameters_list (env, varlist)
     end
     if is_vararg then
       table.insert(list, types.VarArg(vararg_type))
-    else
-      table.insert(list, types.VarArg(Any))
     end
   end
   return types.Tuple(list)
@@ -474,7 +475,7 @@ local function check_and (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = proj(exp1["type"]), proj(exp2["type"])
   set_node_type(exp, types.Union(t1, t2)) -- T-AND
 end
 
@@ -494,7 +495,7 @@ local function check_arith (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = proj(exp1["type"]), proj(exp2["type"])
   if types.subtype(t1, Number) and
      types.subtype(t2, Number) then -- T-ARITH1
     set_node_type(exp, Number)
@@ -537,42 +538,52 @@ local function check_call_arg (env, fname, k, dtype, gtype, pos)
 end
 
 local function check_call_args (env, fname, args, explist)
-  local typelist = explist2typelist(explist)
-  local argslist = args[1]
-  local len_dec, len_inf = #argslist, #typelist
+  local inflist = explist2typelist(explist)
+  local declist = arglist2typelist(args[1])
+  local len_dec, len_inf = #declist, #inflist
   local pos = explist.pos
-  if len_dec == len_inf then
-    for k, v in ipairs(argslist) do
-      if explist[k] then pos = explist[k].pos end
-      check_call_arg(env, fname, k, argslist[k], typelist[k], pos)
-    end
-  elseif len_dec < len_inf then
+  if len_dec <= len_inf then
     local i = 1
     while i < len_dec do
       if explist[i] then pos = explist[i].pos end
-      check_call_arg(env, fname, i, argslist[i], typelist[i], pos)
+      check_call_arg(env, fname, i, declist[i], inflist[i], pos)
       i = i + 1
     end
-    local j = i
-    while j <= len_inf do
-      if explist[j] then pos = explist[j].pos end
-      check_call_arg(env, fname, i, argslist[i], typelist[j], pos)
-       j = j + 1
+    if types.isVarArg(declist[i]) then
+      local j = i
+      while j <= len_inf do
+        if explist[j] then pos = explist[j].pos end
+        check_call_arg(env, fname, i, declist[i], inflist[j], pos)
+        j = j + 1
+      end
+    elseif types.isVarArg(inflist[i]) then
+      local last_type = types.typeofVarArg(inflist[i])
+      if explist[i] then pos = explist[i].pos end
+      check_call_arg(env, fname, i, declist[i], last_type, pos)
+    else
+      if explist[i] then pos = explist[i].pos end
+      check_call_arg(env, fname, i, declist[i], inflist[i], pos)
     end
   elseif len_dec > len_inf then
     local i = 1
     while i < len_inf do
       if explist[i] then pos = explist[i].pos end
-      check_call_arg(env, fname, i, argslist[i], typelist[i], pos)
+      check_call_arg(env, fname, i, declist[i], inflist[i], pos)
       i = i + 1
     end
-    local j = i
-    while j < len_dec do
-      if explist[i] then pos = explist[i].pos end
-      check_call_arg(env, fname, j, argslist[j], types.typeofVarArg(typelist[i]), pos)
+    local fill_type = Nil
+    local last_type = inflist[i]
+    if types.isVarArg(last_type) then
+      last_type = types.typeofVarArg(inflist[i])
+      fill_type = last_type
+    end
+    if explist[i] then pos = explist[i].pos end
+    check_call_arg(env, fname, i, declist[i], last_type, pos)
+    local j = i + 1
+    while j <= len_dec do
+      check_call_arg(env, fname, j, declist[j], fill_type, pos)
       j = j + 1
     end
-    check_call_arg(env, fname, j, argslist[j], typelist[i], pos)
   end
 end
 
@@ -625,7 +636,7 @@ local function check_concat (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = proj(exp1["type"]), proj(exp2["type"])
   if types.subtype(t1, String) and
      types.subtype(t2, String) then -- T-CONCAT1
     set_node_type(exp, String)
@@ -678,7 +689,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[1]
   check_exp(env, exp1)
-  local t1 = exp1["type"]
+  local t1 = proj(exp1["type"])
   if types.subtype(t1, String) then -- T-LEN1
     set_node_type(exp, Number)
   elseif types.isAny(t1) then -- T-LEN2
@@ -694,7 +705,7 @@ end
 local function check_minus (env, exp)
   local exp1 = exp[1]
   check_exp(env, exp1)
-  local t1 = exp1["type"]
+  local t1 = proj(exp1["type"])
   if types.subtype(t1, Number) then -- T-MINUS1
     set_node_type(exp, Number)
   elseif types.isAny(t1) then -- T-MINUS2
@@ -718,7 +729,7 @@ local function check_or (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = proj(exp1["type"]), proj(exp2["type"])
   set_node_type(exp, types.Union(t1, t2)) -- T-OR
 end
 
@@ -726,7 +737,7 @@ local function check_order (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = proj(exp1["type"]), proj(exp2["type"])
   set_node_type(exp, Boolean)
   if types.subtype(t1, Number) and
      types.subtype(t2, Number) then -- T-ORDER1
@@ -1008,8 +1019,8 @@ local function init_symbol_table (env, subject, filename)
   env["function"] = {} -- store function attributes
   env["global"] = {} -- store global names
   env["messages"] = {} -- store errors and warnings
-  local obj_star = types.VarArg(Object)
-  local args_and_ret = types.Tuple({obj_star})
+  local any_star = types.VarArg(Any)
+  local args_and_ret = types.Tuple({any_star})
   local ftype = types.Function(args_and_ret, args_and_ret)
   for k,v in pairs(_ENV) do
     local t = type(v)

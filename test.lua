@@ -2353,7 +2353,7 @@ end
 a:number,b:number,c:number,d:number,e:number = f(),f(),f()
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["f"]) ([]) "(number, number, number, nil*)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmAssign [VarID ("a","number"),VarID ("b","number"),VarID ("c","number"),VarID ("d","number"),VarID ("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
+StmBlock [StmFunction (Function ["f"]) ([]) "(number, number, number)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmAssign [VarID ("a","number"),VarID ("b","number"),VarID ("c","number"),VarID ("d","number"),VarID ("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
 ]=]
 
 r = typecheck(s)
@@ -2441,7 +2441,7 @@ end
 f(1)
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","number")]) "(number, nil*)" (StmBlock [StmIfElse (ExpEQ (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpNum 0.0]]) (StmBlock []),StmRet [ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpSub (ExpVar (VarID ("x","?"))) (ExpNum 1.0)]]]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0])]
+StmBlock [StmLocalFunction "f" ([("x","number")]) "number" (StmBlock [StmIfElse (ExpEQ (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpNum 0.0]]) (StmBlock []),StmRet [ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpSub (ExpVar (VarID ("x","?"))) (ExpNum 1.0)]]]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0])]
 ]=]
 
 r = typecheck(s)
@@ -2499,7 +2499,7 @@ end
 local a:number,b:number,c:number,d:number,e:number = f(),f(),f()
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([]) "(number, number, number, nil*)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmLocalVar [("a","number"),("b","number"),("c","number"),("d","number"),("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
+StmBlock [StmLocalFunction "f" ([]) "(number, number, number)" (StmBlock [StmRet [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]]),StmLocalVar [("a","number"),("b","number"),("c","number"),("d","number"),("e","number")] [ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) [],ExpFunctionCall (ExpVar (VarID ("f","?"))) []]]
 ]=]
 
 r = typecheck(s)
@@ -2579,7 +2579,7 @@ local function f (x:number) : number|nil
 end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","number")]) "((number | nil), nil*)" (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpVar (VarID ("x","?"))]]) (StmBlock [])])]
+StmBlock [StmLocalFunction "f" ([("x","number")]) "(number | nil)" (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpVar (VarID ("x","?"))]]) (StmBlock [])])]
 ]=]
 
 r = typecheck(s)
@@ -2935,7 +2935,7 @@ local function f () : boolean
 end
 ]=]
 e = [=[
-test.lua:2:3: type error, attempt to return '(number, nil*)' instead of '(boolean, nil*)'
+test.lua:2:3: type error, attempt to return 'number' instead of 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -2947,7 +2947,7 @@ local function f () : number*
 end
 ]=]
 e = [=[
-test.lua:2:3: type error, attempt to return '(string, string, nil*)' instead of 'number*'
+test.lua:2:3: type error, attempt to return '(string, string)' instead of 'number*'
 ]=]
 
 r = typecheck(s)
@@ -2959,7 +2959,7 @@ local function f (x:number) : number|nil
 end
 ]=]
 e = [=[
-test.lua:2:17: type error, attempt to return '(string, nil*)' instead of '((number | nil), nil*)'
+test.lua:2:17: type error, attempt to return 'string' instead of '(number | nil)'
 ]=]
 
 r = typecheck(s)
