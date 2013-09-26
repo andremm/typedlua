@@ -154,9 +154,9 @@ local G = { V"TypedLua",
   UnionType = chainl1(V"PrimaryType", V"UnionOp");
   UnionOp = symb("|") / "TypeUnion";
   FunctionType = taggedCap("TypeFunction",
-                 symb("(") * (V"Type2" + V"VoidType") * symb(")") *
+                 symb("(") * (V"Type2" + V"TypeVoid") * symb(")") *
                  symb("->") *
-                 symb("(") * (V"Type2" + V"VoidType") * symb(")"));
+                 symb("(") * (V"Type2" + V"TypeListAny") * symb(")"));
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
@@ -171,15 +171,22 @@ local G = { V"TypedLua",
                token(C"number", "Type") +
                token(C"string", "Type");
   NameType = taggedCap("TypeName", token(V"Name", "Type"));
-  VoidType = Cp() /
-             function (p)
-               local t = { tag = "TypeTuple", pos = p, [1] = {} }
-               t[1] = { tag = "TypeList", pos = p, [1] = {} }
-               t[1][1] = { tag = "TypeVarArg", pos = p, [1] = {} }
-               t[1][1][1] = { tag = "TypeAny", pos = p }
-               return t
-             end;
-  Type2 = V"TupleType";
+  TypeVoid = Cp() /
+    function (p)
+      local t = { tag = "TypeTuple", pos = p, [1] = {} }
+      t[1] = { tag = "TypeList", pos = p }
+      return t
+    end;
+  TypeListAny = Cp() /
+    function (p)
+      local t = { tag = "TypeTuple", pos = p, [1] = {} }
+      t[1] = { tag = "TypeList", pos = p, [1] = {} }
+      t[1][1] = { tag = "TypeVarArg", pos = p, [1] = {} }
+      t[1][1][1] = { tag = "TypeAny", pos = p }
+      return t
+    end;
+  Type2 = V"VoidType" + V"TupleType";
+  VoidType = token("void", "Type") * V"TypeVoid";
   TupleType = taggedCap("TypeTuple", V"TypeList");
   TypeList = sepby1(V"Type", symb(","), "TypeList") * V"VarArgOp"^-1 /
              function (t, is_vararg)

@@ -106,7 +106,7 @@ uniontype ::= type &lsquo;<b>|</b>&rsquo; type
 
 functiontype ::= &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo;
 
-typelist ::= type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
+typelist ::= <b>void</b> | type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
 </pre>
 <p>
 

@@ -12,15 +12,15 @@ local begin_function, end_function = st.begin_function, st.end_function
 local begin_loop, end_loop = st.begin_loop, st.end_loop
 local insideloop = st.insideloop
 
-local Object = types.Object()
-local Any = types.Any()
-local Nil = types.Nil()
-local False = types.False()
-local True = types.True()
-local Boolean = types.Boolean()
-local Number = types.Number()
-local String = types.String()
-local Undefined = types.Undefined()
+local Any = types.Any
+local Nil = types.Nil
+local False = types.False
+local True = types.True
+local Boolean = types.Boolean
+local Number = types.Number
+local String = types.String
+local Undefined = types.Undefined
+local Void = types.Void
 
 local checker = {}
 
@@ -115,10 +115,10 @@ local function get_explist_type (explist)
 end
 
 local function proj (t)
-  if types.isTuple(t) then
-    return proj(t[1][1])
-  elseif types.isVarArg(t) then
-    return t[1]
+  if types.isVoid(t) then
+    return Nil
+  elseif types.isTuple(t) then
+    return t[1][1]
   end
   return t
 end
@@ -126,14 +126,14 @@ end
 local function explist2typelist (explist)
   local len = #explist
   local list = {}
-  if len == 0 then
-    table.insert(list, types.VarArg(Nil))
-  else
+  if len ~= 0 then
     for i=1,len-1 do
       table.insert(list, proj(explist[i]["type"]))
     end
     local last_type = explist[len]["type"]
-    if types.isTuple(last_type) then
+    if types.isVoid(last_type) then
+      table.insert(list, Nil)
+    elseif types.isTuple(last_type) then
       for k, v in ipairs(last_type[1]) do
         table.insert(list, v)
       end
@@ -155,12 +155,12 @@ end
 local function adjust_typelist (declist, inflist)
   local len_dec, len_inf = #declist, #inflist
   local fill_type = Nil
-  if types.isVarArg(inflist[len_inf]) then
-    fill_type = types.typeofVarArg(inflist[len_inf])
-    table.remove(inflist)
-    table.insert(inflist, fill_type)
+  if len_inf ~= 0 then
+    if types.isVarArg(inflist[len_inf]) then
+      fill_type = inflist[len_inf]
+    end
   end
-  for i=len_inf,len_dec do
+  for i=len_inf+1,len_dec do
     table.insert(inflist, fill_type)
   end
 end
@@ -408,9 +408,7 @@ end
 local function check_parameters_list (env, varlist)
   local len = #varlist
   local list = {}
-  if len == 0 then
-    table.insert(list, types.VarArg(Any))
-  else
+  if len ~= 0 then
     local is_vararg = false
     local vararg_type
     if varlist[len][1] == "..." then
@@ -465,7 +463,7 @@ local function check_function_stm (env, stm, ret_type)
   local len = #stm
   if len == 0 or
      stm[len].tag ~= "StmRet" then
-    check_ret_type(env, ret_type, types.Tuple({types.VarArg(Nil)}), stm.pos)
+    check_ret_type(env, ret_type, Void, stm.pos)
   end
 end
 
@@ -543,46 +541,39 @@ local function check_call_args (env, fname, args, explist)
   local len_dec, len_inf = #declist, #inflist
   local pos = explist.pos
   if len_dec <= len_inf then
-    local i = 1
-    while i < len_dec do
+    for i=1,len_dec do
       if explist[i] then pos = explist[i].pos end
       check_call_arg(env, fname, i, declist[i], inflist[i], pos)
-      i = i + 1
     end
-    if types.isVarArg(declist[i]) then
-      local j = i
-      while j <= len_inf do
-        if explist[j] then pos = explist[j].pos end
-        check_call_arg(env, fname, i, declist[i], inflist[j], pos)
-        j = j + 1
+    if types.isVarArg(declist[len_dec]) then
+      for i=len_dec+1,len_inf do
+        if explist[i] then pos = explist[i].pos end
+        check_call_arg(env, fname, len_dec, declist[len_dec], inflist[i], pos)
       end
-    elseif types.isVarArg(inflist[i]) then
-      local last_type = types.typeofVarArg(inflist[i])
-      if explist[i] then pos = explist[i].pos end
-      check_call_arg(env, fname, i, declist[i], last_type, pos)
-    else
-      if explist[i] then pos = explist[i].pos end
-      check_call_arg(env, fname, i, declist[i], inflist[i], pos)
     end
-  elseif len_dec > len_inf then
-    local i = 1
-    while i < len_inf do
+  else
+    for i=1,len_inf do
       if explist[i] then pos = explist[i].pos end
       check_call_arg(env, fname, i, declist[i], inflist[i], pos)
-      i = i + 1
     end
     local fill_type = Nil
-    local last_type = inflist[i]
-    if types.isVarArg(last_type) then
-      last_type = types.typeofVarArg(inflist[i])
-      fill_type = last_type
-    end
-    if explist[i] then pos = explist[i].pos end
-    check_call_arg(env, fname, i, declist[i], last_type, pos)
-    local j = i + 1
-    while j <= len_dec do
-      check_call_arg(env, fname, j, declist[j], fill_type, pos)
-      j = j + 1
+    if len_inf == 0 then
+      if not types.isVarArg(declist[1]) then
+        for i=1,len_dec do
+          if explist[i] then pos = explist[i].pos end
+          check_call_arg(env, fname, i, declist[i], fill_type, pos)
+        end
+      end
+    else
+      if not types.isVarArg(declist[len_inf]) then
+        if types.isVarArg(inflist[len_inf]) then
+          fill_type = inflist[len_inf]
+        end
+        for i=len_inf+1,len_dec do
+          if explist[i] then pos = explist[i].pos end
+          check_call_arg(env, fname, i, declist[i], fill_type, pos)
+        end
+      end
     end
   end
 end
@@ -595,7 +586,9 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
     warning(env, msg, pos)
     return Any
   elseif types.isFunction(ftype) then
-    check_call_args(env, fname, ftype[1], explist)
+    if not types.isVoid(ftype[1]) then
+      check_call_args(env, fname, ftype[1], explist)
+    end
     return ftype[2]
   else
     msg = "attempt to call %s '%s' of type '%s'"
@@ -677,7 +670,7 @@ local function check_expvar (env, exp)
     if g then
       t = g["var_type"]
     else
-      t = types.Nil()
+      t = Nil
       msg = "using variable '%s' without initialize"
       msg = string.format(msg, name)
       typeerror(env, msg, exp.pos)

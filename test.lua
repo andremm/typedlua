@@ -505,7 +505,7 @@ s = [=[
 test = function (x:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any*")]) "?" (StmBlock [])]]
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","() -> any*")]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -515,7 +515,7 @@ s = [=[
 test = function (x, y:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]]
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","?"),("y","() -> any*")]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -525,7 +525,7 @@ s = [=[
 test = function (x:() -> (), y) end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]]
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","() -> any*"),("y","?")]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -535,7 +535,7 @@ s = [=[
 test = function (x:(() -> ()) -> (() -> ()), y:number, z:any) end
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]]
+StmBlock [StmAssign [VarID ("test","?")] [ExpFunction ([("x","() -> any* -> () -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]]
 ]=]
 
 r = parse(s)
@@ -902,7 +902,7 @@ s = [=[
 function test (x:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any*")]) "?" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("x","() -> any*")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -912,7 +912,7 @@ s = [=[
 function test (x, y:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("x","?"),("y","() -> any*")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -922,7 +922,7 @@ s = [=[
 function test (x:() -> (), y) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("x","() -> any*"),("y","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -932,7 +932,7 @@ s = [=[
 function test (x:(() -> ()) -> (() -> ()), y:number, z:any) end
 ]=]
 e = [=[
-StmBlock [StmFunction (Function ["test"]) ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
+StmBlock [StmFunction (Function ["test"]) ([("x","() -> any* -> () -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1258,7 +1258,7 @@ s = [=[
 local function test (x:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","any* -> any*")]) "?" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","() -> any*")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1268,7 +1268,7 @@ s = [=[
 local function test (x, y:() -> ()) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","?"),("y","any* -> any*")]) "?" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","?"),("y","() -> any*")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1278,7 +1278,7 @@ s = [=[
 local function test (x:() -> (), y) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","any* -> any*"),("y","?")]) "?" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","() -> any*"),("y","?")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -1288,7 +1288,7 @@ s = [=[
 local function test (x:(() -> ()) -> (() -> ()), y:number, z:any) end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "test" ([("x","any* -> any* -> any* -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
+StmBlock [StmLocalFunction "test" ([("x","() -> any* -> () -> any*"),("y","number"),("z","any")]) "?" (StmBlock [])]
 ]=]
 
 r = parse(s)
@@ -2099,23 +2099,23 @@ print("> testing subtyping...")
 
 -- constant types
 
-local Nil = types.Nil()
-local False = types.False()
-local True = types.True()
+local Nil = types.Nil
+local False = types.False
+local True = types.True
 local Double = types.ConstantNumber(1.1)
 local Integer = types.ConstantNumber(1)
 local Word = types.ConstantString("w")
 
 -- base types
 
-local Boolean = types.Boolean()
-local Number = types.Number()
-local String = types.String()
+local Boolean = types.Boolean
+local Number = types.Number
+local String = types.String
 
 -- other types
 
-local Object = types.Object()
-local Any = types.Any()
+local Any = types.Any
+local Void = types.Void
 local t1, t2
 
 assert(types.isConstant(Nil))
@@ -2131,11 +2131,8 @@ assert(types.isBase(Number))
 assert(types.isBase(String))
 assert(not types.isBase(Word))
 
-assert(types.isObject(Object))
-assert(not types.isObject(Any))
-
 assert(types.isAny(Any))
-assert(not types.isAny(Object))
+assert(types.isVoid(Void))
 
 -- subtyping
 
@@ -2170,31 +2167,6 @@ assert(types.subtype(String,String))
 assert(not types.subtype(Boolean,False))
 assert(not types.subtype(Number,Boolean))
 assert(not types.subtype(String,Number))
-
--- object
-
-assert(types.subtype(Object,Object))
-assert(types.subtype(Nil,Object))
-assert(types.subtype(False,Object))
-assert(types.subtype(True,Object))
-assert(types.subtype(Double,Object))
-assert(types.subtype(Integer,Object))
-assert(types.subtype(Word,Object))
-assert(types.subtype(Boolean,Object))
-assert(types.subtype(Number,Object))
-assert(types.subtype(String,Object))
-assert(types.subtype(Any,Object))
-
-assert(not types.subtype(Object,Nil))
-assert(not types.subtype(Object,False))
-assert(not types.subtype(Object,True))
-assert(not types.subtype(Object,Double))
-assert(not types.subtype(Object,Integer))
-assert(not types.subtype(Object,Word))
-assert(not types.subtype(Object,Boolean))
-assert(not types.subtype(Object,Number))
-assert(not types.subtype(Object,String))
-assert(not types.subtype(Object,Any))
 
 -- any
 
@@ -2259,13 +2231,16 @@ t2 = types.Union(t1,String)
 assert(types.subtype(Boolean,t2))
 assert(types.subtype(Number,t2))
 assert(types.subtype(String,t2))
-assert(types.subtype(t2,Object))
 assert(not types.subtype(t2,Boolean))
 assert(not types.subtype(t2,Number))
 assert(not types.subtype(t2,String))
-assert(not types.subtype(Object,t2))
 assert(not types.subtype(Any,t2))
 assert(not types.subtype(t2,Any))
+
+-- vararg
+
+t1 = types.VarArg(Any)
+assert(types.subtype(Void,t1))
 
 print("> testing type checker...")
 
@@ -2360,10 +2335,10 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-a:string,b:string,c:string,d:string,e:string = ...,...,...
+a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:string|nil = ...,...,...
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("a","string"),VarID ("b","string"),VarID ("c","string"),VarID ("d","string"),VarID ("e","string")] [ExpDots,ExpDots,ExpDots]]
+StmBlock [StmAssign [VarID ("a","(string | nil)"),VarID ("b","(string | nil)"),VarID ("c","(string | nil)"),VarID ("d","(string | nil)"),VarID ("e","(string | nil)")] [ExpDots,ExpDots,ExpDots]]
 ]=]
 
 r = typecheck(s)
@@ -2410,24 +2385,24 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local function f (x:string, y:string) end
+local function f (x:string|nil, y:string|nil) end
 f("hello", "world")
 f(...)
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","string"),("y","string")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+StmBlock [StmLocalFunction "f" ([("x","(string | nil)"),("y","(string | nil)")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
 ]=]
 
 r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local function f (x:string, y:string, ...:string) end
+local function f (x:string|nil, y:string|nil, ...:string) end
 f("hello", "world", "hello")
 f(...)
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","string"),("y","string"),("...","string")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world",ExpStr "hello"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+StmBlock [StmLocalFunction "f" ([("x","(string | nil)"),("y","(string | nil)"),("...","string")]) "?" (StmBlock []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpStr "hello",ExpStr "world",ExpStr "hello"]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
 ]=]
 
 r = typecheck(s)
@@ -2506,10 +2481,10 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local a:string,b:string,c:string,d:string,e:string = ...,...,...
+local a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:string|nil = ...,...,...
 ]=]
 e = [=[
-StmBlock [StmLocalVar [("a","string"),("b","string"),("c","string"),("d","string"),("e","string")] [ExpDots,ExpDots,ExpDots]]
+StmBlock [StmLocalVar [("a","(string | nil)"),("b","(string | nil)"),("c","(string | nil)"),("d","(string | nil)"),("e","(string | nil)")] [ExpDots,ExpDots,ExpDots]]
 ]=]
 
 r = typecheck(s)
@@ -2576,10 +2551,11 @@ assert(r == e)
 s = [=[
 local function f (x:number) : number|nil
   if x > 0 then return x end
+  return nil
 end
 ]=]
 e = [=[
-StmBlock [StmLocalFunction "f" ([("x","number")]) "(number | nil)" (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpVar (VarID ("x","?"))]]) (StmBlock [])])]
+StmBlock [StmLocalFunction "f" ([("x","number")]) "(number | nil)" (StmBlock [StmIfElse (ExpGT (ExpVar (VarID ("x","?"))) (ExpNum 0.0)) (StmBlock [StmRet [ExpVar (VarID ("x","?"))]]) (StmBlock []),StmRet [ExpNil]])]
 ]=]
 
 r = typecheck(s)
@@ -2658,11 +2634,11 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-x:number,y:string,z:any = true,...
+x:number,y:string|nil,z:any = true,...
 ]=]
 e = [=[
 test.lua:1:1: type error, attempt to assign 'boolean' to 'number'
-test.lua:1:19: warning, attempt to cast 'any' to 'string'
+test.lua:1:23: warning, attempt to cast 'any' to 'string*'
 ]=]
 
 r = typecheck(s)
@@ -2705,11 +2681,11 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-a:string,b:string,c:string,d:string,e:number,f:boolean = ...,...,...
+a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:number,f:boolean = ...,...,...
 ]=]
 e = [=[
-test.lua:1:37: type error, attempt to assign 'string' to 'number'
-test.lua:1:46: type error, attempt to assign 'string' to 'boolean'
+test.lua:1:53: type error, attempt to assign 'string*' to 'number'
+test.lua:1:62: type error, attempt to assign 'string*' to 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -2760,6 +2736,19 @@ r = typecheck(s)
 assert(r == e)
 
 -- function call
+
+s = [=[
+local function f (x:number) end
+f(x,x)
+]=]
+e = [=[
+test.lua:2:3: type error, using variable 'x' without initialize
+test.lua:2:5: type error, using variable 'x' without initialize
+test.lua:2:3: type error, parameter 1 of 'f', attempt to assign 'nil' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
 
 s = [=[
 local function f (x:number) end
@@ -2846,11 +2835,11 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local x:number,y:string,z:any = true,...
+local x:number,y:string|nil,z:any = true,...
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
-test.lua:1:25: warning, attempt to cast 'any' to 'string'
+test.lua:1:29: warning, attempt to cast 'any' to 'string*'
 ]=]
 
 r = typecheck(s)
@@ -2893,11 +2882,11 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local a:string,b:string,c:string,d:string,e:number,f:boolean = ...,...,...
+local a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:number,f:boolean = ...,...,...
 ]=]
 e = [=[
-test.lua:1:43: type error, attempt to assign 'string' to 'number'
-test.lua:1:52: type error, attempt to assign 'string' to 'boolean'
+test.lua:1:59: type error, attempt to assign 'string*' to 'number'
+test.lua:1:68: type error, attempt to assign 'string*' to 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -2960,6 +2949,7 @@ end
 ]=]
 e = [=[
 test.lua:2:17: type error, attempt to return 'string' instead of '(number | nil)'
+test.lua:2:3: type error, attempt to return '()' instead of '(number | nil)'
 ]=]
 
 r = typecheck(s)
