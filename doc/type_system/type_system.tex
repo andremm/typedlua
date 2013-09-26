@@ -134,13 +134,13 @@ Any \subtype Any
 \]
 
 \[
-\frac{T_{1} \subtype T_{2}}
+\frac{T_{1} \cup Nil \subtype T_{2}}
      {{T_{1}*} \subtype T_{2}}
 \mylabel{S-VARARG3}
 \]
 
 \[
-\frac{T_{1} \subtype T_{2} \;\;\;
+\frac{T_{1} \cup Nil \subtype T_{2} \;\;\;
       {T_{1}*} \subtype S_{2}}
      {{T_{1}*} \subtype T_{2} \times S_{2}}
 \mylabel{S-VARARG4}
@@ -274,13 +274,13 @@ Any \lesssim T
 \]
 
 \[
-\frac{T_{1} \lesssim T_{2}}
+\frac{T_{1} \cup Nil \lesssim T_{2}}
      {{T_{1}*} \lesssim T_{2}}
 \mylabel{C-VARARG3}
 \]
 
 \[
-\frac{T_{1} \lesssim T_{2} \;\;\;
+\frac{T_{1} \cup Nil \lesssim T_{2} \;\;\;
       {T_{1}*} \lesssim S_{2}}
      {{T_{1}*} \lesssim T_{2} \times S_{2}}
 \mylabel{C-VARARG4}
@@ -309,8 +309,8 @@ s ::= \; & \kw{skip} \pipe s_{1} \;;\; s_{2} \; \pipe
 & \kw{while} e \; \kw{do} s \; \pipe
 \kw{repeat} s \; \kw{until} e \; \pipe\\
 & \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s \; \pipe
-\kw{for} \vec{i} \; \kw{in} el \; \kw{do} s \; \pipe\\
-& \kw{local} \overrightarrow{i:t} = el \; \kw{in} s \; \pipe
+\kw{for} \vec{i}:\vec{t} \; \kw{in} el \; \kw{do} s \; \pipe\\
+& \kw{local} \vec{i}:\vec{t} = el \; \kw{in} s \; \pipe
 \kw{local} i = f \; \kw{in} s \; \pipe\\
 & \kw{::} i \; \kw{::} \pipe \kw{goto} i \; \pipe \kw{break} \pipe
 \vec{l} = el \; \pipe \kw{return} el \; \pipe e(el)\\
@@ -325,8 +325,8 @@ e_{1} == e_{2} \; \pipe e_{1} < e_{2} \; \pipe\\
 \kw{not} e \; | - e \; \pipe \# \; e\\
 f ::= \; & \kw{fun} ():t_{r} \; b \; \pipe
 \kw{fun} ({...}:t):t_{r} \; b \; \pipe\\
-& \kw{fun} (\overrightarrow{i:t}):t_{r} \; b \; \pipe
-\kw{fun} (\overrightarrow{i:t},{...}:t):t_{r} \; b\\
+& \kw{fun} (\vec{i}:\vec{t}):t_{r} \; b \; \pipe
+\kw{fun} (\vec{i}:\vec{t},{...}:t):t_{r} \; b\\
 b ::= \; & s \;;\; \kw{return} el\\
 k ::= \; & \kw{nil} \; \pipe \kw{false} \; \pipe \kw{true} \; \pipe
 n \; \pipe w\\
@@ -388,16 +388,16 @@ w ::= \; & {<}strings{>}
 
 \[
 \frac{\env \vdash el:S \;\;\;
-      \env, \vec{i}:S \vdash s}
-     {\env \vdash \kw{for} \vec{i} \; \kw{in} e \; \kw{do} s}
+      \env, \vec{i}:\vec{t}:S \vdash s}
+     {\env \vdash \kw{for} \vec{i}:\vec{t} \; \kw{in} e \; \kw{do} s}
 \mylabel{T-FORGEN}
 \]
 
 \[
 \frac{\env \vdash el:S \;\;\;
       S \lesssim T_{1} \times ... \times T_{n} \times {Any*} \;\;\;
-      \env, \overrightarrow{i:t} \vdash s}
-     {\env \vdash \kw{local} \overrightarrow{i:t} = el \; \kw{in} s}
+      \env, \vec{i}:\vec{t} \vdash s}
+     {\env \vdash \kw{local} \vec{i}:\vec{t} = el \; \kw{in} s}
 \mylabel{T-LOCALVAR}
 \]
 
@@ -533,15 +533,15 @@ w ::= \; & {<}strings{>}
 \]
 
 \[
-\frac{\env, \overrightarrow{i:t}, \ret:t_{r} \vdash b}
-     {\kw{fun} (\overrightarrow{i:t}):t_{r} \; b :
+\frac{\env, \vec{i}:\vec{t}, \ret:t_{r} \vdash b}
+     {\kw{fun} (\vec{i}:\vec{t}):t_{r} \; b :
       S \times {Any*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION3}
 \]
 
 \[
-\frac{\env, \overrightarrow{i:t}, \ret:t_{r}, {...}:t \vdash b}
-     {\kw{fun} (\overrightarrow{i:t}, {...}:t):t_{r} \; b :
+\frac{\env, \vec{i}:\vec{t}, \ret:t_{r}, {...}:t \vdash b}
+     {\kw{fun} (\vec{i}:\vec{t}, {...}:t):t_{r} \; b :
       S \times {T*} \rightarrow T_{r}}
 \mylabel{T-FUNCTION4}
 \]
