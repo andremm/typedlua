@@ -2344,6 +2344,18 @@ StmBlock [StmAssign [VarID ("a","(string | nil)"),VarID ("b","(string | nil)"),V
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+f:(void) -> (void) = function () : void end
+g:() -> () = function () end
+h:() -> () = function () : void end
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("f","() -> ()")] [ExpFunction ([]) "()" (StmBlock [])],StmAssign [VarID ("g","() -> any*")] [ExpFunction ([]) "?" (StmBlock [])],StmAssign [VarID ("h","() -> any*")] [ExpFunction ([]) "()" (StmBlock [])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2485,6 +2497,18 @@ local a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:string|nil = ...,...
 ]=]
 e = [=[
 StmBlock [StmLocalVar [("a","(string | nil)"),("b","(string | nil)"),("c","(string | nil)"),("d","(string | nil)"),("e","(string | nil)")] [ExpDots,ExpDots,ExpDots]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local f:(void) -> (void) = function () : void end
+local g:() -> () = function () end
+local h:() -> () = function () : void end
+]=]
+e = [=[
+StmBlock [StmLocalVar [("f","() -> ()")] [ExpFunction ([]) "()" (StmBlock [])],StmLocalVar [("g","() -> any*")] [ExpFunction ([]) "?" (StmBlock [])],StmLocalVar [("h","() -> any*")] [ExpFunction ([]) "()" (StmBlock [])]]
 ]=]
 
 r = typecheck(s)
@@ -2691,6 +2715,18 @@ test.lua:1:62: type error, attempt to assign 'string*' to 'boolean'
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+f:() -> (void) = function () end
+g:(void) -> () = function (x) end
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign '() -> any*' to '() -> ()'
+test.lua:2:1: type error, attempt to assign 'any -> any*' to '() -> any*'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2887,6 +2923,18 @@ local a:string|nil,b:string|nil,c:string|nil,d:string|nil,e:number,f:boolean = .
 e = [=[
 test.lua:1:59: type error, attempt to assign 'string*' to 'number'
 test.lua:1:68: type error, attempt to assign 'string*' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local f:() -> (void) = function () end
+local g:(void) -> () = function (x) end
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '() -> any*' to '() -> ()'
+test.lua:2:7: type error, attempt to assign 'any -> any*' to '() -> any*'
 ]=]
 
 r = typecheck(s)
