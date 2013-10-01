@@ -157,12 +157,23 @@ local G = { V"TypedLua",
                  symb("(") * (V"Type2" + V"TypeVoid") * symb(")") *
                  symb("->") *
                  symb("(") * (V"Type2" + V"TypeListAny") * symb(")"));
+  TableType = V"ArrayType";
+  ArrayType = taggedCap("ArrayType", symb("{") * V"Type" * symb("}")) /
+    function (a)
+      local t = { tag = "TypeRecord", pos = a.pos, [1] = {{},{}} }
+      t[1][1].tag = "TypeBase"
+      t[1][1].pos = a.pos
+      t[1][1][1] = "number"
+      t[1][2] = a[1]
+      return t
+    end;
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
                 V"BaseType" +
                 V"NameType" +
-                V"FunctionType";
+                V"FunctionType" +
+                V"TableType";
   ObjectType = taggedCap("TypeObject", token("object", "Type"));
   DynamicType = taggedCap("TypeAny", token("any", "Type"));
   NilType = taggedCap("TypeConstant", token("nil", "Type"));

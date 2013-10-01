@@ -168,7 +168,7 @@ end
 -- functions that handle identifiers
 
 local check_block, check_stm, check_exp, check_var
-local check_explist
+local check_explist, check_fieldlist
 
 -- variables
 
@@ -746,7 +746,8 @@ local function check_order (env, exp)
 end
 
 local function check_table (env, exp)
-  set_node_type(exp, Any)
+  check_fieldlist(env, exp[1])
+  set_node_type(exp, exp[1].type)
 end
 
 local function check_vararg (env, exp)
@@ -892,6 +893,29 @@ end
 local function check_while (env, exp, stm)
   check_exp(env, exp)
   check_stm(env, stm)
+end
+
+function check_fieldlist (env, fieldlist)
+  local l = {}
+  local i = 1
+  for k, v in ipairs(fieldlist[1]) do
+    check_exp(env, v[1])
+    l[i] = Number
+    l[i+1] = v[1].type
+    i = i + 2
+  end
+  for k, v in ipairs(fieldlist[2]) do
+    check_exp(env, v[1])
+    check_exp(env, v[2])
+    l[i] = v[1].type
+    l[i+1] = v[2].type
+    i = i + 2
+  end
+  if #l == 0 then
+    l[1] = types.VarArg(Any)
+    l[2] = types.VarArg(Any)
+  end
+  fieldlist.type = types.Record(l)
 end
 
 function check_explist (env, explist)

@@ -12,6 +12,7 @@ Type = TypeConstant Constant
      | TypeUndefined
      | TypeUnion Type Type
      | TypeFunction TypeList TypeList
+     | TypeRecord [(Type,Type)]
      | TypeVarArg Type
 
 TypeList = TypeTuple [Type]
@@ -241,6 +242,19 @@ function types.isVoid (t)
   return false
 end
 
+-- record type
+
+function types.Record (tuple_list)
+  return { tag = "TypeRecord", [1] = tuple_list }
+end
+
+function types.isRecord (t)
+  if t.tag == "TypeRecord" then
+    return true
+  end
+  return false
+end
+
 -- subtyping
 
 local function subtype_any (t1, t2)
@@ -318,6 +332,27 @@ end
 local function subtype_function (t1, t2)
   if types.isFunction(t1) and types.isFunction(t2) then
     return types.subtype2(t2[1], t1[1]) and types.subtype2(t1[2], t2[2])
+  end
+  return false
+end
+
+local function subtype_record_field (l, f, t)
+  for i=1,#t[1],2 do
+    if types.subtype(l, t[1][i]) and types.subtype(f, t[1][i+1]) then
+      return true
+    end
+  end
+  return false
+end
+
+local function subtype_record (t1, t2)
+  if types.isRecord(t1) and types.isRecord(t2) then
+    for i=1,#t1[1],2 do
+      if not subtype_record_field(t1[1][i], t1[1][i+1], t2) then
+        return false
+      end
+    end
+    return true
   end
   return false
 end
@@ -482,6 +517,27 @@ local function csubtype_function (t1, t2)
   return false
 end
 
+local function csubtype_record_field (l, f, t)
+  for i=1,#t[1],2 do
+    if types.csubtype(l, t[1][i]) and types.csubtype(f, t[1][i+1]) then
+      return true
+    end
+  end
+  return false
+end
+
+local function csubtype_record (t1, t2)
+  if types.isRecord(t1) and types.isRecord(t2) then
+    for i=1,#t1[1],2 do
+      if not csubtype_record_field(t1[1][i], t1[1][i+1], t2) then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
 local function csubtype_vararg (t1, t2)
   if types.isVoid(t1) and types.isVarArg(t2) then
     return true
@@ -565,6 +621,7 @@ function types.subtype (t1, t2)
          subtype_base(t1, t2) or
          subtype_union(t1, t2) or
          subtype_function(t1, t2) or
+         subtype_record(t1, t2) or
          subtype_vararg(t1, t2) or
          types.subtype2(t1, t2)
 end
@@ -575,6 +632,7 @@ function types.csubtype (t1, t2)
          csubtype_base(t1, t2) or
          csubtype_union(t1, t2) or
          csubtype_function(t1, t2) or
+         csubtype_record(t1, t2) or
          csubtype_vararg(t1, t2) or
          types.csubtype2(t1, t2)
 end
@@ -603,6 +661,14 @@ local function type2str (t)
     return type2str(t[1]) .. " -> " .. type2str(t[2])
   elseif types.isUnion(t) then
     return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
+  elseif types.isRecord(t) then
+    local l = {}
+    local i = 1
+    for k=1,#t[1],2 do
+      l[i] = type2str(t[1][k]) .. ":" .. type2str(t[1][k+1])
+      i = i + 1
+    end
+    return "{" .. table.concat(l, ", ") .. "}"
   elseif types.isVarArg(t) then
     return type2str(t[1]) .. "*"
   elseif types.isTuple(t) then

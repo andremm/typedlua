@@ -1739,7 +1739,7 @@ s = [=[
 function func(...:) end
 ]=]
 e = [=[
-test.lua:1:19: syntax error, unexpected ')', expecting '(', 'Type'
+test.lua:1:19: syntax error, unexpected ')', expecting '{', '(', 'Type'
 ]=]
 
 r = parse(s)
@@ -1749,7 +1749,7 @@ s = [=[
 function func(a,...:) end
 ]=]
 e = [=[
-test.lua:1:21: syntax error, unexpected ')', expecting '(', 'Type'
+test.lua:1:21: syntax error, unexpected ')', expecting '{', '(', 'Type'
 ]=]
 
 r = parse(s)
@@ -2356,6 +2356,46 @@ StmBlock [StmAssign [VarID ("f","() -> ()")] [ExpFunction ([]) "()" (StmBlock []
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+t:{number} = { 1, 2, 3 }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{number:number}")] [ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t:{string} = { "hello", "world" }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{number:string}")] [ExpTableConstructor ([ExpStr "hello",ExpStr "world"],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t:{{number}} = { {1,2,3}, {4,5,6}, {7,8,9} }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{number:{number:number}}")] [ExpTableConstructor ([ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0],[]),ExpTableConstructor ([ExpNum 4.0,ExpNum 5.0,ExpNum 6.0],[]),ExpTableConstructor ([ExpNum 7.0,ExpNum 8.0,ExpNum 9.0],[])],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t:{number} = { [1] = 1.5, [3] = 4.5 }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{number:number}")] [ExpTableConstructor ([],[(ExpNum 1.0,ExpNum 1.5),(ExpNum 3.0,ExpNum 4.5)])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2509,6 +2549,46 @@ local h:() -> () = function () : void end
 ]=]
 e = [=[
 StmBlock [StmLocalVar [("f","() -> ()")] [ExpFunction ([]) "()" (StmBlock [])],StmLocalVar [("g","() -> any*")] [ExpFunction ([]) "?" (StmBlock [])],StmLocalVar [("h","() -> any*")] [ExpFunction ([]) "()" (StmBlock [])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{number} = { 1, 2, 3 }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{number:number}")] [ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string} = { "hello", "world" }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{number:string}")] [ExpTableConstructor ([ExpStr "hello",ExpStr "world"],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{{number}} = { {1,2,3}, {4,5,6}, {7,8,9} }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{number:{number:number}}")] [ExpTableConstructor ([ExpTableConstructor ([ExpNum 1.0,ExpNum 2.0,ExpNum 3.0],[]),ExpTableConstructor ([ExpNum 4.0,ExpNum 5.0,ExpNum 6.0],[]),ExpTableConstructor ([ExpNum 7.0,ExpNum 8.0,ExpNum 9.0],[])],[])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{number} = { [1] = 1.5, [3] = 4.5 }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{number:number}")] [ExpTableConstructor ([],[(ExpNum 1.0,ExpNum 1.5),(ExpNum 3.0,ExpNum 4.5)])]]
 ]=]
 
 r = typecheck(s)
@@ -2727,6 +2807,27 @@ test.lua:2:1: type error, attempt to assign 'any -> any*' to '() -> any*'
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+t:{number} = { "hello", "world" }
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign '{number:string, number:string}' to '{number:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t1:{number} = { 1, 2, 3 }
+t2:{string} = t1
+]=]
+e = [=[
+test.lua:2:1: type error, attempt to assign '{number:number}' to '{number:string}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2935,6 +3036,27 @@ local g:(void) -> () = function (x) end
 e = [=[
 test.lua:1:7: type error, attempt to assign '() -> any*' to '() -> ()'
 test.lua:2:7: type error, attempt to assign 'any -> any*' to '() -> any*'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{number} = { "hello", "world" }
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '{number:string, number:string}' to '{number:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t1:{number} = { 1, 2, 3 }
+local t2:{string} = t1
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '{number:number}' to '{number:string}'
 ]=]
 
 r = typecheck(s)
