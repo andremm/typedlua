@@ -157,12 +157,16 @@ local G = { V"TypedLua",
                  symb("(") * (V"Type2" + V"TypeVoid") * symb(")") *
                  symb("->") *
                  symb("(") * (V"Type2" + V"TypeListAny") * symb(")"));
-  TableType = V"ArrayType";
-  ArrayType = taggedCap("ArrayType", symb("{") * V"Type" * symb("}")) /
-    function (f)
-      local t = { tag = "TypeRecord", pos = f.pos, [1] = {} }
-      local l = { tag = "TypeBase", [1] = "number" }
-      t[1][1] = { [1] = l, [2] = f[1] }
+  TableType = V"HashType";
+  HashType = symb("{") * V"Type" * (symb(":") * V"Type")^-1 * symb("}") /
+    function (t1, t2)
+      local t = { tag = "TypeRecord", [1] = {} }
+      if not t2 then -- array
+        local t2 = { tag = "TypeBase", [1] = "number" }
+        t[1][1] = { [1] = t2, [2] = t1 }
+      else -- hash
+        t[1][1] = { [1] = t1, [2] = t2 }
+      end
       return t
     end;
   PrimaryType = V"ObjectType" +

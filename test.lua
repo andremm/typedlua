@@ -2396,6 +2396,26 @@ StmBlock [StmAssign [VarID ("t","{number:number}")] [ExpTableConstructor ([],[(E
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+t:{string:number} = { ["foo"] = 1, x = 2 }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{string:number}")] [ExpTableConstructor ([],[(ExpStr "foo",ExpNum 1.0),(ExpStr "x",ExpNum 2.0)])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t:{string:{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
+]=]
+e = [=[
+StmBlock [StmAssign [VarID ("t","{string:{string:number}}")] [ExpTableConstructor ([],[(ExpStr "foo",ExpTableConstructor ([],[(ExpStr "x",ExpNum 1.0),(ExpStr "y",ExpNum 2.0)])),(ExpStr "bar",ExpTableConstructor ([],[(ExpStr "z",ExpNum 3.0)]))])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2589,6 +2609,26 @@ local t:{number} = { [1] = 1.5, [3] = 4.5 }
 ]=]
 e = [=[
 StmBlock [StmLocalVar [("t","{number:number}")] [ExpTableConstructor ([],[(ExpNum 1.0,ExpNum 1.5),(ExpNum 3.0,ExpNum 4.5)])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number} = { ["foo"] = 1, x = 2 }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{string:number}")] [ExpTableConstructor ([],[(ExpStr "foo",ExpNum 1.0),(ExpStr "x",ExpNum 2.0)])]]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
+]=]
+e = [=[
+StmBlock [StmLocalVar [("t","{string:{string:number}}")] [ExpTableConstructor ([],[(ExpStr "foo",ExpTableConstructor ([],[(ExpStr "x",ExpNum 1.0),(ExpStr "y",ExpNum 2.0)])),(ExpStr "bar",ExpTableConstructor ([],[(ExpStr "z",ExpNum 3.0)]))])]]
 ]=]
 
 r = typecheck(s)
@@ -2828,6 +2868,26 @@ test.lua:2:1: type error, attempt to assign '{number:number}' to '{number:string
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+t:{string:number} = { ["foo"] = function () end, x = 2 }
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign '{string:() -> any*, string:number}' to '{string:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+t:{{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
+]=]
+e = [=[
+test.lua:1:1: type error, attempt to assign '{string:{string:number, string:number}, string:{string:number}}' to '{number:{string:number}}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -3057,6 +3117,26 @@ local t2:{string} = t1
 ]=]
 e = [=[
 test.lua:2:7: type error, attempt to assign '{number:number}' to '{number:string}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number} = { ["foo"] = function () end, x = 2 }
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '{string:() -> any*, string:number}' to '{string:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '{string:{string:number, string:number}, string:{string:number}}' to '{number:{string:number}}'
 ]=]
 
 r = typecheck(s)
