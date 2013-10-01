@@ -157,7 +157,7 @@ local G = { V"TypedLua",
                  symb("(") * (V"Type2" + V"TypeVoid") * symb(")") *
                  symb("->") *
                  symb("(") * (V"Type2" + V"TypeListAny") * symb(")"));
-  TableType = V"HashType";
+  TableType = V"HashType" + V"RecordType";
   HashType = symb("{") * V"Type" * (symb(":") * V"Type")^-1 * symb("}") /
     function (t1, t2)
       local t = { tag = "TypeRecord", [1] = {} }
@@ -168,6 +168,21 @@ local G = { V"TypedLua",
         t[1][1] = { [1] = t1, [2] = t2 }
       end
       return t
+    end;
+  RecordType = symb("{") * V"RecordFieldList" * V"Type"^-1 * symb("}") /
+    function (l, a)
+      local t = { tag = "TypeRecord", [1] = l }
+      if a then
+        table.insert(t[1], { [1] = { tag = "TypeBase", "number" }, [2] = a })
+      end
+      return t
+    end;
+  RecordFieldList = sepby1(V"RecordField", symb(","), "RecordFieldList");
+  RecordField = taggedCap("RecordField", V"ConstantType" * symb(":") * V"Type");
+  ConstantType = (V"Number" +
+                 V"String") /
+    function (c)
+      return { tag = "TypeConstant", [1] = c }
     end;
   PrimaryType = V"ObjectType" +
                 V"DynamicType" +
