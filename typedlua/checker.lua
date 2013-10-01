@@ -264,7 +264,7 @@ local function get_var_type (var)
   if tag == "VarID" then
     return var[2]
   elseif tag == "VarIndex" then
-    return get_var_name(var[1][1])
+    return var[2].type
   end
 end
 
@@ -273,7 +273,7 @@ local function get_var_pos (var)
   if tag == "VarID" then
     return var.pos
   elseif tag == "VarIndex" then
-    return get_var_name(var[1][1])
+    return var.pos
   end
 end
 
@@ -391,7 +391,22 @@ function check_var (env, var)
   elseif tag == "VarIndex" then
     check_exp(env, var[1])
     check_exp(env, var[2])
-    var["type"] = Any
+    local v, i = var[1].type, var[2].type
+    local msg = "attempt to index '%s'"
+    if types.isAny(v) then
+      msg = string.format(msg, 'any')
+      warning(env, msg, var[1].pos)
+    elseif not types.isRecord(v) then
+      msg = string.format(msg, type2str(v))
+      typeerror(env, msg, var[1].pos)
+    else
+      local t = types.Record({{i, Any}})
+      if not types.csubtype(t, v) then
+        msg = msg .. " with '%s'"
+        msg = string.format(msg, type2str(v), type2str(i))
+        typeerror(env, msg, var[2].pos)
+      end
+    end
   else
     error("cannot type check a variable " .. tag)
   end
@@ -900,20 +915,15 @@ function check_fieldlist (env, fieldlist)
   local i = 1
   for k, v in ipairs(fieldlist[1]) do
     check_exp(env, v[1])
-    l[i] = Number
-    l[i+1] = v[1].type
-    i = i + 2
+    table.insert(l, { [1] = Number, [2] = v[1].type })
   end
   for k, v in ipairs(fieldlist[2]) do
     check_exp(env, v[1])
     check_exp(env, v[2])
-    l[i] = v[1].type
-    l[i+1] = v[2].type
-    i = i + 2
+    table.insert(l, { [1] = v[1].type, [2] = v[2].type })
   end
   if #l == 0 then
-    l[1] = types.VarArg(Any)
-    l[2] = types.VarArg(Any)
+    table.insert(l, { [1] = types.VarArg(Any), [2] = types.VarArg(Any) })
   end
   fieldlist.type = types.Record(l)
 end

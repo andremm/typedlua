@@ -337,8 +337,8 @@ local function subtype_function (t1, t2)
 end
 
 local function subtype_record_field (l, f, t)
-  for i=1,#t[1],2 do
-    if types.subtype(l, t[1][i]) and types.subtype(f, t[1][i+1]) then
+  for k, v in ipairs(t[1]) do
+    if types.subtype(l, v[1]) and types.subtype(f, v[2]) then
       return true
     end
   end
@@ -347,8 +347,8 @@ end
 
 local function subtype_record (t1, t2)
   if types.isRecord(t1) and types.isRecord(t2) then
-    for i=1,#t1[1],2 do
-      if not subtype_record_field(t1[1][i], t1[1][i+1], t2) then
+    for k, v in ipairs(t1[1]) do
+      if not subtype_record_field(v[1], v[2], t2) then
         return false
       end
     end
@@ -518,8 +518,8 @@ local function csubtype_function (t1, t2)
 end
 
 local function csubtype_record_field (l, f, t)
-  for i=1,#t[1],2 do
-    if types.csubtype(l, t[1][i]) and types.csubtype(f, t[1][i+1]) then
+  for k, v in ipairs(t[1]) do
+    if types.csubtype(l, v[1]) and types.csubtype(f, v[2]) then
       return true
     end
   end
@@ -528,8 +528,8 @@ end
 
 local function csubtype_record (t1, t2)
   if types.isRecord(t1) and types.isRecord(t2) then
-    for i=1,#t1[1],2 do
-      if not csubtype_record_field(t1[1][i], t1[1][i+1], t2) then
+    for k, v in ipairs(t1[1]) do
+      if not csubtype_record_field(v[1], v[2], t2) then
         return false
       end
     end
@@ -663,10 +663,8 @@ local function type2str (t)
     return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
   elseif types.isRecord(t) then
     local l = {}
-    local i = 1
-    for k=1,#t[1],2 do
-      l[i] = type2str(t[1][k]) .. ":" .. type2str(t[1][k+1])
-      i = i + 1
+    for k, v in ipairs(t[1]) do
+      l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
     end
     return "{" .. table.concat(l, ", ") .. "}"
   elseif types.isVarArg(t) then

@@ -159,12 +159,10 @@ local G = { V"TypedLua",
                  symb("(") * (V"Type2" + V"TypeListAny") * symb(")"));
   TableType = V"ArrayType";
   ArrayType = taggedCap("ArrayType", symb("{") * V"Type" * symb("}")) /
-    function (a)
-      local t = { tag = "TypeRecord", pos = a.pos, [1] = {{},{}} }
-      t[1][1].tag = "TypeBase"
-      t[1][1].pos = a.pos
-      t[1][1][1] = "number"
-      t[1][2] = a[1]
+    function (f)
+      local t = { tag = "TypeRecord", pos = f.pos, [1] = {} }
+      local l = { tag = "TypeBase", [1] = "number" }
+      t[1][1] = { [1] = l, [2] = f[1] }
       return t
     end;
   PrimaryType = V"ObjectType" +
