@@ -11,6 +11,7 @@ Type = TypeConstant Constant
      | TypeName String
      | TypeUndefined
      | TypeUnion Type Type
+     | TypeIntersection Type Type
      | TypeFunction TypeList TypeList
      | TypeRecord [(Type,Type)]
      | TypeVarArg Type
@@ -184,6 +185,19 @@ function types.isUnion (t)
   return false
 end
 
+-- union type
+
+function types.Intersection (t1, t2)
+  return { tag = "TypeIntersection", [1] = t1, [2] = t2 }
+end
+
+function types.isIntersection (t)
+  if t.tag == "TypeIntersection" then
+    return true
+  end
+  return false
+end
+
 -- function type
 
 function types.Function (t1, t2)
@@ -315,6 +329,16 @@ local function subtype_union (t1, t2)
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
   elseif types.isUnion(t1) then
     return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
+  end
+  return false
+end
+
+local function subtype_intersection (t1, t2)
+  if types.isIntersection(t1) then
+    return types.subtype(t1[1], t2) or
+           types.subtype(t1[2], t2)
+  elseif types.isIntersection(t2) then
+    return types.subtype(t1, t2[1]) and types.subtype(t1, t2[2])
   end
   return false
 end
@@ -490,6 +514,16 @@ local function csubtype_union (t1, t2)
   return false
 end
 
+local function csubtype_intersection (t1, t2)
+  if types.isIntersection(t1) then
+    return types.csubtype(t1[1], t2) or
+           types.csubtype(t1[2], t2)
+  elseif types.isIntersection(t2) then
+    return types.csubtype(t1, t2[1]) and types.csubtype(t1, t2[2])
+  end
+  return false
+end
+
 local function csubtype_function (t1, t2)
   if types.isFunction(t1) and types.isFunction(t2) then
     return types.csubtype2(t2[1], t1[1]) and types.csubtype2(t1[2], t2[2])
@@ -600,6 +634,7 @@ function types.subtype (t1, t2)
          subtype_constant(t1, t2) or
          subtype_base(t1, t2) or
          subtype_union(t1, t2) or
+         subtype_intersection(t1, t2) or
          subtype_function(t1, t2) or
          subtype_record(t1, t2) or
          subtype_vararg(t1, t2) or
@@ -611,6 +646,7 @@ function types.csubtype (t1, t2)
          csubtype_constant(t1, t2) or
          csubtype_base(t1, t2) or
          csubtype_union(t1, t2) or
+         csubtype_intersection(t1, t2) or
          csubtype_function(t1, t2) or
          csubtype_record(t1, t2) or
          csubtype_vararg(t1, t2) or
@@ -641,6 +677,8 @@ local function type2str (t)
     return type2str(t[1]) .. " -> " .. type2str(t[2])
   elseif types.isUnion(t) then
     return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
+  elseif types.isIntersection(t) then
+    return "(" .. type2str(t[1]) .. " ^ " .. type2str(t[2]) .. ")"
   elseif types.isRecord(t) then
     local l = {}
     for k, v in ipairs(t[1]) do

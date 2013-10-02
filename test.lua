@@ -1583,7 +1583,7 @@ s = [=[
 local test = function (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:41: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
+test.lua:1:41: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -1707,7 +1707,7 @@ s = [=[
 for i:number=1,10 do end
 ]=]
 e = [=[
-test.lua:1:13: syntax error, unexpected '=1,10', expecting 'in', ',', '|'
+test.lua:1:13: syntax error, unexpected '=1,10', expecting 'in', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -1779,7 +1779,7 @@ s = [=[
 function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:33: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
+test.lua:1:33: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -1979,7 +1979,7 @@ s = [=[
 local function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:39: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|'
+test.lua:1:39: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)

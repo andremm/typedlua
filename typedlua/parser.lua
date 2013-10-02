@@ -151,8 +151,10 @@ local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
   -- type language
   Type = V"UnionType";
-  UnionType = chainl1(V"PrimaryType", V"UnionOp");
+  UnionType = chainl1(V"IntersectionType", V"UnionOp");
   UnionOp = symb("|") / "TypeUnion";
+  IntersectionType = chainl1(V"PrimaryType", V"IntersectionOp");
+  IntersectionOp = symb("^") / "TypeIntersection";
   FunctionType = taggedCap("TypeFunction",
                  symb("(") * (V"Type2" + V"TypeVoid") * symb(")") *
                  symb("->") *
