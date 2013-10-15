@@ -388,16 +388,33 @@ end
 function check_var (env, var)
   local tag = var.tag
   if tag == "VarID" then
-    if not check_type_name(env, var[2]) then var[2] = Undefined end
-    var.type = var[2]
+    local name = var[1]
+    local scope = get_local_scope(env, name)
+    local t, msg
+    if scope then -- local
+      t = env[scope]["local"][name]["var_type"]
+    else -- global
+      local g = env["global"][name]
+      if g then
+        t = g["var_type"]
+      else
+        t = Nil
+        msg = "using variable '%s' without initialize"
+        msg = string.format(msg, name)
+        typeerror(env, msg, var.pos)
+      end
+    end
+    var.type = t
   elseif tag == "VarIndex" then
-    check_exp(env, var[1])
-    check_exp(env, var[2])
-    local var_type, index_type = var[1].type, var[2].type
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+    local var_type, index_type = exp1.type, exp2.type
     local msg = "attmept to index '%s'"
     if types.isAny(var_type) then
       msg = string.format(msg, 'any')
-      warning(env, msg, var[1].pos)
+      warning(env, msg, exp1.pos)
+      var.type = Any
     elseif types.isRecord(var_type) then
       for k, v in ipairs(var_type[1]) do
         if types.csubtype(index_type, v[1]) then
@@ -407,13 +424,15 @@ function check_var (env, var)
       end
       msg = msg .. " with '%s'"
       msg = string.format(msg, type2str(var_type), type2str(index_type))
-      typeerror(env, msg, var[2].pos)
+      typeerror(env, msg, exp2.pos)
+      var.type = Nil
     else
       msg = string.format(msg, type2str(var_type))
-      typeerror(env, msg, var[1].pos)
+      typeerror(env, msg, exp1.pos)
+      var.type = Nil
     end
   else
-    error("cannot type check a variable " .. tag)
+    error("canno type check a variable " .. tag)
   end
 end
 
@@ -680,23 +699,9 @@ local function check_equal (env, exp)
 end
 
 local function check_expvar (env, exp)
-  local name = get_var_name(exp[1])
-  local scope = get_local_scope(env, name)
-  local t, msg
-  if scope then -- local
-    t = env[scope]["local"][name]["var_type"]
-  else -- global
-    local g = env["global"][name]
-    if g then
-      t = g["var_type"]
-    else
-      t = Nil
-      msg = "using variable '%s' without initialize"
-      msg = string.format(msg, name)
-      typeerror(env, msg, exp.pos)
-    end
-  end
-  set_node_type(exp, t)
+  local var = exp[1]
+  check_var(env, var)
+  set_node_type(exp, var.type)
 end
 
 local function check_len (env, exp)
@@ -781,14 +786,26 @@ end
 
 -- statemnts
 
+local function check_var_assign (env, var)
+  local tag = var.tag
+  if tag == "VarID" then
+    if not check_type_name(env, var[2]) then var[2] = Undefined end
+    var.type = var[2]
+  elseif tag == "VarIndex" then
+    check_var(env, var)
+  else
+    error("cannot assign to variable " .. tag)
+  end
+end
+
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
   adjust_typelist(varlist, typelist)
   for k, v in ipairs(varlist) do
-    check_var(env, v)
+    check_var_assign(env, v)
     local var_name = get_var_name(v)
-    local dec_type = get_var_type(v)
+    local dec_type = v.type
     local pos = get_var_pos(v)
     local scope = get_local_scope(env, var_name)
     if scope then -- local
