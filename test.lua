@@ -2148,7 +2148,6 @@ assert(types.subtype(Word,Word))
 assert(types.subtype(False,Boolean))
 assert(types.subtype(True,Boolean))
 assert(types.subtype(Double,Number))
-assert(types.subtype(Integer,Double))
 assert(types.subtype(Integer,Number))
 assert(types.subtype(Word,String))
 

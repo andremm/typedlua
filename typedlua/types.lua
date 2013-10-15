@@ -78,20 +78,6 @@ function types.isConstantNumber (t)
   return false
 end
 
-function types.isDouble (t)
-  if types.isConstantNumber(t) and math.floor(t[1]) ~= t[1] then
-    return true
-  end
-  return false
-end
-
-function types.isInteger (t)
-  if types.isConstantNumber(t) and math.floor(t[1]) == t[1] then
-    return true
-  end
-  return false
-end
-
 function types.isConstantString (t)
   if types.isConstant(t) and type(t[1]) == "string" then
     return true
@@ -282,18 +268,12 @@ local function subtype_constant_reflexive (t1, t2)
   return t1[1] == t2[1]
 end
 
-local function subtype_integer_double (t1, t2)
-  return types.isInteger(t1) and types.isDouble(t2)
-end
-
 local function subtype_constant_base (t1, t2)
   if types.isFalse(t1) and types.isBoolean(t2) then
     return true
   elseif types.isTrue(t1) and types.isBoolean(t2) then
     return true
-  elseif types.isDouble(t1) and types.isNumber(t2) then
-    return true
-  elseif types.isInteger(t1) and types.isNumber(t2) then
+  elseif types.isConstantNumber(t1) and types.isNumber(t2) then
     return true
   elseif types.isConstantString(t1) and types.isString(t2) then
     return true
@@ -303,8 +283,7 @@ end
 
 local function subtype_constant (t1, t2)
   if types.isConstant(t1) and types.isConstant(t2) then
-    return subtype_constant_reflexive(t1, t2) or
-           subtype_integer_double(t1, t2)
+    return subtype_constant_reflexive(t1, t2)
   elseif types.isConstant(t1) and types.isBase(t2) then
     return subtype_constant_base(t1, t2)
   end
@@ -463,18 +442,12 @@ local function csubtype_constant_reflexive (t1, t2)
   return t1[1] == t2[1]
 end
 
-local function csubtype_integer_double (t1, t2)
-  return types.isInteger(t1) and types.isDouble(t2)
-end
-
 local function csubtype_constant_base (t1, t2)
   if types.isFalse(t1) and types.isBoolean(t2) then
     return true
   elseif types.isTrue(t1) and types.isBoolean(t2) then
     return true
-  elseif types.isDouble(t1) and types.isNumber(t2) then
-    return true
-  elseif types.isInteger(t1) and types.isNumber(t2) then
+  elseif types.isConstantNumber(t1) and types.isNumber(t2) then
     return true
   elseif types.isConstantString(t1) and types.isString(t2) then
     return true
@@ -484,8 +457,7 @@ end
 
 local function csubtype_constant (t1, t2)
   if types.isConstant(t1) and types.isConstant(t2) then
-    return csubtype_constant_reflexive(t1, t2) or
-           csubtype_integer_double(t1, t2)
+    return csubtype_constant_reflexive(t1, t2)
   elseif types.isConstant(t1) and types.isBase(t2) then
     return csubtype_constant_base(t1, t2)
   end
@@ -656,7 +628,7 @@ end
 function types.supertypeof (t)
   if types.isFalse(t) or types.isTrue(t) then
     return types.Boolean
-  elseif types.isDouble(t) or types.isInteger(t) then
+  elseif types.isConstantNumber(t) then
     return types.Number
   elseif types.isConstantString(t) then
     return types.String
