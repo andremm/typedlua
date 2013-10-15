@@ -264,7 +264,7 @@ local function get_var_type (var)
   if tag == "VarID" then
     return var[2]
   elseif tag == "VarIndex" then
-    return var[2].type
+    return var.type
   end
 end
 
@@ -373,8 +373,10 @@ local function update_var (env, var_name, dec_type, inf_type, pos, scope)
     var_scope = "global"
   end
   local var_type, var_pos = v.var_type, v.var_pos
-  if not types.isUndefined(dec_type) and
-     not types.subtype(dec_type, var_type) then
+  if types.isRecord(var_type) then
+    var_type = dec_type
+  elseif not types.isUndefined(dec_type) and
+         not types.subtype(dec_type, var_type) then
     local t1, t2 = type2str(var_type), type2str(dec_type)
     msg = "cannot cast %s '%s' from '%s' to '%s'"
     msg = string.format(msg, var_scope, var_name, t1, t2)
@@ -387,25 +389,28 @@ function check_var (env, var)
   local tag = var.tag
   if tag == "VarID" then
     if not check_type_name(env, var[2]) then var[2] = Undefined end
-    var["type"] = var[2]
+    var.type = var[2]
   elseif tag == "VarIndex" then
     check_exp(env, var[1])
     check_exp(env, var[2])
-    local v, i = var[1].type, var[2].type
-    local msg = "attempt to index '%s'"
-    if types.isAny(v) then
+    local var_type, index_type = var[1].type, var[2].type
+    local msg = "attmept to index '%s'"
+    if types.isAny(var_type) then
       msg = string.format(msg, 'any')
       warning(env, msg, var[1].pos)
-    elseif not types.isRecord(v) then
-      msg = string.format(msg, type2str(v))
-      typeerror(env, msg, var[1].pos)
-    else
-      local t = types.Record({{i, Any}})
-      if not types.csubtype(t, v) then
-        msg = msg .. " with '%s'"
-        msg = string.format(msg, type2str(v), type2str(i))
-        typeerror(env, msg, var[2].pos)
+    elseif types.isRecord(var_type) then
+      for k, v in ipairs(var_type[1]) do
+        if types.csubtype(index_type, v[1]) then
+          var.type = v[2]
+          return
+        end
       end
+      msg = msg .. " with '%s'"
+      msg = string.format(msg, type2str(var_type), type2str(index_type))
+      typeerror(env, msg, var[2].pos)
+    else
+      msg = string.format(msg, type2str(var_type))
+      typeerror(env, msg, var[1].pos)
     end
   else
     error("cannot type check a variable " .. tag)
