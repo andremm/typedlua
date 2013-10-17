@@ -182,10 +182,7 @@ local function var_id (var_name, var_type, var_pos)
 end
 
 local function id2var (env, id)
-  if check_type_name(env, id[2]) then
-    return var_id(id[1], id[2], id.pos)
-  end
-  return var_id(id[1], Undefined, id.pos)
+  return var_id(id[1], id[2], id.pos)
 end
 
 local function idlist2varlist (env, idlist)
@@ -279,45 +276,21 @@ end
 
 local function set_var (env, var_name, var_type, pos, scope)
   local v = { var_name = var_name, var_type = var_type, pos = pos }
-  local shadow, shadow_scope
-  if not scope then -- global
-    shadow = env["global"][var_name]
-    if shadow then shadow_scope = "global" end
-    env["global"][var_name] = v
-  else -- local
-    shadow = env[scope]["local"][var_name]
-    if shadow then
-      shadow_scope = "local"
-    else
-      shadow = env["global"][var_name]
-      if shadow then shadow_scope = "global" end
-    end
+  if scope then
     env[scope]["local"][var_name] = v
-  end
-  if shadow then
-    local line = lineno(env.subject, shadow.pos)
-    local t1, t2 = type2str(shadow.var_type), type2str(var_type)
-    local msg = "%s '%s' was previously defined at line %d"
-    msg = string.format(msg, shadow_scope, var_name, line)
-    warning(env, msg, pos)
-    msg = "shadowing %s '%s' from '%s' to '%s'"
-    msg = string.format(msg, shadow_scope, var_name, t1, t2)
-    warning(env, msg, pos)
+  else
+    env["global"][var_name] = v
   end
 end
 
-local function adjust_dec_type (env, var_name, inf_type, pos, scope)
-  if not types.isNil(inf_type) then
-    return types.supertypeof(inf_type)
+local function validate_type_annotation (env, t)
+  if types.isName(t) then
+    local msg = "type '%s' is not defined"
+    msg = string.format(msg, type2str(t))
+    warning(env, msg, t.pos)
+    return Undefined
   end
-  if scope then
-    msg = "forwarding the declaration of local '%s'"
-  else
-    msg = "forwarding the declaration of global '%s'"
-  end
-  msg = string.format(msg, var_name)
-  warning(env, msg, pos)
-  return Any
+  return t
 end
 
 local function match_dec_type (env, dec_type, inf_type, pos)
@@ -337,14 +310,45 @@ local function match_dec_type (env, dec_type, inf_type, pos)
   end
 end
 
-local function check_var_dec (env, var_name, dec_type, inf_type, pos, scope)
+local function set_global (env, var_name, dec_type, inf_type, pos)
+  if types.isUndefined(dec_type) then
+    dec_type = types.supertypeof(inf_type)
+  end
+  match_dec_type(env, dec_type, inf_type, pos)
+  if not types.isNil(dec_type) then
+    set_var(env, var_name, dec_type, pos)
+  else
+    local msg = "global '%s' was not declared"
+    msg = string.format(msg, var_name)
+    warning(env, msg, pos)
+  end
+end
+
+local function set_local (env, var_name, dec_type, inf_type, pos, scope)
   local msg
   if types.isUndefined(dec_type) then
-    dec_type = adjust_dec_type(env, var_name, inf_type, pos, scope)
+    if not types.isNil(inf_type) then
+      dec_type = types.supertypeof(inf_type)
+    else
+      msg = "forwarding the declaration of local '%s'"
+      msg = string.format(msg, var_name)
+      warning(env, msg, pos)
+    end
   else
     match_dec_type(env, dec_type, inf_type, pos)
   end
-  return dec_type
+  local shadow = env[scope]["local"][var_name]
+  if shadow then
+    local line = lineno(env.subject, shadow.pos)
+    local t1, t2 = type2str(shadow.var_type), type2str(dec_type)
+    msg = "local '%s' was previously defined at line %d"
+    msg = string.format(msg, var_name, line)
+    warning(env, msg, pos)
+    msg = "shadowing local '%s' from '%s' to '%s'"
+    msg = string.format(msg, var_name, t1, t2)
+    warning(env, msg, pos)
+  end
+  set_var(env, var_name, dec_type, pos, scope)
 end
 
 local function check_par_dec (env, par_type)
@@ -383,6 +387,29 @@ local function update_var (env, var_name, dec_type, inf_type, pos, scope)
     warning(env, msg, pos)
   end
   match_dec_type(env, var_type, inf_type, pos)
+end
+
+local function update_global (env, var, ann_type, inf_type, pos)
+  local var_name, dec_type = var.var_name, var.var_type
+  if not types.isUndefined(ann_type) and
+     not types.subtype(ann_type, dec_type) then
+    local msg = "attempt to redeclare global '%s'"
+    msg = string.format(msg, var_name)
+    typeerror(env, msg, pos)
+  end
+  match_dec_type(env, dec_type, inf_type, pos)
+end
+
+local function update_local (env, var, ann_type, inf_type, pos)
+  local var_name, dec_type = var.var_name, var.var_type
+  if not types.isUndefined(ann_type) and
+     not types.subtype(ann_type, dec_type) then
+    local msg = "attempt to cast local '%s' from '%s' to '%s'"
+    local t1, t2 = type2str(dec_type), type2str(ann_type)
+    msg = string.format(msg, var_name, t1, t2)
+    typeerror(env, msg, pos)
+  end
+  match_dec_type(env, dec_type, inf_type, pos)
 end
 
 function check_var (env, var)
@@ -786,11 +813,24 @@ end
 
 -- statemnts
 
-local function check_var_assign (env, var)
+local function check_var_assignment (env, var, inf_type)
   local tag = var.tag
   if tag == "VarID" then
-    if not check_type_name(env, var[2]) then var[2] = Undefined end
-    var.type = var[2]
+    local var_name = var[1]
+    local var_type = validate_type_annotation(env, var[2])
+    local pos = var.pos
+    local scope = get_local_scope(env, var_name)
+    if scope then -- local
+      local l = env[scope]["local"][var_name]
+      update_local(env, l, var_type, inf_type, pos)
+    else -- global
+      local g = get_global(env, var_name)
+      if g then
+        update_global(env, g, var_type, inf_type, pos)
+      else
+        set_global(env, var_name, var_type, inf_type, pos)
+      end
+    end
   elseif tag == "VarIndex" then
     check_var(env, var)
   else
@@ -803,22 +843,7 @@ local function check_assignment (env, varlist, explist)
   local typelist = explist2typelist(explist)
   adjust_typelist(varlist, typelist)
   for k, v in ipairs(varlist) do
-    check_var_assign(env, v)
-    local var_name = get_var_name(v)
-    local dec_type = v.type
-    local pos = get_var_pos(v)
-    local scope = get_local_scope(env, var_name)
-    if scope then -- local
-      update_var(env, var_name, dec_type, typelist[k], pos, scope)
-    else -- global
-      local g = get_global(env, var_name)
-      if g then
-        update_var(env, var_name, dec_type, typelist[k], pos)
-      else
-        local t = check_var_dec(env, var_name, dec_type, typelist[k], pos)
-        set_var(env, var_name, t, pos)
-      end
-    end
+    check_var_assignment(env, v, typelist[k])
   end
 end
 
@@ -906,11 +931,7 @@ local function check_local_var (env, idlist, explist)
   local typelist = explist2typelist(explist)
   adjust_typelist(varlist, typelist)
   for k, v in ipairs(varlist) do
-    local var_name = get_var_name(v)
-    local dec_type = get_var_type(v)
-    local pos = get_var_pos(v)
-    local t = check_var_dec(env, var_name, dec_type, typelist[k], pos, scope)
-    set_var(env, var_name, t, pos, scope)
+    set_local(env, v[1], v[2], typelist[k], v.pos, scope)
   end
 end
 
@@ -1027,11 +1048,7 @@ function check_stm (env, stm)
   elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_repeat(env, stm[1], stm[2])
   elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
-    if #stm[1] == 1 then
-      check_global_function(env, stm)
-    else
-      warning(env, "cannot type check function inside table", stm.pos)
-    end
+    check_global_function(env, stm)
   elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
     check_local_function(env, stm)
   elseif tag == "StmLabel" or -- StmLabel Name

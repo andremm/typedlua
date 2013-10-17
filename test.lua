@@ -2756,9 +2756,9 @@ s = [=[
 x, y, z = nil
 ]=]
 e = [=[
-test.lua:1:1: warning, forwarding the declaration of global 'x'
-test.lua:1:4: warning, forwarding the declaration of global 'y'
-test.lua:1:7: warning, forwarding the declaration of global 'z'
+test.lua:1:1: warning, global 'x' was not declared
+test.lua:1:4: warning, global 'y' was not declared
+test.lua:1:7: warning, global 'z' was not declared
 ]=]
 
 r = typecheck(s)
@@ -2803,7 +2803,7 @@ x:number = 1
 x:boolean = true
 ]=]
 e = [=[
-test.lua:2:1: warning, cannot cast global 'x' from 'number' to 'boolean'
+test.lua:2:1: type error, attempt to redeclare global 'x'
 test.lua:2:1: type error, attempt to assign 'boolean' to 'number'
 ]=]
 

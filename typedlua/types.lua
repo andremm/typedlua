@@ -5,7 +5,8 @@ Constant = nil | false | true | <integer> | <double> | <word>
 
 Base = "boolean" | "number" | "string"
 
-Type = TypeConstant Constant
+Type = TypeValue
+     | TypeConstant Constant
      | TypeBase Base
      | TypeAny
      | TypeName String
@@ -20,6 +21,17 @@ TypeList = TypeTuple [Type]
 ]]
 
 local types = {}
+
+-- value type
+
+types.Value = { tag = "TypeValue" }
+
+function types.isValue (t)
+  if t.tag == "TypeValue" then
+    return true
+  end
+  return false
+end
 
 -- constant types
 
@@ -256,6 +268,10 @@ function types.isRecord (t)
 end
 
 -- subtyping
+
+local function subtype_value (t1, t2)
+  return types.isValue(t2)
+end
 
 local function subtype_any (t1, t2)
   if types.isAny(t1) and types.isAny(t2) then
@@ -602,7 +618,8 @@ function types.csubtype2 (t1, t2)
 end
 
 function types.subtype (t1, t2)
-  return subtype_any(t1, t2) or
+  return subtype_value(t1, t2) or
+         subtype_any(t1, t2) or
          subtype_constant(t1, t2) or
          subtype_base(t1, t2) or
          subtype_union(t1, t2) or
