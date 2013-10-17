@@ -289,16 +289,19 @@ local G = { V"TypedLua",
   SuffixedExp = Cf(V"PrimaryExp" * (
                   taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name", "Name"))) +
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
-                  taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name", "Name") * V"FuncArgs")) +
+                  taggedCap("ExpMethodCall", Cg(symb(":") * taggedCap("ExpStr", token(V"Name", "Name")) * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
                 )^0, function (t1, t2)
                        if t2 then
                          if t2.tag == "ExpMethodCall" then
-                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1], [3] = t2[2]}
+                           local t = {tag = "ExpVar", pos = t1.pos, [1] = {}}
+                           t[1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}
+                           return {tag = t2.tag, pos = t1.pos, [1] = t, [2] = t2[2]}
                          elseif t2.tag == "ExpFunctionCall" then
                            return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
                          else
-                           return {tag = "ExpVar", pos = t1.pos, [1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}}
+                           local t = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}
+                           return {tag = "ExpVar", pos = t1.pos, [1] = t}
                          end
                        end
                        return t1
@@ -739,9 +742,8 @@ function traverse_exp (env, exp)
     return traverse_anonymous_function(env, exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     return traverse_table(env, exp[1])
-  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    return traverse_exp_call(env, exp[1], exp[3])
-  elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+  elseif tag == "ExpMethodCall" or -- ExpMethodCall Exp [Exp]
+         tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     return traverse_exp_call(env, exp[1], exp[2])
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
          tag == "ExpSub" or -- ExpSub Exp Exp

@@ -185,9 +185,9 @@ function code_exp (exp, i, parent)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     str = "{ " .. code_fieldlist(exp[1], i) .. " }"
     return str
-  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    str = code_exp(exp[1], i, tag) .. ":" .. exp[2]
-    str = str .. "(" .. code_explist(exp[3], i) .. ")"
+  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp [Exp]
+    str = code_exp(exp[1][1][1], i, tag) .. ":" .. exp[1][1][2][1]
+    str = str .. "(" .. code_explist(exp[2], i) .. ")"
     return str
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     str = code_exp(exp[1], i, tag)

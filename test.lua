@@ -630,7 +630,7 @@ s = [=[
 a:b(1)._ = some_value
 ]=]
 e = [=[
-StmBlock [StmAssign [VarIndex (ExpMethodCall (ExpVar (VarID ("a","?"))) "b" [ExpNum 1.0]) (ExpStr "_")] [ExpVar (VarID ("some_value","?"))]]
+StmBlock [StmAssign [VarIndex (ExpMethodCall (ExpVar (VarIndex (ExpVar (VarID ("a","?"))) (ExpStr "b"))) [ExpNum 1.0]) (ExpStr "_")] [ExpVar (VarID ("some_value","?"))]]
 ]=]
 
 r = parse(s)
@@ -650,7 +650,7 @@ s = [=[
 x:number,t.f,a:b()[0],z:nil = 1,function () end,"alo"
 ]=]
 e = [=[
-StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","?"))) (ExpStr "f"),VarIndex (ExpMethodCall (ExpVar (VarID ("a","?"))) "b" []) (ExpNum 0.0),VarID ("z","nil")] [ExpNum 1.0,ExpFunction ([]) "?" (StmBlock []),ExpStr "alo"]]
+StmBlock [StmAssign [VarID ("x","number"),VarIndex (ExpVar (VarID ("t","?"))) (ExpStr "f"),VarIndex (ExpMethodCall (ExpVar (VarIndex (ExpVar (VarID ("a","?"))) (ExpStr "b"))) []) (ExpNum 0.0),VarID ("z","nil")] [ExpNum 1.0,ExpFunction ([]) "?" (StmBlock []),ExpStr "alo"]]
 ]=]
 
 r = parse(s)

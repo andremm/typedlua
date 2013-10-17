@@ -685,28 +685,36 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
   end
 end
 
-local function check_calling_method (env, exp)
-  set_node_type(exp, Any)
-end
-
 local function check_calling_function (env, exp)
-  local var, explist, pos = exp[1][1], exp[2], exp["pos"]
-  local var_name = get_var_name(var)
-  local isvisible = get_visibility(env, var_name)
-  local ret_type = Nil
+  local exp1, explist, pos = exp[1], exp[2], exp.pos
+  check_exp(env, exp1)
   check_explist(env, explist)
-  if isvisible then
-    local var_type
-    if isvisible == "local" then
-      local scope = get_local_scope(env, var_name)
-      var_type = env[scope]["local"][var_name]["var_type"]
-    else
-      var_type = env["global"][var_name]["var_type"]
-    end
-    ret_type = check_call(env, var_name, var_type, explist, pos, isvisible)
+  local func_name = get_var_name(exp1[1])
+  local dec_type = exp1.type
+  local ret_type = Nil
+  if not types.isNil(dec_type) then
+    local visibility = get_visibility(env, func_name)
+    ret_type = check_call(env, func_name, dec_type, explist, pos, visibility)
   else
     local msg = "attempt to call undeclared function '%s'"
-    msg = string.format(msg, var_name)
+    msg = string.format(msg, func_name)
+    typeerror(env, msg, pos)
+  end
+  set_node_type(exp, ret_type)
+end
+
+local function check_calling_method (env, exp)
+  local exp1, explist, pos = exp[1], exp[2], exp.pos
+  check_exp(env, exp1)
+  check_explist(env, explist)
+  local meth_name = get_var_name(exp1[1])
+  local dec_type = exp1.type
+  local ret_type = Nil
+  if not types.isNil(dec_type) then
+    ret_type = check_call(env, meth_name, dec_type, explist, pos, "method")
+  else
+    local msg = "attempt to call undeclared method '%s'"
+    msg = string.format(msg, meth_name)
     typeerror(env, msg, pos)
   end
   set_node_type(exp, ret_type)
@@ -1024,7 +1032,7 @@ function check_exp (env, exp)
     check_anonymous_function(env, exp)
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     check_table(env, exp)
-  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
+  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp [Exp]
     check_calling_method(env, exp)
   elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     check_calling_function(env, exp)

@@ -38,7 +38,7 @@ data Exp = ExpNil
          | ExpVar Var
          | ExpFunction [ID] Type Stm
          | ExpTableConstructor FieldList
-         | ExpMethodCall Exp Name [Exp]
+         | ExpMethodCall Exp [Exp]
          | ExpFunctionCall Exp [Exp]
          | ExpAdd Exp Exp
          | ExpSub Exp Exp
@@ -190,11 +190,8 @@ function exp2str (exp)
     str = str .. " (" .. stm2str(exp[3]) .. ")"
   elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     str = str .. fieldlist2str(exp[1])
-  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
-    str = str .. " (" .. exp2str(exp[1]) .. ")"
-    str = str .. ' "' .. exp[2] .. '"'
-    str = str .. explist2str(exp[3])
-  elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+  elseif tag == "ExpMethodCall" or -- ExpMethodCall Exp [Exp]
+         tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     str = str .. " (" .. exp2str(exp[1]) .. ")"
     str = str .. explist2str(exp[2])
   elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 

@@ -169,13 +169,13 @@ function check_exp (exp, func_name, func_id)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     result[func_id].number_of_constructs = result[func_id].number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
-  elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp Name [Exp]
+  elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp [Exp]
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
     result[func_id].varindex_literal = result[func_id].varindex_literal + 1
     result[func_id].varindex_literal_fc = result[func_id].varindex_literal_fc + 1
-    check_exp(exp[1], func_name, func_id)
-    check_explist(exp[3], func_name, func_id)
+    check_exp(exp[1][1][1], func_name, func_id)
+    check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
     if exp[1].tag == "ExpVar" and exp[1][1].tag == "VarID" then
       -- statistics of the use of type
