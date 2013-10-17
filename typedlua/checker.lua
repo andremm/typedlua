@@ -888,7 +888,14 @@ end
 
 local function check_for_generic (env, idlist, explist, stm)
   begin_scope(env)
+  local scope = env.scope
+  local varlist = idlist2varlist(idlist)
   check_explist(env, explist)
+  local typelist = explist2typelist(explist)
+  adjust_typelist(varlist, typelist)
+  for k, v in ipairs(varlist) do
+    set_local(env, v[1], v[2], typelist[k], v.pos, scope)
+  end
   check_stm(env, stm)
   end_scope(env)
 end
