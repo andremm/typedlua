@@ -655,7 +655,7 @@ end
 
 local function type2str (t)
   if types.isConstant(t) then
-    return type(t[1])
+    return tostring(t[1])
   elseif types.isBase(t) or types.isName(t) then
     return t[1]
   elseif types.isAny(t) then

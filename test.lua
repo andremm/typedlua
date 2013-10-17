@@ -2780,7 +2780,7 @@ s = [=[
 x:number,y:string|nil,z:any = true,...
 ]=]
 e = [=[
-test.lua:1:1: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:1: type error, attempt to assign 'true' to 'number'
 test.lua:1:23: warning, attempt to cast 'any' to 'string*'
 ]=]
 
@@ -2791,7 +2791,7 @@ s = [=[
 x:number,y:string = true
 ]=]
 e = [=[
-test.lua:1:1: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:1: type error, attempt to assign 'true' to 'number'
 test.lua:1:10: type error, attempt to assign 'nil' to 'string'
 ]=]
 
@@ -2804,7 +2804,7 @@ x:boolean = true
 ]=]
 e = [=[
 test.lua:2:1: type error, attempt to redeclare global 'x'
-test.lua:2:1: type error, attempt to assign 'boolean' to 'number'
+test.lua:2:1: type error, attempt to assign 'true' to 'number'
 ]=]
 
 r = typecheck(s)
@@ -2850,7 +2850,7 @@ s = [=[
 t:{number} = { "hello", "world" }
 ]=]
 e = [=[
-test.lua:1:1: type error, attempt to assign '{number:string, number:string}' to '{number:number}'
+test.lua:1:1: type error, attempt to assign '{number:hello, number:world}' to '{number:number}'
 ]=]
 
 r = typecheck(s)
@@ -2871,7 +2871,7 @@ s = [=[
 t:{string:number} = { ["foo"] = function () end, x = 2 }
 ]=]
 e = [=[
-test.lua:1:1: type error, attempt to assign '{string:() -> any*, string:number}' to '{string:number}'
+test.lua:1:1: type error, attempt to assign '{foo:() -> any*, x:2}' to '{string:number}'
 ]=]
 
 r = typecheck(s)
@@ -2881,7 +2881,7 @@ s = [=[
 t:{{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
 ]=]
 e = [=[
-test.lua:1:1: type error, attempt to assign '{string:{string:number, string:number}, string:{string:number}}' to '{number:{string:number}}'
+test.lua:1:1: type error, attempt to assign '{foo:{x:1, y:2}, bar:{z:3}}' to '{number:{string:number}}'
 ]=]
 
 r = typecheck(s)
@@ -2956,8 +2956,8 @@ f(x,x)
 ]=]
 e = [=[
 test.lua:3:3: type error, parameter 1 of 'f', attempt to assign 'nil' to 'number'
-test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
-test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number'
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'hello' to 'number'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'true' to 'number'
 test.lua:6:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
 ]=]
 
@@ -2975,12 +2975,12 @@ e = [=[
 test.lua:2:3: type error, parameter 1 of 'f', attempt to assign 'nil' to 'number'
 test.lua:2:3: type error, parameter 2 of 'f', attempt to assign 'nil' to 'string'
 test.lua:2:3: type error, parameter 3 of 'f', attempt to assign 'nil' to 'boolean'
-test.lua:3:5: type error, parameter 2 of 'f', attempt to assign 'number' to 'string'
-test.lua:3:7: type error, parameter 3 of 'f', attempt to assign 'number' to 'boolean'
-test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number'
-test.lua:4:11: type error, parameter 3 of 'f', attempt to assign 'string' to 'boolean'
-test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number'
-test.lua:5:16: type error, parameter 3 of 'f', attempt to assign 'number' to 'boolean'
+test.lua:3:5: type error, parameter 2 of 'f', attempt to assign '2' to 'string'
+test.lua:3:7: type error, parameter 3 of 'f', attempt to assign '3' to 'boolean'
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign '1' to 'number'
+test.lua:4:11: type error, parameter 3 of 'f', attempt to assign '3' to 'boolean'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'true' to 'number'
+test.lua:5:16: type error, parameter 3 of 'f', attempt to assign '1' to 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -2995,8 +2995,8 @@ f(true)
 f(x,x)
 ]=]
 e = [=[
-test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
-test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'boolean' to 'number*'
+test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'hello' to 'number*'
+test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'true' to 'number*'
 test.lua:6:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
 test.lua:6:5: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
 ]=]
@@ -3034,7 +3034,7 @@ s = [=[
 local x:number,y:string|nil,z:any = true,...
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:7: type error, attempt to assign 'true' to 'number'
 test.lua:1:29: warning, attempt to cast 'any' to 'string*'
 ]=]
 
@@ -3045,7 +3045,7 @@ s = [=[
 local x:number,y:string = true
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:7: type error, attempt to assign 'true' to 'number'
 test.lua:1:16: type error, attempt to assign 'nil' to 'string'
 ]=]
 
@@ -3104,7 +3104,7 @@ s = [=[
 local t:{number} = { "hello", "world" }
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '{number:string, number:string}' to '{number:number}'
+test.lua:1:7: type error, attempt to assign '{number:hello, number:world}' to '{number:number}'
 ]=]
 
 r = typecheck(s)
@@ -3125,7 +3125,7 @@ s = [=[
 local t:{string:number} = { ["foo"] = function () end, x = 2 }
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '{string:() -> any*, string:number}' to '{string:number}'
+test.lua:1:7: type error, attempt to assign '{foo:() -> any*, x:2}' to '{string:number}'
 ]=]
 
 r = typecheck(s)
@@ -3135,7 +3135,7 @@ s = [=[
 local t:{{string:number}} = { ["foo"] = { x = 1, y = 2 }, bar = { ["z"] = 3 } }
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '{string:{string:number, string:number}, string:{string:number}}' to '{number:{string:number}}'
+test.lua:1:7: type error, attempt to assign '{foo:{x:1, y:2}, bar:{z:3}}' to '{number:{string:number}}'
 ]=]
 
 r = typecheck(s)
@@ -3173,7 +3173,7 @@ local function f () : boolean
 end
 ]=]
 e = [=[
-test.lua:2:3: type error, attempt to return 'number' instead of 'boolean'
+test.lua:2:3: type error, attempt to return '1' instead of 'boolean'
 ]=]
 
 r = typecheck(s)
@@ -3185,7 +3185,7 @@ local function f () : number*
 end
 ]=]
 e = [=[
-test.lua:2:3: type error, attempt to return '(string, string)' instead of 'number*'
+test.lua:2:3: type error, attempt to return '(hello, world)' instead of 'number*'
 ]=]
 
 r = typecheck(s)
@@ -3197,7 +3197,7 @@ local function f (x:number) : number|nil
 end
 ]=]
 e = [=[
-test.lua:2:17: type error, attempt to return 'string' instead of '(number | nil)'
+test.lua:2:17: type error, attempt to return 'greater than zero' instead of '(number | nil)'
 test.lua:2:3: type error, attempt to return '()' instead of '(number | nil)'
 ]=]
 

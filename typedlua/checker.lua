@@ -567,18 +567,20 @@ local function check_arith (env, exp)
          types.isAny(t2) then -- T-ARITH3
     set_node_type(exp, Any)
   else
-    local wrong
+    local wrong_type, wrong_pos
     set_node_type(exp, Any)
     if not types.subtype(t1, Number) and
        not types.isAny(t1) then
-      wrong = exp1
+      wrong_type = types.supertypeof(exp1.type)
+      wrong_pos = exp1.pos
     else
-      wrong = exp2
+      wrong_type = types.supertypeof(exp2.type)
+      wrong_pos = exp2.pos
     end
     local msg
     msg = "attempt to perform arithmetic on a %s"
-    msg = string.format(msg, types.tostring(wrong["type"]))
-    typeerror(env, msg, wrong["pos"])
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, wrong_pos)
   end
 end
 
@@ -703,18 +705,20 @@ local function check_concat (env, exp)
          types.isAny(t2) then -- T-CONCAT3
     set_node_type(exp, Any)
   else
-    local wrong
+    local wrong_type, wrong_pos
     set_node_type(exp, Any)
     if not types.subtype(t1, String) and
        not types.isAny(t1) then
-      wrong = exp1
+      wrong_type = types.supertypeof(exp1.type)
+      wrong_pos = exp1.pos
     else
-      wrong = exp2
+      wrong_type = types.supertypeof(exp2.type)
+      wrong_pos = exp2.pos
     end
     local msg
     msg = "attempt to concatenate a %s"
-    msg = string.format(msg, types.tostring(wrong["type"]))
-    typeerror(env, msg, wrong["pos"])
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, wrong_pos)
   end
 end
 
@@ -742,8 +746,9 @@ local function check_len (env, exp)
   else
     set_node_type(exp, Any)
     local msg = "attempt to get length of a %s value"
-    msg = string.format(msg, types.tostring(t1))
-    typeerror(env, msg, exp1["pos"])
+    local wrong_type = types.supertypeof(t1)
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, exp1.pos)
   end
 end
 
@@ -758,9 +763,10 @@ local function check_minus (env, exp)
   else
     set_node_type(exp, Any)
     local msg
+    local wrong_type = types.supertypeof(exp1.type)
     msg = "attempt to perform arithmetic on a %s"
-    msg = string.format(msg, types.tostring(exp1["type"]))
-    typeerror(env, msg, exp1["pos"])
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, exp1.pos)
   end
 end
 
@@ -792,8 +798,9 @@ local function check_order (env, exp)
          types.isAny(t2) then -- T-ORDER4
   else
     local msg = "attempt to compare %s with %s"
-    msg = string.format(msg, types.tostring(t1), types.tostring(t2))
-    typeerror(env, msg, exp["pos"])
+    t1, t2 = types.supertypeof(t1), types.supertypeof(t2)
+    msg = string.format(msg, type2str(t1), type2str(t2))
+    typeerror(env, msg, exp.pos)
   end
 end
 
@@ -833,6 +840,7 @@ local function check_var_assignment (env, var, inf_type)
     end
   elseif tag == "VarIndex" then
     check_var(env, var)
+    match_dec_type(env, var.type, inf_type, var.pos)
   else
     error("cannot assign to variable " .. tag)
   end
@@ -966,7 +974,7 @@ function check_fieldlist (env, fieldlist)
     table.insert(l, { [1] = v[1].type, [2] = v[2].type })
   end
   if #l == 0 then
-    table.insert(l, { [1] = types.VarArg(Any), [2] = types.VarArg(Any) })
+    table.insert(l, { [1] = Any, [2] = types.VarArg(Any) })
   end
   fieldlist.type = types.Record(l)
 end
