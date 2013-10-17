@@ -167,7 +167,8 @@ end
 
 -- functions that handle identifiers
 
-local check_block, check_stm, check_exp, check_var
+local check_block, check_stm, check_exp
+local check_var, check_var_assignment
 local check_explist, check_fieldlist
 
 -- variables
@@ -181,16 +182,34 @@ local function var_id (var_name, var_type, var_pos)
   return var
 end
 
-local function id2var (env, id)
+local function var_index (v, name)
+  local pos = v.pos
+  local var = {}
+  var.tag = "VarIndex"
+  var[1] = { tag = "ExpVar", [1] = v, pos = pos }
+  var[2] = { tag = "ExpStr", [1] = name, pos = pos }
+  var.pos = pos
+  return var
+end
+
+local function id2var (id)
   return var_id(id[1], id[2], id.pos)
 end
 
-local function idlist2varlist (env, idlist)
+local function idlist2varlist (idlist)
   local list = {}
   for k, v in ipairs(idlist) do
-    table.insert(list, id2var(env, v))
+    table.insert(list, id2var(v))
   end
   return list
+end
+
+local function namelist2var (namelist)
+  local var = var_id(namelist[1], Undefined, namelist.pos)
+  for i = 2, #namelist do
+    var = var_index(var, namelist[i])
+  end
+  return var
 end
 
 local function par2var (env, id)
@@ -820,7 +839,7 @@ end
 
 -- statemnts
 
-local function check_var_assignment (env, var, inf_type)
+function check_var_assignment (env, var, inf_type)
   local tag = var.tag
   if tag == "VarID" then
     local var_name = var[1]
@@ -903,10 +922,10 @@ local function check_global_function (env, stm)
   local pos = stm.pos
   begin_function(env)
   begin_scope(env)
-  -- TODO: adjust name when implement tables
-  local name, idlist, ret_type, stm1 = stm[1][1], stm[2], stm[3], stm[4]
+  local namelist, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  local var = namelist2var(namelist)
   local t = check_function_prototype(env, idlist, ret_type)
-  set_var(env, name, t, pos)
+  check_var_assignment(env, var, t)
   set_return_type(env, t[2])
   check_function_stm(env, stm1, t[2])
   end_scope(env)
@@ -934,7 +953,7 @@ end
 
 local function check_local_var (env, idlist, explist)
   local scope = env.scope
-  local varlist = idlist2varlist(env, idlist)
+  local varlist = idlist2varlist(idlist)
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
   adjust_typelist(varlist, typelist)

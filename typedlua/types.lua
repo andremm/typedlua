@@ -159,9 +159,7 @@ end
 
 -- undefined type
 
-function types.Undefined ()
-  return { tag = "TypeUndefined" }
-end
+types.Undefined = { tag = "TypeUndefined" }
 
 function types.isUndefined (t)
   if t.tag == "TypeUndefined" then
