@@ -28,6 +28,8 @@ data Stm = StmBlock [Stm]
          | StmLocalVar [ID] [Exp]
          | StmRet [Exp]
          | StmCall Exp
+         | StmInterface Name [Name] InterfaceBody
+         | StmClass Name [Name] [Name] [?]
 
 data Exp = ExpNil
          | ExpFalse
@@ -72,6 +74,7 @@ local ast = {}
 
 local block2str, stm2str, exp2str, var2str, id2str
 local explist2str, varlist2str, fieldlist2str, namelist2str, idlist2str
+local classlist2str, interface2str, class2str
 
 local function type2str (t)
   return '"' .. types.tostring(t) .. '"'
@@ -128,6 +131,42 @@ function namelist2str (namelist)
     l[k] = string.format('"%s"', v)
   end
   return "[" .. table.concat(l, ",") .. "]"
+end
+
+function classlist2str (classlist)
+  local namelist = classlist[1] or {}
+  local l = {}
+  for k, v in ipairs(namelist) do
+    l[k] = string.format('"%s"', v)
+  end
+  return " [" .. table.concat(l, ",") .. "]"
+end
+
+function interface2str (body)
+  local l = {}
+  for k, v in ipairs(body) do
+    local tag = v.tag
+    if tag == "ConstDec" then
+      l[k] = '("' .. v[1] .. '","' .. tostring(v[2][1]) .. '")'
+    elseif tag == "MethodSig" then
+      l[k] = '("' .. v[1] .. '" ' .. idlist2str(v[2]) .. " " .. type2str(v[3]) .. ")"
+    end
+  end
+  return " [" .. table.concat(l, ",") .. "]"
+end
+
+function class2str (body)
+  local l = {}
+  for k, v in ipairs(body) do
+    local tag = v.tag
+    if tag == "FieldDec" then
+      l[k] = id2str(v)
+    elseif tag == "MethodImp" then
+      l[k] = '("' .. v[1][1] .. '" ' .. idlist2str(v[1][2]) .. " " .. type2str(v[1][3])
+      l[k] = l[k] .. " (" .. stm2str(v[2]) .. "))"
+    end
+  end
+  return " [" .. table.concat(l, ",") .. "]"
 end
 
 function fieldlist2str (fieldlist)
@@ -272,6 +311,15 @@ function stm2str (stm)
     str = str .. explist2str(stm[1])
   elseif tag == "StmCall" then -- StmCall Exp
     str = str .. " (" .. exp2str(stm[1]) .. ")"
+  elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+    str = str .. ' "' .. stm[1] .. '"'
+    str = str .. classlist2str(stm[2])
+    str = str .. interface2str(stm[3])
+  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
+    str = str .. " " .. stm[1]
+    str = str .. classlist2str(stm[2])
+    str = str .. classlist2str(stm[3])
+    str = str .. class2str(stm[4])
   else
     error("expecting a statement, but got a " .. tag)
   end

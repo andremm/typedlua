@@ -344,6 +344,10 @@ function code_stm (stm, i)
   elseif tag == "StmCall" then -- StmCall Exp
     str = spaces(i) .. code_exp(stm[1], i, tag)
     return str
+  elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+    return ""
+  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
+    return ""
   else
     error("expecting a statement, but got a " .. tag)
   end

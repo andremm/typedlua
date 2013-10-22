@@ -1104,6 +1104,8 @@ function check_stm (env, stm)
     check_return(env, stm)
   elseif tag == "StmCall" then -- StmCall Exp
     check_stmcall(env, stm[1])
+  elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
   else
     error("cannot type check statement " .. tag)
   end

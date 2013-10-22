@@ -261,7 +261,8 @@ local G = { V"TypedLua",
                 return t
               end;
   Constructor = taggedCap("ExpTableConstructor", symb("{") * V"FieldList" * symb("}"));
-  NameList = sepby1(V"TypedName", symb(","), "NameList");
+  NameList = sepby1(token(V"Name", "Name"), symb(","), "NameList");
+  TypedNameList = sepby1(V"TypedName", symb(","), "TypedNameList");
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
              taggedCap("ExpList", V"Constructor") +
@@ -329,7 +330,7 @@ local G = { V"TypedLua",
              V"ForNumName" * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
              V"ForBody");
-  ForGen = taggedCap("StmForGen", V"NameList" * kw("in") * V"ExpList" * V"ForBody");
+  ForGen = taggedCap("StmForGen", V"TypedNameList" * kw("in") * V"ExpList" * V"ForBody");
   ForStat = kw("for") * (V"ForNum" + V"ForGen") * kw("end");
   RepeatStat = taggedCap("StmRepeat", kw("repeat") * V"Block" *
                  kw("until") * V"Expr");
@@ -343,17 +344,17 @@ local G = { V"TypedLua",
                end
                return t
              end;
-  ParList = V"NameList" * (symb(",") * V"TypedVarArg")^-1 /
+  ParList = V"TypedNameList" * (symb(",") * V"TypedVarArg")^-1 /
             function (t, v)
               if v then table.insert(t, v) end
               return t
             end +
-            taggedCap("NameList", V"TypedVarArg"^-1);
+            taggedCap("TypedNameList", V"TypedVarArg"^-1);
   FuncBody = symb("(") * V"ParList" * symb(")") *
              V"OptionalType2" * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
   LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name", "Name") * V"FuncBody");
-  LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
+  LocalAssign = taggedCap("StmLocalVar", V"TypedNameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
   LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
   LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name", "Name") * symb("::"));
   BreakStat = taggedCap("StmBreak", kw("break"));
@@ -389,9 +390,38 @@ local G = { V"TypedLua",
                          end)))
              , function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * (V"TypedGlobal" + V"SuffixedExp"))^1)^-1 * symb("=") * V"ExpList";
+  Constant = taggedCap("Number", token(V"Number", "Number")) +
+             taggedCap("String", token(V"String", "String")) +
+             taggedCap("False", kw("false")) +
+             taggedCap("True", kw("true"));
+  ConstantDec = taggedCap("ConstDec", token(V"Name", "Name") * symb("=") * V"Constant");
+  FieldDec = taggedCap("FieldDec", token(V"Name", "Name") * symb(":") * V"Type");
+  Arg = taggedCap("Name", token(V"Name", "Name") * symb(":") * V"Type");
+  VarArg = taggedCap("Name", token(C("..."), "...") * symb(":") * V"Type");
+  ArgList = sepby1(V"Arg", symb(","), "ArgList") * (symb(",") * V"VarArg")^-1 /
+            function (t, v)
+              if v then table.insert(t, v) end
+              return t
+            end +
+            taggedCap("ArgList", V"VarArg"^-1);
+  MethodSig = taggedCap("MethodSig", token(V"Name", "Name") *
+              symb("(") * V"ArgList" * symb(")") * symb(":") * V"Type");
+  MethodImp = taggedCap("MethodImp", V"MethodSig" * V"Block" * kw("end"));
+  ObjectSpec = V"ConstantDec" + V"MethodSig";
+  InterfaceBody = taggedCap("InterfaceBody", V"ObjectSpec" * (symb(";") + V"ObjectSpec")^0);
+  InterfaceExtends = taggedCap("ExtendsList", (kw("extends") * V"NameList")^-1);
+  InterfaceStat = taggedCap("StmInterface", kw("interface") * token(V"Name", "Name") *
+                  V"InterfaceExtends" * V"InterfaceBody" * kw("end"));
+  ObjectImp = V"FieldDec" + V"MethodImp";
+  ClassBody = taggedCap("ClassBody", V"ObjectImp" * (symb(";") + V"ObjectImp")^0);
+  ClassExtends = taggedCap("Extends", (kw("extends") * token(V"Name", "Name"))^-1);
+  ClassImplements = taggedCap("ImplementsList", (kw("implements") * V"NameList")^-1);
+  ClassStat = taggedCap("StmClass", kw("class") * token(V"Name", "Name") *
+              V"ClassExtends" * V"ClassImplements" * V"ClassBody" * kw("end"));
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
-         V"BreakStat" + V"GoToStat" + V"ExprStat";
+         V"BreakStat" + V"GoToStat" + V"ExprStat" +
+         V"InterfaceStat" + V"ClassStat";
   -- lexer
   Space = space^1;
   Equals = P"="^0;
@@ -682,6 +712,14 @@ local function traverse_while (env, stm)
   return true
 end
 
+local function traverse_interface (env, stm)
+  return true
+end
+
+local function traverse_class (env, stm)
+  return true
+end
+
 function traverse_parlist (env, idlist)
   local len = #idlist
   if len > 0 then
@@ -802,6 +840,10 @@ function traverse_stm (env, stm)
     return traverse_return(env, stm)
   elseif tag == "StmCall" then -- StmCall Exp
     return traverse_stm_call(env, stm)
+  elseif tag == "StmInterface" then -- StmInterface Name
+    return traverse_interface(env, stm)
+  elseif tag == "StmClass" then -- StmClass Name
+    return traverse_class(env, stm)
   else
     error("trying to traverse " .. tag)
   end
