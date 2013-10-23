@@ -407,14 +407,14 @@ local G = { V"TypedLua",
   MethodSig = taggedCap("MethodSig", token(V"Name", "Name") *
               symb("(") * V"ArgList" * symb(")") * symb(":") * V"Type");
   MethodImp = taggedCap("MethodImp", V"MethodSig" * V"Block" * kw("end"));
-  ObjectSpec = V"ConstantDec" + V"MethodSig";
+  ObjectSpec = V"ConstantDec" + V"FieldDec" + V"MethodSig";
   InterfaceBody = taggedCap("InterfaceBody", V"ObjectSpec" * (symb(";") + V"ObjectSpec")^0);
   InterfaceExtends = taggedCap("ExtendsList", (kw("extends") * V"NameList")^-1);
   InterfaceStat = taggedCap("StmInterface", kw("interface") * token(V"Name", "Name") *
                   V"InterfaceExtends" * V"InterfaceBody" * kw("end"));
   ObjectImp = V"FieldDec" + V"MethodImp";
   ClassBody = taggedCap("ClassBody", V"ObjectImp" * (symb(";") + V"ObjectImp")^0);
-  ClassExtends = taggedCap("Extends", (kw("extends") * token(V"Name", "Name"))^-1);
+  ClassExtends = taggedCap("Extends", (kw("extends") * taggedCap("Name", token(V"Name", "Name")))^-1);
   ClassImplements = taggedCap("ImplementsList", (kw("implements") * V"NameList")^-1);
   ClassStat = taggedCap("StmClass", kw("class") * token(V"Name", "Name") *
               V"ClassExtends" * V"ClassImplements" * V"ClassBody" * kw("end"));

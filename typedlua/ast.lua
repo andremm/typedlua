@@ -29,7 +29,7 @@ data Stm = StmBlock [Stm]
          | StmRet [Exp]
          | StmCall Exp
          | StmInterface Name [Name] InterfaceBody
-         | StmClass Name [Name] [Name] [?]
+         | StmClass Name [Name] [Name] ClassBody
 
 data Exp = ExpNil
          | ExpFalse
@@ -148,6 +148,8 @@ function interface2str (body)
     local tag = v.tag
     if tag == "ConstDec" then
       l[k] = '("' .. v[1] .. '","' .. tostring(v[2][1]) .. '")'
+    elseif tag == "FieldDec" then
+      l[k] = id2str(v)
     elseif tag == "MethodSig" then
       l[k] = '("' .. v[1] .. '" ' .. idlist2str(v[2]) .. " " .. type2str(v[3]) .. ")"
     end
@@ -316,7 +318,7 @@ function stm2str (stm)
     str = str .. classlist2str(stm[2])
     str = str .. interface2str(stm[3])
   elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
-    str = str .. " " .. stm[1]
+    str = str .. ' "' .. stm[1] .. '"'
     str = str .. classlist2str(stm[2])
     str = str .. classlist2str(stm[3])
     str = str .. class2str(stm[4])

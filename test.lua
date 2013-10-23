@@ -728,6 +728,63 @@ StmBlock [StmBlock [StmAssign [VarID ("var","?")] [ExpAdd (ExpNum 2.0) (ExpNum 2
 r = parse(s)
 assert(r == e)
 
+-- classes
+
+s = [=[
+class A x:number end
+]=]
+e = [=[
+StmBlock [StmClass "A" [] [] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class A extends B x:number end
+]=]
+e = [=[
+StmBlock [StmClass "A" ["B"] [] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class A extends B implements C x:number end
+]=]
+e = [=[
+StmBlock [StmClass "A" ["B"] ["C"] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class A extends B implements C, D x:number end
+]=]
+e = [=[
+StmBlock [StmClass "A" ["B"] ["C","D"] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class C
+  x:number
+  y:number
+  add():number return x + y end
+  sub():number return x - y end
+end
+]=]
+e = [=[
+StmBlock [StmClass "C" [] [] [("x","number"),("y","number"),("add" [] "number" (StmBlock [StmRet [ExpAdd (ExpVar (VarID ("x","?"))) (ExpVar (VarID ("y","?")))]])),("sub" [] "number" (StmBlock [StmRet [ExpSub (ExpVar (VarID ("x","?"))) (ExpVar (VarID ("y","?")))]]))]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -1113,6 +1170,53 @@ end
 ]=]
 e = [=[
 StmBlock [StmIfElse (ExpVar (VarID ("a","?"))) (StmBlock [StmRet []]) (StmIfElse (ExpVar (VarID ("c","?"))) (StmBlock []) (StmBlock []))]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+interface A x = 1 end
+]=]
+e = [=[
+StmBlock [StmInterface "A" [] [("x","1")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+interface A extends B x:number end
+]=]
+e = [=[
+StmBlock [StmInterface "A" ["B"] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+interface A extends B, C x:number end
+]=]
+e = [=[
+StmBlock [StmInterface "A" ["B","C"] [("x","number")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+interface A
+  x:number
+  y:number
+  add():number
+  sub():number
+end
+]=]
+e = [=[
+StmBlock [StmInterface "A" [] [("x","number"),("y","number"),("add" [] "number"),("sub" [] "number")]]
 ]=]
 
 r = parse(s)
@@ -1647,6 +1751,42 @@ test.lua:3:1: syntax error, <break> not inside a loop
 r = parse(s)
 assert(r == e)
 
+-- classes
+
+s = [=[
+class A extends B, C x:number end
+]=]
+e = [=[
+test.lua:1:18: syntax error, unexpected ',', expecting 'Name', 'implements'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class A implements
+  x:number
+end
+]=]
+e = [=[
+test.lua:2:4: syntax error, unexpected ':number', expecting 'Name', ','
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+class A
+  f()
+end
+]=]
+e = [=[
+test.lua:3:1: syntax error, unexpected 'end', expecting ':'
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -1873,6 +2013,30 @@ if a:any then else end
 ]=]
 e = [=[
 test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+interface A end
+]=]
+e = [=[
+test.lua:1:13: syntax error, unexpected 'end', expecting 'Name', 'extends'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+interface A
+  f()
+end
+]=]
+e = [=[
+test.lua:3:1: syntax error, unexpected 'end', expecting ':'
 ]=]
 
 r = parse(s)
