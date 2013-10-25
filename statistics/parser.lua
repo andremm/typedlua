@@ -1,11 +1,13 @@
-local lpeg = require("lpeg")
+local parser = {}
+
+local lpeg = require "lpeg"
 
 lpeg.locale(lpeg)
 
-local P,S,V = lpeg.P,lpeg.S,lpeg.V
-local C,Carg,Cb,Cc = lpeg.C,lpeg.Carg,lpeg.Cb,lpeg.Cc
-local Cf,Cg,Cmt,Ct = lpeg.Cf,lpeg.Cg,lpeg.Cmt,lpeg.Ct
-local alpha,digit,alnum = lpeg.alpha,lpeg.digit,lpeg.alnum
+local P, S, V = lpeg.P, lpeg.S, lpeg.V
+local C, Carg, Cb, Cc = lpeg.C, lpeg.Carg, lpeg.Cb, lpeg.Cc
+local Cf, Cg, Cmt, Cp, Ct = lpeg.Cf, lpeg.Cg, lpeg.Cmt, lpeg.Cp, lpeg.Ct
+local alpha, digit, alnum = lpeg.alpha, lpeg.digit, lpeg.alnum
 local xdigit = lpeg.xdigit
 local space = lpeg.space
 
@@ -16,34 +18,36 @@ local function trim (s)
   return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
--- gets line number and column number
+-- returns line number and column number
 local function lineno (s, i)
-  if i == 1 then return 1,1 end
-  local n,lastline = 0,""
-  s = s:sub(1,i) .. "\n"
+  if i == 1 then return 1, 1 end
+  local n, lastline = 0, ""
+  s = s:sub(1, i) .. "\n"
   for line in s:gmatch("[^\n]*[\n]") do
     n = n + 1
     lastline = line
   end
-  return n,lastline:len()-1
+  return n, lastline:len()-1
 end
 
 -- creates an error message for the input string
+local function syntaxerror (errorinfo, pos, msg)
+  local l, c = lineno(errorinfo.subject, pos)
+  if c == 0 then c = 1 end
+  local error_msg = "%s:%d:%d: syntax error, %s"
+  return string.format(error_msg, errorinfo.filename, l, c, msg)
+end
+
+-- creates an errror message using the farthest failure position
 local function errormsg (s, t)
   local i = t.ffp or 1
-  local lineno,colno = lineno(s,i)
   local u = lpeg.match(C((1 - space)^0), s, i)
-  local msg
-  if u == '' then
-    u = "EOF"
-    colno = 1
-  end
-  msg = ("%s:%d:%d: syntax error, unexpected '%s'"):
-        format(t.filename, lineno, colno, u)
+  if u == '' then u = "EOF" end
+  local msg = string.format("unexpected '%s'", u)
   if t.expected then
-    msg = msg .. (", expecting %s"):format(t.expected)
+    msg = string.format(msg .. ", expecting %s", t.expected)
   end
-  return msg
+  return syntaxerror(t, i, msg)
 end
 
 -- aborts with an error message
@@ -86,16 +90,16 @@ local function kw (str)
 end
 
 local function taggedCap (tag, pat)
-  return Ct(Cg(Cc(tag), "tag") * pat)
+  return Ct(Cg(Cp(), "pos") * Cg(Cc(tag), "tag") * pat)
 end
 
 local function unaryop (op, e)
-  return { tag = op, [1] = e }
+  return { tag = op, pos = e.pos, [1] = e }
 end
 
 local function binaryop (e1, op, e2)
   if not op then return e1 end
-  return { tag = op, [1] = e1, [2] = e2 }
+  return { tag = op, pos = e1.pos, [1] = e1, [2] = e2 }
 end
 
 local function chainl (pat, sep, a)
@@ -116,14 +120,14 @@ end
 
 local function expl2varl (s, i, el)
   local vl = {}
-  for k,v in ipairs(el) do
+  for k, v in ipairs(el) do
     if v.tag == "ExpVar" then
       vl[k] = v[1]
     else
       return false
     end
   end
-  return true,vl
+  return true, vl
 end
 
 local function fix_str (str)
@@ -145,36 +149,38 @@ end
 -- grammar
 
 local G = { V"Lua",
-  -- parser
   Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
+  -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
-  Var = taggedCap("VarID", token(V"Name","Name"));
+  Var = taggedCap("VarID", token(V"Name", "Name"));
   FunctionDef = taggedCap("ExpFunction", kw("function") * V"FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = (Cc(function (t, e) local i = #t[2]+1; t[2][i] = e; return t end) *
             (Ct(symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
-             Ct(taggedCap("ExpStr", token(V"Name","Name")) * symb("=") * V"Expr"))) +
+             Ct(taggedCap("ExpStr", token(V"Name", "Name")) * symb("=") * V"Expr"))) +
           Cc(function (t, e) local i = #t[1]+1; t[1][i] = e ; return t end) *
              Ct(V"Expr");
-  FieldList = (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1 /
-              function (...)
+  FieldList = Cp() * (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1 /
+              function (p, ...)
                 local t = {{},{}}
                 local args = {...}
                 local len = #args
+                t.tag = "FieldList"
+                t.pos = p
                 if len > 1 then
-                  for i=1,len,2 do
+                  for i=1, len, 2 do
                     t = args[i](t, args[i+1])
                   end
                 end
                 return t
               end;
   Constructor = taggedCap("ExpTableConstructor", symb("{") * V"FieldList" * symb("}"));
-  NameList = sepby1(token(V"Name","Name"), symb(","));
-  ExpList = sepby1(V"Expr", symb(","));
-  FuncArgs = symb("(") * (V"ExpList" + Ct(Cc())) * symb(")") +
-             V"Constructor" / function (c) return {c} end +
-             taggedCap("ExpStr", token(V"String","String")) / function (s) return {s} end;
+  NameList = sepby1(token(V"Name", "Name"), symb(","), "NameList");
+  ExpList = sepby1(V"Expr", symb(","), "ExpList");
+  FuncArgs = symb("(") * (V"ExpList" + taggedCap("ExpList", Cc())) * symb(")") +
+             taggedCap("ExpList", V"Constructor") +
+             taggedCap("ExpList", taggedCap("ExpStr", token(V"String", "String")));
   Expr = V"SubExpr_1";
   SubExpr_1 = chainl1(V"SubExpr_2", V"OrOp");
   SubExpr_2 = chainl1(V"SubExpr_3", V"AndOp");
@@ -186,8 +192,8 @@ local G = { V"Lua",
   SubExpr_7 = V"UnOp" * V"SubExpr_7" / unaryop +
               V"SubExpr_8";
   SubExpr_8 = V"SimpleExp" * (V"PowOp" * V"SubExpr_7")^-1 / binaryop;
-  SimpleExp = taggedCap("ExpNum", token(V"Number","Number")) +
-              taggedCap("ExpStr", token(V"String","String")) +
+  SimpleExp = taggedCap("ExpNum", token(V"Number", "Number")) +
+              taggedCap("ExpStr", token(V"String", "String")) +
               taggedCap("ExpNil", kw("nil")) +
               taggedCap("ExpFalse", kw("false")) +
               taggedCap("ExpTrue", kw("true")) +
@@ -196,18 +202,21 @@ local G = { V"Lua",
               V"Constructor" +
               V"SuffixedExp";
   SuffixedExp = Cf(V"PrimaryExp" * (
-                  taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name","Name"))) +
+                  taggedCap("DotIndex", symb(".") * taggedCap("ExpStr", token(V"Name", "Name"))) +
                   taggedCap("ArrayIndex", symb("[") * V"Expr" * symb("]")) +
-                  taggedCap("ExpMethodCall", Cg(symb(":") * token(V"Name","Name") * V"FuncArgs")) +
+                  taggedCap("ExpMethodCall", Cg(symb(":") * taggedCap("ExpStr", token(V"Name", "Name")) * V"FuncArgs")) +
                   taggedCap("ExpFunctionCall", V"FuncArgs")
                 )^0, function (t1, t2)
                        if t2 then
                          if t2.tag == "ExpMethodCall" then
-                           return {tag = "ExpMethodCall", [1] = t1, [2] = t2[1], [3] = t2[2]}
+                           local t = {tag = "ExpVar", pos = t1.pos, [1] = {}}
+                           t[1] = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}
+                           return {tag = t2.tag, pos = t1.pos, [1] = t, [2] = t2[2]}
                          elseif t2.tag == "ExpFunctionCall" then
-                           return {tag = t2.tag, [1] = t1, [2] = t2[1]}
+                           return {tag = t2.tag, pos = t1.pos, [1] = t1, [2] = t2[1]}
                          else
-                           return {tag = "ExpVar", [1] = {tag = "VarIndex", [1] = t1, [2] = t2[1]}}
+                           local t = {tag = "VarIndex", pos = t1.pos, [1] = t1, [2] = t2[1]}
+                           return {tag = "ExpVar", pos = t1.pos, [1] = t}
                          end
                        end
                        return t1
@@ -222,17 +231,19 @@ local G = { V"Lua",
   IfStat = taggedCap("StmIfElse",
              kw("if") * V"Expr" * kw("then") * V"Block" *
                (V"ElseIf" + taggedCap("StmBlock", Cc())) * kw("end"));
-  WhileStat = taggedCap("StmWhile", kw("while") * V"Expr" * kw("do") * V"Block" * kw("end"));
+  WhileStat = taggedCap("StmWhile", kw("while") * V"Expr" *
+                kw("do") * V"Block" * kw("end"));
   DoStat = kw("do") * V"Block" * kw("end");
   ForBody = kw("do") * V"Block";
   ForNum = taggedCap("StmForNum",
-             token(V"Name","Name") * symb("=") * V"Expr" * symb(",") *
+             token(V"Name", "Name") * symb("=") * V"Expr" * symb(",") *
              V"Expr" * ((symb(",") * V"Expr") + Cc({tag = "ExpNum", [1] = 1})) *
              V"ForBody");
   ForGen = taggedCap("StmForGen", V"NameList" * kw("in") * V"ExpList" * V"ForBody");
   ForStat = kw("for") * (V"ForNum" + V"ForGen") * kw("end");
-  RepeatStat = taggedCap("StmRepeat", kw("repeat") * V"Block" * kw("until") * V"Expr");
-  FuncName = sepby1(token(V"Name","Name"), symb(".")) * (symb(":") * token(V"Name","Name"))^-1 /
+  RepeatStat = taggedCap("StmRepeat", kw("repeat") * V"Block" *
+                 kw("until") * V"Expr");
+  FuncName = sepby1(token(V"Name", "Name"), symb("."), "IDList") * (symb(":") * token(V"Name", "Name"))^-1 /
              function (t, n)
                if n then
                  t.tag = "Method"
@@ -244,19 +255,18 @@ local G = { V"Lua",
              end;
   ParList = V"NameList" * (symb(",") * symb("...") * Cc(true))^-1 /
             function (t, v)
-              if v then t.is_vararg = true else t.is_vararg = false end
+              if not v then t.is_vararg = false else t.is_vararg = true end
               return t
             end +
-            symb("...") / function () return {is_vararg = true} end;
-  FuncBody = symb("(") * (V"ParList" + Cc({is_vararg = false})) * symb(")") *
-             V"Block" * kw("end");
+            symb("...") * Cc({is_vararg = true});
+  FuncBody = symb("(") * (V"ParList" + Cc({is_vararg = false})) * symb(")") * V"Block" * kw("end");
   FuncStat = taggedCap("StmFunction", kw("function") * V"FuncName" * V"FuncBody");
-  LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name","Name") * V"FuncBody");
+  LocalFunc = taggedCap("StmLocalFunction", kw("function") * token(V"Name", "Name") * V"FuncBody");
   LocalAssign = taggedCap("StmLocalVar", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
   LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
-  LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name","Name") * symb("::"));
+  LabelStat = taggedCap("StmLabel", symb("::") * token(V"Name", "Name") * symb("::"));
   BreakStat = taggedCap("StmBreak", kw("break"));
-  GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name","Name"));
+  GoToStat = taggedCap("StmGoTo", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("StmRet", kw("return") * (V"ExpList" + Ct(Cc())) * symb(";")^-1);
   ExprStat = Cmt(
              (V"SuffixedExp" *
@@ -264,7 +274,7 @@ local G = { V"Lua",
                            local vl = {...}
                            local el = vl[#vl]
                            table.remove(vl)
-                           for k,v in ipairs(vl) do
+                           for k, v in ipairs(vl) do
                              if v.tag == "ExpVar" then
                                vl[k] = v[1]
                              else
@@ -272,19 +282,21 @@ local G = { V"Lua",
                                return false
                              end
                            end
-                           return true,{tag = "StmAssign", [1] = vl, [2] = el}
+                           vl.tag = "VarList"
+                           vl.pos = vl[1].pos
+                           return true, {tag = "StmAssign", pos = vl.pos, [1] = vl, [2] = el}
                          end) * V"Assignment"))
              +
              (V"SuffixedExp" *
                 (Cc(function (s)
                            if s.tag == "ExpMethodCall" or
                               s.tag == "ExpFunctionCall" then
-                             return true,{tag = "StmCall", [1] = s}
+                             return true, {tag = "StmCall", pos = s.pos, [1] = s}
                            end
                            -- invalid statement
                            return false
                          end)))
-             , function (s, i, s1, f, ...) return f(s1,...) end);
+             , function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
@@ -343,23 +355,31 @@ local G = { V"Lua",
 }
 
 local function getcontents (filename)
-  file = assert(io.open(filename, "r"))
-  contents = file:read("*a")
+  local file = assert(io.open(filename, "r"))
+  local contents = file:read("*a")
   file:close()
   return contents
 end
 
-local function parse (filename)
-  local errorinfo = { filename = filename }
-  local input = getcontents(filename)
+function parser.parse_from_file (filename)
+  local subject = getcontents(filename)
+  local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, input, nil, errorinfo)
+  local ast = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
-    return nil,errormsg(input, errorinfo)
+    return nil, errormsg(subject, errorinfo)
   end
   return ast
 end
 
-return {
-  parse = parse,
-}
+function parser.parse (subject, filename)
+  local errorinfo = { subject = subject, filename = filename }
+  lpeg.setmaxstack(1000)
+  local ast = lpeg.match(G, subject, nil, errorinfo)
+  if not ast then
+    return nil, errormsg(subject, errorinfo)
+  end
+  return ast
+end
+
+return parser

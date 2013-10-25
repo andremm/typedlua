@@ -1,9 +1,12 @@
 
 local statistics = {}
 
+--[[
 package.path = "../?.lua;" .. package.path
-
 local parser = require "typedlua.parser"
+]]
+
+local parser = require "parser"
 
 local number_of_functions = 0
 local anonymousf = 0
@@ -157,15 +160,15 @@ function check_exp (exp, func_name, func_id)
      exp.tag == "ExpStr" then -- ExpStr String
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
-  elseif exp.tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
+  elseif exp.tag == "ExpFunction" then -- ExpFunction [Name] Stm
     new_func_def("anonymous")
     local id = result.number_of_functions
     if #exp[1] > 0 then
-      if exp[1][1][1] == "self" or exp[1][1][1] == "this" then
+      if exp[1][1] == "self" or exp[1][1] == "this" then
         result[id].is_method = 1
       end
     end
-    check_stm(exp[3], func_name, result.number_of_functions)
+    check_stm(exp[2], func_name, result.number_of_functions)
   elseif exp.tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
     result[func_id].number_of_constructs = result[func_id].number_of_constructs + 1
     check_fieldlist(exp[1], func_name, func_id)
@@ -244,18 +247,18 @@ function check_stm (stm, func_name, func_id)
   elseif stm.tag == "StmWhile" then -- StmWhile Exp Stm
     check_exp(stm[1], func_name, func_id)
     check_stm(stm[2], func_name, func_id)
-  elseif stm.tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
+  elseif stm.tag == "StmForNum" then -- StmForNum Name Exp Exp Exp Stm
     check_exp(stm[2], func_name, func_id)
     check_exp(stm[3], func_name, func_id)
     check_exp(stm[4], func_name, func_id)
     check_stm(stm[5], func_name, func_id)
-  elseif stm.tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
+  elseif stm.tag == "StmForGen" then -- StmForGen [Name] [Exp] Stm
     check_explist(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
   elseif stm.tag == "StmRepeat" then -- StmRepeat Stm Exp
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
-  elseif stm.tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
+  elseif stm.tag == "StmFunction" then -- StmFunction FuncName [Name] Stm
     new_func_def("global")
     local id = result.number_of_functions
     if stm[1].tag == "Method" then
@@ -266,7 +269,7 @@ function check_stm (stm, func_name, func_id)
     elseif stm[1].tag == "Function" then
       -- statistics of the use of method definition
       if #stm[2] > 0 then
-        if stm[2][1][1] == "self" or stm[2][1][1] == "this" then
+        if stm[2][1] == "self" or stm[2][1] == "this" then
           result[id].is_method = 1
           result[id].table_field = 1
         end
@@ -276,17 +279,17 @@ function check_stm (stm, func_name, func_id)
         result[id].table_field = 1
       end
     end
-    check_stm(stm[4], func_name, result.number_of_functions)
-  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
+    check_stm(stm[3], func_name, result.number_of_functions)
+  elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name [Name] Stm
     new_func_def("local")
-    check_stm(stm[4], func_name, result.number_of_functions)
+    check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLabel" or -- StmLabel Name
          stm.tag == "StmGoTo" or -- StmGoTo Name
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
     check_varlist(stm[1], func_name, func_id)
     check_explist(stm[2], func_name, func_id)
-  elseif stm.tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
+  elseif stm.tag == "StmLocalVar" then -- StmLocalVar [Name] [Exp]
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmRet" then -- StmRet [Exp]
     -- statistics of the use of return
