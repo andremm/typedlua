@@ -6,13 +6,14 @@ local st = {}
 
 function st.lineno (s, i)
   if i == 1 then return 1, 1 end
-  local n, lastline = 0, ""
+  local l, lastline = 0, ""
   s = s:sub(1, i) .. "\n"
   for line in s:gmatch("[^\n]*[\n]") do
-    n = n + 1
+    l = l + 1
     lastline = line
   end
-  return n, lastline:len()-1
+  local c = lastline:len() - 1
+  return l, c ~= 0 and c or 1
 end
 
 function st.begin_scope (env)

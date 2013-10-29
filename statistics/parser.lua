@@ -21,39 +21,51 @@ end
 -- returns line number and column number
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
-  local n, lastline = 0, ""
+  local l, lastline = 0, ""
   s = s:sub(1, i) .. "\n"
   for line in s:gmatch("[^\n]*[\n]") do
-    n = n + 1
+    l = l + 1
     lastline = line
   end
-  return n, lastline:len()-1
+  local c = lastline:len() - 1
+  return l, c ~= 0 and c or 1
 end
 
 -- creates an error message for the input string
 local function syntaxerror (errorinfo, pos, msg)
   local l, c = lineno(errorinfo.subject, pos)
-  if c == 0 then c = 1 end
   local error_msg = "%s:%d:%d: syntax error, %s"
   return string.format(error_msg, errorinfo.filename, l, c, msg)
 end
 
--- creates an errror message using the farthest failure position
-local function errormsg (s, t)
-  local i = t.ffp or 1
-  local u = lpeg.match(C((1 - space)^0), s, i)
-  if u == '' then u = "EOF" end
-  local msg = string.format("unexpected '%s'", u)
-  if t.expected then
-    msg = string.format(msg .. ", expecting %s", t.expected)
-  end
-  return syntaxerror(t, i, msg)
+-- gets the farthest failure position
+local function getffp (s, i, t)
+  return t.ffp or i, t
 end
 
--- aborts with an error message
-local function report_error (s, i, t)
-  print(errormsg(s, t))
-  os.exit(1)
+-- gets the table that contains the error information
+local function geterrorinfo ()
+  return Cmt(Carg(1), getffp) * (C(V"OneWord") + Cc("EOF")) /
+  function (t, u)
+    t.unexpected = u
+    return t
+  end
+end
+
+-- creates an errror message using the farthest failure position
+local function errormsg ()
+  return geterrorinfo() /
+  function (t)
+    local p = t.ffp or 1
+    local msg = "unexpected '%s', expecting %s"
+    msg = string.format(msg, t.unexpected, t.expected)
+    return nil, syntaxerror(t, p, msg)
+  end
+end
+
+-- reports a syntactic error
+local function report_error ()
+  return errormsg()
 end
 
 -- sets the farthest failure position and the expected tokens
@@ -149,7 +161,7 @@ end
 -- grammar
 
 local G = { V"Lua",
-  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
+  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
@@ -352,6 +364,8 @@ local G = { V"Lua",
          symb("#") / "ExpLen";
   PowOp = symb("^") / "ExpPow";
   Shebang = P"#" * (P(1) - P"\n")^0 * P"\n";
+  -- for error reporting
+  OneWord = V"Name" + V"Number" + V"String" + V"Reserved" + P("...") + P(1);
 }
 
 local function getcontents (filename)
@@ -365,21 +379,13 @@ function parser.parse_from_file (filename)
   local subject = getcontents(filename)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, subject, nil, errorinfo)
-  if not ast then
-    return nil, errormsg(subject, errorinfo)
-  end
-  return ast
+  return lpeg.match(G, subject, nil, errorinfo)
 end
 
 function parser.parse (subject, filename)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, subject, nil, errorinfo)
-  if not ast then
-    return nil, errormsg(subject, errorinfo)
-  end
-  return ast
+  return lpeg.match(G, subject, nil, errorinfo)
 end
 
 return parser

@@ -32,27 +32,37 @@ end
 -- creates an error message for the input string
 local function syntaxerror (errorinfo, pos, msg)
   local l, c = lineno(errorinfo.subject, pos)
-  if c == 0 then c = 1 end
   local error_msg = "%s:%d:%d: syntax error, %s"
   return string.format(error_msg, errorinfo.filename, l, c, msg)
 end
 
--- creates an errror message using the farthest failure position
-local function errormsg (s, t)
-  local i = t.ffp or 1
-  local u = lpeg.match(C((1 - space)^0), s, i)
-  if u == '' then u = "EOF" end
-  local msg = string.format("unexpected '%s'", u)
-  if t.expected then
-    msg = string.format(msg .. ", expecting %s", t.expected)
-  end
-  return syntaxerror(t, i, msg)
+-- gets the farthest failure position
+local function getffp (s, i, t)
+  return t.ffp or i, t
 end
 
--- aborts with an error message
+local function geterrorinfo ()
+  return Cmt(Carg(1), getffp) * (C(V"OneWord") + Cc("EOF")) /
+  function (t, u)
+    t.unexpected = u
+    return t
+  end
+end
+
+-- creates an errror message using the farthest failure position
+local function errormsg ()
+  return geterrorinfo() /
+  function (t)
+    local p = t.ffp or 1
+    local msg = "unexpected '%s', expecting %s"
+    msg = string.format(msg, t.unexpected, t.expected)
+    return nil, syntaxerror(t, p, msg)
+  end
+end
+
+-- reports a syntactic error
 local function report_error (s, i, t)
-  print(errormsg(s, t))
-  os.exit(1)
+  return errormsg()
 end
 
 -- sets the farthest failure position and the expected tokens
@@ -148,7 +158,7 @@ end
 -- grammar
 
 local G = { V"TypedLua",
-  TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1;
+  TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
   Type = V"UnionType";
   UnionType = chainl1(V"IntersectionType", V"UnionOp");
@@ -473,6 +483,8 @@ local G = { V"TypedLua",
          symb("#") / "ExpLen";
   PowOp = symb("^") / "ExpPow";
   Shebang = P"#" * (P(1) - P"\n")^0 * P"\n";
+  -- for error reporting
+  OneWord = V"Name" + V"Number" + V"String" + V"Reserved" + P("...") + P(1);
 }
 
 local function exist_label (env, scope, stm)
@@ -889,9 +901,9 @@ function parser.parse_from_file (filename)
   local subject = getcontents(filename)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, subject, nil, errorinfo)
+  local ast, msg = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
-    return nil, errormsg(subject, errorinfo)
+    return nil, msg
   end
   return traverse(ast, errorinfo)
 end
@@ -899,9 +911,9 @@ end
 function parser.parse (subject, filename)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast = lpeg.match(G, subject, nil, errorinfo)
+  local ast, msg = lpeg.match(G, subject, nil, errorinfo)
   if not ast then
-    return nil, errormsg(subject, errorinfo)
+    return nil, msg
   end
   return traverse(ast, errorinfo)
 end

@@ -394,7 +394,7 @@ long string
 ]==]
 ]=]
 e = [=[
-test.lua:5:7: syntax error, unexpected '[===[', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
+test.lua:5:7: syntax error, unexpected '[', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -410,7 +410,7 @@ ss6 = "testing unfinished string
 -- short string test end
 ]=]
 e = [=[
-test.lua:3:7: syntax error, unexpected '"testing', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
+test.lua:3:7: syntax error, unexpected '"', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -1647,7 +1647,7 @@ s = [=[
 a = function (...,a) end
 ]=]
 e = [=[
-test.lua:1:18: syntax error, unexpected ',a)', expecting ')', ':'
+test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
@@ -1657,7 +1657,7 @@ s = [=[
 local a = function (1) end
 ]=]
 e = [=[
-test.lua:1:21: syntax error, unexpected '1)', expecting ')', '...', 'Name'
+test.lua:1:21: syntax error, unexpected '1', expecting ')', '...', 'Name'
 ]=]
 
 r = parse(s)
@@ -1677,7 +1677,7 @@ s = [=[
 local test = function (x:() -> number)
 ]=]
 e = [=[
-test.lua:1:32: syntax error, unexpected 'number)', expecting '('
+test.lua:1:32: syntax error, unexpected 'number', expecting '('
 ]=]
 
 r = parse(s)
@@ -1687,7 +1687,7 @@ s = [=[
 local test = function (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:41: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
+test.lua:1:41: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -1769,7 +1769,7 @@ class A implements
 end
 ]=]
 e = [=[
-test.lua:2:4: syntax error, unexpected ':number', expecting 'Name', ','
+test.lua:2:4: syntax error, unexpected ':', expecting 'Name', ','
 ]=]
 
 r = parse(s)
@@ -1805,7 +1805,7 @@ s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ';v', expecting 'in', ',', '=', ':'
+test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', '=', ':'
 ]=]
 
 r = parse(s)
@@ -1847,7 +1847,7 @@ s = [=[
 for i:number=1,10 do end
 ]=]
 e = [=[
-test.lua:1:13: syntax error, unexpected '=1,10', expecting 'in', ',', '|', '^'
+test.lua:1:13: syntax error, unexpected '=', expecting 'in', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -1869,7 +1869,7 @@ s = [=[
 function func(...,a) end
 ]=]
 e = [=[
-test.lua:1:18: syntax error, unexpected ',a)', expecting ')', ':'
+test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
@@ -1899,7 +1899,7 @@ s = [=[
 function a.b:c:d () end
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected ':d', expecting '('
+test.lua:1:15: syntax error, unexpected ':', expecting '('
 ]=]
 
 r = parse(s)
@@ -1909,7 +1909,7 @@ s = [=[
 function test (x:() -> number)
 ]=]
 e = [=[
-test.lua:1:24: syntax error, unexpected 'number)', expecting '('
+test.lua:1:24: syntax error, unexpected 'number', expecting '('
 ]=]
 
 r = parse(s)
@@ -1919,7 +1919,7 @@ s = [=[
 function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:33: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
+test.lua:1:33: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)
@@ -2073,7 +2073,7 @@ s = [=[
 local test = z:nil,1
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected 'nil,1', expecting 'Name'
+test.lua:1:16: syntax error, unexpected 'nil', expecting 'Name'
 ]=]
 
 r = parse(s)
@@ -2093,7 +2093,7 @@ s = [=[
 local function t.a() end
 ]=]
 e = [=[
-test.lua:1:17: syntax error, unexpected '.a()', expecting '('
+test.lua:1:17: syntax error, unexpected '.', expecting '('
 ]=]
 
 r = parse(s)
@@ -2113,7 +2113,7 @@ s = [=[
 local function test(...,a) end
 ]=]
 e = [=[
-test.lua:1:24: syntax error, unexpected ',a)', expecting ')', ':'
+test.lua:1:24: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
@@ -2123,7 +2123,7 @@ s = [=[
 local function (a, b, c, ...) end
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected '(a,', expecting 'Name'
+test.lua:1:16: syntax error, unexpected '(', expecting 'Name'
 ]=]
 
 r = parse(s)
@@ -2133,7 +2133,7 @@ s = [=[
 local function test (x:() -> number)
 ]=]
 e = [=[
-test.lua:1:30: syntax error, unexpected 'number)', expecting '('
+test.lua:1:30: syntax error, unexpected 'number', expecting '('
 ]=]
 
 r = parse(s)
@@ -2143,7 +2143,7 @@ s = [=[
 local function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:39: syntax error, unexpected ':boolean))', expecting ')', '*', ',', '|', '^'
+test.lua:1:39: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
 ]=]
 
 r = parse(s)
