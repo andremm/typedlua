@@ -345,6 +345,7 @@ end
 
 local function set_local (env, var_name, dec_type, inf_type, pos, scope)
   local msg
+  dec_type = validate_type_annotation(env, dec_type)
   if types.isUndefined(dec_type) then
     if not types.isNil(inf_type) then
       dec_type = types.supertypeof(inf_type)
@@ -379,9 +380,14 @@ local function check_par_dec (env, par_type)
 end
 
 local function check_ret_dec (env, ret_type)
-  if types.isUndefined(ret_type) or
-     not check_type_name(env, ret_type) then
+  if types.isUndefined(ret_type) then
     return types.Tuple({types.VarArg(Any)})
+  elseif types.isTuple(ret_type) then
+    for k, v in ipairs(ret_type[1]) do
+      if not check_type_name(env, v) then
+        ret_type[1][k] = Any
+      end
+    end
   end
   return ret_type
 end
