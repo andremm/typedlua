@@ -172,14 +172,12 @@ local G = { V"TypedLua",
   TableType = V"HashType" + V"RecordType";
   HashType = symb("{") * V"Type" * (symb(":") * V"Type")^-1 * symb("}") /
     function (t1, t2)
-      local t = { tag = "TypeRecord", [1] = {} }
       if not t2 then -- array
         local t2 = { tag = "TypeBase", [1] = "number" }
-        t[1][1] = { [1] = t2, [2] = t1 }
+        return { tag = "TypeHash", [1] = t2, [2] = t1 }
       else -- hash
-        t[1][1] = { [1] = t1, [2] = t2 }
+        return { tag = "TypeHash", [1] = t1, [2] = t2 }
       end
-      return t
     end;
   RecordType = symb("{") * V"RecordFieldList" * V"Type"^-1 * symb("}") /
     function (l, a)
@@ -191,8 +189,7 @@ local G = { V"TypedLua",
     end;
   RecordFieldList = sepby1(V"RecordField", symb(","), "RecordFieldList");
   RecordField = taggedCap("RecordField", V"ConstantType" * symb(":") * V"Type");
-  ConstantType = (V"Number" +
-                 V"String") /
+  ConstantType = (V"Number" + V"String") /
     function (c)
       return { tag = "TypeConstant", [1] = c }
     end;

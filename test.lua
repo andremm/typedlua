@@ -3097,6 +3097,29 @@ test.lua:1:1: type error, attempt to assign '{foo:{x:1, y:2}, bar:{z:3}}' to '{n
 r = typecheck(s)
 assert(r == e)
 
+-- classes
+
+s = [=[
+class Person
+  firstname:string
+  lastname:string
+end
+
+local function greeter (person:Person):string
+  return "Hello " .. person.firstname .. " " .. person.lastname
+end
+
+local user = { firstname = "Lou" }
+
+print(greeter(user))
+]=]
+e = [=[
+test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:Lou}' to '{firstname:string, lastname:string}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -3209,6 +3232,29 @@ test.lua:4:3: type error, parameter 1 of 'f', attempt to assign 'hello' to 'numb
 test.lua:5:3: type error, parameter 1 of 'f', attempt to assign 'true' to 'number*'
 test.lua:6:3: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
 test.lua:6:5: type error, parameter 1 of 'f', attempt to assign 'string' to 'number*'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+interface Person
+  firstname:string
+  lastname:string
+end
+
+local function greeter (person:Person):string
+  return "Hello " .. person.firstname .. " " .. person.lastname
+end
+
+local user = { firstname = "Lou" }
+
+print(greeter(user))
+]=]
+e = [=[
+test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:Lou}' to '{firstname:string, lastname:string}'
 ]=]
 
 r = typecheck(s)

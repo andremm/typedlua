@@ -14,6 +14,7 @@ Type = TypeValue
      | TypeUnion Type Type
      | TypeIntersection Type Type
      | TypeFunction TypeList TypeList
+     | TypeHash Type Type
      | TypeRecord [(Type,Type)]
      | TypeVarArg Type
 
@@ -252,10 +253,23 @@ function types.isVoid (t)
   return false
 end
 
+-- hash type
+
+function types.Hash (t1, t2)
+  return { tag = "TypeHash", [1] = t1, [2] = t2 }
+end
+
+function types.isHash (t)
+  if t.tag == "TypeHash" then
+    return true
+  end
+  return false
+end
+
 -- record type
 
-function types.Record (tuple_list)
-  return { tag = "TypeRecord", [1] = tuple_list }
+function types.Record (pair_list)
+  return { tag = "TypeRecord", [1] = pair_list }
 end
 
 function types.isRecord (t)
@@ -345,7 +359,7 @@ end
 
 local function subtype_record_field (l, f, t)
   for k, v in ipairs(t[1]) do
-    if types.subtype(l, v[1]) and types.subtype(f, v[2]) then
+    if types.subtype(v[1], l) and types.subtype(v[2], f) then
       return true
     end
   end
@@ -353,9 +367,20 @@ local function subtype_record_field (l, f, t)
 end
 
 local function subtype_record (t1, t2)
-  if types.isRecord(t1) and types.isRecord(t2) then
+  if types.isHash(t1) and types.isHash(t2) then
+    return types.subtype(t1[1], t2[1]) and types.subtype(t1[2], t2[2])
+  elseif types.isHash(t1) and types.isRecord(t2) then
+    return false
+  elseif types.isRecord(t1) and types.isHash(t2) then
     for k, v in ipairs(t1[1]) do
-      if not subtype_record_field(v[1], v[2], t2) then
+      if not (types.subtype(v[1], t2[1]) and types.subtype(v[2], t2[2])) then
+        return false
+      end
+    end
+    return true
+  elseif types.isRecord(t1) and types.isRecord(t2) then
+    for k, v in ipairs(t2[1]) do
+      if not subtype_record_field (v[1], v[2], t1) then
         return false
       end
     end
@@ -519,7 +544,7 @@ end
 
 local function csubtype_record_field (l, f, t)
   for k, v in ipairs(t[1]) do
-    if types.csubtype(l, v[1]) and types.csubtype(f, v[2]) then
+    if types.csubtype(v[1], l) and types.csubtype(v[2], f) then
       return true
     end
   end
@@ -527,9 +552,20 @@ local function csubtype_record_field (l, f, t)
 end
 
 local function csubtype_record (t1, t2)
-  if types.isRecord(t1) and types.isRecord(t2) then
+  if types.isHash(t1) and types.isHash(t2) then
+    return types.csubtype(t1[1], t2[1]) and types.csubtype(t1[2], t2[2])
+  elseif types.isHash(t1) and types.isRecord(t2) then
+    return false
+  elseif types.isRecord(t1) and types.isHash(t2) then
     for k, v in ipairs(t1[1]) do
-      if not csubtype_record_field(v[1], v[2], t2) then
+      if not (types.csubtype(v[1], t2[1]) and types.csubtype(v[2], t2[2])) then
+        return false
+      end
+    end
+    return true
+  elseif types.isRecord(t1) and types.isRecord(t2) then
+    for k, v in ipairs(t2[1]) do
+      if not csubtype_record_field (v[1], v[2], t1) then
         return false
       end
     end
@@ -666,6 +702,8 @@ local function type2str (t)
     return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
   elseif types.isIntersection(t) then
     return "(" .. type2str(t[1]) .. " ^ " .. type2str(t[2]) .. ")"
+  elseif types.isHash(t) then
+    return "{" .. type2str(t[1]) .. ":" .. type2str(t[2]) .. "}"
   elseif types.isRecord(t) then
     local l = {}
     for k, v in ipairs(t[1]) do
