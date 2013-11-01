@@ -47,6 +47,13 @@ end
 
 local function check_type_name (env, t)
   if types.isName(t) then
+    local scope = env.scope
+    local name = t[1]
+    for s=scope, 0, -1 do
+      if env[s]["type"][name] then
+        return true
+      end
+    end
     local msg = "type '%s' is not defined"
     msg = string.format(msg, type2str(t))
     warning(env, msg, t.pos)
@@ -170,6 +177,7 @@ end
 local check_block, check_stm, check_exp
 local check_var, check_var_assignment
 local check_explist, check_fieldlist
+local check_type_dec
 
 -- variables
 
@@ -304,6 +312,13 @@ end
 
 local function validate_type_annotation (env, t)
   if types.isName(t) then
+    local scope = env.scope
+    local name = t[1]
+    for s=scope, 0, -1 do
+      if env[s]["type"][name] then
+        return env[s]["type"][name]
+      end
+    end
     local msg = "type '%s' is not defined"
     msg = string.format(msg, type2str(t))
     warning(env, msg, t.pos)
@@ -372,8 +387,8 @@ local function set_local (env, var_name, dec_type, inf_type, pos, scope)
 end
 
 local function check_par_dec (env, par_type)
-  if types.isUndefined(par_type) or
-     not check_type_name(env, par_type) then
+  par_type = validate_type_annotation(env, par_type)
+  if types.isUndefined(par_type) then
     return Any
   end
   return par_type
@@ -1117,13 +1132,81 @@ function check_stm (env, stm)
   end
 end
 
+local function method2pair (env, name, arglist, rettype)
+  local l = {}
+  for k, v in ipairs(arglist) do
+    l[k] = v[2]
+  end
+  local len = #l
+  if len == 0 then
+    l[1] = Void
+  else
+    if arglist[len][1] == "..." then
+      l[len] = types.VarArg(l[len])
+    end
+  end
+  local argtype = types.Tuple(l)
+  rettype = check_ret_dec(env, rettype)
+  local t = types.Function(argtype, rettype)
+  return { [1] = types.Constant(name), [2] = t }
+end
+
+local function field2pair (env, f)
+  local tag = f.tag
+  if tag == "ConstDec" then
+    return { [1] = types.Constant(f[1]), [2] = types.Constant(f[2][1]) }
+  elseif tag == "FieldDec" then
+    return { [1] = types.Constant(f[1]), [2] = f[2] }
+  elseif tag == "MethodSig" then
+    return method2pair(env, f[1], f[2], f[3])
+  elseif tag == "MethodImp" then
+    return method2pair(env, f[1], f[2], f[3])
+  else
+    error("cannot type check field " .. tag)
+  end
+end
+
+local function interfacebody2type (env, body)
+  local l = {}
+  for k, v in ipairs(body) do
+    l[k] = field2pair(env, v)
+  end
+  return types.Record(l)
+end
+
+local function check_interface_dec (env, name, extends, body)
+  local scope = env.scope
+  local t = interfacebody2type(env, body)
+  env[scope]["type"][name] = t
+end
+
+local function check_class_dec (env, name, extends, implements, body)
+  local scope = env.scope
+  local t = interfacebody2type(env, body)
+  env[scope]["type"][name] = t
+end
+
+function check_type_dec (env, stm)
+  local tag = stm.tag
+  if tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+    check_interface_dec(env, stm[1], stm[2], stm[3])
+  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
+    check_class_dec(env, stm[1], stm[2], stm[3], stm[4])
+  end
+end
+
 function check_block (env, block)
   local tag = block.tag
   if tag ~= "StmBlock" then
     error("cannot type block " .. tag)
   end
   begin_scope(env)
-  for k,v in ipairs(block) do
+  -- first pass (get names of classes and interfaces)
+  for k, v in ipairs(block) do
+    check_type_dec(env, v)
+  end
+  -- second pass (actually do the type checking)
+  for k, v in ipairs(block) do
     check_stm(env, v)
   end
   end_scope(env)

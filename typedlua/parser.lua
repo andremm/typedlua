@@ -415,7 +415,7 @@ local G = { V"TypedLua",
             end +
             taggedCap("ArgList", V"VarArg"^-1);
   MethodSig = taggedCap("MethodSig", token(V"Name", "Name") *
-              symb("(") * V"ArgList" * symb(")") * symb(":") * V"Type");
+              symb("(") * V"ArgList" * symb(")") * symb(":") * V"Type2");
   MethodImp = taggedCap("MethodImp", V"MethodSig" * V"Block" * kw("end"));
   ObjectSpec = V"ConstantDec" + V"FieldDec" + V"MethodSig";
   InterfaceBody = taggedCap("InterfaceBody", V"ObjectSpec" * (symb(";") + V"ObjectSpec")^0);

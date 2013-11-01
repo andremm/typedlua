@@ -2579,6 +2579,29 @@ StmBlock [StmAssign [VarID ("t","{string:{string:number}}")] [ExpTableConstructo
 r = typecheck(s)
 assert(r == e)
 
+-- classes
+
+s = [=[
+class Person
+  firstname:string
+  lastname:string
+end
+
+local function greeter (person:Person):string
+  return "Hello " .. person.firstname .. " " .. person.lastname
+end
+
+local user = { firstname = "Lou", lastname = "Reed" }
+
+print(greeter(user))
+]=]
+e = [=[
+StmBlock [StmClass "Person" [] [] [("firstname","string"),("lastname","string")],StmLocalFunction "greeter" ([("person","Person")]) "string" (StmBlock [StmRet [ExpConcat (ExpStr "Hello ") (ExpConcat (ExpVar (VarIndex (ExpVar (VarID ("person","?"))) (ExpStr "firstname"))) (ExpConcat (ExpStr " ") (ExpVar (VarIndex (ExpVar (VarID ("person","?"))) (ExpStr "lastname")))))]]),StmLocalVar [("user","?")] [ExpTableConstructor ([],[(ExpStr "firstname",ExpStr "Lou"),(ExpStr "lastname",ExpStr "Reed")])],StmCall (ExpFunctionCall (ExpVar (VarID ("print","?"))) [ExpFunctionCall (ExpVar (VarID ("greeter","?"))) [ExpVar (VarID ("user","?"))]])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -2665,6 +2688,29 @@ f(...)
 ]=]
 e = [=[
 StmBlock [StmLocalVar [("f","?")] [ExpFunction ([]) "?" (StmBlock [])],StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) []),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpNum 1.0,ExpNum 2.0,ExpNum 3.0]),StmCall (ExpFunctionCall (ExpVar (VarID ("f","?"))) [ExpDots])]
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+interface Person
+  firstname:string
+  lastname:string
+end
+
+local function greeter (person:Person):string
+  return "Hello " .. person.firstname .. " " .. person.lastname
+end
+
+local user = { firstname = "Lou", lastname = "Reed" }
+
+print(greeter(user))
+]=]
+e = [=[
+StmBlock [StmInterface "Person" [] [("firstname","string"),("lastname","string")],StmLocalFunction "greeter" ([("person","Person")]) "string" (StmBlock [StmRet [ExpConcat (ExpStr "Hello ") (ExpConcat (ExpVar (VarIndex (ExpVar (VarID ("person","?"))) (ExpStr "firstname"))) (ExpConcat (ExpStr " ") (ExpVar (VarIndex (ExpVar (VarID ("person","?"))) (ExpStr "lastname")))))]]),StmLocalVar [("user","?")] [ExpTableConstructor ([],[(ExpStr "firstname",ExpStr "Lou"),(ExpStr "lastname",ExpStr "Reed")])],StmCall (ExpFunctionCall (ExpVar (VarID ("print","?"))) [ExpFunctionCall (ExpVar (VarID ("greeter","?"))) [ExpVar (VarID ("user","?"))]])]
 ]=]
 
 r = typecheck(s)

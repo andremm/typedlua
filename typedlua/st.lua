@@ -28,6 +28,7 @@ function st.begin_scope (env)
   env[scope]["label"] = {}
   env[scope]["local"] = {}
   env[scope]["goto"] = {}
+  env[scope]["type"] = {}
 end
 
 function st.end_scope (env)
