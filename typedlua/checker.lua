@@ -399,9 +399,7 @@ local function check_ret_dec (env, ret_type)
     return types.Tuple({types.VarArg(Any)})
   elseif types.isTuple(ret_type) then
     for k, v in ipairs(ret_type[1]) do
-      if not check_type_name(env, v) then
-        ret_type[1][k] = Any
-      end
+      ret_type[1][k] = validate_type_annotation(env, v)
     end
   end
   return ret_type

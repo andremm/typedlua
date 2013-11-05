@@ -3114,7 +3114,7 @@ local user = { firstname = "Lou" }
 print(greeter(user))
 ]=]
 e = [=[
-test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:Lou}' to '{firstname:string, lastname:string}'
+test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
 ]=]
 
 r = typecheck(s)
@@ -3254,7 +3254,7 @@ local user = { firstname = "Lou" }
 print(greeter(user))
 ]=]
 e = [=[
-test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:Lou}' to '{firstname:string, lastname:string}'
+test.lua:12:15: type error, parameter 1 of 'greeter', attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
 ]=]
 
 r = typecheck(s)

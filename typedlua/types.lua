@@ -331,6 +331,13 @@ local function subtype_base (t1, t2)
   return false
 end
 
+local function subtype_name (t1, t2)
+  if types.isName(t1) and types.isName(t2) then
+    return t1[1] == t2[1]
+  end
+  return false
+end
+
 local function subtype_union (t1, t2)
   if not types.isUnion(t1) and types.isUnion(t2) then
     return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
@@ -516,6 +523,13 @@ local function csubtype_base (t1, t2)
   return false
 end
 
+local function csubtype_name (t1, t2)
+  if types.isName(t1) and types.isName(t2) then
+    return t1[1] == t2[1]
+  end
+  return false
+end
+
 local function csubtype_union (t1, t2)
   if not types.isUnion(t1) and types.isUnion(t2) then
     return types.csubtype(t1, t2[1]) or types.csubtype(t1, t2[2])
@@ -656,6 +670,7 @@ function types.subtype (t1, t2)
          subtype_any(t1, t2) or
          subtype_constant(t1, t2) or
          subtype_base(t1, t2) or
+         subtype_name(t1, t2) or
          subtype_union(t1, t2) or
          subtype_intersection(t1, t2) or
          subtype_function(t1, t2) or
@@ -668,6 +683,7 @@ function types.csubtype (t1, t2)
   return csubtype_any(t1, t2) or
          csubtype_constant(t1, t2) or
          csubtype_base(t1, t2) or
+         csubtype_name(t1, t2) or
          csubtype_union(t1, t2) or
          csubtype_intersection(t1, t2) or
          csubtype_function(t1, t2) or
@@ -683,6 +699,25 @@ function types.supertypeof (t)
     return types.Number
   elseif types.isConstantString(t) then
     return types.String
+  elseif types.isFunction(t) or
+         types.isUnion(t) or
+         types.isIntersection(t) or
+         types.isHash(t) then
+    t[1] = types.supertypeof(t[1])
+    t[2] = types.supertypeof(t[2])
+    return t
+  elseif types.isRecord(t) then
+    for k, v in ipairs(t[1]) do
+      t[1][k][2] = types.supertypeof(t[1][k][2])
+    end
+    return t
+  elseif types.isVarArg(t) then
+    t[1] = types.supertypeof(t[1])
+    return t
+  elseif types.isTuple(t) then
+    for k, v in ipairs(t[1]) do
+      t[1][k] = types.supertypeof(t[1][k])
+    end
   end
   return t
 end
