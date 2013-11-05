@@ -864,7 +864,7 @@ local function check_vararg (env, exp)
   set_node_type(exp, vararg_type)
 end
 
--- statemnts
+-- statements
 
 function check_var_assignment (env, var, inf_type)
   local tag = var.tag
@@ -1032,6 +1032,84 @@ function check_fieldlist (env, fieldlist)
   fieldlist.type = types.Record(l)
 end
 
+-- classes and interfaces
+
+local function method_type (env, name, arglist, rettype)
+  local l = {}
+  for k, v in ipairs(arglist) do
+    l[k] = v[2]
+  end
+  local len = #l
+  if len == 0 then
+    l[1] = Void
+  else
+    if arglist[len][1] == "..." then
+      l[len] = types.VarArg(l[len])
+    end
+  end
+  local argtype = types.Tuple(l)
+  rettype = check_ret_dec(env, rettype)
+  return types.Function(argtype, rettype)
+end
+
+local function field_type (env, f)
+  local tag = f.tag
+  if tag == "ConstDec" then
+    return types.Constant(f[2][1])
+  elseif tag == "FieldDec" then
+    return f[2]
+  elseif tag == "MethodSig" then
+    return method_type(env, f[1], f[2], f[3])
+  elseif tag == "MethodImp" then
+    return method_type(env, f[1], f[2], f[3])
+  else
+    error("cannot type check field " .. tag)
+  end
+end
+
+local function duplicate_field (env, field, field_list)
+  local name = field[1]
+  if not field_list[name] then
+    return false
+  end
+  local msg = "attempt to duplicate field '%s'"
+  msg = string.format(msg, name)
+  typeerror(env, msg, field.pos)
+  return true
+end
+
+local function interfacebody2type (env, body)
+  local l, field_list = {}, {}
+  for k, v in ipairs(body) do
+    if not duplicate_field(env, v, field_list) then
+      local name = v[1]
+      local t = field_type(env, v)
+      field_list[name] = t
+      l[k] = { [1] = types.Constant(name), [2] = t }
+    end
+  end
+  return types.Record(l)
+end
+
+local function check_interface_dec (env, stm)
+  local scope = env.scope
+  local name, extends, body = stm[1], stm[2], stm[3]
+  local t = interfacebody2type(env, body)
+  if env[scope]["type"][name] then
+    local msg = "redeclaring interface '%s'"
+    msg = string.format(msg, name)
+    warning(env, msg, stm.pos)
+  end
+  env[scope]["type"][name] = t
+end
+
+local function check_class_dec (env, stm)
+  local scope = env.scope
+  local name, extends, implements, body = stm[1], stm[2], stm[3], stm[4]
+  local t = interfacebody2type(env, body)
+  env[scope]["type"][name] = t
+end
+
 function check_explist (env, explist)
   for k, v in ipairs(explist) do
     check_exp(env, v)
@@ -1124,72 +1202,19 @@ function check_stm (env, stm)
   elseif tag == "StmCall" then -- StmCall Exp
     check_stmcall(env, stm[1])
   elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+    if env.scope > 0 then check_interface_dec(env, stm) end
   elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
   else
     error("cannot type check statement " .. tag)
   end
 end
 
-local function method2pair (env, name, arglist, rettype)
-  local l = {}
-  for k, v in ipairs(arglist) do
-    l[k] = v[2]
-  end
-  local len = #l
-  if len == 0 then
-    l[1] = Void
-  else
-    if arglist[len][1] == "..." then
-      l[len] = types.VarArg(l[len])
-    end
-  end
-  local argtype = types.Tuple(l)
-  rettype = check_ret_dec(env, rettype)
-  local t = types.Function(argtype, rettype)
-  return { [1] = types.Constant(name), [2] = t }
-end
-
-local function field2pair (env, f)
-  local tag = f.tag
-  if tag == "ConstDec" then
-    return { [1] = types.Constant(f[1]), [2] = types.Constant(f[2][1]) }
-  elseif tag == "FieldDec" then
-    return { [1] = types.Constant(f[1]), [2] = f[2] }
-  elseif tag == "MethodSig" then
-    return method2pair(env, f[1], f[2], f[3])
-  elseif tag == "MethodImp" then
-    return method2pair(env, f[1], f[2], f[3])
-  else
-    error("cannot type check field " .. tag)
-  end
-end
-
-local function interfacebody2type (env, body)
-  local l = {}
-  for k, v in ipairs(body) do
-    l[k] = field2pair(env, v)
-  end
-  return types.Record(l)
-end
-
-local function check_interface_dec (env, name, extends, body)
-  local scope = env.scope
-  local t = interfacebody2type(env, body)
-  env[scope]["type"][name] = t
-end
-
-local function check_class_dec (env, name, extends, implements, body)
-  local scope = env.scope
-  local t = interfacebody2type(env, body)
-  env[scope]["type"][name] = t
-end
-
 function check_type_dec (env, stm)
   local tag = stm.tag
   if tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
-    check_interface_dec(env, stm[1], stm[2], stm[3])
+    check_interface_dec(env, stm)
   elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
-    check_class_dec(env, stm[1], stm[2], stm[3], stm[4])
+    check_class_dec(env, stm)
   end
 end
 
@@ -1199,12 +1224,24 @@ function check_block (env, block)
     error("cannot type block " .. tag)
   end
   begin_scope(env)
-  -- first pass (get names of classes and interfaces)
   for k, v in ipairs(block) do
+    check_stm(env, v)
+  end
+  end_scope(env)
+end
+
+local function check_main (env, chunk)
+  local tag = chunk.tag
+  if tag ~= "StmBlock" then
+    error("cannot type main chunk " .. tag)
+  end
+  begin_scope(env)
+  -- first pass (get names of classes and interfaces)
+  for k, v in ipairs(chunk) do
     check_type_dec(env, v)
   end
   -- second pass (actually do the type checking)
-  for k, v in ipairs(block) do
+  for k, v in ipairs(chunk) do
     check_stm(env, v)
   end
   end_scope(env)
@@ -1240,7 +1277,7 @@ function checker.typecheck (ast, subject, filename)
   begin_function(env)
   set_return_type(env, types.Tuple({types.VarArg(Any)}))
   set_vararg(env, String)
-  check_block(env, ast)
+  check_main(env, ast)
   end_function(env)
   if #env["messages"] > 0 then
     local msg = table.concat(env["messages"], "\n")

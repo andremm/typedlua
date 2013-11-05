@@ -718,6 +718,7 @@ function types.supertypeof (t)
     for k, v in ipairs(t[1]) do
       t[1][k] = types.supertypeof(t[1][k])
     end
+    return t
   end
   return t
 end
