@@ -731,6 +731,16 @@ assert(r == e)
 -- classes
 
 s = [=[
+class A x = 1 end
+]=]
+e = [=[
+StmBlock [StmClass "A" [] [] [("x","1")]]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 class A x:number end
 ]=]
 e = [=[
@@ -774,8 +784,8 @@ s = [=[
 class C
   x:number
   y:number
-  add():number return x + y end
-  sub():number return x - y end
+  function add():number return x + y end
+  function sub():number return x - y end
 end
 ]=]
 e = [=[
@@ -1178,16 +1188,6 @@ assert(r == e)
 -- interfaces
 
 s = [=[
-interface A x = 1 end
-]=]
-e = [=[
-StmBlock [StmInterface "A" [] [("x","1")]]
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
 interface A extends B x:number end
 ]=]
 e = [=[
@@ -1211,8 +1211,8 @@ s = [=[
 interface A
   x:number
   y:number
-  add():number
-  sub():number
+  function add():number
+  function sub():number
 end
 ]=]
 e = [=[
@@ -1757,7 +1757,7 @@ s = [=[
 class A extends B, C x:number end
 ]=]
 e = [=[
-test.lua:1:18: syntax error, unexpected ',', expecting 'Name', 'implements'
+test.lua:1:18: syntax error, unexpected ',', expecting 'function', 'Name', 'implements'
 ]=]
 
 r = parse(s)
@@ -1769,7 +1769,7 @@ class A implements
 end
 ]=]
 e = [=[
-test.lua:2:4: syntax error, unexpected ':', expecting 'Name', ','
+test.lua:2:4: syntax error, unexpected ':', expecting 'function', 'Name', ','
 ]=]
 
 r = parse(s)
@@ -1781,7 +1781,7 @@ class A
 end
 ]=]
 e = [=[
-test.lua:3:1: syntax error, unexpected 'end', expecting ':'
+test.lua:2:4: syntax error, unexpected '(', expecting 'end', 'function', 'Name', ';', ':', '='
 ]=]
 
 r = parse(s)
@@ -2024,7 +2024,7 @@ s = [=[
 interface A end
 ]=]
 e = [=[
-test.lua:1:13: syntax error, unexpected 'end', expecting 'Name', 'extends'
+test.lua:1:13: syntax error, unexpected 'end', expecting 'function', 'Name', 'extends'
 ]=]
 
 r = parse(s)
@@ -2036,7 +2036,7 @@ interface A
 end
 ]=]
 e = [=[
-test.lua:3:1: syntax error, unexpected 'end', expecting ':'
+test.lua:2:4: syntax error, unexpected '(', expecting 'end', 'function', 'Name', ';', ':'
 ]=]
 
 r = parse(s)

@@ -770,4 +770,15 @@ function types.tostring (t)
   return type2str(t)
 end
 
+local type_name = { any = true,
+                    boolean = true,
+                    number = true,
+                    string = true,
+                    void = true,
+                  }
+
+function types.is_defined (name)
+  return type_name[name]
+end
+
 return types

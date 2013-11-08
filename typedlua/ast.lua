@@ -146,9 +146,7 @@ function interface2str (body)
   local l = {}
   for k, v in ipairs(body) do
     local tag = v.tag
-    if tag == "ConstDec" then
-      l[k] = '("' .. v[1] .. '","' .. tostring(v[2][1]) .. '")'
-    elseif tag == "FieldDec" then
+    if tag == "FieldDec" then
       l[k] = id2str(v)
     elseif tag == "MethodSig" then
       l[k] = '("' .. v[1] .. '" ' .. idlist2str(v[2]) .. " " .. type2str(v[3]) .. ")"
@@ -161,7 +159,9 @@ function class2str (body)
   local l = {}
   for k, v in ipairs(body) do
     local tag = v.tag
-    if tag == "FieldDec" then
+    if tag == "ConstDec" then
+      l[k] = '("' .. v[1] .. '","' .. tostring(v[2][1]) .. '")'
+    elseif tag == "FieldDec" then
       l[k] = id2str(v)
     elseif tag == "MethodImp" then
       l[k] = '("' .. v[1][1] .. '" ' .. idlist2str(v[1][2]) .. " " .. type2str(v[1][3])

@@ -402,24 +402,16 @@ local G = { V"TypedLua",
              taggedCap("False", kw("false")) +
              taggedCap("True", kw("true"));
   ConstantDec = taggedCap("ConstDec", token(V"Name", "Name") * symb("=") * V"Constant");
-  FieldDec = taggedCap("FieldDec", token(V"Name", "Name") * symb(":") * V"Type");
-  Arg = taggedCap("Name", token(V"Name", "Name") * symb(":") * V"Type");
-  VarArg = taggedCap("Name", token(C("..."), "...") * symb(":") * V"Type");
-  ArgList = sepby1(V"Arg", symb(","), "ArgList") * (symb(",") * V"VarArg")^-1 /
-            function (t, v)
-              if v then table.insert(t, v) end
-              return t
-            end +
-            taggedCap("ArgList", V"VarArg"^-1);
-  MethodSig = taggedCap("MethodSig", token(V"Name", "Name") *
-              symb("(") * V"ArgList" * symb(")") * symb(":") * V"Type2");
+  FieldDec = taggedCap("FieldDec", token(V"Name", "Name") * V"OptionalType");
+  MethodSig = taggedCap("MethodSig", kw("function") * token(V"Name", "Name") *
+              symb("(") * V"ParList" * symb(")") * V"OptionalType2");
   MethodImp = taggedCap("MethodImp", V"MethodSig" * V"Block" * kw("end"));
-  ObjectSpec = V"ConstantDec" + V"FieldDec" + V"MethodSig";
+  ObjectSpec = V"FieldDec" + V"MethodSig";
   InterfaceBody = taggedCap("InterfaceBody", V"ObjectSpec" * (symb(";") + V"ObjectSpec")^0);
   InterfaceExtends = taggedCap("ExtendsList", (kw("extends") * V"NameList")^-1);
   InterfaceStat = taggedCap("StmInterface", kw("interface") * token(V"Name", "Name") *
                   V"InterfaceExtends" * V"InterfaceBody" * kw("end"));
-  ObjectImp = V"FieldDec" + V"MethodImp";
+  ObjectImp = V"ConstantDec" + V"FieldDec" + V"MethodImp";
   ClassBody = taggedCap("ClassBody", V"ObjectImp" * (symb(";") + V"ObjectImp")^0);
   ClassExtends = taggedCap("Extends", (kw("extends") * taggedCap("Name", token(V"Name", "Name")))^-1);
   ClassImplements = taggedCap("ImplementsList", (kw("implements") * V"NameList")^-1);

@@ -1095,12 +1095,18 @@ local function check_interface_dec (env, stm)
   local scope = env.scope
   local name, extends, body = stm[1], stm[2], stm[3]
   local t = interfacebody2type(env, body)
-  if env[scope]["type"][name] then
-    local msg = "redeclaring interface '%s'"
+  if not types.is_defined(name) then
+    if env[scope]["type"][name] then
+      local msg = "redeclaring interface '%s'"
+      msg = string.format(msg, name)
+      warning(env, msg, stm.pos)
+    end
+    env[scope]["type"][name] = t
+  else
+    local msg = "attempt to redeclare type '%s'"
     msg = string.format(msg, name)
-    warning(env, msg, stm.pos)
+    typeerror(env, msg, stm.pos)
   end
-  env[scope]["type"][name] = t
 end
 
 local function check_class_dec (env, stm)
