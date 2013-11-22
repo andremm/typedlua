@@ -16,7 +16,7 @@ function st.lineno (s, i)
   return l, c ~= 0 and c or 1
 end
 
-function st.begin_scope (env)
+function st.new_scope (env)
   if not env.scope then
     env.scope = 0
   else
@@ -31,11 +31,15 @@ function st.begin_scope (env)
   env[scope]["type"] = {}
 end
 
+function st.begin_scope (env)
+  env.scope = env.scope + 1
+end
+
 function st.end_scope (env)
   env.scope = env.scope - 1
 end
 
-function st.begin_function (env)
+function st.new_function (env)
   if not env.fscope then
     env.fscope = 0
   else
@@ -43,6 +47,10 @@ function st.begin_function (env)
   end
   local fscope = env.fscope
   env["function"][fscope] = {}
+end
+
+function st.begin_function (env)
+  env.fscope = env.fscope + 1
 end
 
 function st.end_function (env)

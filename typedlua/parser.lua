@@ -17,8 +17,8 @@ local xdigit = lpeg.xdigit
 local space = lpeg.space
 
 local lineno = st.lineno
-local begin_scope, end_scope = st.begin_scope, st.end_scope
-local begin_function, end_function = st.begin_function, st.end_function
+local new_scope, end_scope = st.new_scope, st.end_scope
+local new_function, end_function = st.new_function, st.end_function
 local begin_loop, end_loop = st.begin_loop, st.end_loop
 local insideloop = st.insideloop
 
@@ -526,8 +526,8 @@ local traverse_stm, traverse_exp, traverse_var
 local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
 
 local function traverse_anonymous_function (env, exp)
-  begin_function(env)
-  begin_scope(env)
+  new_function(env)
+  new_scope(env)
   local status, msg
   status, msg = traverse_parlist(env, exp[1])
   if not status then return status, msg end
@@ -605,7 +605,7 @@ end
 
 local function traverse_for_generic (env, stm)
   begin_loop(env)
-  begin_scope(env)
+  new_scope(env)
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
   end_scope(env)
@@ -616,7 +616,7 @@ end
 local function traverse_for_numeric (env, stm)
   local status, msg
   begin_loop(env)
-  begin_scope(env)
+  new_scope(env)
   status, msg = traverse_exp(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_exp(env, stm[3])
@@ -631,8 +631,8 @@ local function traverse_for_numeric (env, stm)
 end
 
 local function traverse_global_function (env, stm)
-  begin_function(env)
-  begin_scope(env)
+  new_function(env)
+  new_scope(env)
   local status, msg
   status, msg = traverse_parlist(env, stm[2])
   if not status then return status, msg end
@@ -661,8 +661,8 @@ local function traverse_label (env, stm)
 end
 
 local function traverse_local_function (env, stm)
-  begin_function(env)
-  begin_scope(env)
+  new_function(env)
+  new_scope(env)
   local status, msg
   status, msg = traverse_parlist(env, stm[2])
   if not status then return status, msg end
@@ -855,7 +855,7 @@ function traverse_block (env, block)
   if tag ~= "StmBlock" then
     error("trying to traverse " .. tag)
   end
-  begin_scope(env)
+  new_scope(env)
   for k, v in ipairs(block) do
     local status, msg = traverse_stm(env, v)
     if not status then return status, msg end
@@ -869,7 +869,7 @@ local function traverse (ast, errorinfo)
   assert(type(errorinfo) == "table")
   local env = { errorinfo = errorinfo, ["function"] = {} }
   local status, msg
-  begin_function(env)
+  new_function(env)
   set_vararg(env, true)
   status, msg = traverse_block(env, ast)
   if not status then return status, msg end

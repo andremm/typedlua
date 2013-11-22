@@ -7,6 +7,7 @@ local st = require "typedlua.st"
 local types = require "typedlua.types"
 
 local lineno = st.lineno
+local new_scope, new_function = st.new_scope, st.new_function
 local begin_scope, end_scope = st.begin_scope, st.end_scope
 local begin_function, end_function = st.begin_function, st.end_function
 local begin_loop, end_loop = st.begin_loop, st.end_loop
@@ -174,10 +175,16 @@ end
 
 -- functions that handle identifiers
 
+-- functions for 1st pass
+
+local verify_block, verify_stm, verify_exp
+local verify_explist, verify_fieldlist
+
+-- functions for 2nd pass
+
 local check_block, check_stm, check_exp
 local check_var, check_var_assignment
 local check_explist, check_fieldlist
-local check_type_dec
 
 -- variables
 
@@ -562,6 +569,10 @@ local function check_ret_type (env, dec_type, inf_type, pos)
   end
 end
 
+local function verify_function_stm (env, stm)
+  verify_stm(env, stm)
+end
+
 local function check_function_stm (env, stm, ret_type)
   check_stm(env, stm)
   local len = #stm
@@ -581,6 +592,15 @@ local function check_and (env, exp)
   set_node_type(exp, types.Union(t1, t2)) -- T-AND
 end
 
+local function verify_anonymous_function (env, exp)
+  new_function(env)
+  new_scope(env)
+  local idlist, ret_type, stm = exp[1], exp[2], exp[3]
+  verify_function_stm(env, stm)
+  end_scope(env)
+  end_function(env)
+end
+
 local function check_anonymous_function (env, exp)
   begin_function(env)
   begin_scope(env)
@@ -591,6 +611,17 @@ local function check_anonymous_function (env, exp)
   set_node_type(exp, t)
   end_scope(env)
   end_function(env)
+end
+
+local function verify_binop (env, exp)
+  local exp1, exp2 = exp[1], exp[2]
+  verify_exp(env, exp1)
+  verify_exp(env, exp2)
+end
+
+local function verify_unop (env, exp)
+  local exp1 = exp[1]
+  verify_exp(env, exp1)
 end
 
 local function check_arith (env, exp)
@@ -704,6 +735,12 @@ local function check_call (env, fname, ftype, explist, pos, visibility)
   end
 end
 
+local function verify_calling_function (env, exp)
+  local exp1, explist, pos = exp[1], exp[2], exp.pos
+  verify_exp(env, exp1)
+  verify_explist(env, explist)
+end
+
 local function check_calling_function (env, exp)
   local exp1, explist, pos = exp[1], exp[2], exp.pos
   check_exp(env, exp1)
@@ -720,6 +757,12 @@ local function check_calling_function (env, exp)
     typeerror(env, msg, pos)
   end
   set_node_type(exp, ret_type)
+end
+
+local function verify_calling_method (env, exp)
+  local exp1, explist, pos = exp[1], exp[2], exp.pos
+  verify_exp(env, exp1)
+  verify_explist(env, explist)
 end
 
 local function check_calling_method (env, exp)
@@ -850,6 +893,10 @@ local function check_order (env, exp)
   end
 end
 
+local function verify_table (env, exp)
+  verify_fieldlist(env, exp[1])
+end
+
 local function check_table (env, exp)
   check_fieldlist(env, exp[1])
   set_node_type(exp, exp[1].type)
@@ -892,6 +939,10 @@ function check_var_assignment (env, var, inf_type)
   end
 end
 
+local function verify_assignment (env, varlist, explist)
+  verify_explist(env, explist)
+end
+
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
@@ -901,8 +952,19 @@ local function check_assignment (env, varlist, explist)
   end
 end
 
+local function verify_stmcall (env, exp)
+  verify_exp(env, exp)
+end
+
 local function check_stmcall (env, exp)
   check_exp(env, exp)
+end
+
+local function verify_for_generic (env, idlist, explist, stm)
+  new_scope(env)
+  verify_explist(env, explist)
+  verify_stm(env, stm)
+  end_scope(env)
 end
 
 local function check_for_generic (env, idlist, explist, stm)
@@ -916,6 +978,15 @@ local function check_for_generic (env, idlist, explist, stm)
     set_local(env, v[1], v[2], typelist[k], v.pos, scope)
   end
   check_stm(env, stm)
+  end_scope(env)
+end
+
+local function verify_for_numeric (env, id, exp1, exp2, exp3, stm)
+  new_scope(env)
+  verify_exp(env, exp1)
+  verify_exp(env, exp2)
+  verify_exp(env, exp3)
+  verify_stm(env, stm)
   end_scope(env)
 end
 
@@ -952,6 +1023,15 @@ local function check_for_numeric (env, id, exp1, exp2, exp3, stm)
   end_scope(env)
 end
 
+local function verify_global_function (env, stm)
+  new_function(env)
+  new_scope(env)
+  local namelist, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  verify_function_stm(env, stm1)
+  end_scope(env)
+  end_function(env)
+end
+
 local function check_global_function (env, stm)
   local pos = stm.pos
   begin_function(env)
@@ -966,10 +1046,26 @@ local function check_global_function (env, stm)
   end_function(env)
 end
 
+local function verify_if_else (env, exp, stm1, stm2)
+  verify_exp(env, exp)
+  verify_stm(env, stm1)
+  verify_stm(env, stm2)
+end
+
 local function check_if_else (env, exp, stm1, stm2)
   check_exp(env, exp)
   check_stm(env, stm1)
   check_stm(env, stm2)
+end
+
+local function verify_local_function (env, stm)
+  local scope, pos = env.scope, stm.pos
+  new_function(env)
+  new_scope(env)
+  local name, idlist, ret_type, stm1 = stm[1], stm[2], stm[3], stm[4]
+  verify_function_stm(env, stm1)
+  end_scope(env)
+  end_function(env)
 end
 
 local function check_local_function (env, stm)
@@ -985,6 +1081,10 @@ local function check_local_function (env, stm)
   end_function(env)
 end
 
+local function verify_local_var (env, idlist, explist)
+  verify_explist(env, explist)
+end
+
 local function check_local_var (env, idlist, explist)
   local scope = env.scope
   local varlist = idlist2varlist(idlist)
@@ -996,9 +1096,19 @@ local function check_local_var (env, idlist, explist)
   end
 end
 
+local function verify_repeat (env, stm, exp)
+  verify_stm(env, stm)
+  verify_exp(env, exp)
+end
+
 local function check_repeat (env, stm, exp)
   check_stm(env, stm)
   check_exp(env, exp)
+end
+
+local function verify_return (env, stm)
+  local explist = stm[1]
+  verify_explist(env, explist)
 end
 
 local function check_return (env, stm)
@@ -1009,9 +1119,26 @@ local function check_return (env, stm)
   check_ret_type(env, ret_type, types.Tuple(typelist), stm.pos)
 end
 
+local function verify_while (env, exp, stm)
+  verify_exp(env, exp)
+  verify_stm(env, stm)
+end
+
 local function check_while (env, exp, stm)
   check_exp(env, exp)
   check_stm(env, stm)
+end
+
+function verify_fieldlist (env, fieldlist)
+  local l = {}
+  local i = 1
+  for k, v in ipairs(fieldlist[1]) do
+    verify_exp(env, v[1])
+  end
+  for k, v in ipairs(fieldlist[2]) do
+    verify_exp(env, v[1])
+    verify_exp(env, v[2])
+  end
 end
 
 function check_fieldlist (env, fieldlist)
@@ -1091,7 +1218,7 @@ local function interfacebody2type (env, body)
   return types.Record(l)
 end
 
-local function check_interface_dec (env, stm)
+local function verify_interface (env, stm)
   local scope = env.scope
   local name, extends, body = stm[1], stm[2], stm[3]
   local t = interfacebody2type(env, body)
@@ -1109,16 +1236,71 @@ local function check_interface_dec (env, stm)
   end
 end
 
-local function check_class_dec (env, stm)
+local function verify_class (env, stm)
   local scope = env.scope
   local name, extends, implements, body = stm[1], stm[2], stm[3], stm[4]
   local t = interfacebody2type(env, body)
   env[scope]["type"][name] = t
 end
 
+function verify_explist (env, explist)
+  for k, v in ipairs(explist) do
+    verify_exp(env, v)
+  end
+end
+
 function check_explist (env, explist)
   for k, v in ipairs(explist) do
     check_exp(env, v)
+  end
+end
+
+function verify_exp (env, exp)
+  local tag = exp.tag
+  if tag == "ExpNil" then
+  elseif tag == "ExpFalse" then
+  elseif tag == "ExpTrue" then
+  elseif tag == "ExpDots" then
+  elseif tag == "ExpNum" then -- ExpNum Double
+  elseif tag == "ExpStr" then -- ExpStr String
+  elseif tag == "ExpVar" then -- ExpVar Var
+  elseif tag == "ExpFunction" then -- ExpFunction [ID] Type Stm
+    verify_anonymous_function(env, exp)
+  elseif tag == "ExpTableConstructor" then -- ExpTableConstructor FieldList
+    verify_table(env, exp)
+  elseif tag == "ExpMethodCall" then -- ExpMethodCall Exp [Exp]
+    verify_calling_method(env, exp)
+  elseif tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
+    verify_calling_function(env, exp)
+  elseif tag == "ExpAdd" or -- ExpAdd Exp Exp 
+         tag == "ExpSub" or -- ExpSub Exp Exp
+         tag == "ExpMul" or -- ExpMul Exp Exp
+         tag == "ExpDiv" or -- ExpDiv Exp Exp
+         tag == "ExpMod" or -- ExpMod Exp Exp
+         tag == "ExpPow" then -- ExpPow Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpConcat" then -- ExpConcat Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpNE" or -- ExpNE Exp Exp
+         tag == "ExpEQ" then -- ExpEQ Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpLT" or -- ExpLT Exp Exp
+         tag == "ExpLE" or -- ExpLE Exp Exp
+         tag == "ExpGT" or -- ExpGT Exp Exp
+         tag == "ExpGE" then -- ExpGE Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpAnd" then -- ExpAnd Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpOr" then -- ExpOr Exp Exp
+    verify_binop(env, exp)
+  elseif tag == "ExpNot" then -- ExpNot Exp
+    verify_unop(env, exp)
+  elseif tag == "ExpMinus" then -- ExpMinus Exp
+    verify_unop(env, exp)
+  elseif tag == "ExpLen" then -- ExpLen Exp
+    verify_unop(env, exp)
+  else
+    error("cannot verify expression " .. tag)
   end
 end
 
@@ -1178,6 +1360,44 @@ function check_exp (env, exp)
   end
 end
 
+function verify_stm (env, stm)
+  local tag = stm.tag
+  if tag == "StmBlock" then -- StmBlock [Stm]
+    verify_block(env, stm)
+  elseif tag == "StmIfElse" then -- StmIfElse Exp Stm Stm
+    verify_if_else(env, stm[1], stm[2], stm[3])
+  elseif tag == "StmWhile" then -- StmWhile Exp Stm
+    verify_while(env, stm[1], stm[2])
+  elseif tag == "StmForNum" then -- StmForNum ID Exp Exp Exp Stm
+    verify_for_numeric(env, stm[1], stm[2], stm[3], stm[4], stm[5])
+  elseif tag == "StmForGen" then -- StmForGen [ID] [Exp] Stm
+    verify_for_generic(env, stm[1], stm[2], stm[3])
+  elseif tag == "StmRepeat" then -- StmRepeat Stm Exp
+    verify_repeat(env, stm[1], stm[2])
+  elseif tag == "StmFunction" then -- StmFunction FuncName [ID] Type Stm
+    verify_global_function(env, stm)
+  elseif tag == "StmLocalFunction" then -- StmLocalFunction Name [ID] Type Stm
+    verify_local_function(env, stm)
+  elseif tag == "StmLabel" or -- StmLabel Name
+         tag == "StmGoTo" or -- StmGoTo Name
+         tag == "StmBreak" then -- StmBreak
+  elseif tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    verify_assignment(env, stm[1], stm[2])
+  elseif tag == "StmLocalVar" then -- StmLocalVar [ID] [Exp]
+    verify_local_var(env, stm[1], stm[2])
+  elseif tag == "StmRet" then -- StmRet [Exp]
+    verify_return(env, stm)
+  elseif tag == "StmCall" then -- StmCall Exp
+    verify_stmcall(env, stm[1])
+  elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
+    verify_interface(env, stm)
+  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
+    verify_class(env, stm)
+  else
+    error("cannot verify statement " .. tag)
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "StmBlock" then -- StmBlock [Stm]
@@ -1208,20 +1428,22 @@ function check_stm (env, stm)
   elseif tag == "StmCall" then -- StmCall Exp
     check_stmcall(env, stm[1])
   elseif tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
-    if env.scope > 0 then check_interface_dec(env, stm) end
   elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
   else
     error("cannot type check statement " .. tag)
   end
 end
 
-function check_type_dec (env, stm)
-  local tag = stm.tag
-  if tag == "StmInterface" then -- StmInterface Name [Name] InterfaceBody
-    check_interface_dec(env, stm)
-  elseif tag == "StmClass" then -- StmClass Name [Name] [Name] ClassBody
-    check_class_dec(env, stm)
+function verify_block (env, block)
+  local tag = block.tag
+  if tag ~= "StmBlock" then
+    error("cannot verify block " .. tag)
   end
+  new_scope(env)
+  for k, v in ipairs(block) do
+    verify_stm(env, v)
+  end
+  end_scope(env)
 end
 
 function check_block (env, block)
@@ -1231,23 +1453,6 @@ function check_block (env, block)
   end
   begin_scope(env)
   for k, v in ipairs(block) do
-    check_stm(env, v)
-  end
-  end_scope(env)
-end
-
-local function check_main (env, chunk)
-  local tag = chunk.tag
-  if tag ~= "StmBlock" then
-    error("cannot type main chunk " .. tag)
-  end
-  begin_scope(env)
-  -- first pass (get names of classes and interfaces)
-  for k, v in ipairs(chunk) do
-    check_type_dec(env, v)
-  end
-  -- second pass (actually do the type checking)
-  for k, v in ipairs(chunk) do
     check_stm(env, v)
   end
   end_scope(env)
@@ -1280,10 +1485,13 @@ function checker.typecheck (ast, subject, filename)
   assert(type(filename) == "string")
   local env = {}
   init_symbol_table(env, subject, filename)
-  begin_function(env)
+  new_function(env)
   set_return_type(env, types.Tuple({types.VarArg(Any)}))
   set_vararg(env, String)
-  check_main(env, ast)
+  -- first pass
+  verify_block(env, ast)
+  -- second pass
+  check_block(env, ast)
   end_function(env)
   if #env["messages"] > 0 then
     local msg = table.concat(env["messages"], "\n")
