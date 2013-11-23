@@ -48,12 +48,9 @@ end
 
 local function check_type_name (env, t)
   if types.isName(t) then
-    local scope = env.scope
     local name = t[1]
-    for s=scope, 0, -1 do
-      if env[s]["type"][name] then
-        return true
-      end
+    if env["type"][name] then
+      return true
     end
     local msg = "type '%s' is not defined"
     msg = string.format(msg, type2str(t))
@@ -319,12 +316,9 @@ end
 
 local function validate_type_annotation (env, t)
   if types.isName(t) then
-    local scope = env.scope
     local name = t[1]
-    for s=scope, 0, -1 do
-      if env[s]["type"][name] then
-        return env[s]["type"][name]
-      end
+    if env["type"][name] then
+      return env["type"][name]
     end
     local msg = "type '%s' is not defined"
     msg = string.format(msg, type2str(t))
@@ -1223,12 +1217,12 @@ local function verify_interface (env, stm)
   local name, extends, body = stm[1], stm[2], stm[3]
   local t = interfacebody2type(env, body)
   if not types.is_defined(name) then
-    if env[scope]["type"][name] then
+    if env["type"][name] then
       local msg = "redeclaring interface '%s'"
       msg = string.format(msg, name)
       warning(env, msg, stm.pos)
     end
-    env[scope]["type"][name] = t
+    env["type"][name] = t
   else
     local msg = "attempt to redeclare type '%s'"
     msg = string.format(msg, name)
@@ -1240,7 +1234,7 @@ local function verify_class (env, stm)
   local scope = env.scope
   local name, extends, implements, body = stm[1], stm[2], stm[3], stm[4]
   local t = interfacebody2type(env, body)
-  env[scope]["type"][name] = t
+  env["type"][name] = t
 end
 
 function verify_explist (env, explist)
@@ -1463,6 +1457,7 @@ local function init_symbol_table (env, subject, filename)
   env["filename"] = filename -- store filename for error messages
   env["function"] = {} -- store function attributes
   env["global"] = {} -- store global names
+  env["type"] = {} -- store type names
   env["messages"] = {} -- store errors and warnings
   local any_star = types.VarArg(Any)
   local args_and_ret = types.Tuple({any_star})
