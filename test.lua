@@ -1408,6 +1408,26 @@ StmBlock [StmLocalFunction "test" ([("x","(any, any) -> (boolean, string) -> (an
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local x:number?
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","(number | nil)")] []]
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|() -> ()?
+]=]
+e = [=[
+StmBlock [StmLocalVar [("x","(number | (() -> any* | nil))")] []]
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- relational expressions
 
 s = [=[
@@ -1687,7 +1707,7 @@ s = [=[
 local test = function (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:41: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
+test.lua:1:41: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^', '?'
 ]=]
 
 r = parse(s)
@@ -1847,7 +1867,7 @@ s = [=[
 for i:number=1,10 do end
 ]=]
 e = [=[
-test.lua:1:13: syntax error, unexpected '=', expecting 'in', ',', '|', '^'
+test.lua:1:13: syntax error, unexpected '=', expecting 'in', ',', '|', '^', '?'
 ]=]
 
 r = parse(s)
@@ -1919,7 +1939,7 @@ s = [=[
 function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:33: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
+test.lua:1:33: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^', '?'
 ]=]
 
 r = parse(s)
@@ -2143,7 +2163,7 @@ s = [=[
 local function test (x:() -> (number,x:boolean))
 ]=]
 e = [=[
-test.lua:1:39: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^'
+test.lua:1:39: syntax error, unexpected ':', expecting ')', '*', ',', '|', '^', '?'
 ]=]
 
 r = parse(s)

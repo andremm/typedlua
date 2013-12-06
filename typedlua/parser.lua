@@ -193,13 +193,19 @@ local G = { V"TypedLua",
     function (c)
       return { tag = "TypeConstant", [1] = c }
     end;
-  PrimaryType = V"ObjectType" +
+  PrimaryType = (V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
                 V"BaseType" +
                 V"NameType" +
                 V"FunctionType" +
-                V"TableType";
+                V"TableType") * (symb("?") * Cc(true))^-1 /
+    function (t, nullable)
+      if nullable then
+        return { tag = "TypeUnion", [1] = t, [2] = { tag = "TypeConstant" } }
+      end
+      return t
+    end;
   ObjectType = taggedCap("TypeObject", token("object", "Type"));
   DynamicType = taggedCap("TypeAny", token("any", "Type"));
   NilType = taggedCap("TypeConstant", token("nil", "Type"));

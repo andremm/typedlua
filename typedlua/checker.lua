@@ -476,7 +476,7 @@ function check_var (env, var)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local var_type, index_type = exp1.type, exp2.type
-    local msg = "attmept to index '%s'"
+    local msg = "attempt to index '%s'"
     if types.isAny(var_type) then
       msg = string.format(msg, 'any')
       warning(env, msg, exp1.pos)
