@@ -19,10 +19,11 @@ local check_exp, check_var
 local check_explist, check_varlist
 local check_fieldlist
 
-local function new_func_def (func_type)
+local function new_func_def (func_type, is_vararg)
   result.number_of_functions = result.number_of_functions + 1
   local n = result.number_of_functions
   result[n] = {}
+  result[n].is_vararg = is_vararg and 1 or 0
   result[n].use_type = 0
   result[n].type_id = 0
   result[n].type_other = 0
@@ -30,8 +31,11 @@ local function new_func_def (func_type)
   result[n].table_field = 0
   result[n].ret_nil_se = 0
   result[n].ret_false_se = 0
+  result[n].ret_mult_values = 0
   result[n].use_setmetatable = 0
   result[n].use_getmetatable = 0
+  result[n].use_ipairs = 0
+  result[n].use_pairs = 0
   result[n].number_of_constructs = 0
   result[n].empty_construct = 0
   result[n].only_static = 0
@@ -161,7 +165,7 @@ function check_exp (exp, func_name, func_id)
   elseif exp.tag == "ExpVar" then -- ExpVar Var
     check_var(exp[1], func_name, func_id)
   elseif exp.tag == "ExpFunction" then -- ExpFunction [Name] Stm
-    new_func_def("anonymous")
+    new_func_def("anonymous", exp[1].is_vararg)
     local id = result.number_of_functions
     if #exp[1] > 0 then
       if exp[1][1] == "self" or exp[1][1] == "this" then
@@ -196,6 +200,12 @@ function check_exp (exp, func_name, func_id)
       -- statistics of the use of getmetatable
       elseif fname == "getmetatable" then
         result[func_id].use_getmetatable = 1
+      -- statistics of the use of ipairs
+      elseif fname == "ipairs" then
+        result[func_id].use_ipairs = 1
+      -- statistics of the use of pairs
+      elseif fname == "pairs" then
+        result[func_id].use_pairs = 1
       -- statistics of the use of module
       elseif fname == "module" and func_id == 0 then
         result.calling_module = true
@@ -259,7 +269,7 @@ function check_stm (stm, func_name, func_id)
     check_stm(stm[1], func_name, func_id)
     check_exp(stm[2], func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName [Name] Stm
-    new_func_def("global")
+    new_func_def("global", stm[2].is_vararg)
     local id = result.number_of_functions
     if stm[1].tag == "Method" then
       -- statistics of the use of method definition
@@ -281,7 +291,7 @@ function check_stm (stm, func_name, func_id)
     end
     check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLocalFunction" then -- StmLocalFunction Name [Name] Stm
-    new_func_def("local")
+    new_func_def("local", stm[2].is_vararg)
     check_stm(stm[3], func_name, result.number_of_functions)
   elseif stm.tag == "StmLabel" or -- StmLabel Name
          stm.tag == "StmGoTo" or -- StmGoTo Name
@@ -295,6 +305,7 @@ function check_stm (stm, func_name, func_id)
     -- statistics of the use of return
     local explist_size = #stm[1]
     if explist_size > 1 then
+      result[func_id].ret_mult_values = 1
       if stm[1][1].tag == "ExpNil" then
         result[func_id].ret_nil_se = 1
       elseif stm[1][1].tag == "ExpFalse" then
@@ -328,14 +339,18 @@ local function result_recon ()
   result.anonymousf = 0
   result.globalf = 0
   result.localf = 0
+  result.is_vararg = 0
   result.ret_nil_se = 0
   result.ret_false_se = 0
+  result.ret_mult_values = 0
   result.use_type = 0
   result.use_type_recon = 0
   result.type_id = 0
   result.type_other = 0
   result.use_setmetatable = 0
   result.use_getmetatable = 0
+  result.use_ipairs = 0
+  result.use_pairs = 0
   result.number_of_methods = 0
   result.table_field = 0
   result.empty_construct = 0
@@ -356,8 +371,10 @@ local function result_recon ()
     elseif result[i].func_type == "L" then
       result.localf = result.localf + 1
     end
+    result.is_vararg = result.is_vararg + result[i].is_vararg
     result.ret_nil_se = result.ret_nil_se + result[i].ret_nil_se
     result.ret_false_se = result.ret_false_se + result[i].ret_false_se
+    result.ret_mult_values = result.ret_mult_values + result[i].ret_mult_values
     if result[i].use_type > 0 then
       result.use_type = result.use_type + 1
       result.use_type_recon = result.use_type_recon + result[i].use_type
@@ -366,6 +383,8 @@ local function result_recon ()
     end
     result.use_setmetatable = result.use_setmetatable + result[i].use_setmetatable
     result.use_getmetatable = result.use_getmetatable + result[i].use_getmetatable
+    result.use_ipairs = result.use_ipairs + result[i].use_ipairs
+    result.use_pairs = result.use_pairs + result[i].use_pairs
     result.number_of_methods = result.number_of_methods + result[i].is_method
     result.table_field = result.table_field + result[i].table_field
     result.number_of_constructs = result.number_of_constructs + result[i].number_of_constructs
@@ -436,8 +455,9 @@ function statistics.print_header ()
   io.write("use_type,type_id,type_other,")
   io.write("is_method,")
   io.write("table_field,")
-  io.write("ret_nil_se,ret_false_se,")
+  io.write("ret_nil_se,ret_false_se,ret_mult_values")
   io.write("use_setmetatable,use_getmetatable,")
+  io.write("use_ipairs,use_pairs,")
   io.write("number_of_constructs,")
   io.write("empty_construct,only_static,only_dynamic,static_and_dynamic,")
   io.write("varindex,")
@@ -469,8 +489,9 @@ function statistics.print_result (filename, result)
     io.write(string.format("%d,%d,%d,", result[i].use_type, result[i].type_id, result[i].type_other))
     io.write(string.format("%d,", result[i].is_method))
     io.write(string.format("%d,", result[i].table_field))
-    io.write(string.format("%d,%d,", result[i].ret_nil_se, result[i].ret_false_se))
+    io.write(string.format("%d,%d,%d,", result[i].ret_nil_se, result[i].ret_false_se, result[i].ret_mult_values))
     io.write(string.format("%d,%d,", result[i].use_setmetatable, result[i].use_getmetatable))
+    io.write(string.format("%d,%d,", result[i].use_ipairs, result[i].use_pairs))
     io.write(string.format("%d,", result[i].number_of_constructs))
     io.write(string.format("%d,", result[i].empty_construct))
     io.write(string.format("%d,", result[i].only_static))
@@ -490,17 +511,14 @@ function statistics.log_result (filename, result)
   if result[0].use_type > 0 then
     result.use_type = result.use_type - 1
   end
-  if result[0].use_setmetatable > 0 then
-    result.use_setmetatable = result.use_setmetatable - 1
-  end
-  if result[0].use_getmetatable > 0 then
-    result.use_getmetatable = result.use_getmetatable - 1
-  end
   if result[0].ret_nil_se > 0 then
     result.ret_nil_se = result.ret_nil_se - 1
   end
   if result[0].ret_false_se > 0 then
     result.ret_false_se = result.ret_false_se - 1
+  end
+  if result[0].ret_mult_values > 0 then
+    result.ret_mult_values = result.ret_mult_values - 1
   end
   if result.ret then result.ret = true end
   print(filename)
@@ -508,11 +526,15 @@ function statistics.log_result (filename, result)
   print("anonymous", result.anonymousf)
   print("global", result.globalf)
   print("local", result.localf)
+  print("is_vararg", result.is_vararg)
   print("ret_nil_se", result.ret_nil_se)
   print("ret_false_se", result.ret_false_se)
+  print("ret_mult_values", result.ret_mult_values)
   print("use_type", result.use_type)
   print("use_setmetatable", result.use_setmetatable)
   print("use_getmetatable", result.use_getmetatable)
+  print("use_ipairs", result.use_ipairs)
+  print("use_pairs", result.use_pairs)
   print("number_of_methods", result.number_of_methods)
   print("table_field", result.table_field)
   print("number_of_constructs", result.number_of_constructs)
@@ -536,13 +558,17 @@ function statistics.init_merge ()
   merge.anonymousf = 0
   merge.globalf = 0
   merge.localf = 0
+  merge.is_vararg = 0
   merge.ret_nil_se = 0
   merge.ret_false_se = 0
+  merge.ret_mult_values = 0
   merge.use_type = 0
   merge.type_id = 0
   merge.type_other = 0
   merge.use_setmetatable = 0
   merge.use_getmetatable = 0
+  merge.use_ipairs = 0
+  merge.use_pairs = 0
   merge.number_of_methods = 0
   merge.table_field = 0
   merge.number_of_constructs = 0
@@ -568,14 +594,22 @@ function statistics.merge (result, merge)
   merge.anonymousf = merge.anonymousf + result.anonymousf
   merge.globalf = merge.globalf + result.globalf
   merge.localf = merge.localf + result.localf
+  merge.is_vararg = merge.is_vararg + result.is_vararg
   merge.ret_nil_se = merge.ret_nil_se + result.ret_nil_se
   merge.ret_false_se = merge.ret_false_se + result.ret_false_se
+  merge.ret_mult_values = merge.ret_mult_values + result.ret_mult_values
   merge.use_type = merge.use_type + result.use_type
   if result.use_setmetatable > 0 then
     merge.use_setmetatable = merge.use_setmetatable + 1
   end
   if result.use_getmetatable > 0 then
     merge.use_getmetatable = merge.use_getmetatable + 1
+  end
+  if result.use_ipairs > 0 then
+    merge.use_ipairs = merge.use_ipairs + 1
+  end
+  if result.use_pairs > 0 then
+    merge.use_pairs = merge.use_pairs + 1
   end
   merge.number_of_methods = merge.number_of_methods + result.number_of_methods
   merge.table_field = merge.table_field + result.table_field
@@ -607,11 +641,15 @@ function statistics.log_merge (merge)
   print("anonymous", merge.anonymousf)
   print("global", merge.globalf)
   print("local", merge.localf)
+  print("is_vararg", merge.is_vararg)
   print("ret_nil_se", merge.ret_nil_se)
   print("ret_false_se", merge.ret_false_se)
+  print("ret_mult_values", merge.ret_mult_values)
   print("use_type", merge.use_type)
   print("use_setmetatable", merge.use_setmetatable)
   print("use_getmetatable", merge.use_getmetatable)
+  print("use_ipairs", merge.use_ipairs)
+  print("use_pairs", merge.use_pairs)
   print("number_of_methods", merge.number_of_methods)
   print("table_field", merge.table_field)
   print("number_of_constructs", merge.number_of_constructs)

@@ -9,7 +9,11 @@ How many functions are defined as table fields (using ., or {}) ?
 How many functions use "return nil,'something else'" or
                        "return false,'something else'" ?
 
+How many functions are variadic?
+
 How many modules use setmetatable and getmetatable ?
+
+How many modules use pairs and ipairs?
 
 How the table constructor is used (empty, only static keys, only dynamic keys,
                                    both static and dynamic keys) ?
