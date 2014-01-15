@@ -25,9 +25,13 @@ local function new_func_def (func_type, is_vararg)
   result[n] = {}
   result[n].is_vararg = is_vararg and 1 or 0
   result[n].use_type = 0
+  result[n].type_count = 0
   result[n].type_id = 0
   result[n].type_other = 0
   result[n].is_method = 0
+  result[n].method_colon = 0
+  result[n].method_self = 0
+  result[n].method_this = 0
   result[n].table_field = 0
   result[n].ret_nil_se = 0
   result[n].ret_false_se = 0
@@ -35,17 +39,37 @@ local function new_func_def (func_type, is_vararg)
   result[n].use_setmetatable = 0
   result[n].use_getmetatable = 0
   result[n].use_ipairs = 0
+  result[n].ipairs_count = 0
   result[n].use_pairs = 0
+  result[n].pairs_count = 0
+  result[n].use_len = 0
+  result[n].len_count = 0
   result[n].number_of_constructs = 0
   result[n].empty_construct = 0
   result[n].only_static = 0
   result[n].only_dynamic = 0
   result[n].static_and_dynamic = 0
+  result[n].table_list = 0
+  result[n].table_record = 0
+  result[n].table_list_and_record = 0
+  result[n].table_boolean = 0
+  result[n].table_vararg = 0
   result[n].varindex = 0
-  result[n].varindex_literal = 0
-  result[n].varindex_literal_fc = 0
-  result[n].varindex_non_literal = 0
-  result[n].varindex_non_literal_fc = 0
+  result[n].varindex_read = 0
+  result[n].varindex_write = 0
+  result[n].varindex_read_literal = 0
+  result[n].varindex_read_boolean = 0
+  result[n].varindex_read_number = 0
+  result[n].varindex_read_string = 0
+  result[n].varindex_read_non_literal = 0
+  result[n].varindex_read_literal_fc = 0
+  result[n].varindex_read_literal_mc = 0
+  result[n].varindex_read_non_literal_fc = 0
+  result[n].varindex_write_literal = 0
+  result[n].varindex_write_boolean = 0
+  result[n].varindex_write_number = 0
+  result[n].varindex_write_string = 0
+  result[n].varindex_write_non_literal = 0
   if func_type == "anonymous" then
     result[n].func_type = "A"
   elseif func_type == "global" then
@@ -62,21 +86,53 @@ end
 function check_fieldlist (fieldlist, func_name, func_id)
   local id = func_id
   local only_static,only_dynamic = true,true
+  local list,record,boolean = false,false,false
   -- statistics of the use of table constructs
   if #fieldlist[1] == 0 and #fieldlist[2] == 0 then
     result[func_id].empty_construct = result[func_id].empty_construct + 1
   elseif #fieldlist[1] > 0 and #fieldlist[2] == 0 then
     result[func_id].only_static = result[func_id].only_static + 1
+    result[func_id].table_list = result[func_id].table_list + 1
+    if #fieldlist[1] == 1 and fieldlist[1][1][1].tag == "ExpDots" then
+      result[func_id].table_vararg = result[func_id].table_vararg + 1
+    end
   elseif #fieldlist[1] == 0 and #fieldlist[2] > 0 then
     for k,v in ipairs(fieldlist[2]) do
-      if v[1].tag == "ExpFunctionCall" or v[1].tag == "ExpMethodCall" then
-        only_static = false
-      else
+      if v[1].tag == "ExpNum" or
+         v[1].tag == "ExpAdd" or
+         v[1].tag == "ExpSub" or
+         v[1].tag == "ExpMul" or
+         v[1].tag == "ExpDiv" or
+         v[1].tag == "ExpMod" or
+         v[1].tag == "ExpPow" or
+         v[1].tag == "ExpMinus" then
         only_dynamic = false
+        list = true
+      elseif v[1].tag == "ExpStr" or
+             v[1].tag == "ExpConcat" then
+        only_dynamic = false
+        record = true
+      elseif v[1].tag == "ExpTrue" or
+             v[1].tag == "ExpFalse" then
+        only_dynamic = false
+        list = false
+        record = false
+        boolean = true
+      else
+        only_static = false
       end
     end
     if only_static then
       result[func_id].only_static = result[func_id].only_static + 1
+      if list and record then
+        result[func_id].table_list_and_record = result[func_id].table_list_and_record + 1
+      elseif list and not record then
+        result[func_id].table_list = result[func_id].table_list + 1
+      elseif record and not list then
+        result[func_id].table_record = result[func_id].table_record + 1
+      elseif boolean then
+        result[func_id].table_boolean = result[func_id].table_boolean + 1
+      end
     elseif only_dynamic then
       result[func_id].only_dynamic = result[func_id].only_dynamic + 1
     else
@@ -84,13 +140,43 @@ function check_fieldlist (fieldlist, func_name, func_id)
     end
   elseif #fieldlist[1] > 0 and #fieldlist[2] > 0 then
     only_dynamic = false
+    list = true
     for k,v in ipairs(fieldlist[2]) do
-      if v[1].tag == "ExpFunctionCall" or v[1].tag == "ExpMethodCall" then
+      if v[1].tag == "ExpNum" or
+         v[1].tag == "ExpAdd" or
+         v[1].tag == "ExpSub" or
+         v[1].tag == "ExpMul" or
+         v[1].tag == "ExpDiv" or
+         v[1].tag == "ExpMod" or
+         v[1].tag == "ExpPow" or
+         v[1].tag == "ExpMinus" then
+        only_dynamic = false
+        list = true
+      elseif v[1].tag == "ExpStr" or
+             v[1].tag == "ExpConcat" then
+        only_dynamic = false
+        record = true
+      elseif v[1].tag == "ExpTrue" or
+             v[1].tag == "ExpFalse" then
+        only_dynamic = false
+        list = false
+        record = false
+        boolean = true
+      else
         only_static = false
       end
     end
     if only_static then
       result[func_id].only_static = result[func_id].only_static + 1
+      if list and record then
+        result[func_id].table_list_and_record = result[func_id].table_list_and_record + 1
+      elseif list and not record then
+        result[func_id].table_list = result[func_id].table_list + 1
+      elseif record and not list then
+        result[func_id].table_record = result[func_id].table_record + 1
+      elseif boolean then
+        result[func_id].table_boolean = result[func_id].table_boolean + 1
+      end
     else
       result[func_id].static_and_dynamic = result[func_id].static_and_dynamic + 1
     end
@@ -123,7 +209,7 @@ end
 
 function check_varlist (varlist, func_name, func_id)
   for k,v in ipairs(varlist) do
-    check_var(v, func_name, func_id)
+    check_var(v, func_name, func_id, "write")
   end
 end
 
@@ -132,23 +218,46 @@ local function is_literal (tag)
      tag == "ExpFalse" or
      tag == "ExpTrue" or
      tag == "ExpNum" or
-     tag == "ExpStr" or
-     tag == "ExpFunction" then
+     tag == "ExpStr" then
     return true
   end
   return false
 end
 
-function check_var (var, func_name, func_id)
+function check_var (var, func_name, func_id, read_or_write)
   if var.tag == "VarID" then -- VarID Name
   elseif var.tag == "VarIndex" then -- VarIndex Exp Exp
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
     local tag = var[2].tag
-   if is_literal(var[2].tag) then
-      result[func_id].varindex_literal = result[func_id].varindex_literal + 1
-    else
-      result[func_id].varindex_non_literal = result[func_id].varindex_non_literal + 1
+    if read_or_write == "read" then
+      result[func_id].varindex_read = result[func_id].varindex_read + 1
+      if is_literal(tag) then
+        result[func_id].varindex_read_literal = result[func_id].varindex_read_literal + 1
+       if tag == "ExpTrue" or tag == "ExpFalse" then
+          result[func_id].varindex_read_boolean = result[func_id].varindex_read_boolean + 1
+       elseif tag == "ExpNum" then
+          result[func_id].varindex_read_number = result[func_id].varindex_read_number + 1
+        elseif tag == "ExpStr" then
+          result[func_id].varindex_read_string = result[func_id].varindex_read_string + 1
+        end
+      else
+        result[func_id].varindex_read_non_literal = result[func_id].varindex_read_non_literal + 1
+      end
+    elseif read_or_write == "write" then
+      result[func_id].varindex_write = result[func_id].varindex_write + 1
+      if is_literal(tag) then
+        result[func_id].varindex_write_literal = result[func_id].varindex_write_literal + 1
+       if tag == "ExpTrue" or tag == "ExpFalse" then
+          result[func_id].varindex_write_boolean = result[func_id].varindex_write_boolean + 1
+       elseif tag == "ExpNum" then
+          result[func_id].varindex_write_number = result[func_id].varindex_write_number + 1
+        elseif tag == "ExpStr" then
+          result[func_id].varindex_write_string = result[func_id].varindex_write_string + 1
+        end
+      else
+        result[func_id].varindex_write_non_literal = result[func_id].varindex_write_non_literal + 1
+      end
     end
     check_exp(var[1], func_name, func_id)
     check_exp(var[2], func_name, func_id)
@@ -163,13 +272,17 @@ function check_exp (exp, func_name, func_id)
      exp.tag == "ExpNum" or -- ExpNum Double
      exp.tag == "ExpStr" then -- ExpStr String
   elseif exp.tag == "ExpVar" then -- ExpVar Var
-    check_var(exp[1], func_name, func_id)
+    check_var(exp[1], func_name, func_id, "read")
   elseif exp.tag == "ExpFunction" then -- ExpFunction [Name] Stm
     new_func_def("anonymous", exp[1].is_vararg)
     local id = result.number_of_functions
     if #exp[1] > 0 then
-      if exp[1][1] == "self" or exp[1][1] == "this" then
+      if exp[1][1] == "self" then
         result[id].is_method = 1
+        result[id].method_self = 1
+      elseif exp[1][1] == "this" then
+        result[id].is_method = 1
+        result[id].method_this = 1
       end
     end
     check_stm(exp[2], func_name, result.number_of_functions)
@@ -179,8 +292,10 @@ function check_exp (exp, func_name, func_id)
   elseif exp.tag == "ExpMethodCall" then -- ExpMethodCall Exp [Exp]
     -- statistics of the use of table indexing
     result[func_id].varindex = result[func_id].varindex + 1
-    result[func_id].varindex_literal = result[func_id].varindex_literal + 1
-    result[func_id].varindex_literal_fc = result[func_id].varindex_literal_fc + 1
+    result[func_id].varindex_read = result[func_id].varindex_read + 1
+    result[func_id].varindex_read_literal = result[func_id].varindex_read_literal + 1
+    result[func_id].varindex_read_string = result[func_id].varindex_read_string + 1
+    result[func_id].varindex_read_literal_mc = result[func_id].varindex_read_literal_mc + 1
     check_exp(exp[1][1][1], func_name, func_id)
     check_explist(exp[2], func_name, func_id)
   elseif exp.tag == "ExpFunctionCall" then -- ExpFunctionCall Exp [Exp]
@@ -189,6 +304,7 @@ function check_exp (exp, func_name, func_id)
       local fname = exp[1][1][1]
       if fname == "type" then
         result[func_id].use_type = result[func_id].use_type + 1
+        result[func_id].type_count = result[func_id].type_count + 1
         if exp[2][1].tag == "ExpVar" and exp[2][1][1].tag == "VarID" then
           result[func_id].type_id = result[func_id].type_id + 1
         else
@@ -202,10 +318,10 @@ function check_exp (exp, func_name, func_id)
         result[func_id].use_getmetatable = 1
       -- statistics of the use of ipairs
       elseif fname == "ipairs" then
-        result[func_id].use_ipairs = 1
+        result[func_id].ipairs_count = result[func_id].ipairs_count + 1
       -- statistics of the use of pairs
       elseif fname == "pairs" then
-        result[func_id].use_pairs = 1
+        result[func_id].pairs_count = result[func_id].pairs_count + 1
       -- statistics of the use of module
       elseif fname == "module" and func_id == 0 then
         result.calling_module = true
@@ -214,9 +330,9 @@ function check_exp (exp, func_name, func_id)
     -- statistics of the use of table indexing
     if exp[1].tag == "ExpVar" and exp[1][1].tag == "VarIndex" then
       if is_literal(exp[1][1][2].tag) then
-        result[func_id].varindex_literal_fc = result[func_id].varindex_literal_fc + 1
+        result[func_id].varindex_read_literal_fc = result[func_id].varindex_read_literal_fc + 1
       else
-        result[func_id].varindex_non_literal_fc = result[func_id].varindex_non_literal_fc + 1
+        result[func_id].varindex_read_non_literal_fc = result[func_id].varindex_read_non_literal_fc + 1
       end
     end
     check_exp(exp[1], func_name, func_id)
@@ -262,6 +378,9 @@ function check_stm (stm, func_name, func_id)
     check_exp(stm[3], func_name, func_id)
     check_exp(stm[4], func_name, func_id)
     check_stm(stm[5], func_name, func_id)
+    if stm[3].tag == "ExpLen" then
+      result[func_id].len_count = result[func_id].len_count + 1
+    end
   elseif stm.tag == "StmForGen" then -- StmForGen [Name] [Exp] Stm
     check_explist(stm[2], func_name, func_id)
     check_stm(stm[3], func_name, func_id)
@@ -274,13 +393,19 @@ function check_stm (stm, func_name, func_id)
     if stm[1].tag == "Method" then
       -- statistics of the use of method definition
       result[id].is_method = 1
+      result[id].method_colon = 1
       -- statistics of the use of function declaration as table field
       result[id].table_field = 1
     elseif stm[1].tag == "Function" then
       -- statistics of the use of method definition
       if #stm[2] > 0 then
-        if stm[2][1] == "self" or stm[2][1] == "this" then
+        if stm[2][1] == "self" then
           result[id].is_method = 1
+          result[id].method_self = 1
+          result[id].table_field = 1
+        elseif stm[2][1] == "this" then
+          result[id].is_method = 1
+          result[id].method_this = 1
           result[id].table_field = 1
         end
      end
@@ -344,24 +469,48 @@ local function result_recon ()
   result.ret_false_se = 0
   result.ret_mult_values = 0
   result.use_type = 0
+  result.type_count = 0
   result.use_type_recon = 0
   result.type_id = 0
   result.type_other = 0
   result.use_setmetatable = 0
   result.use_getmetatable = 0
   result.use_ipairs = 0
+  result.ipairs_count = 0
   result.use_pairs = 0
+  result.pairs_count = 0
+  result.use_len = 0
+  result.len_count = 0
   result.number_of_methods = 0
+  result.method_colon = 0
+  result.method_self = 0
+  result.method_this = 0
   result.table_field = 0
   result.empty_construct = 0
   result.only_static = 0
   result.only_dynamic = 0
   result.static_and_dynamic = 0
+  result.table_list = 0
+  result.table_record = 0
+  result.table_list_and_record = 0
+  result.table_boolean = 0
+  result.table_vararg = 0
   result.varindex = 0
-  result.varindex_literal = 0
-  result.varindex_literal_fc = 0
-  result.varindex_non_literal = 0
-  result.varindex_non_literal_fc = 0
+  result.varindex_read = 0
+  result.varindex_write = 0
+  result.varindex_read_literal = 0
+  result.varindex_read_boolean = 0
+  result.varindex_read_number = 0
+  result.varindex_read_string = 0
+  result.varindex_read_non_literal = 0
+  result.varindex_read_literal_fc = 0
+  result.varindex_read_literal_mc = 0
+  result.varindex_read_non_literal_fc = 0
+  result.varindex_write_literal = 0
+  result.varindex_write_boolean = 0
+  result.varindex_write_number = 0
+  result.varindex_write_string = 0
+  result.varindex_write_non_literal = 0
   result.number_of_constructs = 0
   for i=0,result.number_of_functions do
     if result[i].func_type == "A" then
@@ -377,26 +526,56 @@ local function result_recon ()
     result.ret_mult_values = result.ret_mult_values + result[i].ret_mult_values
     if result[i].use_type > 0 then
       result.use_type = result.use_type + 1
+      result.type_count = result.type_count + result[i].type_count
       result.use_type_recon = result.use_type_recon + result[i].use_type
       result.type_id = result.type_id + result[i].type_id
       result.type_other = result.type_other + result[i].type_other
     end
     result.use_setmetatable = result.use_setmetatable + result[i].use_setmetatable
     result.use_getmetatable = result.use_getmetatable + result[i].use_getmetatable
-    result.use_ipairs = result.use_ipairs + result[i].use_ipairs
-    result.use_pairs = result.use_pairs + result[i].use_pairs
+    if result[i].ipairs_count > 0 then
+      result.use_ipairs = 1
+      result.ipairs_count = result.ipairs_count + result[i].ipairs_count
+    end
+    if result[i].pairs_count > 0 then
+      result.use_pairs = 1
+      result.pairs_count = result.pairs_count + result[i].pairs_count
+    end
+    if result[i].len_count > 0 then
+      result.use_len = 1
+      result.len_count = result.len_count + result[i].len_count
+    end
     result.number_of_methods = result.number_of_methods + result[i].is_method
+    result.method_colon = result.method_colon + result[i].method_colon
+    result.method_self = result.method_self + result[i].method_self
+    result.method_this = result.method_this + result[i].method_this
     result.table_field = result.table_field + result[i].table_field
     result.number_of_constructs = result.number_of_constructs + result[i].number_of_constructs
     result.empty_construct = result.empty_construct + result[i].empty_construct
     result.only_static = result.only_static + result[i].only_static
     result.only_dynamic = result.only_dynamic + result[i].only_dynamic
     result.static_and_dynamic = result.static_and_dynamic + result[i].static_and_dynamic
+    result.table_list = result.table_list + result[i].table_list
+    result.table_record = result.table_record + result[i].table_record
+    result.table_list_and_record = result.table_list_and_record + result[i].table_list_and_record
+    result.table_boolean = result.table_boolean + result[i].table_boolean
+    result.table_vararg = result.table_vararg + result[i].table_vararg
     result.varindex = result.varindex + result[i].varindex
-    result.varindex_literal = result.varindex_literal + result[i].varindex_literal
-    result.varindex_literal_fc = result.varindex_literal_fc + result[i].varindex_literal_fc
-    result.varindex_non_literal = result.varindex_non_literal + result[i].varindex_non_literal
-    result.varindex_non_literal_fc = result.varindex_non_literal_fc + result[i].varindex_non_literal_fc
+    result.varindex_read = result.varindex_read + result[i].varindex_read
+    result.varindex_write = result.varindex_write + result[i].varindex_write
+    result.varindex_read_literal = result.varindex_read_literal + result[i].varindex_read_literal
+    result.varindex_read_boolean = result.varindex_read_boolean + result[i].varindex_read_boolean
+    result.varindex_read_number = result.varindex_read_number + result[i].varindex_read_number
+    result.varindex_read_string = result.varindex_read_string + result[i].varindex_read_string
+    result.varindex_read_non_literal = result.varindex_read_non_literal + result[i].varindex_read_non_literal
+    result.varindex_read_literal_fc = result.varindex_read_literal_fc + result[i].varindex_read_literal_fc
+    result.varindex_read_literal_mc = result.varindex_read_literal_mc + result[i].varindex_read_literal_mc
+    result.varindex_read_non_literal_fc = result.varindex_read_non_literal_fc + result[i].varindex_read_non_literal_fc
+    result.varindex_write_literal = result.varindex_write_literal + result[i].varindex_write_literal
+    result.varindex_write_boolean = result.varindex_write_boolean + result[i].varindex_write_boolean
+    result.varindex_write_number = result.varindex_write_number + result[i].varindex_write_number
+    result.varindex_write_string = result.varindex_write_string + result[i].varindex_write_string
+    result.varindex_write_non_literal = result.varindex_write_non_literal + result[i].varindex_write_non_literal
   end
   local sum = result.anonymousf + result.globalf + result.localf
   if result.number_of_functions ~= sum then
@@ -410,7 +589,7 @@ local function result_recon ()
   if result.number_of_constructs ~= sum then
     error("number of table constructs does not match")
   end
-  sum = result.varindex_literal + result.varindex_non_literal
+  sum = result.varindex_read + result.varindex_write
   if result.varindex ~= sum then
     error("number of varindex usage does not match")
   end
@@ -531,22 +710,46 @@ function statistics.log_result (filename, result)
   print("ret_false_se", result.ret_false_se)
   print("ret_mult_values", result.ret_mult_values)
   print("use_type", result.use_type)
+  print("type_count", result.type_count)
   print("use_setmetatable", result.use_setmetatable)
   print("use_getmetatable", result.use_getmetatable)
   print("use_ipairs", result.use_ipairs)
+  print("ipairs_count", result.ipairs_count)
   print("use_pairs", result.use_pairs)
+  print("pairs_count", result.pairs_count)
+  print("use_len", result.use_len)
+  print("len_count", result.len_count)
   print("number_of_methods", result.number_of_methods)
+  print("method_colon", result.method_colon)
+  print("method_self", result.method_self)
+  print("method_this", result.method_this)
   print("table_field", result.table_field)
   print("number_of_constructs", result.number_of_constructs)
   print("empty_construct", result.empty_construct)
   print("only_static", result.only_static)
   print("only_dynamic", result.only_dynamic)
   print("static_and_dynamic", result.static_and_dynamic)
+  print("table_list", result.table_list)
+  print("table_record", result.table_record)
+  print("table_list_and_record", result.table_list_and_record)
+  print("table_boolean", result.table_boolean)
+  print("table_vararg", result.table_vararg)
   print("varindex", result.varindex)
-  print("varindex_literal", result.varindex_literal)
-  print("varindex_literal_fc", result.varindex_literal_fc)
-  print("varindex_non_literal", result.varindex_non_literal)
-  print("varindex_non_literal_fc", result.varindex_non_literal_fc)
+  print("varindex_read", result.varindex_read)
+  print("varindex_write", result.varindex_write)
+  print("varindex_read_literal", result.varindex_read_literal)
+  print("varindex_read_boolean", result.varindex_read_boolean)
+  print("varindex_read_number", result.varindex_read_number)
+  print("varindex_read_string", result.varindex_read_string)
+  print("varindex_read_non_literal", result.varindex_read_non_literal)
+  print("varindex_read_literal_fc", result.varindex_read_literal_fc)
+  print("varindex_read_literal_mc", result.varindex_read_literal_mc)
+  print("varindex_read_non_literal_fc", result.varindex_read_non_literal_fc)
+  print("varindex_write_literal", result.varindex_write_literal)
+  print("varindex_write_boolean", result.varindex_write_boolean)
+  print("varindex_write_number", result.varindex_write_number)
+  print("varindex_write_string", result.varindex_write_string)
+  print("varindex_write_non_literal", result.varindex_write_non_literal)
   print("returning_module", result.returning_module)
   print("calling_module", result.calling_module)
 end
@@ -563,24 +766,48 @@ function statistics.init_merge ()
   merge.ret_false_se = 0
   merge.ret_mult_values = 0
   merge.use_type = 0
+  merge.type_count = 0
   merge.type_id = 0
   merge.type_other = 0
   merge.use_setmetatable = 0
   merge.use_getmetatable = 0
   merge.use_ipairs = 0
+  merge.ipairs_count = 0
   merge.use_pairs = 0
+  merge.pairs_count = 0
+  merge.use_len = 0
+  merge.len_count = 0
   merge.number_of_methods = 0
+  merge.method_colon = 0
+  merge.method_self = 0
+  merge.method_this = 0
   merge.table_field = 0
   merge.number_of_constructs = 0
   merge.empty_construct = 0
   merge.only_static = 0
   merge.only_dynamic = 0
   merge.static_and_dynamic = 0
+  merge.table_list = 0
+  merge.table_record = 0
+  merge.table_list_and_record = 0
+  merge.table_boolean = 0
+  merge.table_vararg = 0
   merge.varindex = 0
-  merge.varindex_literal = 0
-  merge.varindex_literal_fc = 0
-  merge.varindex_non_literal = 0
-  merge.varindex_non_literal_fc = 0
+  merge.varindex_read = 0
+  merge.varindex_write = 0
+  merge.varindex_read_literal = 0
+  merge.varindex_read_boolean = 0
+  merge.varindex_read_number = 0
+  merge.varindex_read_string = 0
+  merge.varindex_read_non_literal = 0
+  merge.varindex_read_literal_fc = 0
+  merge.varindex_read_literal_mc = 0
+  merge.varindex_read_non_literal_fc = 0
+  merge.varindex_write_literal = 0
+  merge.varindex_write_boolean = 0
+  merge.varindex_write_number = 0
+  merge.varindex_write_string = 0
+  merge.varindex_write_non_literal = 0
   merge.returning_module = 0
   merge.calling_module = 0
   merge.module_and_return = 0
@@ -599,6 +826,7 @@ function statistics.merge (result, merge)
   merge.ret_false_se = merge.ret_false_se + result.ret_false_se
   merge.ret_mult_values = merge.ret_mult_values + result.ret_mult_values
   merge.use_type = merge.use_type + result.use_type
+  merge.type_count = merge.type_count + result.type_count
   if result.use_setmetatable > 0 then
     merge.use_setmetatable = merge.use_setmetatable + 1
   end
@@ -611,18 +839,43 @@ function statistics.merge (result, merge)
   if result.use_pairs > 0 then
     merge.use_pairs = merge.use_pairs + 1
   end
+  if result.use_len > 0 then
+    merge.use_len = merge.use_len + 1
+  end
+  merge.ipairs_count = merge.ipairs_count + result.ipairs_count
+  merge.pairs_count = merge.pairs_count + result.pairs_count
+  merge.len_count = merge.len_count + result.len_count
   merge.number_of_methods = merge.number_of_methods + result.number_of_methods
+  merge.method_colon = merge.method_colon + result.method_colon
+  merge.method_self = merge.method_self + result.method_self
+  merge.method_this = merge.method_this + result.method_this
   merge.table_field = merge.table_field + result.table_field
   merge.number_of_constructs = merge.number_of_constructs + result.number_of_constructs
   merge.empty_construct = merge.empty_construct + result.empty_construct
   merge.only_static = merge.only_static + result.only_static
   merge.only_dynamic = merge.only_dynamic + result.only_dynamic
   merge.static_and_dynamic = merge.static_and_dynamic + result.static_and_dynamic
+  merge.table_list = merge.table_list + result.table_list
+  merge.table_record = merge.table_record + result.table_record
+  merge.table_list_and_record = merge.table_list_and_record + result.table_list_and_record
+  merge.table_boolean = merge.table_boolean + result.table_boolean
+  merge.table_vararg = merge.table_vararg + result.table_vararg
   merge.varindex = merge.varindex + result.varindex
-  merge.varindex_literal = merge.varindex_literal + result.varindex_literal
-  merge.varindex_literal_fc = merge.varindex_literal_fc + result.varindex_literal_fc
-  merge.varindex_non_literal = merge.varindex_non_literal + result.varindex_non_literal
-  merge.varindex_non_literal_fc = merge.varindex_non_literal_fc + result.varindex_non_literal_fc
+  merge.varindex_read = merge.varindex_read + result.varindex_read
+  merge.varindex_write = merge.varindex_write + result.varindex_write
+  merge.varindex_read_literal = merge.varindex_read_literal + result.varindex_read_literal
+  merge.varindex_read_boolean = merge.varindex_read_boolean + result.varindex_read_boolean
+  merge.varindex_read_number = merge.varindex_read_number + result.varindex_read_number
+  merge.varindex_read_string = merge.varindex_read_string + result.varindex_read_string
+  merge.varindex_read_non_literal = merge.varindex_read_non_literal + result.varindex_read_non_literal
+  merge.varindex_read_literal_fc = merge.varindex_read_literal_fc + result.varindex_read_literal_fc
+  merge.varindex_read_literal_mc = merge.varindex_read_literal_mc + result.varindex_read_literal_mc
+  merge.varindex_read_non_literal_fc = merge.varindex_read_non_literal_fc + result.varindex_read_non_literal_fc
+  merge.varindex_write_literal = merge.varindex_write_literal + result.varindex_write_literal
+  merge.varindex_write_boolean = merge.varindex_write_boolean + result.varindex_write_boolean
+  merge.varindex_write_number = merge.varindex_write_number + result.varindex_write_number
+  merge.varindex_write_string = merge.varindex_write_string + result.varindex_write_string
+  merge.varindex_write_non_literal = merge.varindex_write_non_literal + result.varindex_write_non_literal
   if result.returning_module and result.calling_module then
     merge.module_and_return = merge.module_and_return + 1
   elseif result.returning_module then
@@ -646,22 +899,46 @@ function statistics.log_merge (merge)
   print("ret_false_se", merge.ret_false_se)
   print("ret_mult_values", merge.ret_mult_values)
   print("use_type", merge.use_type)
+  print("type_count", merge.type_count)
   print("use_setmetatable", merge.use_setmetatable)
   print("use_getmetatable", merge.use_getmetatable)
   print("use_ipairs", merge.use_ipairs)
+  print("ipairs_count", merge.ipairs_count)
   print("use_pairs", merge.use_pairs)
+  print("pairs_count", merge.pairs_count)
+  print("use_len", merge.use_len)
+  print("len_count", merge.len_count)
   print("number_of_methods", merge.number_of_methods)
+  print("method_colon", merge.method_colon)
+  print("method_self", merge.method_self)
+  print("method_this", merge.method_this)
   print("table_field", merge.table_field)
   print("number_of_constructs", merge.number_of_constructs)
   print("empty_construct", merge.empty_construct)
   print("only_static", merge.only_static)
   print("only_dynamic", merge.only_dynamic)
   print("static_and_dynamic", merge.static_and_dynamic)
+  print("table_list", merge.table_list)
+  print("table_record", merge.table_record)
+  print("table_list_and_record", merge.table_list_and_record)
+  print("table_boolean", merge.table_boolean)
+  print("table_vararg", merge.table_vararg)
   print("varindex", merge.varindex)
-  print("varindex_literal", merge.varindex_literal)
-  print("varindex_literal_fc", merge.varindex_literal_fc)
-  print("varindex_non_literal", merge.varindex_non_literal)
-  print("varindex_non_literal_fc", merge.varindex_non_literal_fc)
+  print("varindex_read", merge.varindex_read)
+  print("varindex_write", merge.varindex_write)
+  print("varindex_read_literal", merge.varindex_read_literal)
+  print("varindex_read_boolean", merge.varindex_read_boolean)
+  print("varindex_read_number", merge.varindex_read_number)
+  print("varindex_read_string", merge.varindex_read_string)
+  print("varindex_read_non_literal", merge.varindex_read_non_literal)
+  print("varindex_read_literal_fc", merge.varindex_read_literal_fc)
+  print("varindex_read_literal_mc", merge.varindex_read_literal_mc)
+  print("varindex_read_non_literal_fc", merge.varindex_read_non_literal_fc)
+  print("varindex_write_literal", merge.varindex_write_literal)
+  print("varindex_write_boolean", merge.varindex_write_boolean)
+  print("varindex_write_number", merge.varindex_write_number)
+  print("varindex_write_string", merge.varindex_write_string)
+  print("varindex_write_non_literal", merge.varindex_write_non_literal)
   print("returning_module", merge.returning_module)
   print("calling_module", merge.calling_module)
   print("module_and_return", merge.module_and_return)
