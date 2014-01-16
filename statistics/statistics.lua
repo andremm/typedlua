@@ -98,18 +98,10 @@ function check_fieldlist (fieldlist, func_name, func_id)
     end
   elseif #fieldlist[1] == 0 and #fieldlist[2] > 0 then
     for k,v in ipairs(fieldlist[2]) do
-      if v[1].tag == "ExpNum" or
-         v[1].tag == "ExpAdd" or
-         v[1].tag == "ExpSub" or
-         v[1].tag == "ExpMul" or
-         v[1].tag == "ExpDiv" or
-         v[1].tag == "ExpMod" or
-         v[1].tag == "ExpPow" or
-         v[1].tag == "ExpMinus" then
+      if v[1].tag == "ExpNum" then
         only_dynamic = false
         list = true
-      elseif v[1].tag == "ExpStr" or
-             v[1].tag == "ExpConcat" then
+      elseif v[1].tag == "ExpStr" then
         only_dynamic = false
         record = true
       elseif v[1].tag == "ExpTrue" or
@@ -142,18 +134,10 @@ function check_fieldlist (fieldlist, func_name, func_id)
     only_dynamic = false
     list = true
     for k,v in ipairs(fieldlist[2]) do
-      if v[1].tag == "ExpNum" or
-         v[1].tag == "ExpAdd" or
-         v[1].tag == "ExpSub" or
-         v[1].tag == "ExpMul" or
-         v[1].tag == "ExpDiv" or
-         v[1].tag == "ExpMod" or
-         v[1].tag == "ExpPow" or
-         v[1].tag == "ExpMinus" then
+      if v[1].tag == "ExpNum" then
         only_dynamic = false
         list = true
-      elseif v[1].tag == "ExpStr" or
-             v[1].tag == "ExpConcat" then
+      elseif v[1].tag == "ExpStr" then
         only_dynamic = false
         record = true
       elseif v[1].tag == "ExpTrue" or
