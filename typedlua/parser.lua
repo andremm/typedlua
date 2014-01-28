@@ -189,13 +189,14 @@ local G = { V"TypedLua",
     end;
   RecordFieldList = sepby1(V"RecordField", symb(","), "RecordFieldList");
   RecordField = taggedCap("RecordField", V"ConstantType" * symb(":") * V"Type");
-  ConstantType = (V"Number" + V"String") /
+  ConstantType = (token(V"Number", "Number") + token(V"String", "String")) /
     function (c)
       return { tag = "TypeConstant", [1] = c }
     end;
   PrimaryType = (V"ObjectType" +
                 V"DynamicType" +
                 V"NilType" +
+                V"ConstantType" +
                 V"BaseType" +
                 V"NameType" +
                 V"FunctionType" +
