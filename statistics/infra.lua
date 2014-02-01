@@ -84,10 +84,29 @@ local function grep_v_moon_projects (unpack_dir)
   return str
 end
 
-local function build_luac_list (unpack_dir, luac_list)
+local function build_total_list (unpack_dir, total_list, luac_list)
   assert(type(unpack_dir) == "string")
+  assert(type(total_list) == "string")
   assert(type(luac_list) == "string")
-  local file = assert(io.open(luac_list, "w"))
+  local total = assert(io.open(total_list, "w"))
+  local luac = assert(io.open(luac_list, "w"))
+  local FIND = string.format("find %s -name '*.lua'", unpack_dir)
+  for dotlua in io.popen(FIND):lines() do
+    total:write(dotlua .. "\n")
+    local ret = os.execute(string.format("luac '%s' >> %s 2>&1", dotlua, LOG))
+    if ret then
+      luac:write(dotlua .. "\n")
+    end
+  end
+  io.close(total)
+  io.close(luac)
+  os.remove("luac.out")
+end
+
+local function build_database_list (unpack_dir, database_list)
+  assert(type(unpack_dir) == "string")
+  assert(type(database_list) == "string")
+  local file = assert(io.open(database_list, "w"))
   local FIND = string.format("find %s -name '*.lua' %s %s %s",
     unpack_dir, grep_v_dirs(unpack_dir), grep_v_moon_projects(unpack_dir), grep_v_test())
   for dotlua in io.popen(FIND):lines() do
@@ -109,7 +128,10 @@ local path = arg[1]
 local repo_dir = path .. "/rocks"
 local unpack_dir = path .. "/unpack"
 local luarocks_host = "luarocks.org::rocks"
+local total_list = "total.csv"
 local luac_list = "luac.csv"
+local database_list = "database.csv"
+local unpack_file = "unpack.csv"
 
 print("> removing old log")
 LOG = os.getenv("PWD") .. "/" .. LOG
@@ -121,10 +143,17 @@ rsync(luarocks_host, repo_dir)
 print(string.format("> preparing unpack directory: %s", unpack_dir))
 cleandir(unpack_dir)
 mkdir(unpack_dir)
+if not os.execute("which luarocks") then
+  print("ERROR: luarocks is not installed")
+  os.exit(1)
+end
 print(string.format("> unpacking rocks from %s to %s", repo_dir, unpack_dir))
 luarocks_unpack(repo_dir, unpack_dir)
-print(string.format("> bulding luac listing to %s", luac_list))
-build_luac_list(unpack_dir, luac_list)
+os.execute(string.format("echo %s > %s", unpack_dir, unpack_file))
+print(string.format("> bulding total and luac listings to %s and %s", total_list, luac_list))
+build_total_list(unpack_dir, total_list, luac_list)
+print(string.format("> bulding database listing to %s", database_list))
+build_database_list(unpack_dir, database_list)
 
 os.exit(0)
 
