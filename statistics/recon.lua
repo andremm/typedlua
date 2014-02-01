@@ -1,7 +1,3 @@
---[[
-package.path = "../?.lua;" .. package.path
-local parser = require "typedlua.parser"
-]]
 local parser = require "parser"
 
 for i in io.lines("compile.csv") do

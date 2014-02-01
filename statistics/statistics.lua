@@ -1,11 +1,6 @@
 
 local statistics = {}
 
---[[
-package.path = "../?.lua;" .. package.path
-local parser = require "typedlua.parser"
-]]
-
 local parser = require "parser"
 
 local number_of_functions = 0
@@ -684,6 +679,8 @@ end
 function statistics.init_merge ()
   local merge = {}
   merge.number_of_files = 0
+  merge.number_of_projects = 0
+  merge.project = {}
   merge.number_of_functions = 0
   merge.anonymousf = 0
   merge.globalf = 0
@@ -697,7 +694,9 @@ function statistics.init_merge ()
   merge.type_id = 0
   merge.type_other = 0
   merge.use_setmetatable = 0
+  merge.prj_setmetatable = 0
   merge.use_getmetatable = 0
+  merge.prj_getmetatable = 0
   merge.use_ipairs = 0
   merge.ipairs_count = 0
   merge.use_pairs = 0
@@ -705,6 +704,8 @@ function statistics.init_merge ()
   merge.use_len = 0
   merge.len_count = 0
   merge.number_of_methods = 0
+  merge.prj_colon = 0
+  merge.prj_self = 0
   merge.method_colon = 0
   merge.method_self = 0
   merge.method_this = 0
@@ -742,8 +743,12 @@ function statistics.init_merge ()
   return merge
 end
 
-function statistics.merge (result, merge)
+function statistics.merge (result, merge, project)
   merge.number_of_files = merge.number_of_files + 1
+  if not merge.project[project] then
+    merge.project[project] = {}
+    merge.number_of_projects = merge.number_of_projects + 1
+  end
   merge.number_of_functions = merge.number_of_functions + result.number_of_functions
   merge.anonymousf = merge.anonymousf + result.anonymousf
   merge.globalf = merge.globalf + result.globalf
@@ -756,9 +761,17 @@ function statistics.merge (result, merge)
   merge.type_count = merge.type_count + result.type_count
   if result.use_setmetatable > 0 then
     merge.use_setmetatable = merge.use_setmetatable + 1
+    if not merge.project[project].use_setmetatable then
+      merge.project[project].use_setmetatable = true
+      merge.prj_setmetatable = merge.prj_setmetatable + 1
+    end
   end
   if result.use_getmetatable > 0 then
     merge.use_getmetatable = merge.use_getmetatable + 1
+    if not merge.project[project].use_getmetatable then
+      merge.project[project].use_getmetatable = true
+      merge.prj_getmetatable = merge.prj_getmetatable + 1
+    end
   end
   if result.use_ipairs > 0 then
     merge.use_ipairs = merge.use_ipairs + 1
@@ -774,7 +787,19 @@ function statistics.merge (result, merge)
   merge.len_count = merge.len_count + result.len_count
   merge.number_of_methods = merge.number_of_methods + result.number_of_methods
   merge.method_colon = merge.method_colon + result.method_colon
+  if result.method_colon > 0 then
+    if not merge.project[project].use_colon then
+      merge.project[project].use_colon = true
+      merge.prj_colon = merge.prj_colon + 1
+    end
+  end
   merge.method_self = merge.method_self + result.method_self
+  if result.method_self > 0 then
+    if not merge.project[project].use_self then
+      merge.project[project].use_self = true
+      merge.prj_self = merge.prj_self + 1
+    end
+  end
   merge.method_this = merge.method_this + result.method_this
   merge.table_field = merge.table_field + result.table_field
   merge.number_of_constructs = merge.number_of_constructs + result.number_of_constructs
@@ -817,6 +842,7 @@ end
 function statistics.log_merge (merge)
   print("MERGED RESULTS")
   print("number_of_files", merge.number_of_files)
+  print("number_of_projects", merge.number_of_projects)
   print("number_of_functions", merge.number_of_functions)
   print("anonymous", merge.anonymousf)
   print("global", merge.globalf)
@@ -828,7 +854,9 @@ function statistics.log_merge (merge)
   print("use_type", merge.use_type)
   print("type_count", merge.type_count)
   print("use_setmetatable", merge.use_setmetatable)
+  print("prj_setmetatable", merge.prj_setmetatable)
   print("use_getmetatable", merge.use_getmetatable)
+  print("prj_getmetatable", merge.prj_getmetatable)
   print("use_ipairs", merge.use_ipairs)
   print("ipairs_count", merge.ipairs_count)
   print("use_pairs", merge.use_pairs)
@@ -836,6 +864,8 @@ function statistics.log_merge (merge)
   print("use_len", merge.use_len)
   print("len_count", merge.len_count)
   print("number_of_methods", merge.number_of_methods)
+  print("prj_colon", merge.prj_colon)
+  print("prj_self", merge.prj_self)
   print("method_colon", merge.method_colon)
   print("method_self", merge.method_self)
   print("method_this", merge.method_this)
