@@ -22,13 +22,24 @@
 
 \section{Type Language}
 
+%\begin{align*}
+%T ::= \; & C \; \pipe B \; \pipe Any \; \pipe
+%T \cup T \; \pipe S \rightarrow S\\
+%C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
+%\pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
+%B ::= \; & Boolean \; \pipe Number \; \pipe String\\
+%S ::= \; & Void \; \pipe T \; \pipe {T*} \; \pipe T \times S\\ 
+%\end{align*}
+
 \begin{align*}
-T ::= \; & C \; \pipe B \; \pipe Any \; \pipe
-T \cup T \; \pipe S \rightarrow S\\
+T ::= \; & C \; \pipe B \; \pipe \mathbf{any} \; \pipe
+T \cup T \; \pipe L \rightarrow L \; \pipe \\
+& \{T:T, ..., T:T\} \; \pipe X \; \pipe \mu X.T\\
 C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
-\pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
-B ::= \; & Boolean \; \pipe Number \; \pipe String\\
-S ::= \; & Void \; \pipe T \; \pipe {T*} \; \pipe T \times S\\ 
+\pipe n \; \pipe s\\
+B ::= \; & \mathbf{boolean} \; \pipe \mathbf{number} \; \pipe \mathbf{string}\\
+L ::= \; & \mathbf{void} \; \pipe S\\
+S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
 \end{align*}
 
 \section{Subtyping}
