@@ -706,6 +706,9 @@ function statistics.init_merge ()
   merge.number_of_methods = 0
   merge.prj_colon = 0
   merge.prj_self = 0
+  merge.prj_set_meth = 0
+  merge.prj_set_colon = 0
+  merge.prj_set_self = 0
   merge.method_colon = 0
   merge.method_self = 0
   merge.method_this = 0
@@ -792,12 +795,32 @@ function statistics.merge (result, merge, project)
       merge.project[project].use_colon = true
       merge.prj_colon = merge.prj_colon + 1
     end
+    if merge.project[project].use_setmetatable and
+       not merge.project[project].use_set_colon then
+      merge.project[project].use_set_colon = true
+      merge.prj_set_colon = merge.prj_set_colon + 1
+      if merge.project[project].use_set_self and
+         not merge.project[project].use_set_meth then
+        merge.project[project].use_set_meth = true
+        merge.prj_set_meth = merge.prj_set_meth + 1
+      end
+    end
   end
   merge.method_self = merge.method_self + result.method_self
   if result.method_self > 0 then
     if not merge.project[project].use_self then
       merge.project[project].use_self = true
       merge.prj_self = merge.prj_self + 1
+    end
+    if merge.project[project].use_setmetatable and
+       not merge.project[project].use_set_self then
+      merge.project[project].use_set_self = true
+      merge.prj_set_self = merge.prj_set_self + 1
+      if merge.project[project].use_set_colon and
+         not merge.project[project].use_set_meth then
+        merge.project[project].use_set_meth = true
+        merge.prj_set_meth = merge.prj_set_meth + 1
+      end
     end
   end
   merge.method_this = merge.method_this + result.method_this
@@ -865,7 +888,11 @@ function statistics.log_merge (merge)
   print("len_count", merge.len_count)
   print("number_of_methods", merge.number_of_methods)
   print("prj_colon", merge.prj_colon)
-  print("prj_self", merge.prj_self)
+  print("prj_set_meth", (merge.prj_set_colon - merge.prj_set_meth) +
+                        (merge.prj_set_self - merge.prj_set_meth) +
+                         merge.prj_set_meth)
+  print("prj_set_colon", merge.prj_set_colon - merge.prj_set_meth)
+  print("prj_set_self", merge.prj_set_self - merge.prj_set_meth)
   print("method_colon", merge.method_colon)
   print("method_self", merge.method_self)
   print("method_this", merge.method_this)
