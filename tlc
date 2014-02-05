@@ -1,0 +1,111 @@
+#!/usr/bin/env lua
+
+local parser = require "typedlua.parser"
+local pp = require "typedlua.pp"
+
+local VERSION = "0.1-alpha1"
+local PROGNAME = "tlc"
+local OUTPUT = PROGNAME .. ".lua"
+
+local DUMPAST = false
+local PRINTAST = false
+
+local TYPECHECK = true
+
+local progname = PROGNAME
+
+local USAGE = [[
+usage: %s [options] [filename]
+Available options are:
+-d	dump the AST
+-g	generate code without type checking
+-h	print this help
+-o name	output to file 'name' (default is '%s')
+-p	print the AST
+-v	print current version
+]]
+
+local function usage (msg)
+  if msg ~= nil then
+    io.stderr:write(string.format("%s: %s\n", progname, msg))
+  end
+  io.stderr:write(string.format(USAGE, progname, OUTPUT))
+  os.exit(1)
+end
+
+local function doargs ()
+  local i = 1
+  while i <= #arg do
+    if string.find(arg[i], "^-") == nil then
+      return i
+    elseif arg[i] == "-d" then
+      DUMPAST = true
+    elseif arg[i] == "-g" then
+      TYPECHECK = false
+    elseif arg[i] == "-h" then
+      usage()
+    elseif arg[i] == "-o" then
+      i = i + 1
+      if arg[i] == nil or string.find(arg[i], "^-") then
+        usage("'-o' needs argument")
+      else
+        OUTPUT = arg[i]
+      end
+    elseif arg[i] == "-p" then
+      PRINTAST = true
+    elseif arg[i] == "-v" then
+      io.write(string.format("Typed Lua %s\n", VERSION))
+      os.exit(0)
+    else
+      usage(string.format("'%s' unknown option", arg[i]))
+    end
+    i = i + 1
+  end
+  return i
+end
+
+local function getcontents (filename)
+  local file = assert(io.open(filename, "r"))
+  local contents = file:read("*a")
+  file:close()
+  return contents
+end
+
+local function setcontents (contents, filename)
+  local file = assert(io.open(filename, "w"))
+  file:write(contents)
+  file:write("\n")
+  file:close()
+end
+
+if #arg < 1 then
+  usage("no input file given")
+end
+
+local i = doargs()
+local filename = arg[i]
+local subject = getcontents(filename)
+
+local ast,error_msg = parser.parse(subject, filename)
+if not ast then
+  print(error_msg)
+  os.exit(1)
+end
+
+if DUMPAST and PRINTAST then
+  pp.dump(ast)
+  pp.print(ast)
+  os.exit(0)
+end
+
+if DUMPAST then
+  pp.dump(ast)
+  os.exit(0)
+end
+
+if PRINTAST then
+  pp.print(ast)
+  os.exit(0)
+end
+
+os.exit(0)
