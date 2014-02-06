@@ -3,6 +3,18 @@
 \usepackage[utf8]{inputenc}
 \usepackage{url}
 
+\newcommand{\Any}{\mathbf{any}}
+\newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\False}{\mathbf{false}}
+\newcommand{\True}{\mathbf{true}}
+\newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Number}{\mathbf{number}}
+\newcommand{\String}{\mathbf{string}}
+\newcommand{\Void}{\mathbf{void}}
+
+\def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
+\def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
+
 \begin{document}
 
 \conferenceinfo{Dyla}{'14, Edinburgh, UK} 
@@ -581,10 +593,12 @@ that handles the interaction between Racket and Typed Racket modules.
 
 We begin this section presenting statistics about the usage of Lua
 features and idioms.
-These statistics informed important design decisions on our optional
-type system.
-Then we introduce Typed Lua through examples, and describe a few Lua
-projects that are similar to Typed Lua. 
+We collected statistics about how programmers use tables, functions,
+dynamic type checking, object-oriented programming, and modules.
+We shall see that these statistics informed important design decisions
+on our optional type system.
+We end this section introducing Typed Lua through examples, and
+describing a few Lua projects that are similar to Typed Lua. 
 
 \subsection{Statistics about the usage of Lua}
 
@@ -603,79 +617,129 @@ our statistics database;
 we parsed these files and processed their abstract syntax tree
 to gather the statistics that we show in this section.
 
+To verify how programmers use tables, we measured how they
+initialize, index, and iterate tables.
+We present these statistics in the next three paragraphs to discuss
+their influence on our type system.
+
 The table constructor appears 23185 times.
-In 36\% of the times it is a constructor that initializes a record;
-in 29\% of the times it is a constructor that initializes a list;
-in 8\% of the times it is a constructor that initializes a record
-with a list part;
-and in less than 1\% of the times (4 times) it is a constructor
+In 36\% of the occurrences it is a constructor that initializes a
+record (e.g., \texttt{\{ x = 120, y = 121 \}});
+in 29\% of the occurrences it is a constructor that initializes a
+list (e.g., \texttt{\{ "one", "two", "three", "four" \}});
+in 8\% of the occurrences it is a constructor that initializes a
+record with a list part;
+and in less than 1\% of the occurrences (4 times) it is a constructor
 that uses only the booleans \verb'true' and \verb'false' as indexes.
-These numbers show us that in 73\% of the times it is a constructor
-with literal keys only.
-It also worth mentioning that 5\% of the initialization of lists
-(or 2\% of the uses of the table constructor) use solely the vararg
-expression.
-Back to the statistics about the usage of the table constructor,
-in 26\% of the times it is the empty constructor;
-in 1\% of the times it is a constructor with non-literal keys
+At all, in 73\% of the occurrences it is a constructor that uses
+only literal keys;
+in 26\% of the occurrences it is the empty constructor;
+in 1\% of the occurrences it is a constructor with non-literal keys
 only, that is, a constructor that uses variables and function calls
 to create the indexes of a table;
-and in less than 1\% of the times (19 times) it is a constructor that
-mixes literal keys and non-literal keys.
+and in less than 1\% of the occurrences (19 times) it is a constructor
+that mixes literal keys and non-literal keys.
 
-The indexing of tables appears 130448 times.
-In 86\% of these times it is for reading a table field and
-in 14\% of these times it is for writing into a table field.
-While reading, 89\% of the reads use a string key,
-4\% of the reads use a number key,
-and less than 1\% of the reads (10 times) use a boolean key.
-These numbers show us that 93\% of the reads use literals to index
-a table field.
-It also worth mentioning that 27\% of these reads that use literals
-are function calls and 23\% of these reads that use literals are
-method calls, that is, function calls that use the colon (\verb':')
-syntactic sugar;
-this means that 50\% of these reads that use literals are actually
+The indexing of tables appears 130448 times:
+86\% of them are for reading a table field while
+14\% of them are for writing into a table field.
+About the readings, 89\% of the reads use a literal string key,
+4\% of the reads use a literal number key,
+and less than 1\% of the reads (10 times) use a literal boolean key.
+At all, 93\% of the reads use literals to index a table while
+7\% of the reads use non-literal expressions to index a table.
+It also worth mentioning that 45\% of the reads are actually
 function calls.
-Still while reading, 7\% of the reads use non-literal
-expressions to index a table field; 2\% of these reads that
-use non-literals are function calls.
-While writing, 69\% of the writes use a string key,
-2\% of the writes use a number key,
-and less than 1\% of the writes (1 time) uses a boolean key.
-These numbers show us that 71\% of the writes use literals to index
-a table field.
-Still while writing, the other 29\% of the writes use non-literal
-expressions to index a table field.
+More precisely, 25\% of the reads use literals to call a function,
+20\% of the reads use literals to call a method, that is,
+a function call that uses the colon syntactic sugar, 
+and less than 1\% of the reads (195 times) use non-literal expressions
+to call a function.
+About the writings, 69\% of the writes use a literal string key,
+2\% of the writes use a literal number key,
+and less than 1\% of the writes (1 time) uses a literal boolean key.
+At all, 71\% of the writes use literals to index a table while
+29\% of the writes use non-literal expressions to index a table.
 
-We also gathered data about how many files iterate over tables:
-23\% of the files iterate over keys of any value, that is,
-the function \verb'pairs' appears at least once in these files
-(the median is twice per file);
-21\% of the files iterate over integer keys, that is,
-the function \verb'ipairs' appears at least once in these files
+We measured how many files have code that iterate over tables to
+observe how frequently iteration is used.
+We observed that 23\% of the files have code that iterate over keys
+of any value, that is, the call to \verb'pairs' appears at least once
+in these files (the median is twice per file);
+21\% of the files have code that iterate over integer keys, that is,
+the call to \verb'ipairs' appears at least once in these files
 (the median is also twice per file);
-and 10\% of the files use the numeric \verb'for' along with the length
-operator (\verb'#') (the median is once per file).
+and 10\% of the files have code that use the numeric \verb'for'
+along with the length operator (the median is once per file).
 
-Typed Lua will include a table type to represent Lua tables.
-This table type should be able to represent lists, records,
+The numbers about table initialization, indexing, and iteration
+show us that tables are mostly used to represent records, lists,
 and associative arrays.
+Therefore, Typed Lua should include a table type for handling
+these uses of Lua tables.
+Even though the statistics show that programmers initialize tables
+more often than they use the empty constructor to
+dynamically initialize tables, the statistics of the empty
+constructor are still expressive and indicate that Typed Lua should
+also include a way to handle this style of defining table types.
 
 We found a total of 24858 function declarations in our database
 (the median is six per file).
-We observed that 14\% of these declarations use the colon
-(\verb':') syntactic sugar and 9\% of these declarations use
-\verb'self' as their first parameter.
-These numbers show us that 23\% of the functions are actually methods.
+Next, we discuss how frequently programmers use dynamic type
+checking and multiple return values inside these functions.
 
-Regarding metatables, 63\% of the projects extend tables with
+We observed that 9\% of the functions perform dynamic type checking
+on their input parameters, that is, these functions use \verb'type'
+to inspect the tags of Lua values (the median is once per function).
+We randomly selected 20 functions to sample how programmers are
+using \verb'type', and we got the following data:
+50\% of these functions use \verb'type' for asserting the tags of
+their input parameters, that is, they raise an error when the tag of a
+certain parameter does not match the expected tag, and
+50\% of these functions use \verb'type' for overloading, that is,
+they execute different code according to the inspected tag.
+
+These numbers show us that Typed Lua should include union types,
+because the use of the \verb'type' idiom shows that disjoint unions
+will help programmers define data structures that can hold a value of
+several different, but fixed types.
+Typed Lua should also use \verb'type' as a mechanism for decomposing
+unions, though it may be restricted to base types only.
+
+We observed that 10\% of the functions explicitly return multiple
+values.
+We also observed that 5\% of the functions return \verb'nil' plus
+something else, for signaling an unexpected behavior;
+and 1\% of the functions return \verb'false' plus something else,
+also for signaling an unexpected behavior.
+
+Typed Lua should include function types to represent Lua functions,
+and tuple types to represent the signatures of Lua functions,
+multiple return values, and multiple assignments.
+Tuple types will require some special attention, because Typed Lua
+should be able to adjust tuple types during compile-time, in a
+similar way to what Lua does with function calls and multiple
+assignments during run-time.
+In addition, the numbers show us that overloading on the return
+type will be useful to the type system.
+
+We also measured how frequently programmers use the object-oriented
+paradigm in Lua.
+We observed that 23\% of the function declarations are actually
+method declarations.
+More precisely, 14\% of them use the colon syntactic sugar while
+9\% of them use \verb'self' as their first parameter.
+We also observed that 63\% of the projects extend tables with
 metatables, that is, they call \verb'setmetatable' at least once,
 and 27\% of the projects access the metatable of a given table,
 that is, they call \verb'getmetatable' at least once.
+In fact, 45\% of the projects extend tables with metatables and
+declare methods:
+13\% using the colon syntactic sugar, 14\% using \verb'self', and
+18\% using both.
 
-Typed Lua will include interfaces and classes as syntactic sugar
-for table types that encode objects.
+Based on these observations, Typed Lua should include interfaces and
+classes as syntactic sugar for table types that encode objects.
 Proposing an optional type system for Lua that includes classes may
 sound unusual at first glance, because Lua does not have standard
 policies for object-oriented programming.
@@ -683,115 +747,121 @@ However, Lua provides mechanisms that allow programmers to abstract
 their code in terms of objects, and our statistics confirm that
 an expressive number of programmers are relying on these mechanisms to
 use the object-oriented paradigm in Lua.
-Typed Lua will include interfaces and classes as merely syntactic
+Typed Lua should include interfaces and classes as merely syntactic
 mechanisms that help the compiler type check object-oriented code,
-and they will not influence the semantics of Lua.
+and they should not influence the semantics of Lua.
 
-Regarding modules, 38\% of the files use the current way of defining
+We also measured how programmers are defining modules.
+We observed that 38\% of the files use the current way of defining
 modules, that is, these files return a table that contains the
 exported members of the module at the end of the file;
 22\% of the files still use the deprecated way of defining modules,
-that is, these files use the function \verb'module';
+that is, these files call the function \verb'module';
 and 1\% of the files use both ways.
-These numbers show us that 61\% of the files are modules while 39\%
-of the files are plain scripts.
+At all, 61\% of the files are modules while 39\% of the files are
+plain scripts.
 The number of plain scripts is quite high considering the origin of
 our database.
 However, we did not ignore sample scripts, which usually serve to
 help the users of a given module on how to use this module, and
 that is the reason why we have a quite high number of plain scripts.
 
-Typed Lua will also use interfaces for defining the types of
-userdata, threads, and modules.
-Typed Lua will also support the deprecated style of module definition,
+Based on these observations, Typed Lua should also use interfaces as
+syntactic sugar for table types that define modules.
+Typed Lua should also support the deprecated style of module definition,
 using global names as exported members of the module.
 
-We observed that 9\% of the functions use \verb'type' to inspect the
-tags of Lua values (the median is once per function).
-We randomly selected 20 functions to sample how programmers are
-using \verb'type', and we got the following data:
-50\% of these functions use \verb'type' for asserting the tags of
-their input parameters, that is, they raise an error when the tag of a
-certain parameter does not match the expected tag;
-40\% of these functions use \verb'type' for overloading, that is,
-they execute different code according to the inspected tag;
-and 10\% of these functions use \verb'type' inside a loop, that is,
-they check the tags of the values of a given a table to decide
-whether a computation should be executed using these values or not.
+Besides using interfaces for encoding objects and defining modules,
+Typed Lua should also use interfaces for defining the types of
+userdata and threads.
 
-Typed Lua will include union types because the use of the \verb'type'
-idiom shows that disjoint unions will help programmers define
-data structures that can hold a value of different, but fixed types.
-Typed Lua should also offer a mechanism for decomposing unions.
-This mechanism should translate to this kind of idiom that uses
-\verb'type', though it may be restricted to base types only.
-
-We observed that 10\% of the functions explicitly return multiple
-values, that is, these functions return two or more values.
-We also observed that 50\% of these functions (or 5\% of the total)
-return \verb'nil' plus something else to signal an unexpected
-behavior while 10\% of these functions (or 1\% of the total) return
-\verb'false' plus something else to signal an unexpected behavior.
-
-Typed Lua will include function types to represent Lua functions
-and tuple types to represent the signatures of Lua functions,
-multiple return values, and multiple assignments.
-Tuple types will require some special attention, because Typed Lua
-should be able to adjust tuple types during compile-time, in a
-similar way to what Lua does with function calls and multiple
-assignments during run-time.
-
-The last statistics that we collected is about variadic functions.
+The last statistics that we collected were about variadic functions
+and vararg expressions.
 We observed that 8\% of the functions are variadic, that is,
-their last parameter is the vararg expression (\verb'...').
-Most of the times the vararg expression is used to initialize a
-list or to call another function.
-
-Typed Lua will include a \textit{vararg type} to handle variadic
+their last parameter is the vararg expression.
+We also observed that 5\% of the initialization of lists
+(or 2\% of the occurrences of the table constructor) use solely the
+vararg expression.
+Typed Lua should include a \textit{vararg type} to handle variadic
 functions and vararg expressions.
 
 \subsection{Typed Lua through examples}
 
 Our main goal is to allow programmers to combine static and dynamic
 typing in Lua, so we propose Typed Lua as an extension to Lua 5.2
-syntax that introduces optional type annotations, compile-time type
-checking, and class-based object-oriented programming through the
-definition of classes, interfaces, and modules.
-Another important goal is to allow programmers to run any Lua code
-without modifications, so that is the reason why these syntactic
-extensions include new keywords that are not reserved words.
+syntax that introduces optional type annotations, and class-based
+object-oriented programming through the definition of classes,
+interfaces, and modules.
+An important requirement of Typed Lua is that it should be backwards
+compatible with Lua, that is, it should allow programmers to run any
+Lua code without modifications.
+For this reason, these syntactic extensions include new keywords
+that are not reserved words.
 
-Typed Lua includes the following first-class types: \verb'any',
-\verb'boolean', \verb'number', \verb'string', constant types,
+Figure \ref{fig:typelang} shows that Typed Lua includes includes
+first-class and second-class types.
+Typed Lua uses first-class types for representing Lua values and
+second-class types for defining the signatures of functions.
+First-class types include literal types, base types, the type $\Any$,
 union types, function types, table types, and recursive types.
-The type \verb'any' is the dynamic type that allows dynamic code
-coexist with static code.
-Constant types mean that \verb'nil', \verb'false', \verb'true',
-literal numbers, and literal strings are valid types.
-Typed Lua also uses subtyping to define the relation among constant
-types and the types \verb'boolean', \verb'number', and \verb'string'.
-More precisely, Typed Lua uses subtyping to specify that
-\verb'true' and \verb'false' are subtype of \verb'boolean',
-any literal number is subtype of \verb'number', and any literal
-string is subtype of \verb'string'.
-We will discuss union types, function types, table types, and
-recursive types along this section.
+Second-class types include the type $\Void$, first-class types,
+vararg types, and tuple types.
+Literal types are types that represent a single value
+(e.g., $\Nil$, $\False$, $\True$, literal numbers, and
+literal strings).
+Literal types are subtypes of their respective base types.
+More precisely, the literals $\False$ and $\True$ are subtypes of
+$\Boolean$, any literal number $n$ is subtype of $\Number$, and any
+literal string $s$ is subtype of $\String$.
+The type $\Any$ is the dynamic type that allows dynamic code coexist
+with static code.
+We will discuss union types, function types, table types, recursive
+types, and second-class types along this section.
+
+\begin{figure}[!ht]
+\textbf{Type Language}\\
+\dstart
+$$
+\begin{array}{rlr}
+T ::= & & \textit{first-class types}\\
+& \;\; L & \textit{literal types}\\
+& | \; B & \textit{base types}\\
+& | \; \Any & \textit{dynamic type}\\
+& | \; T \cup T & \textit{union type}\\
+& | \; S \rightarrow S & \textit{function type}\\
+& | \; \{T:T, ..., T:T\} & \textit{table type}\\
+& | \; X & \textit{type variable}\\
+& | \; \mu X.T & \textit{recursive type}\\
+L ::= & \;\; \Nil \; | \; \False \; | \; \True & \\
+& | \; {<}{\it numbe}r{>} \; | \; {<}{\it string}{>} & \\
+B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+S ::= & \Void \; | \; V & \textit{second-class types}\\
+V ::= & \;\; T & \\
+& | \; T* & \textit{vararg type}\\
+& | \; T \times V & \textit{tuple type}
+\end{array}
+$$
+\dend
+\caption{Typed Lua types}
+\label{fig:typelang}
+\end{figure}
 
 Typed Lua allows optional type annotations in variable and function
 declarations.
-The compiler assigns a more specific type to an unannotated
-declaration whenever it is possible to use local type inference,
-and it assigns the type \verb'any' to unannotated declarations
-otherwise.
+Whenever it is possible to use local type inference, the compiler
+assigns a more specific type to an unannotated declaration.
+When it is not possible to use local type inference, the compiler
+assigns the type $\Any$ to an unannotated declaration.
 For instance, in function declarations, the compiler does not infer
-a more specific type to unannotated input parameters.
-Global type inference often is undecidable in a language with
-subtyping and overloading \cite{wells1999typability}.
+a more specific type to unannotated input parameters, because,
+in this case, global type inference often is undecidable in a
+language with subtyping and overloading \cite{wells1999typability}.
 
-In the next example, we add type annotations in a function
-declaration, but we avoid type annotations in a declaration of a local
-variable:
+In the following example we use type annotations in a function
+declaration, and we do not use type annotations in a declaration of a
+local variable:
 \begin{verbatim}
+
     local function fact (n:number):number
       if n == 0 then
         return 1
@@ -805,14 +875,16 @@ variable:
 
 Even though we did not add type annotations in the declaration of
 the local variable \verb'x', the compiler uses local type inference to
-assign the type \verb'number' to \verb'x'.
-The compiler does not use the constant type \verb'5' instead of the
-most general type \verb'number' because this would prevent
+assign the type $\Number$ to \verb'x'.
+The compiler does not use the literal type $5$ instead of the base
+type $\Number$ because this would prevent
 programmers from assigning other numeric values to the variable
 \verb'x'.
+The inference that we implement in Typed Lua is quite simple, as it
+uses only the type of the local expression.
 
-Typed Lua allows programmers to combine static and dynamic
-typing in the same program, as we show in the following example:
+Typed Lua allows programmers to combine annotated code with
+unannotated code, as we show in the following example:
 \begin{verbatim}
     local function abs (n:number):number
       if n < 0 then
@@ -821,14 +893,15 @@ typing in the same program, as we show in the following example:
         return n
       end
     end
+
     local function dist (x, y)
       return abs(x - y)
     end
 \end{verbatim}
 
-The function \verb'dist' receives two parameters of type \verb'any'
-and returns a \verb'number'.
-The compiler assigns the dynamic type \verb'any' to the input
+The function \verb'dist' receives two parameters of type $\Any$
+and returns a value of type $\Number$.
+The compiler assigns the dynamic type $\Any$ to the input
 parameters of \verb'dist' because they do not have type annotations,
 and the compiler does not use global type inference, as we mentioned
 previously.
@@ -840,23 +913,24 @@ We are using the consistent-subtyping relation of gradual
 typing to check the interaction among the dynamic type and the other
 types.
 More precisely, we can call \verb'abs' inside \verb'dist' because
-\verb'x - y' is of type \verb'any', and the type \verb'any' is
-consistent with the type \verb'number'.
+\verb'x - y' is of type $\Any$, and the type $\Any$ is
+consistent with the type $\Number$.
+The type $\Any$ is not the union of all types, but it is a separate
+type.
 
-However, unlike gradual typing, we do not insert run-time checks that
+Unlike gradual typing, we do not insert run-time checks that
 inspect the interaction between dynamically typed code and statically
 typed code during run-time.
 In other words, Typed Lua does not guarantee that dynamically typed
 code does not violate statically typed code.
-Typed Lua does not insert run-time checks because it is an optional
-type system, and optional type systems should not influence the
-run-time semantics, as we saw in Section \ref{sec:review}.
-In addition, run-time checks can decrease run-time performance
-\cite{allende2013cis}.
+Typed Lua does not insert run-time checks because they can decrease
+run-time performance \cite{allende2013cis}.
+We believe that a careful evaluation of run-time checks should be done
+before inserting them on the type system.
 In the previous example, we cannot guarantee that \verb'dist' is never
 going to call \verb'abs' with a parameter that is not a number,
-because in the semantics of Lua the minus operator can result a value
-that is not a number.
+because in the semantics of Lua the minus operator can result in a
+value that is not a number.
 Still, we can implement run-time checks in the future because we are
 using the consistent-subtyping relation of gradual typing to
 formalize our optional type system, and the type system is being
@@ -866,64 +940,61 @@ Typed Lua includes union types as a way to discriminate data
 structures that can hold values of several different, but fixed types.
 Next, we show an example:
 \begin{verbatim}
-    local x:number|nil         -- OK
+    local x:number?            -- OK
     local y:number|string = 1  -- OK
     local z:number = x         -- Error
 \end{verbatim}
 
-The last line of this example gives a type error because we are
-attempting to assign a value of type \verb'number' or \verb'nil'
-to a variable that accepts only values of type \verb'number'.
+The annotation \verb'number?' is syntactic sugar for
+\verb'number|nil' that means the type $\Number\;\cup\;\Nil$.
+Typed Lua includes the syntactic sugar \verb't?' because the
+type $t\;\cup\;\Nil$ is very common in Lua code.
+
+The last line of the previous example gives a type error because we
+are attempting to assign a value of type $\Number\;\cup\;\Nil$
+to a variable that accepts only values of type $\Number$.
 Although we can solve this type error changing the annotation of
-variable \verb'z' from \verb'number' to \verb'number|nil', there is
-another way to solve this type error without changing the
-annotation:
+variable \verb'z' from \verb'number' to \verb'number?', there is
+another way that we can use to solve this type error without changing
+the annotation:
 \begin{verbatim}
     local z:number = x or 0  -- OK
 \end{verbatim}
 
-Typed Lua has a typing rule for checking that $t$\verb'|nil or '$t$
-always results the type $t$.
+Typed Lua has a typing rule for checking that
+$t\;\cup\;\Nil\;\mathbf{or}\;t$ always has the type $t$.
 
-The syntactic construction $t$\verb'|nil' is so common that Typed Lua
-includes the syntactic sugar $t$\verb'?' for it.
-For instance, we can write \verb'local x:number?' instead of
-\verb'local x:number|nil'.
-
-Typed Lua includes a table type to represent Lua's tables.
-Although Typed Lua has just one table type, it has three different
-syntaxes for defining the type of a table.
+Typed Lua includes table types to represent Lua's tables.
+Although Typed Lua has just one table type constructor, it has three
+different syntaxes for defining the type of a table.
 The first syntax defines table types for hash tables;
-it is written \verb'{'$t_{1}$\verb':'$t_{2}$\verb'}',
-and maps to the table type \verb'{'$t_{1}$\verb':'$t_{2}$\verb'|nil}'.
+it is written \verb'{t1:t2}',
+and maps to the table type $\{t_{1}:t_{2}\;\cup\;\Nil\}$.
 This table type represents a hash table that maps values of type
-$t_{1}$ to values of type $t_{2}$ or \verb'nil', as Lua returns
-\verb'nil' when we use a non-existing key to index a table.
+$t_{1}$ to values of type $t_{2}\;\cup\;\Nil$, as Lua returns
+$\Nil$ when we use a non-existing key to index a table.
 The second syntax defines table types for lists;
-it is written \verb'{'$t$\verb'}',
-and maps to the table type \verb'{number:'$t$\verb'|nil}'.
+it is written \verb'{t}',
+and maps to the table type $\{\Number:t\;\cup\;\Nil\}$.
 This table type is just a syntactic sugar to the definition of a
-hash table that maps values of type \verb'number' to values of type
-$t$ or \verb'nil'.
+hash table that maps values of type $\Number$ to values of type
+$t\;\cup\;\Nil$.
 The third syntax defines table types for records;
-it is written \verb'{'$s_{1}$\verb':'$t_{1}$\verb', ..., '$s_{n}$\verb':'$t_{n}$\verb'}',
-and maps to the table type \verb'{'$s_{1}$\verb':'$t_{1}$\verb', ..., '$s_{n}$\verb':'$t_{n}$\verb'}'.
-This table type represents a record that maps literals
+it is written \verb'{s1:t1, ..., sn:tn}',
+and maps to the table type $\{s_{1}:t_{1}, ..., s_{n}:t_{n}\}$.
+This table type represents a record that maps the literals
 $s_{i}$\verb', ..., '$s_{n}$ to values of types
 $t_{i}$\verb', ..., '$t_{n}$, where $i$ may vary from one to $n$.
-The commas separate the type of each record field when the declared
-record has more than one field.
 
-Next we show one example that types a hash table that maps values
-of type \verb'string' to values of type \verb'number' or \verb'nil':
+Next, we show one example of table type to type a hash table:
 \begin{verbatim}
     local t:{string:number} = { foo = 1 }  -- OK
     local x:number = t.foo                 -- Error
-    local y:number|nil = t.bar             -- OK
+    local y:number? = t.bar                -- OK
 \end{verbatim}
 
 The second line of this example gives a type error for the same
-reason that the last line of the previous example gives a type error
+reason that the last line of the previous example gave a type error
 too, that is, we are trying to assign a value that can be of two
 different types to a variable that accepts values of only one type.
 Although the field \verb'bar' does not exist in \verb't', the last
@@ -931,8 +1002,7 @@ line of this example does not give a type error because the
 annotated type matches the type of the values that can be stored in
 \verb't'.
 
-In the next example we show how we can use the table type to type a
-list of strings:
+Next, we show one example of table type to type a list:
 \begin{verbatim}
     local days:{string} = { "Sunday", "Monday",
       "Tuesday", "Wednesday", "Thursday",
@@ -944,26 +1014,30 @@ variable declaration unannotated and let local type inference assign
 a more specific table type to the list.
 If we remove the annotation in this example, the compiler uses the
 syntax of records to infer the following table type to \verb'days':
-\begin{verbatim}
-    { 1:string, 2:string, 3:string, 4:string,
-      5:string, 6:string, 7:string }
-\end{verbatim}
+\begin{align*}
+\{{1:\String},\;{2:\String},\;{3:\String},\;{4:\String},\;\\
+{5:\String},\;{6:\String},\;{7:\String}\}
+\end{align*}
+This inferred table type is a subtype of the type
+$\{\Number:\String\;\cup\;\Nil\}$, which is the type that we used to
+annotate the variable \verb'days'.
 
 When we use the inferred table type while initializing a table, the
-compiler can give an error message when we try to access an index that
+compiler gives an error message when we try to access an index that
 is out of bounds.
-We can also use this style for defining heterogeneous tuples.
 
-Next we show one example of table type to type records:
+It also worth mentioning that we can use the style of the inferred
+type to define heterogeneous tuples.
+
+Next, we show one example of table type to type a record:
 \begin{verbatim}
     local person:{"firstname":string,
                   "lastname":string} =
       { firstname = "Lou", lastname = "Reed" } 
 \end{verbatim}
 
-We could have let type inference assign the annotated type to the
-variable \verb'person', but we prefer using the annotated type to
-exemplify the record syntax.
+Type inference would infer the very same table type that we used to
+annotate the variable \verb'person'.
 
 Typed Lua includes interfaces as syntactic sugar to the table type
 that specifies records.
@@ -1014,10 +1088,10 @@ lists:
     end
 \end{verbatim}
 
-We need to explicitly annotate \verb'next' being \verb'Element'
-or \verb'nil' because in our type system \verb'nil' is not the
-bottom type, that is, \verb'nil' is subtype of itself only.
-Typed Lua has this behavior because in Lua \verb'nil' represents
+We need to explicitly annotate \verb'next' being of type
+${\tt Element}\;\cup\;\Nil$ because in our type system $\Nil$
+is not the bottom type, that is, $\Nil$ is subtype of itself only.
+Typed Lua has this behavior because in Lua $\Nil$ represents
 the absence of an useful value.
 
 Besides interfaces, Typed Lua will also introduce classes.
@@ -1033,17 +1107,18 @@ We use all global names and their types to build the interface that
 represents the type of the module, in case the module is not returned
 at the end of the file.
 
-Typed Lua also includes function types, as functions are first-class
+Typed Lua includes function types because functions are first-class
 values in Lua.
-The syntax for defining a function type is \verb'('$s$\verb') -> ('$s$\verb')',
-where $s$ is a second-class type.
-A second-class type in Typed Lua can be a first-class type, a
-tuple type, a variadic type, or the \verb'void' type.
+The syntax for defining a function type is \verb'(s) -> (s)',
+where \verb's' is a second-class type.
+As we saw in Figure \ref{fig:typelang}, a second-class type in
+Typed Lua can be the type $\Void$, a first-class type, a variadic
+type, or a tuple type.
 We use tuple types to represent multiple parameters, multiple return
-values, and multiple assignments.
-We use the variadic type to represent variadic functions.
-Even though we have specific types to represent multiple return values
-and variadic functions, we are still working on these features.
+values, and multiple assignments, and we use the variadic type to
+represent variadic functions and the vararg expression.
+Even though we already included the tuple type and the vararg type,
+we are still working on these types.
 
 The next example shows how we can annotate a \verb'map' function
 that receives another function as its parameter and uses this
@@ -1053,7 +1128,7 @@ also a parameter of \verb'map':
     local function map (f:(number)->(number),
                         l:{number}):void
       for i=1, #l do
-        l[i] = f(l[i]) or 0
+        l[i] = f(l[i] or 0)
       end
     end
 \end{verbatim}
@@ -1094,10 +1169,10 @@ system for Lua, which is written in Metalua.
 A remarkable feature of Tidal Lock is the way it handles tables,
 because it allows the programmer to incrementally build the type of
 a table.
-That is, Tidal Lock allows the programmer to create an empty table to
-build its type according to the keys that the programmer inserts in it,
-so the programmer do not need to bother about declaring its type with
-just one line of code.
+More precisely, Tidal Lock allows the programmer to create an empty
+table to build its type according to the keys that the programmer
+inserts in it, so the programmer do not need to bother about declaring
+its type with just one line of code.
 We also plan to add this feature to Typed Lua.
 Like Typed Lua, Tidal Lock also has local type inference.
 Unlike Typed Lua, Tidal Lock is not typing the common object-oriented

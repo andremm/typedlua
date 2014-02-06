@@ -1,4 +1,6 @@
 *.aux
+*.bbl
+*.blg
 *.csv
 *.log
 *.nav
