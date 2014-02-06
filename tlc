@@ -1,5 +1,6 @@
 #!/usr/bin/env lua
 
+local code = require "typedlua.code"
 local parser = require "typedlua.parser"
 local pp = require "typedlua.pp"
 
@@ -107,5 +108,8 @@ if PRINTAST then
   pp.print(ast)
   os.exit(0)
 end
+
+local generated_code = code.generate(ast)
+setcontents(generated_code, OUTPUT)
 
 os.exit(0)

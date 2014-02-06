@@ -1,5 +1,6 @@
 #!/usr/bin/env lua
 
+local code = require "typedlua.code"
 local parser = require "typedlua.parser"
 local pp = require "typedlua.pp"
 
@@ -17,6 +18,15 @@ local function parse (s)
     r = pp.tostring(t)
   end
   return r .. "\n"
+end
+
+local function generate (s)
+  local t,m = parser.parse(s,filename)
+  if not t then
+    error(m)
+    os.exit(1)
+  end
+  return code.generate(t)
 end
 
 print("> testing lexer...")
@@ -1639,6 +1649,506 @@ test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<
 ]=]
 
 r = parse(s)
+assert(r == e)
+
+print("> testing code generation...")
+
+-- assignments
+
+s = [=[
+zero,um = false,true
+]=]
+e = [=[
+zero, um = false, true
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+number,string = 1, "alo"
+]=]
+e = [=[
+number, string = 1, "alo"
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+t = ...,nil
+]=]
+e = [=[
+t = ..., nil
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+a = 2 * 3 + 5
+]=]
+e = [=[
+a = 2 * 3 + 5
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+a = (2 * 3) + 5
+]=]
+e = [=[
+a = (2 * 3) + 5
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+a = 1 - 2 / 3 % 4 ^ 5
+]=]
+e = [=[
+a = 1 - 2 / 3 % 4 ^ 5
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+c = "alo" .. "mundo" 
+]=]
+e = [=[
+c = "alo" .. "mundo"
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+a = 1 == 2
+b = 1 ~= 2
+c = 1 < 2
+d = 1 <= 2
+e = 1 > 2
+f = 1 >= 2
+]=]
+e = [=[
+a = 1 == 2
+b = not 1 == 2
+c = 1 < 2
+d = 1 <= 2
+e = 2 < 1
+f = 2 <= 1
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+a = not 1 and 2 or 3
+]=]
+e = [=[
+a = not 1 and 2 or 3
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- do
+
+s = [=[
+do do do do do end end end end end
+]=]
+e = [=[
+do
+  do
+    do
+      do
+        do
+
+        end
+      end
+    end
+  end
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- for
+
+s = [=[
+for i=1, 10 do break end
+]=]
+e = [=[
+for i = 1, 10 do
+  break
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+for i=1,10,-1 do break end
+]=]
+e = [=[
+for i = 1, 10, -1 do
+  break
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- function
+
+s = [=[
+function f () end
+]=]
+e = [=[
+f = function ()
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+function f (a) return a end
+]=]
+e = [=[
+f = function (a)
+  return a
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+function f (a, b, c) end
+]=]
+e = [=[
+f = function (a, b, c)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+function f (a, b, c, ...) end
+]=]
+e = [=[
+f = function (a, b, c, ...)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+function f (...) end
+]=]
+e = [=[
+f = function (...)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local function f () end
+]=]
+e = [=[
+local function f ()
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local function f (a) return a end
+]=]
+e = [=[
+local function f (a)
+  return a
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local function f (a, b, c) end
+]=]
+e = [=[
+local function f (a, b, c)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local function f (a, b, c, ...) end
+]=]
+e = [=[
+local function f (a, b, c, ...)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local function f (...) end
+]=]
+e = [=[
+local function f (...)
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- goto
+
+s = [=[
+do goto eof end
+:: eof ::
+]=]
+e = [=[
+do
+  goto eof
+end
+::eof::
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- if
+
+s = [=[
+if 1 then
+  return 1
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+else
+  return 2
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+else
+  return 2
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+else
+  return 5
+end
+]=]
+e = [=[
+if 1 then
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  return 3
+elseif 4 then
+  return 4
+else
+  return 5
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  if "hello" then
+    return "hello"
+  end
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  if "foo" then
+    return "foo"
+  end
+  return 3
+elseif 4 then
+  return 4
+else
+  if "bar" then
+    return "bar"
+  end
+  return 5
+end
+]=]
+e = [=[
+if 1 then
+  if "hello" then
+    return "hello"
+  end
+  return 1
+elseif 2 then
+  return 2
+elseif 3 then
+  if "foo" then
+    return "foo"
+  end
+  return 3
+elseif 4 then
+  return 4
+else
+  if "bar" then
+    return "bar"
+  end
+  return 5
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- local
+
+s = [=[
+local a
+]=]
+e = [=[
+local a
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local a, b, c
+]=]
+e = [=[
+local a, b, c
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local a = 1
+]=]
+e = [=[
+local a = 1
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local a, b = 1
+]=]
+e = [=[
+local a, b = 1
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- repeat
+
+s = [=[
+repeat break until true
+]=]
+e = [=[
+repeat
+  break
+until true
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- while
+
+s = [=[
+while 1 do
+  break
+end
+]=]
+e = [=[
+while 1 do
+  break
+end
+]=]
+
+r = generate(s)
 assert(r == e)
 
 print("OK")
