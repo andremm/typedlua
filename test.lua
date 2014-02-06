@@ -1236,6 +1236,43 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'N
 r = parse(s)
 assert(r == e)
 
+-- break
+
+s = [=[
+break
+]=]
+e = [=[
+test.lua:1:1: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f (x)
+  if 1 then break end
+end
+]=]
+e = [=[
+test.lua:2:13: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+while 1 do
+end
+break
+]=]
+e = [=[
+test.lua:3:1: syntax error, <break> not inside a loop
+]=]
+
+r = parse(s)
+assert(r == e)
+
+
 -- concatenation expressions
 
 s = [=[
@@ -1337,6 +1374,38 @@ test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 
 r = parse(s)
 assert(r == e)
 
+s = [=[
+goto label
+]=]
+e = [=[
+test.lua:1:1: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+goto label
+::other_label::
+]=]
+e = [=[
+test.lua:1:1: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::other_label::
+do do do goto label end end end
+]=]
+e = [=[
+test.lua:2:10: syntax error, no visible label 'label' for <goto>
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- if-else
 
 s = [=[
@@ -1393,6 +1462,18 @@ s = [=[
 ]=]
 e = [=[
 test.lua:2:4: syntax error, unexpected 'not', expecting 'Name'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+::label::
+::other_label::
+::label::
+]=]
+e = [=[
+test.lua:3:1: syntax error, label 'label' already defined at line 1
 ]=]
 
 r = parse(s)
@@ -1488,6 +1569,58 @@ t = { , }
 ]=]
 e = [=[
 test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not', 'Name', '['
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- vararg
+
+s = [=[
+function f ()
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+function f ()
+  function g (x, y)
+    return ...,...,...
+  end
+end
+]=]
+e = [=[
+test.lua:3:12: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x)
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local f = function (x)
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:10: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)

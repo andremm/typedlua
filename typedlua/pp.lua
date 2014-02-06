@@ -1,49 +1,6 @@
 --[[
-This parser uses the Abstract Syntax Tree from Metalua:
-https://github.com/fab13n/metalua-parser
-
-block: { stat* }
-
-stat:
-  `Do{ stat* }
-  | `Set{ {lhs+} {expr+} }                    -- lhs1, lhs2... = e1, e2...
-  | `While{ expr block }                      -- while e do b end
-  | `Repeat{ block expr }                     -- repeat b until e
-  | `If{ (expr block)+ block? }               -- if e1 then b1 [elseif e2 then b2] ... [else bn] end
-  | `Fornum{ ident expr expr expr? block }    -- for ident = e, e[, e] do b end
-  | `Forin{ {ident+} {expr+} block }          -- for i1, i2... in e1, e2... do b end
-  | `Local{ {ident+} {expr+}? }               -- local i1, i2... = e1, e2...
-  | `Localrec{ ident expr }                   -- only used for 'local function'
-  | `Goto{ <string> }                         -- goto str
-  | `Label{ <string> }                        -- ::str::
-  | `Return{ <expr*> }                        -- return e1, e2...
-  | `Break                                    -- break
-  | apply
-
-expr:
-  `Nil
-  | `Dots
-  | `True
-  | `False
-  | `Number{ <number> }
-  | `String{ <string> }
-  | `Function{ { `Id{ <string> }* `Dots? } block }
-  | `Table{ ( `Pair{ expr expr } | expr )* }
-  | `Op{ opid expr expr? }
-  | `Paren{ expr }       -- significant to cut multiple values returns
-  | apply
-  | lhs
-
-apply:
-  `Call{ expr expr* }
-  | `Invoke{ expr `String{ <string> } expr* }
-
-lhs: `Id{ <string> } | `Index{ expr expr }
-
-opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
-  | 'eq' | 'lt' | 'le' | 'and' | 'or' | 'not' | 'unm' | 'len'
+This module impements a pretty printer to the AST
 ]]
-
 local pp = {}
 
 local block2str, stm2str, exp2str, var2str
@@ -97,9 +54,9 @@ end
 function var2str (var)
   local tag = var.tag
   local str = "`" .. tag
-  if tag == "Id" then
+  if tag == "Id" then -- `Id{ <string> }
     str = str .. " " .. name2str(var[1])
-  elseif tag == "Index" then
+  elseif tag == "Index" then -- `Index{ expr expr }
     str = str .. "{ "
     str = str .. exp2str(var[1]) .. ", "
     str = str .. exp2str(var[2])
@@ -141,11 +98,11 @@ function fieldlist2str (fieldlist)
   local l = {}
   for k, v in ipairs(fieldlist) do
     local tag = v.tag
-    if tag == "Pair" then
+    if tag == "Pair" then -- `Pair{ expr expr }
       l[k] = "`" .. tag .. "{ "
       l[k] = l[k] .. exp2str(v[1]) .. ", " .. exp2str(v[2])
       l[k] = l[k] .. " }"
-    else
+    else -- expr
       l[k] = exp2str(v)
     end
   end
@@ -163,18 +120,18 @@ function exp2str (exp)
      tag == "Dots" or
      tag == "True" or
      tag == "False" then
-  elseif tag == "Number" then
+  elseif tag == "Number" then -- `Number{ <number> }
     str = str .. " " .. number2str(exp[1])
-  elseif tag == "String" then
+  elseif tag == "String" then -- `String{ <string> }
     str = str .. " " .. string2str(exp[1])
-  elseif tag == "Function" then
+  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
     str = str .. "{ "
     str = str .. parlist2str(exp[1]) .. ", "
     str = str .. block2str(exp[2])
     str = str .. " }"
-  elseif tag == "Table" then
+  elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     str = str .. fieldlist2str(exp)
-  elseif tag == "Op" then
+  elseif tag == "Op" then -- `Op{ opid expr expr? }
     str = str .. "{ "
     str = str .. name2str(exp[1]) .. ", "
     str = str .. exp2str(exp[2])
@@ -182,9 +139,9 @@ function exp2str (exp)
       str = str .. ", " .. exp2str(exp[3])
     end
     str = str .. " }"
-  elseif tag == "Paren" then
+  elseif tag == "Paren" then -- `Paren{ expr }
     str = str .. "{ " .. exp2str(exp[1]) .. " }"
-  elseif tag == "Call" then
+  elseif tag == "Call" then -- `Call{ expr expr* }
     str = str .. "{ "
     str = str .. exp2str(exp[1])
     if exp[2] then
@@ -193,7 +150,7 @@ function exp2str (exp)
       end
     end
     str = str .. " }"
-  elseif tag == "Invoke" then
+  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> expr* }
     str = str .. "{ "
     str = str .. exp2str(exp[1]) .. ", "
     str = str .. exp2str(exp[2])
@@ -203,7 +160,8 @@ function exp2str (exp)
       end
     end
     str = str .. " }"
-  elseif tag == "Id" or tag == "Index" then
+  elseif tag == "Id" or -- `Id{ <string> }
+         tag == "Index" then -- `Index{ expr expr }
     str = var2str(exp)
   else
     error("expecting an expression, but got a " .. tag)
@@ -226,28 +184,28 @@ end
 function stm2str (stm)
   local tag = stm.tag
   local str = "`" .. tag
-  if tag == "Do" then
+  if tag == "Do" then -- `Do{ stat* }
     local l = {}
     for k, v in ipairs(stm) do
       l[k] = stm2str(v)
     end
     str = str .. "{ " .. table.concat(l, ", ") .. " }"
-  elseif tag == "Set" then
+  elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
     str = str .. "{ "
     str = str .. varlist2str(stm[1]) .. ", "
     str = str .. explist2str(stm[2])
     str = str .. " }"
-  elseif tag == "While" then
+  elseif tag == "While" then -- `While{ expr block }
     str = str .. "{ "
     str = str .. exp2str(stm[1]) .. ", "
     str = str .. block2str(stm[2])
     str = str .. " }"
-  elseif tag == "Repeat" then
+  elseif tag == "Repeat" then -- `Repeat{ block expr }
     str = str .. "{ "
     str = str .. block2str(stm[1]) .. ", "
     str = str .. exp2str(stm[2])
     str = str .. " }"
-  elseif tag == "If" then
+  elseif tag == "If" then -- `If{ (expr block)+ block? }
     str = str .. "{ "
     local len = #stm
     if len % 2 == 0 then
@@ -265,7 +223,7 @@ function stm2str (stm)
       str = str .. block2str(stm[len])
     end
     str = str .. " }"
-  elseif tag == "Fornum" then
+  elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
     str = str .. "{ "
     str = str .. var2str(stm[1]) .. ", "
     str = str .. exp2str(stm[2]) .. ", "
@@ -277,13 +235,13 @@ function stm2str (stm)
       str = str .. block2str(stm[4])
     end
     str = str .. " }"
-  elseif tag == "Forin" then
+  elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
     str = str .. "{ "
     str = str .. varlist2str(stm[1]) .. ", "
     str = str .. explist2str(stm[2]) .. ", "
     str = str .. block2str(stm[3])
     str = str .. " }"
-  elseif tag == "Local" then
+  elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
     str = str .. "{ "
     str = str .. varlist2str(stm[1])
     if #stm[2] > 0 then
@@ -292,17 +250,18 @@ function stm2str (stm)
       str = str .. ", " .. "{  }"
     end
     str = str .. " }"
-  elseif tag == "Localrec" then
+  elseif tag == "Localrec" then -- `Localrec{ ident expr }
     str = str .. "{ "
     str = str .. "{ " .. var2str(stm[1][1]) .. " }, "
     str = str .. "{ " .. exp2str(stm[2][1]) .. " }"
     str = str .. " }"
-  elseif tag == "Goto" or tag == "Label" then
+  elseif tag == "Goto" or -- `Goto{ <string> }
+         tag == "Label" then -- `Label{ <string> }
     str = str .. "{ " .. name2str(stm[1]) .. " }"
-  elseif tag == "Return" then
+  elseif tag == "Return" then -- `Return{ <expr>* }
     str = str .. explist2str(stm)
   elseif tag == "Break" then
-  elseif tag == "Call" then
+  elseif tag == "Call" then -- `Call{ expr expr* }
     str = str .. "{ "
     str = str .. exp2str(stm[1])
     if stm[2] then
@@ -311,7 +270,7 @@ function stm2str (stm)
       end
     end
     str = str .. " }"
-  elseif tag == "Invoke" then
+  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     str = str .. "{ "
     str = str .. exp2str(stm[1]) .. ", "
     str = str .. exp2str(stm[2])
