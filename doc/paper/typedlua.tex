@@ -1,6 +1,9 @@
 \documentclass[preprint]{sig-alternate}
 
 \usepackage[utf8]{inputenc}
+\usepackage[numbers]{natbib}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{url}
 
 \newcommand{\Any}{\mathbf{any}}
@@ -69,7 +72,7 @@ should be validated by a type checker.
 Instead, dynamically typed languages use run-time \textit{type tags}
 to classify the values they compute, so their implementation can use
 these tags to perform run-time (or dynamic) type checking
-\cite{pierce2002tpl}.
+\citep{pierce2002tpl}.
 
 This simplicity and flexibility allow programmers to write code that
 might require a quite complex type system to statically type check,
@@ -85,10 +88,10 @@ Thus, early error detection and better program structure are two
 advantages of static type checking that can lead programmers to
 migrate their code from a dynamically typed to a statically
 typed language, when their simple scripts become complex programs
-\cite{tobin-hochstadt2006ims}.
+\citep{tobin-hochstadt2006ims}.
 Dynamically typed languages certainly help programmers during the
 beginning of a project, because their simplicity and flexibility
-allow quick development and make easier to change code according to
+allow quick development and make it easier to change code according to
 changing requirements.
 However, programmers tend to migrate from dynamically typed to
 statically typed code as soon as the project has consolidated its
@@ -101,8 +104,8 @@ dynamic to static types.
 
 Ideally, programming languages should offer programmers the
 option to choose between static and dynamic typing:
-\textit{optional type systems} \cite{bracha2004pluggable} and
-\textit{gradual typing} \cite{siek2006gradual} are two similar
+\textit{optional type systems} \citep{bracha2004pluggable} and
+\textit{gradual typing} \citep{siek2006gradual} are two similar
 approaches for blending static and dynamic typing in the same
 language.
 The aim of both approaches is to offer programmers the option
@@ -114,17 +117,17 @@ While optional type systems do not affect the run-time semantics,
 gradual typing uses run-time checks to ensure that dynamically typed
 code does not violate the invariants of statically typed code.
 
-Programmers and researchers sometimes use the term gradual typing for
-meaning incremental evolution of dynamically typed code to statically
-typed code.
+Programmers and researchers sometimes use the term gradual typing
+to mean the incremental evolution of dynamically typed code to
+statically typed code.
 For this reason, gradual typing may also refer to optional type
 systems and other approaches that blend static and dynamic typing to
 help programmers incrementally migrate from dynamic to static typing
 without having to switch to a different language, though all these
 approaches differ in the way they handle static and dynamic typing
 together.
-We use the term gradual typing for referring to the work of Siek and
-associates \cite{siek2006gradual}.
+We use the term gradual typing for referring to the work of
+\citet{siek2006gradual}.
 
 In this work we propose the design and implementation of Typed Lua:
 an optional type system for Lua that should be complex enough to
@@ -145,14 +148,14 @@ without compromising the simplicity and flexibility of dynamic typing.
 
 So far, Typed Lua should be a strict superset of Lua that
 provides optional type annotations, compile-time type checking, and
-class-based object oriented programming through the definition of
+class-based object-oriented programming through the definition of
 classes, interfaces, and modules.
 In practice, we should implement Typed Lua as a programming
 language that extends Lua syntax to add optional type annotations
 and standard constructions for structuring Lua code.
 The compiler should use static types to perform compile-time type
 checking, but should also allow Lua code to coexist with Typed Lua
-code, and generate Lua code that should run in unmodified Lua
+code, and generate Lua code that runs in unmodified Lua
 implementations.
 We have an ongoing implementation of the Typed Lua compiler that is
 available online\footnote{https://github.com/andremm/typedlua}.
@@ -178,7 +181,7 @@ Lua libraries, so our compiler can check their usage by Typed Lua
 code.
 
 Typed Lua will perform a very limited form of local type inference
-\cite{pierce2000lti}, as static typing does not necessarily mean
+\citep{pierce2000lti}, as static typing does not necessarily mean
 that programmers need to insert type annotations in the code.
 Several statically typed languages such as Haskell provide some
 amount of type inference that automatically deduces the types of
@@ -219,7 +222,7 @@ other approaches are often called gradual typing.
 
 \subsection{A little bit of history}
 
-Common LISP \cite{steele1982ocl} introduced optional type annotations
+Common LISP \citep{steele1982ocl} introduced optional type annotations
 in the early eighties, but not for static type checking.
 Instead, programmers may choose to declare types of variables as
 optimization hints to the compiler, that is, type declarations are
@@ -227,34 +230,34 @@ just one way to help the compiler to optimize code.
 These annotations are unsafe because they can crash the program
 when they are wrong.
 
-\cite{abadi1989dts} extended the simply typed lambda-calculus with the
-\verb'Dynamic' type and the \verb'dynamic' and \verb'typecase'
+\citet{abadi1989dts} extended the simply typed lambda calculus with the
+\texttt{Dynamic} type and the \texttt{dynamic} and \texttt{typecase}
 constructs, with the aim to safely integrate dynamic code in
 statically typed languages.
-The \verb'Dynamic' type is a pair \verb'(v,T)' where \verb'v' is a
-value and \verb'T' is the tag that represents the type of \verb'v'.
-The constructs \verb'dynamic' and \verb'typecase' are explicit
+The \texttt{Dynamic} type is a pair \texttt{(v,T)} where \texttt{v} is a
+value and \texttt{T} is the tag that represents the type of \texttt{v}.
+The constructs \texttt{dynamic} and \texttt{typecase} are explicit
 injection and projection operations, respectively.
-That is, \verb'dynamic' builds values of type \verb'Dynamic' and
-\verb'typecase' safely inspects the type of a \verb'Dynamic' value.
+That is, \texttt{dynamic} builds values of type \texttt{Dynamic} and
+\texttt{typecase} safely inspects the type of a \texttt{Dynamic} value.
 Thus, migrating code between dynamic and static type checking requires
-changing type annotations and adding or removing \verb'dynamic' and
-\verb'typecase' constructs throughout the code.
+changing type annotations and adding or removing \texttt{dynamic} and
+\texttt{typecase} constructs throughout the code.
 
-The \textit{quasi-static} type system proposed by \cite{thatte1990qst}
+The \textit{quasi-static} type system proposed by \citet{thatte1990qst}
 performs implicit coercions and run-time checks to replace the
-\verb'dynamic' and \verb'typecase' constructs that were proposed by
-\cite{abadi1989dts}.
+\texttt{dynamic} and \texttt{typecase} constructs that were proposed by
+\citet{abadi1989dts}.
 To do that, quasi-static typing relies on subtyping with a top type
 $\Omega$ that represents the dynamic type, and splits type checking
 into two phases.
 The first phase inserts implicit coercions from the dynamic type to
 the expected type, while the second phase performs what Thatte calls
 \textit{plausibility checking}, that is, it rewrites the program to
-guarantee that sequences of up-casts and down-casts always have a
+guarantee that sequences of upcasts and downcasts always have a
 common subtype.
 
-\textit{Soft typing} \cite{cartwright1991soft} is another approach
+\textit{Soft typing} \citep{cartwright1991soft} is another approach
 to combine static and dynamic typing in the same language.
 The main goal of soft typing is to add static type checking to
 dynamically typed languages without compromising their flexibility.
@@ -275,23 +278,23 @@ One disadvantage of soft typing is that it can be cumbersome when
 the inferred types are meaningless large types that just confuse the
 programmer.
 
-\textit{Dynamic typing} \cite{henglein1994dts} is an approach
+\textit{Dynamic typing} \citep{henglein1994dts} is an approach
 that optimizes code from dynamically typed languages by eliminating
 unnecessary checks of tags.
-This work describes how to translate dynamically typed code to
-statically typed code that uses a \verb'Dynamic' type.
+The paper describes how to translate dynamically typed code to
+statically typed code that uses a \texttt{Dynamic} type.
 The translation is done through a coercion calculus that uses type
 inference to insert the operations that are necessary to type check
-the \verb'Dynamic' type during run-time.
+the \texttt{Dynamic} type during run-time.
 Although soft typing and dynamic typing may seem similar, they are not.
 They are not similar because soft typing targets statically type
 checking of dynamically typed languages for detecting programming
-errors while the dynamic typing targets the optimization of dynamically
+errors while dynamic typing targets the optimization of dynamically
 typed code through the elimination of unnecessary run-time checks.
 In other words, soft typing sees code optimization as a side effect
 that comes with static type checking.
 
-\cite{findler2002chf} proposed contracts for higher-order functions
+\citet{findler2002chf} proposed contracts for higher-order functions
 and blame annotations for run-time checks.
 Contracts perform dynamic checking instead of static checking,
 but deferring all verifications to run-time can lead to defects
@@ -304,13 +307,13 @@ if this run-time error is due to a violation of library's contract,
 or due to a bug, when the library is poorly documented.
 In this approach, programmers can insert assertions in the form of
 contracts that check the input and output of higher-order functions.
-Thus, \cite{findler2002chf} show how programmers can insert
+Thus, \citet{findler2002chf} show how programmers can insert
 assertions in the form of contracts that check the input and output
 of higher-order functions; and they also show how to add blame
 annotations in the generated code as a way to track assertion
 failures back to the source of the error.
 
-BabyJ \cite{anderson2002babyj} is an object-oriented language
+BabyJ \citep{anderson2002babyj} is an object-oriented language
 without inheritance that allows programmers to incrementally annotate
 the code with more specific types.
 Programmers can choose between using the dynamically typed version
@@ -330,7 +333,7 @@ Even though the permissive type $*$ is similar to the dynamic type
 from previous approaches, BabyJ does not provide any way to add
 implicit or explicit run-time checks.
 
-\cite{ou2004dtd} specified a language that combines static types
+\citet{ou2004dtd} specified a language that combines static types
 with dependent types.
 To ensure safety, the compiler automatically inserts coercions
 between dependent code and static code.
@@ -339,7 +342,7 @@ crash dependent code during run-time.
 
 \subsection{Optional Type Systems}
 
-Optional type systems \cite{bracha2004pluggable} are an approach for
+Optional type systems \citep{bracha2004pluggable} are an approach for
 plugging static typing in dynamically typed languages through
 optional type annotations that are used to perform compile-time type
 checking, though not influencing the original run-time semantics of
@@ -358,18 +361,18 @@ type system is unsound.
 
 Optional type systems have an interesting relation to the untyped
 lambda calculus and the typed lambda calculus.
-The semantic rules of the unytped lambda calculus are the same of
+The semantic rules of the unytped lambda calculus are the same of the
 typed lambda calculus, and the type system is actually optional and
 serves only for discarding programs that may have undesired behaviors
-\cite{bracha2004pluggable}.
+\citep{bracha2004pluggable}.
 
-Optional type systems increase program evolution and
+Optional type systems make software evolution easier and
 allow language designers to experiment with
-\textit{pluggable type systems} \cite{bracha2004pluggable}.
+\textit{pluggable type systems} \citep{bracha2004pluggable}.
 Pluggable type systems are different optional type systems for
 checking different aspects of the program.
 
-According to \cite{bracha2004pluggable}, optional type systems should
+According to \citet{bracha2004pluggable}, optional type systems should
 not include mandatory type inference too, because mandatory type
 inference may decrease the expressiveness of the type system.
 Instead, optional type systems should implement type inference as
@@ -382,11 +385,11 @@ its own way.
 Now we will briefly discuss some languages that provide an informal
 description of their optional type systems rather than a formal one.
 
-Strongtalk \cite{bracha1993strongtalk,bracha1996strongtalk} is
+Strongtalk \citep{bracha1993strongtalk,bracha1996strongtalk} is
 a version of Smalltalk that comes with an optional type system that
 does not include any type inference.
 
-Dart \cite{dart} and TypeScript \cite{typescript} are new
+Dart \citep{dart} and TypeScript \citep{typescript} are new
 languages that are designed with an optional type system, and both
 use JavaScript as their code generation target because their main
 purpose is web development.
@@ -399,11 +402,11 @@ types for unannotated code.
 
 \subsection{Gradual Typing}
 
-The main goal of gradual typing \cite{siek2006gradual} is to allow
+The main goal of gradual typing \citep{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
 language.
-To do that, \cite{siek2006gradual} extended the simply typed
-lambda-calculus with the dynamic type $?$.
+To do that, \citet{siek2006gradual} extended the simply typed
+lambda calculus with the dynamic type $?$.
 In gradual typing, type annotations are optional, so an untyped
 variable is syntactic sugar for a variable whose declared type is
 the dynamic type $?$.
@@ -413,32 +416,32 @@ a dynamic type to statically typed languages.
 The central idea of gradual typing is the \textit{consistency}
 relation, written $\tau_{1} \sim \tau_{2}$, that allows implicit
 conversions to and from the dynamic type, and disallows conversions
-between inconsistent types \cite{siek2006gradual}.
+between inconsistent types \citep{siek2006gradual}.
 For instance, $\mathbf{int} \sim \,?$ and $?\, \sim \mathbf{int}$,
 but $\mathbf{int} \not\sim \mathbf{string}$ and
 $\mathbf{string} \not\sim \mathbf{int}$. 
 The consistency relation is neither commutative nor transitive.
 
 Gradual typing is similar to the approaches proposed by
-\cite{abadi1989dts} and \cite{thatte1990qst} by including a
+\citet{abadi1989dts} and \citet{thatte1990qst} by including a
 dynamic type to a statically typed language.
 However, these three approaches differ in the way they handle the
 dynamic type.
-While \cite{siek2006gradual} rely on the consistency relation,
-\cite{abadi1989dts} rely on type equality with explicit projections
-and injections, and \cite{thatte1990qst} relies on subtyping.
+While \citet{siek2006gradual} rely on the consistency relation,
+\citet{abadi1989dts} rely on type equality with explicit projections
+and injections, and \citet{thatte1990qst} relies on subtyping.
 The subtyping relation actually is a pitfall on Thatte's quasi-static
 typing, because the dynamic type is put as the top and the bottom of
 the subtyping relation.
-Therefore, down-casts combined with the transitivity of subtyping
+Therefore, downcasts combined with the transitivity of subtyping
 accepts programs that should be rejected.
 
-Later, \cite{siek2007objects} discovered that the consistency relation
+Later, \citet{siek2007objects} discovered that the consistency relation
 is orthogonal to subtyping, so we can combine the two relations to
 achieve both consistency and subtyping.
-The consistent-subtyping relation,
+The \textit{consistent-subtyping} relation,
 written $\tau_{1} \lesssim \tau_{2}$,
-is essential to design object oriented languages that have a
+is essential to design object-oriented languages that have a
 gradual type system.
 Like the consistency relation, and unlike the subtyping relation,
 the consistent-subtyping relation is not transitive.
@@ -447,22 +450,22 @@ Another important feature of gradual typing is the theoretic
 foundation that it provides for inserting run-time checks that
 prove dynamically typed code does not violate the invariants of
 statically typed code, thus preserving type safety.
-To do that, \cite{siek2006gradual} defined the run-time semantics
+To do that, \citet{siek2006gradual} defined the run-time semantics
 of gradual typing as a translation to an intermediate language with
 explicit casts at the frontiers between statically and dynamically
 typed code.
 The semantics of these casts is based on the higher-order contracts
-proposed by \cite{findler2002chf}.
+proposed by \citet{findler2002chf}.
 
-However, \cite{herman2007sgt} showed that there is an efficiency
+However, \citet{herman2007sgt} showed that there is an efficiency
 concern regarding the run-time checks, because there are two
 ways that casts can lead to unbounded space consumption.
 The first affects tail recursion while the second appears when
 first-class functions or objects cross the border between
 static code and dynamic code, that is, some programs can apply
 repeated casts to the same function or object.
-\cite{herman2007sgt} use the coercion calculus of
-\cite{henglein1994dts} to solve the problem of space efficiency,
+\citet{herman2007sgt} use the coercion calculus of
+\citet{henglein1994dts} to solve the problem of space efficiency,
 that is, they use coercions to express casts.
 Their approach normalizes an arbitrary sequence of coercions to a
 coercion of bounded size.
@@ -470,21 +473,21 @@ coercion of bounded size.
 Another concern about casts is how to improve debugging support,
 because a cast application can be delayed and the error related
 to that cast application can appear far way from the real error.
-\cite{wadler2009wpc} developed the \textit{blame calculus} as a way
-to attack this issue, and \cite{ahmed2011bfa} extended the
+\citet{wadler2009wpc} developed the \textit{blame calculus} as a way
+to attack this issue, and \citet{ahmed2011bfa} extended the
 blame calculus with polymorphism.
 The blame calculus is an intermediate language to integrate
 static and dynamic typing that uses the blame tracking approach
-proposed by \cite{findler2002chf}.
+proposed by \citet{findler2002chf}.
 
 On the one hand, the blame calculus solves the issue regarding
 error reporting;
 on the other hand, it has the space efficiency problem reported
-by \cite{herman2007sgt}.
-Thus, \cite{siek2009casts} extended the coercion calculus of
-\cite{herman2007sgt} with blame tracking to achieve an
+by \citet{herman2007sgt}.
+Thus, \citet{siek2009casts} extended the coercion calculus of
+\citet{herman2007sgt} with blame tracking to achieve an
 implementation of the blame calculus that is space efficient.
-After that, \cite{siek2010blame} proposed a new solution that also
+After that, \citet{siek2010blame} proposed a new solution that also
 attacks both problems.
 This new solution is based on a concept called \textit{threesome},
 which is a way to split a cast between two parties into two casts
@@ -494,23 +497,28 @@ so we can split any cast into a downcast from the source to an
 intermediate type that is followed by an upcast from the intermediate
 type to the target type (a \textit{threesome}).
 
-ActionScript \cite{moock2007as3} is the first language that
+ActionScript \citep{moock2007as3} is the first language that
 incorporated a gradual type system to its implementation and
-Perl 6 \cite{tang2007pri} is also being designed with a
+Perl 6 \citep{tang2007pri} is also being designed with a
 gradual type system, though there is little documentation about
 the gradual type systems of these languages.
-Gradual Python \cite{reticulated} is an attempt to develop a
+Grace \citep{black2012grace,black2013sg} is a new object-oriented,
+gradually typed, educational language.
+In Grace, modules are gradually typed objects, that is, modules
+may have types and methods as attributes, and can have a state
+\citep{homer2013modules}.
+Gradual Python \citep{reticulated} is an attempt to develop a
 gradual type system for Python that deals with mutable objects
-\cite{siek2013mutable}.
-Gradualtalk \cite{allende2013gts} is a gradually-typed Smalltalk
+\citep{siek2013mutable}.
+Gradualtalk \citep{allende2013gts} is a gradually-typed Smalltalk
 that introduces a new cast insertion strategy for gradually-typed
-objects \cite{allende2013cis}.
+objects \citep{allende2013cis}.
 
 \subsection{Approaches that are often called Gradual Typing}
 
 Gradual typing is similar to optional type systems in that type
 annotations are optional, and unannotated code is dynamically
-typed, but unlike optional type systems, gradual typing affects
+typed, but unlike optional type systems, gradual typing changes 
 the run-time semantics to preserve type safety, and it is a way to
 add a dynamic type to statically typed languages. 
 More precisely, programming languages that include a gradual type
@@ -524,28 +532,29 @@ the type checking also belongs to the semantics of each operation.
 Still, we can view gradual typing as a way to formalize an optional
 type system when the gradual type system does not insert run-time
 checks.
-BabyJ \cite{anderson2002babyj} is an example of object-oriented
-language that uses the relation $\approx$ to implement its optional
-type system, and this relation is similar to the consistency relation
-of gradual typing.
-Alore \cite{lehtosalo2011alore} is an example of object-oriented
-language that uses subtyping along with the consistency relation to
-implement its optional type system.
-The authors of Alore defined a \textit{consistent-or-subtype}
-relation that is different to the \textit{consistent-subtyping}
-relation of \cite{siek2007objects}, but it is also written
-$\tau_{1} \lesssim \tau_{2}$.
-Their relation holds when $\tau_{1} \sim \tau_{2}$ or $\tau_{1} <: \tau_{2}$,
-so $<:$ is transitive and $\sim$ is not.
+BabyJ \citep{anderson2002babyj} and Alore \citep{lehtosalo2011alore}
+are two examples of object-oriented languages that use gradual
+typing to formalize their optional type systems.
+The optional type systems of both BabyJ and Alore are nominal.
+BabyJ uses the relation $\approx$ that is similar to the consistency
+relation while Alore combines  subtyping along with the consistency
+relation to define a \textit{consistent-or-subtype} relation.
+The consistent-or-subtype relation is different from the
+consistent-subtyping relation of \citet{siek2007objects}, but it is
+also written $\tau_{1} \lesssim \tau_{2}$.
+The consistent-or-subtype relation holds when $\tau_{1} \sim \tau_{2}$
+or $\tau_{1} <: \tau_{2}$, so $<:$ is transitive and $\sim$ is not.
+Alore also extends its optional type system to include optional
+monitoring of run-time type errors in the gradual typing style.
 
-Hence, optional type annotations for program evolution probably are
+Hence, optional type annotations for software evolution probably are
 the reasons why optional type systems are commonly called
 gradual type systems.
-Typed Clojure \cite{bonnaire-sergeant2012typed-clojure} is an
+Typed Clojure \citep{bonnaire-sergeant2012typed-clojure} is an
 optional type system for Clojure that now is adopting the
 gradual typing slogan.
 
-\cite{flanagan2006htc} introduced \textit{hybrid type checking},
+\citet{flanagan2006htc} introduced \textit{hybrid type checking},
 an approach that combines static types and refinement types.
 For instance, programmers can specify the refinement type
 $\{x:Int \;|\; x \ge 0\}$ when they need a type for natural numbers.
@@ -555,7 +564,7 @@ to insert casts.
 In our example of natural numbers, a cast would be inserted to check
 whether an integer is greater than or equal to zero.
 
-Sage \cite{gronski2006sage} is a programming language that
+Sage \citep{gronski2006sage} is a programming language that
 extended hybrid type checking with a dynamic type to
 support dynamic and static typing in the same language.
 Sage also offers optional type annotations in the gradual typing
@@ -567,22 +576,22 @@ along with optional type annotations, and the insertion of run-time
 checks probably are the reasons why hybrid type checking is
 also viewed as a form of gradual typing. 
 
-\cite{tobin-hochstadt2006ims} proposed another approach for gradually
+\citet{tobin-hochstadt2006ims} proposed another approach for gradually
 migrating from dynamically typed to statically typed code,
 and they coined the term \textit{from scripts to programs} for
 referring to this kind of interlanguage migration.
 In their approach, the migration from dynamically typed to
 statically typed code happens module-by-module, so they designed
-and implemented Typed Racket \cite{tobin-hochstadt2008ts} for
+and implemented Typed Racket \citep{tobin-hochstadt2008ts} for
 this purpose.
 Typed Racket is a statically typed version of Racket
-(a Scheme dialect) that allows the programmer write typed modules,
+(a Scheme dialect) that allows the programmer to write typed modules,
 so Typed Racket modules can coexist with Racket modules,
 which are untyped.
 
-The approach used by \cite{tobin-hochstadt2008ts} to design and
+The approach used by \citet{tobin-hochstadt2008ts} to design and
 implement Typed Racket probably is also called gradual typing
-because it allows the programmer gradually migrate from untyped
+because it allows the programmer to gradually migrate from untyped
 scripts to typed programs.
 However, note that Typed Racket is a statically typed language
 and type annotations are mandatory.
@@ -603,16 +612,16 @@ describing a few Lua projects that are similar to Typed Lua.
 \subsection{Statistics about the usage of Lua}
 
 We used the LuaRocks repository to build our statistics database;
-LuaRocks \cite{hisham2013luarocks} is a package manager for Lua
+LuaRocks \citep{hisham2013luarocks} is a package manager for Lua
 modules.
-We downloaded the 3928 \verb'.lua' files that were available in
+We downloaded the 3928 \texttt{.lua} files that were available in
 the LuaRocks repository at February 1st 2014.
 However, we ignored files that are not compatible with Lua 5.2,
 the latest version of Lua.
 We also ignored \textit{machine-generated} files and test files,
 because these files may not represent idiomatic Lua code,
 and might skew our statistics towards non-typical uses of Lua.
-This left 2598 \verb'.lua' files from 262 different projects for
+This left 2598 \texttt{.lua} files from 262 different projects for
 our statistics database;
 we parsed these files and processed their abstract syntax tree
 to gather the statistics that we show in this section.
@@ -630,7 +639,7 @@ list (e.g., \texttt{\{ "one", "two", "three", "four" \}});
 in 8\% of the occurrences it is a constructor that initializes a
 record with a list part;
 and in less than 1\% of the occurrences (4 times) it is a constructor
-that uses only the booleans \verb'true' and \verb'false' as indexes.
+that uses only the booleans \texttt{true} and \texttt{false} as indexes.
 At all, in 73\% of the occurrences it is a constructor that uses
 only literal keys;
 in 26\% of the occurrences it is the empty constructor;
@@ -643,7 +652,8 @@ that mixes literal keys and non-literal keys.
 The indexing of tables appears 130448 times:
 86\% of them are for reading a table field while
 14\% of them are for writing into a table field.
-About the readings, 89\% of the reads use a literal string key,
+We can classify the indexing operations that are reads as follows:
+89\% of the reads use a literal string key,
 4\% of the reads use a literal number key,
 and less than 1\% of the reads (10 times) use a literal boolean key.
 At all, 93\% of the reads use literals to index a table while
@@ -655,21 +665,22 @@ More precisely, 25\% of the reads use literals to call a function,
 a function call that uses the colon syntactic sugar, 
 and less than 1\% of the reads (195 times) use non-literal expressions
 to call a function.
-About the writings, 69\% of the writes use a literal string key,
+We can also classify the indexing operations that are writes as follows: 
+69\% of the writes use a literal string key,
 2\% of the writes use a literal number key,
 and less than 1\% of the writes (1 time) uses a literal boolean key.
 At all, 71\% of the writes use literals to index a table while
 29\% of the writes use non-literal expressions to index a table.
 
-We measured how many files have code that iterate over tables to
+We also measured how many files have code that iterate over tables to
 observe how frequently iteration is used.
 We observed that 23\% of the files have code that iterate over keys
-of any value, that is, the call to \verb'pairs' appears at least once
-in these files (the median is twice per file);
+of any value, that is, the call to \texttt{pairs} appears at least
+once in these files (the median is twice per file);
 21\% of the files have code that iterate over integer keys, that is,
-the call to \verb'ipairs' appears at least once in these files
+the call to \texttt{ipairs} appears at least once in these files
 (the median is also twice per file);
-and 10\% of the files have code that use the numeric \verb'for'
+and 10\% of the files have code that use the numeric \texttt{for}
 along with the length operator (the median is once per file).
 
 The numbers about table initialization, indexing, and iteration
@@ -689,28 +700,28 @@ Next, we discuss how frequently programmers use dynamic type
 checking and multiple return values inside these functions.
 
 We observed that 9\% of the functions perform dynamic type checking
-on their input parameters, that is, these functions use \verb'type'
+on their input parameters, that is, these functions use \texttt{type}
 to inspect the tags of Lua values (the median is once per function).
 We randomly selected 20 functions to sample how programmers are
-using \verb'type', and we got the following data:
-50\% of these functions use \verb'type' for asserting the tags of
+using \texttt{type}, and we got the following data:
+50\% of these functions use \texttt{type} for asserting the tags of
 their input parameters, that is, they raise an error when the tag of a
 certain parameter does not match the expected tag, and
-50\% of these functions use \verb'type' for overloading, that is,
+50\% of these functions use \texttt{type} for overloading, that is,
 they execute different code according to the inspected tag.
 
 These numbers show us that Typed Lua should include union types,
-because the use of the \verb'type' idiom shows that disjoint unions
+because the use of the \texttt{type} idiom shows that disjoint unions
 will help programmers define data structures that can hold a value of
 several different, but fixed types.
-Typed Lua should also use \verb'type' as a mechanism for decomposing
+Typed Lua should also use \texttt{type} as a mechanism for decomposing
 unions, though it may be restricted to base types only.
 
 We observed that 10\% of the functions explicitly return multiple
 values.
-We also observed that 5\% of the functions return \verb'nil' plus
+We also observed that 5\% of the functions return \texttt{nil} plus
 something else, for signaling an unexpected behavior;
-and 1\% of the functions return \verb'false' plus something else,
+and 1\% of the functions return \texttt{false} plus something else,
 also for signaling an unexpected behavior.
 
 Typed Lua should include function types to represent Lua functions,
@@ -720,22 +731,23 @@ Tuple types will require some special attention, because Typed Lua
 should be able to adjust tuple types during compile-time, in a
 similar way to what Lua does with function calls and multiple
 assignments during run-time.
-In addition, the numbers show us that overloading on the return
-type will be useful to the type system.
+In addition, the number of functions that return \texttt{nil} and
+\texttt{false} plus something else show us that overloading on the
+return type will be useful to the type system.
 
 We also measured how frequently programmers use the object-oriented
 paradigm in Lua.
 We observed that 23\% of the function declarations are actually
 method declarations.
 More precisely, 14\% of them use the colon syntactic sugar while
-9\% of them use \verb'self' as their first parameter.
+9\% of them use \texttt{self} as their first parameter.
 We also observed that 63\% of the projects extend tables with
-metatables, that is, they call \verb'setmetatable' at least once,
+metatables, that is, they call \texttt{setmetatable} at least once,
 and 27\% of the projects access the metatable of a given table,
-that is, they call \verb'getmetatable' at least once.
+that is, they call \texttt{getmetatable} at least once.
 In fact, 45\% of the projects extend tables with metatables and
 declare methods:
-13\% using the colon syntactic sugar, 14\% using \verb'self', and
+13\% using the colon syntactic sugar, 14\% using \texttt{self}, and
 18\% using both.
 
 Based on these observations, Typed Lua should include interfaces and
@@ -756,24 +768,25 @@ We observed that 38\% of the files use the current way of defining
 modules, that is, these files return a table that contains the
 exported members of the module at the end of the file;
 22\% of the files still use the deprecated way of defining modules,
-that is, these files call the function \verb'module';
+that is, these files call the function \texttt{module};
 and 1\% of the files use both ways.
 At all, 61\% of the files are modules while 39\% of the files are
 plain scripts.
-The number of plain scripts is quite high considering the origin of
+The number of plain scripts is high considering the origin of
 our database.
 However, we did not ignore sample scripts, which usually serve to
 help the users of a given module on how to use this module, and
-that is the reason why we have a quite high number of plain scripts.
+that is the reason why we have a high number of plain scripts.
 
 Based on these observations, Typed Lua should also use interfaces as
 syntactic sugar for table types that define modules.
-Typed Lua should also support the deprecated style of module definition,
-using global names as exported members of the module.
+Typed Lua should also support the deprecated style of module
+definition, using global names as exported members of the module.
 
 Besides using interfaces for encoding objects and defining modules,
 Typed Lua should also use interfaces for defining the types of
-userdata and threads.
+userdata, as programmers often use userdata in an object-oriented
+style.
 
 The last statistics that we collected were about variadic functions
 and vararg expressions.
@@ -798,8 +811,8 @@ Lua code without modifications.
 For this reason, these syntactic extensions include new keywords
 that are not reserved words.
 
-Figure \ref{fig:typelang} shows that Typed Lua includes includes
-first-class and second-class types.
+Figure \ref{fig:typelang} shows that Typed Lua includes first-class
+and second-class types.
 Typed Lua uses first-class types for representing Lua values and
 second-class types for defining the signatures of functions.
 First-class types include literal types, base types, the type $\Any$,
@@ -832,8 +845,8 @@ T ::= & & \textit{first-class types}\\
 & | \; \{T:T, ..., T:T\} & \textit{table type}\\
 & | \; X & \textit{type variable}\\
 & | \; \mu X.T & \textit{recursive type}\\
-L ::= & \;\; \Nil \; | \; \False \; | \; \True & \\
-& | \; {<}{\it numbe}r{>} \; | \; {<}{\it string}{>} & \\
+L ::= & \;\; \Nil \; | \; \False \; | \; \True \\
+& | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
 S ::= & \Void \; | \; V & \textit{second-class types}\\
 V ::= & \;\; T & \\
@@ -855,12 +868,17 @@ assigns the type $\Any$ to an unannotated declaration.
 For instance, in function declarations, the compiler does not infer
 a more specific type to unannotated input parameters, because,
 in this case, global type inference often is undecidable in a
-language with subtyping and overloading \cite{wells1999typability}.
+language with subtyping and overloading \citep{wells1999typability}.
 
 In the following example we use type annotations in a function
 declaration, and we do not use type annotations in a declaration of a
 local variable:
 \begin{verbatim}
+
+
+
+
+
 
     local function fact (n:number):number
       if n == 0 then
@@ -874,12 +892,12 @@ local variable:
 \end{verbatim}
 
 Even though we did not add type annotations in the declaration of
-the local variable \verb'x', the compiler uses local type inference to
-assign the type $\Number$ to \verb'x'.
+the local variable \texttt{x}, the compiler uses local type inference to
+assign the type $\Number$ to \texttt{x}.
 The compiler does not use the literal type $5$ instead of the base
 type $\Number$ because this would prevent
 programmers from assigning other numeric values to the variable
-\verb'x'.
+\texttt{x}.
 The inference that we implement in Typed Lua is quite simple, as it
 uses only the type of the local expression.
 
@@ -899,21 +917,21 @@ unannotated code, as we show in the following example:
     end
 \end{verbatim}
 
-The function \verb'dist' receives two parameters of type $\Any$
+The function \texttt{dist} receives two parameters of type $\Any$
 and returns a value of type $\Number$.
 The compiler assigns the dynamic type $\Any$ to the input
-parameters of \verb'dist' because they do not have type annotations,
+parameters of \texttt{dist} because they do not have type annotations,
 and the compiler does not use global type inference, as we mentioned
 previously.
-The compiler infers the return type of \verb'dist' because it is
+The compiler infers the return type of \texttt{dist} because it is
 not a recursive function, that is, Typed Lua does not infer the return
 type of recursive functions.
 
 We are using the consistent-subtyping relation of gradual
 typing to check the interaction among the dynamic type and the other
 types.
-More precisely, we can call \verb'abs' inside \verb'dist' because
-\verb'x - y' is of type $\Any$, and the type $\Any$ is
+More precisely, we can call \texttt{abs} inside \texttt{dist} because
+\texttt{x - y} is of type $\Any$, and the type $\Any$ is
 consistent with the type $\Number$.
 The type $\Any$ is not the union of all types, but it is a separate
 type.
@@ -924,11 +942,11 @@ typed code during run-time.
 In other words, Typed Lua does not guarantee that dynamically typed
 code does not violate statically typed code.
 Typed Lua does not insert run-time checks because they can decrease
-run-time performance \cite{allende2013cis}.
+run-time performance \citep{allende2013cis}.
 We believe that a careful evaluation of run-time checks should be done
 before inserting them on the type system.
-In the previous example, we cannot guarantee that \verb'dist' is never
-going to call \verb'abs' with a parameter that is not a number,
+In the previous example, we cannot guarantee that \texttt{dist} is never
+going to call \texttt{abs} with a parameter that is not a number,
 because in the semantics of Lua the minus operator can result in a
 value that is not a number.
 Still, we can implement run-time checks in the future because we are
@@ -945,16 +963,16 @@ Next, we show an example:
     local z:number = x         -- Error
 \end{verbatim}
 
-The annotation \verb'number?' is syntactic sugar for
-\verb'number|nil' that means the type $\Number\;\cup\;\Nil$.
-Typed Lua includes the syntactic sugar \verb't?' because the
+The annotation \texttt{number?} is syntactic sugar for
+\texttt{number|nil} that means the type $\Number\;\cup\;\Nil$.
+Typed Lua includes the syntactic sugar \texttt{t?} because the
 type $t\;\cup\;\Nil$ is very common in Lua code.
 
 The last line of the previous example gives a type error because we
 are attempting to assign a value of type $\Number\;\cup\;\Nil$
 to a variable that accepts only values of type $\Number$.
 Although we can solve this type error changing the annotation of
-variable \verb'z' from \verb'number' to \verb'number?', there is
+variable \texttt{z} from \texttt{number} to \texttt{number?}, there is
 another way that we can use to solve this type error without changing
 the annotation:
 \begin{verbatim}
@@ -968,23 +986,23 @@ Typed Lua includes table types to represent Lua's tables.
 Although Typed Lua has just one table type constructor, it has three
 different syntaxes for defining the type of a table.
 The first syntax defines table types for hash tables;
-it is written \verb'{t1:t2}',
+it is written \texttt{\{t1:t2\}},
 and maps to the table type $\{t_{1}:t_{2}\;\cup\;\Nil\}$.
 This table type represents a hash table that maps values of type
 $t_{1}$ to values of type $t_{2}\;\cup\;\Nil$, as Lua returns
 $\Nil$ when we use a non-existing key to index a table.
 The second syntax defines table types for lists;
-it is written \verb'{t}',
+it is written \texttt{\{t\}},
 and maps to the table type $\{\Number:t\;\cup\;\Nil\}$.
 This table type is just a syntactic sugar to the definition of a
 hash table that maps values of type $\Number$ to values of type
 $t\;\cup\;\Nil$.
 The third syntax defines table types for records;
-it is written \verb'{s1:t1, ..., sn:tn}',
+it is written \texttt{\{s1:t1, ..., sn:tn\}},
 and maps to the table type $\{s_{1}:t_{1}, ..., s_{n}:t_{n}\}$.
 This table type represents a record that maps the literals
-$s_{i}$\verb', ..., '$s_{n}$ to values of types
-$t_{i}$\verb', ..., '$t_{n}$, where $i$ may vary from one to $n$.
+$s_{i}$\texttt{, ..., }$s_{n}$ to values of types
+$t_{i}$\texttt{, ..., }$t_{n}$, where $i$ may vary from one to $n$.
 
 Next, we show one example of table type to type a hash table:
 \begin{verbatim}
@@ -994,13 +1012,13 @@ Next, we show one example of table type to type a hash table:
 \end{verbatim}
 
 The second line of this example gives a type error for the same
-reason that the last line of the previous example gave a type error
+reason that the last line of the previous example gives a type error
 too, that is, we are trying to assign a value that can be of two
 different types to a variable that accepts values of only one type.
-Although the field \verb'bar' does not exist in \verb't', the last
+Although the field \texttt{bar} does not exist in \texttt{t}, the last
 line of this example does not give a type error because the
 annotated type matches the type of the values that can be stored in
-\verb't'.
+\texttt{t}.
 
 Next, we show one example of table type to type a list:
 \begin{verbatim}
@@ -1013,14 +1031,14 @@ When we know that a list has fixed elements, we can leave the
 variable declaration unannotated and let local type inference assign
 a more specific table type to the list.
 If we remove the annotation in this example, the compiler uses the
-syntax of records to infer the following table type to \verb'days':
+syntax of records to infer the following table type to \texttt{days}:
 \begin{align*}
 \{{1:\String},\;{2:\String},\;{3:\String},\;{4:\String},\;\\
 {5:\String},\;{6:\String},\;{7:\String}\}
 \end{align*}
 This inferred table type is a subtype of the type
 $\{\Number:\String\;\cup\;\Nil\}$, which is the type that we used to
-annotate the variable \verb'days'.
+annotate the variable \texttt{days}.
 
 When we use the inferred table type while initializing a table, the
 compiler gives an error message when we try to access an index that
@@ -1037,10 +1055,10 @@ Next, we show one example of table type to type a record:
 \end{verbatim}
 
 Type inference would infer the very same table type that we used to
-annotate the variable \verb'person'.
+annotate the variable \texttt{person}.
 
-Typed Lua includes interfaces as syntactic sugar to the table type
-that specifies records.
+Typed Lua includes interfaces as syntactic sugar to table types
+that specify records.
 For instance, we can use the following interface as an alias to the
 type of the record we showed in the previous example:
 \begin{verbatim}
@@ -1050,9 +1068,9 @@ type of the record we showed in the previous example:
     end
 \end{verbatim}
 
-Now we can use the type \verb'Person' as an alias to a table type
-that certainly has the fields \verb'firstname' and \verb'lastname'.
-Next, we show an example of code that uses the type \verb'Person':
+Now we can use the type \texttt{Person} as an alias to a table type
+that certainly has the fields \texttt{firstname} and \texttt{lastname}.
+Next, we show an example of code that uses the type \texttt{Person}:
 \begin{verbatim}
     local function greeter (person:Person):string
       return "Hello " .. person.firstname ..
@@ -1063,6 +1081,7 @@ Next, we show an example of code that uses the type \verb'Person':
                     middlename = "Allan",
                     lastname = "Reed" }
     local user2 = { firstname = "Lou" }
+
     local user3 = { lastname = "Reed",
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
@@ -1088,8 +1107,8 @@ lists:
     end
 \end{verbatim}
 
-We need to explicitly annotate \verb'next' being of type
-${\tt Element}\;\cup\;\Nil$ because in our type system $\Nil$
+We need to explicitly annotate \texttt{next} being of type
+\texttt{Element} $\cup\;\Nil$ because in our type system $\Nil$
 is not the bottom type, that is, $\Nil$ is subtype of itself only.
 Typed Lua has this behavior because in Lua $\Nil$ represents
 the absence of an useful value.
@@ -1109,8 +1128,8 @@ at the end of the file.
 
 Typed Lua includes function types because functions are first-class
 values in Lua.
-The syntax for defining a function type is \verb'(s) -> (s)',
-where \verb's' is a second-class type.
+The syntax for defining a function type is \texttt{(s) -> (s)},
+where \texttt{s} is a second-class type.
 As we saw in Figure \ref{fig:typelang}, a second-class type in
 Typed Lua can be the type $\Void$, a first-class type, a variadic
 type, or a tuple type.
@@ -1120,10 +1139,10 @@ represent variadic functions and the vararg expression.
 Even though we already included the tuple type and the vararg type,
 we are still working on these types.
 
-The next example shows how we can annotate a \verb'map' function
+The next example shows how we can annotate a \texttt{map} function
 that receives another function as its parameter and uses this
 function to alter the elements of a list of numbers, which is
-also a parameter of \verb'map':
+also a parameter of \texttt{map}:
 \begin{verbatim}
     local function map (f:(number)->(number),
                         l:{number}):void
@@ -1141,39 +1160,39 @@ come with metatables.
 
 \subsection{Similar Lua projects}
 
-Metalua \cite{metalua} is a Lua compiler that supports compile-time
+Metalua \citep{metalua} is a Lua compiler that supports compile-time
 metaprogramming (CTMP).
 CTMP is a kind of macro system that allows the programmers to interact
-with the compiler \cite{fleutot2007contrasting}. 
+with the compiler \citep{fleutot2007contrasting}. 
 Metalua extends Lua 5.1 syntax to include its macro system,
 and allows programmers to define their own syntax.
 Metalua can provide syntactical support for several object-oriented
 styles, and can also provide syntax for turning simple type
-annotations into run-time assertions, but without compile-time type
-checking.
+annotations into run-time assertions.
 
-MoonScript \cite{moonscript} is a programming language that supports
+MoonScript \citep{moonscript} is a programming language that supports
 class-based object-oriented programming, and compiles to idiomatic
 Lua code.
 However, it does not perform compile-time type checking.
 
-LuaInspect \cite{luainspect} is a tool that uses MetaLua to perform
+LuaInspect \citep{luainspect} is a tool that uses MetaLua to perform
 some code analysis, such as flagging unknown global variables and
 table fields, checking the number of function arguments against
 signatures, and inferring function return values, but it does not
 try to analyze object-oriented code and does not perform compile-time
 type checking.
 
-Tidal Lock \cite{tidallock} is a prototype of another optional type
+Tidal Lock \citep{tidallock} is a prototype of another optional type
 system for Lua, which is written in Metalua.
-A remarkable feature of Tidal Lock is the way it handles tables,
+A remarkable feature of Tidal Lock is the way that it handles tables,
 because it allows the programmer to incrementally build the type of
 a table.
 More precisely, Tidal Lock allows the programmer to create an empty
 table to build its type according to the keys that the programmer
-inserts in it, so the programmer do not need to bother about declaring
-its type with just one line of code.
-We also plan to add this feature to Typed Lua.
+inserts in it, so the programmer does not need to build the table in
+a single table constructor.
+Typed Lua has a simpler form of this feature, with a different
+formalization.
 Like Typed Lua, Tidal Lock also has local type inference.
 Unlike Typed Lua, Tidal Lock is not typing the common object-oriented
 idioms used by Lua programmers.
@@ -1198,7 +1217,7 @@ However, the fact that we are not currently providing guarantees on
 the interaction between dynamic and static code is an obstacle for
 performing safe optimizations.
 
-\bibliographystyle{abbrv}
+\bibliographystyle{abbrvnat}
 \bibliography{typedlua}
 
 \end{document}
