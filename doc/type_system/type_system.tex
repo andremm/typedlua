@@ -5,12 +5,20 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
+\newcommand{\Any}{\mathbf{any}}
+\newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\False}{\mathbf{false}}
+\newcommand{\True}{\mathbf{true}}
+\newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Number}{\mathbf{number}}
+\newcommand{\String}{\mathbf{string}}
+\newcommand{\Void}{\mathbf{void}}
+
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
-\newcommand{\pipe}{|\;}
-\newcommand{\kw}[1]{\mathbf{#1} \;}
-\newcommand{\env}{\Gamma}
-\newcommand{\ret}{\string_RET}
+
+\def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
+\def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
 
 \title{Typed Lua Type System}
 
@@ -22,62 +30,56 @@
 
 \section{Type Language}
 
-%\begin{align*}
-%T ::= \; & C \; \pipe B \; \pipe Any \; \pipe
-%T \cup T \; \pipe S \rightarrow S\\
-%C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
-%\pipe {<}double{>} \; \pipe {<}integer{>} \; \pipe {<}string{>}\\
-%B ::= \; & Boolean \; \pipe Number \; \pipe String\\
-%S ::= \; & Void \; \pipe T \; \pipe {T*} \; \pipe T \times S\\ 
-%\end{align*}
-
-\begin{align*}
-T ::= \; & C \; \pipe B \; \pipe \mathbf{any} \; \pipe
-T \cup T \; \pipe L \rightarrow L \; \pipe \\
-& \{T:T, ..., T:T\} \; \pipe X \; \pipe \mu X.T\\
-C ::= \; & \mathbf{nil} \; \pipe \mathbf{false} \; \pipe \mathbf{true} \;
-\pipe n \; \pipe s\\
-B ::= \; & \mathbf{boolean} \; \pipe \mathbf{number} \; \pipe \mathbf{string}\\
-L ::= \; & \mathbf{void} \; \pipe S\\
-S ::= \; & T \; \pipe {T*} \; \pipe T \times S\\ 
-\end{align*}
+\textbf{Type Language}\\
+\dstart
+$$
+\begin{array}{rlr}
+T ::= & & \textit{first-class types}\\
+& \;\; L & \textit{literal types}\\
+& | \; B & \textit{base types}\\
+& | \; \Any & \textit{dynamic type}\\
+%& | \; T \cup T & \textit{union type}\\
+%& | \; S \rightarrow S & \textit{function type}\\
+%& | \; \{T:T, ..., T:T\} & \textit{table type}\\
+%& | \; X & \textit{type variable}\\
+%& | \; \mu X.T & \textit{recursive type}\\
+L ::= & \Nil \; | \; \False \; | \; \True \; | \;
+  {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
+B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+%S ::= & \Void \; | \; V & \textit{second-class types}\\
+%V ::= & \;\; T & \\
+%& | \; T* & \textit{vararg type}\\
+%& | \; T \times V & \textit{tuple type}
+\end{array}
+$$
+\dend
 
 \section{Subtyping}
 
-\subsection{Constant types}
+\subsection{Literal types}
 
 \[
-C \subtype C
-\mylabel{S-CONSTANT}
+L \subtype L
+\mylabel{S-LITERAL}
 \]
 
 \[
-\mathbf{false} \subtype Boolean
+\False \subtype \Boolean
 \mylabel{S-FALSE}
 \]
 
 \[
-\mathbf{true} \subtype Boolean
+\True \subtype \Boolean
 \mylabel{S-TRUE}
 \]
 
 \[
-{<}double{>} \subtype Number
-\mylabel{S-DOUBLE}
+{<}{\it number}{>} \subtype \Number
+\mylabel{S-NUMBER}
 \]
 
 \[
-{<}integer{>} \subtype {<}double{>}
-\mylabel{S-INTEGER1}
-\]
-
-\[
-{<}integer{>} \subtype Number
-\mylabel{S-INTEGER2}
-\]
-
-\[
-{<}string{>} \subtype String
+{<}{\it string}{>} \subtype \String
 \mylabel{S-STRING}
 \]
 
@@ -88,132 +90,39 @@ B \subtype B
 \mylabel{S-BASE}
 \]
 
-\subsection{Any type}
+\subsection{Dynamic type}
 
 \[
-Any \subtype Any
+\Any \subtype \Any
 \mylabel{S-ANY}
 \]
 
-\subsection{Union type}
-
-\[
-\frac{T_{1} \subtype T_{2}}
-     {T_{1} \subtype T_{2} \cup T_{3}}
-\mylabel{S-UNION1}
-\]
-
-\[
-\frac{T_{1} \subtype T_{3}}
-     {T_{1} \subtype T_{2} \cup T_{3}}
-\mylabel{S-UNION2}
-\]
-
-\[
-\frac{T_{1} \subtype T_{3} \;\;\; T_{2} \subtype T_{3}}
-     {T_{1} \cup T_{2} \subtype T_{3}}
-\mylabel{S-UNION3}
-\]
-
-\subsection{Function type}
-
-\[
-\frac{S_{3} \subtype S_{1} \;\;\; S_{2} \subtype S_{4}}
-     {S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
-\mylabel{S-FUNCTION}
-\]
-
-\subsection{Product type}
-
-\[
-\frac{T_{1} \subtype T_{2} \;\;\; S_{1} \subtype S_{2}}
-     {T_{1} \times S_{1} \subtype T_{2} \times S_{2}}
-\mylabel{S-PROD}
-\]
-
-\subsection{Void type}
-
-\[
-Void \subtype Void
-\mylabel{S-VOID1}
-\]
-
-\[
-Void \subtype {T*}
-\mylabel{S-VOID2}
-\]
-
-
-\subsection{VarArg type}
-
-\[
-\frac{T_{1} \subtype T_{2}}
-     {{T_{1}*} \subtype {T_{2}*}}
-\mylabel{S-VARARG1}
-\]
-
-\[
-\frac{T_{1} \cup Nil \subtype T_{2}}
-     {{T_{1}*} \subtype T_{2}}
-\mylabel{S-VARARG2}
-\]
-
-\[
-\frac{T_{1} \subtype T_{2}}
-     {T_{1} \subtype {T_{2}*}}
-\mylabel{S-VARARG3}
-\]
-
-%\[
-%\frac{T_{1} \cup Nil \subtype T_{2} \;\;\;
-%      {T_{1}*} \subtype S_{2}}
-%     {{T_{1}*} \subtype T_{2} \times S_{2}}
-%\mylabel{S-VARARG4}
-%\]
-%
-%\[
-%\frac{T_{1} \subtype T_{2} \;\;\;
-%      S_{1} \subtype {T_{2}*}}
-%     {T_{1} \times S_{1} \subtype {T_{2}*}}
-%\mylabel{S-VARARG5}
-%\]
-
 \section{Consistent-Subtyping}
 
-\subsection{Constant types}
+\subsection{Literal types}
 
 \[
-C \lesssim C
-\mylabel{C-CONSTANT}
+L \lesssim L
+\mylabel{C-LITERAL}
 \]
 
 \[
-\mathbf{false} \lesssim Boolean
+\False \lesssim \Boolean
 \mylabel{C-FALSE}
 \]
 
 \[
-\mathbf{true} \lesssim Boolean
+\True \lesssim \Boolean
 \mylabel{C-TRUE}
 \]
 
 \[
-{<}double{>} \lesssim Number
-\mylabel{C-DOUBLE}
+{<}{\it number}{>} \lesssim \Number
+\mylabel{C-NUMBER}
 \]
 
 \[
-{<}integer{>} \lesssim {<}double{>}
-\mylabel{C-INTEGER1}
-\]
-
-\[
-{<}integer{>} \lesssim Number
-\mylabel{C-INTEGER2}
-\]
-
-\[
-{<}string{>} \lesssim String
+{<}{\it string}{>} \lesssim \String
 \mylabel{C-STRING}
 \]
 
@@ -224,496 +133,16 @@ B \lesssim B
 \mylabel{C-BASE}
 \]
 
-\subsection{Any type}
+\subsection{Dynamic type}
 
 \[
-T \lesssim Any
+T \lesssim \Any
 \mylabel{C-ANY1}
 \]
 
 \[
-Any \lesssim T
+\Any \lesssim T
 \mylabel{C-ANY2}
-\]
-
-\subsection{Union type}
-
-\[
-\frac{T_{1} \lesssim T_{2}}
-     {T_{1} \lesssim T_{2} \cup T_{3}}
-\mylabel{C-UNION1}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{3}}
-     {T_{1} \lesssim T_{2} \cup T_{3}}
-\mylabel{C-UNION2}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{3} \;\;\; T_{2} \lesssim T_{3}}
-     {T_{1} \cup T_{2} \lesssim T_{3}}
-\mylabel{C-UNION3}
-\]
-
-\subsection{Function type}
-
-\[
-\frac{S_{3} \lesssim S_{1} \;\;\; S_{2} \lesssim S_{4}}
-     {S_{1} \rightarrow S_{2} \lesssim S_{3} \rightarrow S_{4}}
-\mylabel{C-FUNCTION}
-\]
-
-\subsection{Product type}
-
-\[
-\frac{T_{1} \lesssim T_{2} \;\;\; S_{1} \lesssim S_{2}}
-     {T_{1} \times S_{1} \lesssim T_{2} \times S_{2}}
-\mylabel{C-PROD}
-\]
-
-\subsection{Void type}
-
-\[
-Void \lesssim Void
-\mylabel{C-VOID1}
-\]
-
-\[
-Void \lesssim {T*}
-\mylabel{C-VOID2}
-\]
-
-\subsection{VarArg type}
-
-\[
-\frac{T_{1} \lesssim T_{2}}
-     {{T_{1}*} \lesssim {T_{2}*}}
-\mylabel{C-VARARG1}
-\]
-
-\[
-\frac{T_{1} \cup Nil \lesssim T_{2}}
-     {{T_{1}*} \lesssim T_{2}}
-\mylabel{C-VARARG2}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{2}}
-     {T_{1} \lesssim {T_{2}*}}
-\mylabel{C-VARARG3}
-\]
-
-%\[
-%\frac{T_{1} \cup Nil \lesssim T_{2} \;\;\;
-%      {T_{1}*} \lesssim S_{2}}
-%     {{T_{1}*} \lesssim T_{2} \times S_{2}}
-%\mylabel{C-VARARG4}
-%\]
-%
-%\[
-%\frac{T_{1} \lesssim T_{2} \;\;\;
-%      S_{1} \lesssim {T_{2}*}}
-%     {T_{1} \times S_{1} \lesssim {T_{2}*}}
-%\mylabel{C-VARARG5}
-%\]
-
-\section{Typing Rules}
-
-\subsection{Abstract Syntax}
-
-\begin{align*}
-s ::= \; & \kw{skip} \pipe s_{1} \;;\; s_{2} \; \pipe
-\kw{if} e \; \kw{then} s_{1} \; \kw{else} s_{2} \; \pipe\\
-& \kw{while} e \; \kw{do} s \; \pipe
-\kw{repeat} s \; \kw{until} e \; \pipe\\
-& \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s \; \pipe
-\kw{for} \vec{i}:\vec{t} \; \kw{in} el \; \kw{do} s \; \pipe\\
-& \kw{local} \vec{i}:\vec{t} = el \; \kw{in} s \; \pipe
-\kw{local} i = f \; \kw{in} s \; \pipe\\
-& \kw{::} i \; \kw{::} \pipe \kw{goto} i \; \pipe \kw{break} \pipe
-\vec{l} = el \; \pipe \kw{return} el \; \pipe e(el)\\
-l ::= \; & i \; \pipe e_{1}[e_{2}]\\
-el ::= \; & \kw{nothing} \pipe me \; \pipe \vec{e} \; \pipe \vec{e},me\\
-me ::= \; & e(el) \; \pipe {...}\\
-e ::= \; & k \; \pipe {...} \; \pipe i \; \pipe e_{1}[e_{2}] \; \pipe
-f \; \pipe e(el) \; \pipe \{\} \; \pipe\\
-& e_{1} + e_{2} \; \pipe e_{1} \; {..} \; e_{2} \; \pipe
-e_{1} == e_{2} \; \pipe e_{1} < e_{2} \; \pipe\\
-& e_{1} \; \kw{and} e_{2} \; \pipe e_{1} \; \kw{or} e_{2} \; \pipe
-\kw{not} e \; | - e \; \pipe \# \; e\\
-f ::= \; & \kw{fun} ():t_{r} \; b \; \pipe
-\kw{fun} ({...}:t):t_{r} \; b \; \pipe\\
-& \kw{fun} (\vec{i}:\vec{t}):t_{r} \; b \; \pipe
-\kw{fun} (\vec{i}:\vec{t},{...}:t):t_{r} \; b\\
-b ::= \; & s \;;\; \kw{return} el\\
-k ::= \; & \kw{nil} \; \pipe \kw{false} \; \pipe \kw{true} \; \pipe
-n \; \pipe w\\
-n ::= \; & {<}decimal\;numerals{>}\\
-w ::= \; & {<}strings{>}
-\end{align*}
-
-\subsection{Typing rules}
-
-\subsubsection{Statements}
-
-\[
-\env \vdash \kw{skip}
-\mylabel{T-SKIP}
-\]
-
-\[
-\frac{\env \vdash s_{1} \;\;\;
-      \env \vdash s_{2}}
-     {\env \vdash s_{1} \;;\; s_{2}}
-\mylabel{T-SEQ}
-\]
-
-\[
-\frac{\env \vdash e:T \;\;\;
-      \env \vdash s_{1} \;\;\;
-      \env \vdash s_{2}}
-     {\env \vdash \kw{if} e \; \kw{then} s_{1} \; \kw{else} s_{2}}
-\mylabel{T-IF-ELSE}
-\]
-
-\[
-\frac{\env \vdash e:T \;\;\;
-      \env \vdash s}
-     {\env \vdash \kw{while} e \; \kw{do} s}
-\mylabel{T-WHILE}
-\]
-
-\[
-\frac{\env \vdash s \;\;\;
-      \env \vdash e:T}
-     {\env \vdash \kw{repeat} s \; \kw{until} e}
-\mylabel{T-REPEAT}
-\]
-
-\[
-\frac{\begin{aligned}
-      & \env \vdash e_{1}:T_{1} \;\;\;
-        \env \vdash e_{2}:T_{2} \;\;\;
-        \env \vdash e_{3}:T_{3} &\\
-      & T_{1} \lesssim Number \;\;\;
-        T_{2} \lesssim Number \;\;\;
-        T_{3} \lesssim Number &\\
-      & \env, i:Number \vdash s &
-      \end{aligned}}
-     {\env \vdash \kw{for} i=e_{1},e_{2},e_{3} \; \kw{do} s}
-\mylabel{T-FORNUM}
-\]
-
-\[
-\frac{\env \vdash el:S \;\;\;
-      \env, \vec{i}:\vec{t}:S \vdash s}
-     {\env \vdash \kw{for} \vec{i}:\vec{t} \; \kw{in} e \; \kw{do} s}
-\mylabel{T-FORGEN}
-\]
-
-\[
-\frac{\env \vdash el:S \;\;\;
-      S \lesssim T_{1} \times ... \times T_{n} \times {Any*} \;\;\;
-      \env, \vec{i}:\vec{t} \vdash s}
-     {\env \vdash \kw{local} \vec{i}:\vec{t} = el \; \kw{in} s}
-\mylabel{T-LOCALVAR}
-\]
-
-\[
-\frac{\env, i:S_{1} \rightarrow S_{2}, \ret:S_{2} \vdash f:S_{1} \rightarrow S_{2} \;\;\;
-      \env, i:S_{1} \rightarrow S_{2}, \ret:S_{2} \vdash s}
-     {\env \vdash \kw{local} i = f \; \kw{in} s}
-\mylabel{T-LOCALFUN}
-\]
-
-\[
-\env \vdash \kw{::} i \; \kw{::}
-\mylabel{T-LABEL}
-\]
-
-\[
-\env \vdash \kw{goto} i
-\mylabel{T-GOTO}
-\]
-
-\[
-\env \vdash \kw{break}
-\mylabel{T-BREAK}
-\]
-
-\[
-\frac{\env \vdash el:S_{1} \;\;\;
-      \env \vdash \vec{l}:S_{2} \;\;\;
-      \env \vdash S_{1} \lesssim S_{2}}
-     {\env \vdash \vec{l} = el}
-\mylabel{T-ASSIGNMENT}
-\]
-
-\[
-\frac{\env \vdash el:S_{1} \;\;\;
-      \env(\ret) = S_{2} \;\;\;
-      S_{1} \lesssim S_{2}}
-     {\env \vdash \kw{return} el}
-\mylabel{T-RETURN}
-\]
-
-\[
-\frac{\env \vdash el:S_{1} \;\;\;
-      \env \vdash e:S_{2} \rightarrow S_{3} \;\;\;
-      S_{1} \lesssim S_{2}}
-     {\env \vdash e(el)}
-\mylabel{T-STMCALL1}
-\]
-
-\[
-\frac{\env \vdash el:S \;\;\;
-      \env \vdash e:Any}
-     {\env \vdash e(el)}
-\mylabel{T-STMCALL2}
-\]
-
-\subsubsection{Expression lists}
-
-\[
-\env \vdash \kw{nothing}:{Nil*}
-\mylabel{T-EL1}
-\]
-
-\[
-\frac{\env \vdash e(el):T_{1} \times ... \times T_{n}}
-     {\env \vdash me:T_{1} \times ... \times T_{n} \times {Nil*}}
-\mylabel{T-EL2}
-\]
-
-\[
-\frac{\env \vdash e(el):T_{1} \times ... \times {T_{n}*}}
-     {\env \vdash me:T_{1} \times ... \times {T_{n}*}}
-\mylabel{T-EL3}
-\]
-
-\[
-\frac{\env \vdash {...}:{T*}}
-     {\env \vdash me:{T*}}
-\mylabel{T-EL4}
-\]
-
-\[
-\frac{\env \vdash e_{k}:proj(T_{k}) \;\;\;
-      n = |\vec{e}|}
-     {\env \vdash \vec{e}:T_{1} \times ... \times T_{n} \times {Nil*}}
-\mylabel{T-EL5}
-\]
-
-\[
-\frac{\env \vdash e_{k}:proj(T_{k}) \;\;\;
-      n = |\vec{e}|\;\;\;
-      \env \vdash me:T_{n+1} \times ... \times {T_{m}*}}
-     {\env \vdash \vec{e},me:T_{1} \times ... \times T_{n} \times T_{n+1} \times ... \times {T_{m}*}}
-\mylabel{T-EL6}
-\]
-
-\subsubsection{Expressions}
-
-\[
-\env \vdash k : k
-\mylabel{T-CONSTANT}
-\]
-
-\[
-\frac{\env({...}) = T}
-     {\env \vdash {...} : {T*}}
-\mylabel{T-VARARG}
-\]
-
-\[
-\frac{\env(i) = T}
-     {\env \vdash i : T}
-\mylabel{T-VAR-ID}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2}}
-     {\env \vdash e_{1}[e_{2}] : Any}
-\mylabel{T-VAR-INDEX}
-\]
-
-\[
-\frac{\env, \ret:t_{r} \vdash b}
-     {\kw{fun} ():t_{r} \; b : {Any*} \rightarrow T_{r}}
-\mylabel{T-FUNCTION1}
-\]
-
-\[
-\frac{\env, \ret:t_{r}, {...}:t \vdash b}
-     {\kw{fun} ({...}:t):t_{r} \; b : {T*} \rightarrow T_{r}}
-\mylabel{T-FUNCTION2}
-\]
-
-\[
-\frac{\env, \vec{i}:\vec{t}, \ret:t_{r} \vdash b}
-     {\kw{fun} (\vec{i}:\vec{t}):t_{r} \; b :
-      S \times {Any*} \rightarrow T_{r}}
-\mylabel{T-FUNCTION3}
-\]
-
-\[
-\frac{\env, \vec{i}:\vec{t}, \ret:t_{r}, {...}:t \vdash b}
-     {\kw{fun} (\vec{i}:\vec{t}, {...}:t):t_{r} \; b :
-      S \times {T*} \rightarrow T_{r}}
-\mylabel{T-FUNCTION4}
-\]
-
-\[
-\frac{\env \vdash el:S_{1} \;\;\;
-      \env \vdash e:S_{2} \rightarrow S_{3} \;\;\;
-      S_{1} \lesssim S_{2}}
-     {\env \vdash e(el) : S_{3}}
-\mylabel{T-CALL1}
-\]
-
-\[
-\frac{\env \vdash el:S \;\;\;
-      \env \vdash e:Any}
-     {\env \vdash e(el) : {Any*}}
-\mylabel{T-CALL2}
-\]
-
-\[
-\env \vdash \{\} : Any
-\mylabel{T-TABLE}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2} \;\;\;
-      T_{1} \subtype Number \;\;\;
-      T_{2} \subtype Number}
-     {\env \vdash e_{1} + e_{2} : Number}
-\mylabel{T-ARITH1}
-\]
-
-\[
-\frac{\env \vdash e_{1}:Any \;\;\;
-      \env \vdash e_{2}:T}
-     {\env \vdash e_{1} + e_{2} : Any}
-\mylabel{T-ARITH2}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T \;\;\;
-      \env \vdash e_{2}:Any}
-     {\env \vdash e_{1} + e_{2} : Any}
-\mylabel{T-ARITH3}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2} \;\;\;
-      T_{1} \subtype String \;\;\;
-      T_{2} \subtype String}
-     {\env \vdash e_{1} \; {..} \;  e_{2} : String}
-\mylabel{T-CONCAT1}
-\]
-
-\[
-\frac{\env \vdash e_{1}:Any \;\;\;
-      \env \vdash e_{2}:T}
-     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
-\mylabel{T-CONCAT2}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T \;\;\;
-      \env \vdash e_{2}:Any}
-     {\env \vdash e_{1} \; {..} \; e_{2} : Any}
-\mylabel{T-CONCAT3}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2}}
-     {\env \vdash e_{1} == e_{2} : Boolean}
-\mylabel{T-EQUAL}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2} \;\;\;
-      T_{1} \subtype Number \;\;\;
-      T_{2} \subtype Number}
-     {\env \vdash e_{1} < e_{2} : Boolean}
-\mylabel{T-ORDER1}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2} \;\;\;
-      T_{1} \subtype String \;\;\;
-      T_{2} \subtype String}
-     {\env \vdash e_{1} < e_{2} : Boolean}
-\mylabel{T-ORDER2}
-\]
-
-\[
-\frac{\env \vdash e_{1}:Any \;\;\;
-      \env \vdash e_{2}:T}
-     {\env \vdash e_{1} < e_{2} : Any}
-\mylabel{T-ORDER3}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T \;\;\;
-      \env \vdash e_{2}:Any}
-     {\env \vdash e_{1} < e_{2} : Any}
-\mylabel{T-ORDER4}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2}}
-     {\env \vdash e_{1} \; \kw{and} e_{2} : T_{1} \cup T_{2}}
-\mylabel{T-AND}
-\]
-
-\[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
-      \env \vdash e_{2}:T_{2}}
-     {\env \vdash e_{1} \; \kw{or} e_{2} : T_{1} \cup T_{2}}
-\mylabel{T-OR}
-\]
-
-\[
-\frac{\env \vdash e:T}
-     {\env \vdash \kw{not} e : Boolean}
-\mylabel{T-NOT}
-\]
-
-\[
-\frac{\env \vdash e:T \;\;\;
-      T \subtype Number}
-     {\env \vdash - \; e : Number}
-\mylabel{T-MINUS1}
-\]
-
-\[
-\frac{\env \vdash e:Any}
-     {\env \vdash - \; e : Any}
-\mylabel{T-MINUS2}
-\]
-
-\[
-\frac{\env \vdash e:T \;\;\;
-      T \subtype String}
-     {\env \vdash \# \; e : Number}
-\mylabel{T-LEN1}
-\]
-
-\[
-\frac{\env \vdash e:Any}
-     {\env \vdash \# \; e : Any}
-\mylabel{T-LEN2}
 \]
 
 \end{document}
