@@ -29,7 +29,7 @@ expr:
   | `False
   | `Number{ <number> }
   | `String{ <string> }
-  | `Function{ { `Id{ <string> }* `Dots? } block }
+  | `Function{ { ident* { `Dots type? }? } block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
@@ -40,10 +40,21 @@ apply:
   `Call{ expr expr* }
   | `Invoke{ expr `String{ <string> } expr* }
 
-lhs: `Id{ <string> } | `Index{ expr expr }
+lhs: ident | `Index{ expr expr }
+
+ident: `Id{ <string> type? }
 
 opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
   | 'eq' | 'lt' | 'le' | 'and' | 'or' | 'not' | 'unm' | 'len'
+
+type:
+  `Literal{ literal }
+  | `Base{ base }
+  | `Any
+
+literal: nil | false | true | <number> | <string>
+
+base: 'boolean' | 'number' | 'string'
 ]]
 local parser = {}
 
@@ -204,13 +215,26 @@ end
 
 -- grammar
 
-local G = { V"Lua",
-  Lua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
+local G = { V"TypedLua",
+  TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
+  -- type language
+  Type = taggedCap("Literal", V"LiteralType") +
+         taggedCap("Base", V"BaseType") +
+         taggedCap("Any", V"DynamicType");
+  LiteralType = V"NilType" + V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
+  NilType = token("nil", "Type");
+  FalseType = token("false", "Type") * Cc(false);
+  TrueType = token("true", "Type") * Cc(true);
+  NumberType = token(V"Number", "Type");
+  StringType = token(V"String", "Type");
+  BaseType = token(C"boolean", "Type") + token(C"number", "Type") + token(C"string", "Type");
+  DynamicType = token("any", "Type");
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
   Var = V"Id";
   Id = taggedCap("Id", token(V"Name", "Name"));
+  TypedId = taggedCap("Id", token(V"Name", "Name") * (symb(":") * V"Type")^-1);
   FunctionDef = kw("function") * V"FuncBody";
   FieldSep = symb(",") + symb(";");
   Field = taggedCap("Pair", (symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
@@ -218,7 +242,7 @@ local G = { V"Lua",
           V"Expr";
   FieldList = (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1;
   Constructor = taggedCap("Table", symb("{") * V"FieldList" * symb("}"));
-  NameList = sepby1(V"Id", symb(","), "NameList");
+  NameList = sepby1(V"TypedId", symb(","), "NameList");
   ExpList = sepby1(V"Expr", symb(","), "ExpList");
   FuncArgs = symb("(") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(")") +
              V"Constructor" +
@@ -299,16 +323,17 @@ local G = { V"Lua",
                end
                return t1
              end;
-  ParList = V"NameList" * (symb(",") * symb("...") * taggedCap("Dots", Cp()))^-1 /
+  ParList = V"NameList" * (symb(",") * V"TypedVarArg")^-1 /
             function (t, v)
               if v then table.insert(t, v) end
               return t
             end +
-            symb("...") * taggedCap("Dots", Cp()) /
+            V"TypedVarArg" /
             function (v)
               return {v}
             end +
             P(true) / function () return {} end;
+  TypedVarArg = taggedCap("Dots", symb("...") * (symb(":") * V"Type")^-1);
   FuncBody = taggedCap("Function", symb("(") * V"ParList" * symb(")") * V"Block" * kw("end"));
   FuncStat = taggedCap("Set", kw("function") * V"FuncName" * V"FuncBody") /
              function (t)
@@ -330,7 +355,7 @@ local G = { V"Lua",
   GoToStat = taggedCap("Goto", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("Return", kw("return") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(";")^-1);
   ExprStat = Cmt(
-             (V"SuffixedExp" *
+             ((V"TypedGlobal" + V"SuffixedExp") *
                 (Cc(function (...)
                            local vl = {...}
                            local el = vl[#vl]
@@ -358,7 +383,8 @@ local G = { V"Lua",
                            return false
                          end)))
              , function (s, i, s1, f, ...) return f(s1, ...) end);
-  Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
+  Assignment = ((symb(",") * (V"TypedGlobal" + V"SuffixedExp"))^1)^-1 * symb("=") * V"ExpList";
+  TypedGlobal = taggedCap("Id", token(V"Name", "Name") * symb(":") * V"Type" * -V"FuncArgs");
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
          V"BreakStat" + V"GoToStat" + V"ExprStat";

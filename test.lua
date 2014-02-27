@@ -304,7 +304,7 @@ s = [=[
 f = 9e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -314,7 +314,7 @@ s = [=[
 f = 5.e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -324,7 +324,7 @@ s = [=[
 f = .9e-
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -334,7 +334,7 @@ s = [=[
 f = 5.9e+
 ]=]
 e = [=[
-test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -348,7 +348,7 @@ s = [=[
 hex = 0xG
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -417,7 +417,7 @@ unfinished
 comment
 ]=]
 e = [=[
-test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
+test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
 ]=]
 
 r = parse(s)
@@ -1221,7 +1221,7 @@ s = [=[
 a = function (...,a) end
 ]=]
 e = [=[
-test.lua:1:18: syntax error, unexpected ',', expecting ')'
+test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
@@ -1302,7 +1302,7 @@ s = [=[
 for k;v in pairs(t) do end
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', '='
+test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', ':', '='
 ]=]
 
 r = parse(s)
@@ -1356,7 +1356,7 @@ s = [=[
 function func(...,a) end
 ]=]
 e = [=[
-test.lua:1:18: syntax error, unexpected ',', expecting ')'
+test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
@@ -1526,7 +1526,7 @@ s = [=[
 local function test(...,a) end
 ]=]
 e = [=[
-test.lua:1:24: syntax error, unexpected ',', expecting ')'
+test.lua:1:24: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
