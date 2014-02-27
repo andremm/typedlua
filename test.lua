@@ -3,6 +3,7 @@
 local code = require "typedlua.code"
 local parser = require "typedlua.parser"
 local pp = require "typedlua.pp"
+local types = require "typedlua.types"
 
 -- expected result, result, subject
 local e, r, s
@@ -1650,6 +1651,170 @@ test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<
 
 r = parse(s)
 assert(r == e)
+
+print("> testing types...")
+
+-- literal types
+
+local Nil = types.Nil
+local False = types.False
+local True = types.True
+local Double = types.Literal(1.1)
+local Integer = types.Literal(1)
+local Word = types.Literal("w")
+
+-- base types
+
+local Boolean = types.Boolean
+local Number = types.Number
+local String = types.String
+
+-- dynamic type
+
+local Any = types.Any
+
+-- type equality
+
+assert(types.isLiteral(Nil))
+assert(types.isNil(Nil))
+
+assert(types.isLiteral(False))
+assert(types.isFalse(False))
+
+assert(types.isLiteral(True))
+assert(types.isTrue(True))
+
+assert(types.isLiteral(Double))
+assert(types.isLiteralNumber(Double))
+
+assert(types.isLiteral(Integer))
+assert(types.isLiteralNumber(Integer))
+
+assert(types.isLiteral(Word))
+assert(types.isLiteralString(Word))
+
+assert(types.isBase(Boolean))
+assert(types.isBoolean(Boolean))
+
+assert(types.isBase(Number))
+assert(types.isNumber(Number))
+
+assert(types.isBase(String))
+assert(types.isString(String))
+
+assert(types.isAny(Any))
+
+-- subtyping
+
+assert(types.subtype(Nil,Nil))
+assert(types.subtype(False,False))
+assert(types.subtype(True,True))
+assert(types.subtype(Double,Double))
+assert(types.subtype(Integer,Integer))
+assert(types.subtype(Word,Word))
+
+assert(types.subtype(False,Boolean))
+assert(types.subtype(True,Boolean))
+assert(types.subtype(Double,Number))
+assert(types.subtype(Integer,Number))
+assert(types.subtype(Word,String))
+
+assert(not types.subtype(Nil,False))
+assert(not types.subtype(False,True))
+assert(not types.subtype(True,Double))
+assert(not types.subtype(Double,Integer))
+assert(not types.subtype(Integer,Word))
+assert(not types.subtype(Word,Nil))
+
+assert(types.subtype(Boolean,Boolean))
+assert(types.subtype(Number,Number))
+assert(types.subtype(String,String))
+
+assert(not types.subtype(Boolean,False))
+assert(not types.subtype(Boolean,True))
+assert(not types.subtype(Number,Double))
+assert(not types.subtype(Number,Integer))
+assert(not types.subtype(String,Word))
+
+assert(types.subtype(Any,Any))
+
+assert(not types.subtype(Nil,Any))
+assert(not types.subtype(False,Any))
+assert(not types.subtype(True,Any))
+assert(not types.subtype(Double,Any))
+assert(not types.subtype(Integer,Any))
+assert(not types.subtype(Word,Any))
+
+assert(not types.subtype(Boolean,Any))
+assert(not types.subtype(Number,Any))
+assert(not types.subtype(String,Any))
+
+assert(not types.subtype(Any,Nil))
+assert(not types.subtype(Any,False))
+assert(not types.subtype(Any,True))
+assert(not types.subtype(Any,Double))
+assert(not types.subtype(Any,Integer))
+assert(not types.subtype(Any,Word))
+
+assert(not types.subtype(Any,Boolean))
+assert(not types.subtype(Any,Number))
+assert(not types.subtype(Any,String))
+
+-- consistent-subtyping
+
+assert(types.consistent_subtype(Nil,Nil))
+assert(types.consistent_subtype(False,False))
+assert(types.consistent_subtype(True,True))
+assert(types.consistent_subtype(Double,Double))
+assert(types.consistent_subtype(Integer,Integer))
+assert(types.consistent_subtype(Word,Word))
+
+assert(types.consistent_subtype(False,Boolean))
+assert(types.consistent_subtype(True,Boolean))
+assert(types.consistent_subtype(Double,Number))
+assert(types.consistent_subtype(Integer,Number))
+assert(types.consistent_subtype(Word,String))
+
+assert(not types.consistent_subtype(Nil,False))
+assert(not types.consistent_subtype(False,True))
+assert(not types.consistent_subtype(True,Double))
+assert(not types.consistent_subtype(Double,Integer))
+assert(not types.consistent_subtype(Integer,Word))
+assert(not types.consistent_subtype(Word,Nil))
+
+assert(types.consistent_subtype(Boolean,Boolean))
+assert(types.consistent_subtype(Number,Number))
+assert(types.consistent_subtype(String,String))
+
+assert(not types.consistent_subtype(Boolean,False))
+assert(not types.consistent_subtype(Boolean,True))
+assert(not types.consistent_subtype(Number,Double))
+assert(not types.consistent_subtype(Number,Integer))
+assert(not types.consistent_subtype(String,Word))
+
+assert(types.consistent_subtype(Any,Any))
+
+assert(types.consistent_subtype(Nil,Any))
+assert(types.consistent_subtype(False,Any))
+assert(types.consistent_subtype(True,Any))
+assert(types.consistent_subtype(Double,Any))
+assert(types.consistent_subtype(Integer,Any))
+assert(types.consistent_subtype(Word,Any))
+
+assert(types.consistent_subtype(Boolean,Any))
+assert(types.consistent_subtype(Number,Any))
+assert(types.consistent_subtype(String,Any))
+
+assert(types.consistent_subtype(Any,Nil))
+assert(types.consistent_subtype(Any,False))
+assert(types.consistent_subtype(Any,True))
+assert(types.consistent_subtype(Any,Double))
+assert(types.consistent_subtype(Any,Integer))
+assert(types.consistent_subtype(Any,Word))
+
+assert(types.consistent_subtype(Any,Boolean))
+assert(types.consistent_subtype(Any,Number))
+assert(types.consistent_subtype(Any,String))
 
 print("> testing code generation...")
 
