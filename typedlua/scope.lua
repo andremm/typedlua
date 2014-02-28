@@ -15,7 +15,7 @@ function scope.lineno (s, i)
   return l, c ~= 0 and c or 1
 end
 
-function scope.new_scope (env)
+function scope.begin_scope (env)
   if not env.scope then
     env.scope = 0
   else
@@ -29,15 +29,11 @@ function scope.new_scope (env)
   env[scope]["goto"] = {}
 end
 
-function scope.begin_scope (env)
-  env.scope = env.scope + 1
-end
-
 function scope.end_scope (env)
   env.scope = env.scope - 1
 end
 
-function scope.new_function (env)
+function scope.begin_function (env)
   if not env.fscope then
     env.fscope = 0
   else
@@ -45,10 +41,6 @@ function scope.new_function (env)
   end
   local fscope = env.fscope
   env["function"][fscope] = {}
-end
-
-function scope.begin_function (env)
-  env.fscope = env.fscope + 1
 end
 
 function scope.end_function (env)

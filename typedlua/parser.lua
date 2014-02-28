@@ -71,8 +71,8 @@ local xdigit = lpeg.xdigit
 local space = lpeg.space
 
 local lineno = scope.lineno
-local new_scope, end_scope = scope.new_scope, scope.end_scope
-local new_function, end_function = scope.new_function, scope.end_function
+local begin_scope, end_scope = scope.begin_scope, scope.end_scope
+local begin_function, end_function = scope.begin_function, scope.end_function
 local begin_loop, end_loop = scope.begin_loop, scope.end_loop
 local insideloop = scope.insideloop
 
@@ -502,8 +502,8 @@ function traverse_parlist (env, parlist)
 end
 
 local function traverse_function (env, exp)
-  new_function(env)
-  new_scope(env)
+  begin_function(env)
+  begin_scope(env)
   local status, msg = traverse_parlist(env, exp[1])
   if not status then return status, msg end
   status, msg = traverse_block(env, exp[2])
@@ -591,7 +591,7 @@ end
 
 local function traverse_forin (env, stm)
   begin_loop(env)
-  new_scope(env)
+  begin_scope(env)
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_block(env, stm[3])
@@ -604,7 +604,7 @@ end
 local function traverse_fornum (env, stm)
   local status, msg
   begin_loop(env)
-  new_scope(env)
+  begin_scope(env)
   status, msg = traverse_exp(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_exp(env, stm[3])
@@ -795,7 +795,7 @@ end
 
 function traverse_block (env, block)
   local l = {}
-  new_scope(env)
+  begin_scope(env)
   for k, v in ipairs(block) do
     local status, msg = traverse_stm(env, v)
     if not status then return status, msg end
@@ -809,7 +809,7 @@ local function traverse (ast, errorinfo)
   assert(type(ast) == "table")
   assert(type(errorinfo) == "table")
   local env = { errorinfo = errorinfo, ["function"] = {} }
-  new_function(env)
+  begin_function(env)
   set_vararg(env, true)
   local status, msg = traverse_block(env, ast)
   if not status then return status, msg end
