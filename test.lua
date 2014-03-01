@@ -1203,6 +1203,178 @@ e = [=[
 r = parse(s)
 assert(r == e)
 
+-- type annotations
+
+s = [=[
+local x:nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Literal nil }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:false, y:true
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Literal false, `Id "y":`Literal true }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:1, y:1.1
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Literal 1, `Id "y":`Literal 1.1 }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:"hello", y:'world' 
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Literal hello, `Id "y":`Literal world }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:boolean, y:number, z:string 
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base number, `Id "z":`Base string }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:any
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Any }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x:number, y, z:boolean = 1, nil, true
+]=]
+e = [=[
+{ `Set{ { `Id "x":`Base number, `Id "y", `Id "z":`Base boolean }, { `Number "1", `Nil, `True } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for k:number, v:string in ipairs({"hello", "world"}) do end
+]=]
+e = [=[
+{ `Forin{ { `Id "k":`Base number, `Id "v":`Base string }, { `Call{ `Id "ipairs", `Table{ `String "hello", `String "world" } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for k:string, v in pairs({}) do end
+]=]
+e = [=[
+{ `Forin{ { `Id "k":`Base string, `Id "v" }, { `Call{ `Id "pairs", `Table } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+for k, v:boolean in pairs({}) do end
+]=]
+e = [=[
+{ `Forin{ { `Id "k", `Id "v":`Base boolean }, { `Call{ `Id "pairs", `Table } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:any) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:any):any end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Any, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (...:any) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Dots:`Any }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:any, ...:any) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x, ...:any) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x", `Dots:`Any }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:any, ...) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:any, ...:any):any end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Any, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- syntax error
 
 -- anonymous functions
@@ -1241,7 +1413,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)
@@ -1647,6 +1819,58 @@ end
 ]=]
 e = [=[
 test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^', 'String', '{', '(', ':', '[', '.'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- type annotations
+
+s = [=[
+t[x:any] = 1
+]=]
+e = [=[
+test.lua:1:8: syntax error, unexpected ']', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x:any = x:any
+]=]
+e = [=[
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x = ...:any
+]=]
+e = [=[
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+f(x:any)
+]=]
+e = [=[
+test.lua:1:8: syntax error, unexpected ')', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+f(...:any)
+]=]
+e = [=[
+test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)

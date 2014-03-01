@@ -3,7 +3,7 @@ This module impements a pretty printer to the AST
 ]]
 local pp = {}
 
-local block2str, stm2str, exp2str, var2str
+local block2str, stm2str, exp2str, var2str, type2str
 local explist2str, varlist2str, parlist2str, fieldlist2str
 
 local function iscntrl (x)
@@ -51,11 +51,28 @@ local function string2str (s)
   return string.format('"%s"', fixed_string(s))
 end
 
+function type2str (t)
+  local tag = t.tag
+  local str = "`" .. tag
+  if tag == "Literal" then -- `Literal{ literal }
+    str = str .. " " .. tostring(t[1])
+  elseif tag == "Base" then -- `Base{ base }
+    str = str .. " " .. t[1]
+  elseif tag == "Any" then -- `Any
+  else
+    error("expecting a type, but got a " .. tag)
+  end
+  return str
+end
+
 function var2str (var)
   local tag = var.tag
   local str = "`" .. tag
-  if tag == "Id" then -- `Id{ <string> }
+  if tag == "Id" then -- `Id{ <string> type? }
     str = str .. " " .. name2str(var[1])
+    if var[2] then
+      str = str .. ":" .. type2str(var[2])
+    end
   elseif tag == "Index" then -- `Index{ expr expr }
     str = str .. "{ "
     str = str .. exp2str(var[1]) .. ", "
@@ -90,6 +107,9 @@ function parlist2str (parlist)
   end
   if is_vararg then
     l[i] = "`" .. parlist[i].tag
+    if parlist[i][1] then
+      l[i] = l[i] .. ":" .. type2str(parlist[i][1])
+    end
   end
   return "{ " .. table.concat(l, ", ") .. " }"
 end
@@ -124,10 +144,15 @@ function exp2str (exp)
     str = str .. " " .. number2str(exp[1])
   elseif tag == "String" then -- `String{ <string> }
     str = str .. " " .. string2str(exp[1])
-  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
+  elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block }
     str = str .. "{ "
-    str = str .. parlist2str(exp[1]) .. ", "
-    str = str .. block2str(exp[2])
+    str = str .. parlist2str(exp[1])
+    if exp[3] then
+      str = str .. ":" .. type2str(exp[2])
+      str = str .. ", " .. block2str(exp[3])
+    else
+      str = str .. ", " .. block2str(exp[2])
+    end
     str = str .. " }"
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     str = str .. fieldlist2str(exp)

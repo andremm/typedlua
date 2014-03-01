@@ -29,7 +29,7 @@ expr:
   | `False
   | `Number{ <number> }
   | `String{ <string> }
-  | `Function{ { ident* { `Dots type? }? } block }
+  | `Function{ { ident* { `Dots type? }? } type? block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
@@ -334,7 +334,8 @@ local G = { V"TypedLua",
             end +
             P(true) / function () return {} end;
   TypedVarArg = taggedCap("Dots", symb("...") * (symb(":") * V"Type")^-1);
-  FuncBody = taggedCap("Function", symb("(") * V"ParList" * symb(")") * V"Block" * kw("end"));
+  FuncBody = taggedCap("Function", symb("(") * V"ParList" * symb(")") *
+             (symb(":") * V"Type")^-1 * V"Block" * kw("end"));
   FuncStat = taggedCap("Set", kw("function") * V"FuncName" * V"FuncBody") /
              function (t)
                if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end
@@ -506,8 +507,13 @@ local function traverse_function (env, exp)
   begin_scope(env)
   local status, msg = traverse_parlist(env, exp[1])
   if not status then return status, msg end
-  status, msg = traverse_block(env, exp[2])
-  if not status then return status, msg end
+  if not exp[3] then
+    status, msg = traverse_block(env, exp[2])
+    if not status then return status, msg end
+  else
+    status, msg = traverse_block(env, exp[3])
+    if not status then return status, msg end
+  end
   end_scope(env)
   end_function(env)
   return true
@@ -697,7 +703,7 @@ end
 
 function traverse_var (env, var)
   local tag = var.tag
-  if tag == "Id" then -- `Id{ <string> }
+  if tag == "Id" then -- `Id{ <string> type? }
     return true
   elseif tag == "Index" then -- `Index{ expr expr }
     local status, msg = traverse_exp(env, var[1])
@@ -728,7 +734,7 @@ function traverse_exp (env, exp)
     return true
   elseif tag == "Dots" then
     return traverse_vararg(env, exp)
-  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
+  elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block } 
     return traverse_function(env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     return traverse_table(env, exp)

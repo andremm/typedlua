@@ -9,7 +9,6 @@ type:
 literal: nil | false | true | <number> | <string>
 
 base: 'boolean' | 'number' | 'string'
-
 ]]
 
 local types = {}
