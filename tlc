@@ -1,5 +1,6 @@
 #!/usr/bin/env lua
 
+local checker = require "typedlua.checker"
 local code = require "typedlua.code"
 local parser = require "typedlua.parser"
 local pp = require "typedlua.pp"
@@ -87,7 +88,7 @@ local i = doargs()
 local filename = arg[i]
 local subject = getcontents(filename)
 
-local ast,error_msg = parser.parse(subject, filename)
+local ast, error_msg = parser.parse(subject, filename)
 if not ast then
   print(error_msg)
   os.exit(1)
@@ -107,6 +108,11 @@ end
 if PRINTAST then
   pp.print(ast)
   os.exit(0)
+end
+
+if TYPECHECK then
+  ast, error_msg = checker.typecheck(ast, subject, filename)
+  if error_msg then print(error_msg) end
 end
 
 local generated_code = code.generate(ast)
