@@ -38,7 +38,7 @@ T ::= & & \textit{first-class types}\\
 & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
 & | \; \Any & \textit{dynamic type}\\
-%& | \; T \cup T & \textit{union type}\\
+& | \; T \cup T & \textit{union type}\\
 %& | \; S \rightarrow S & \textit{function type}\\
 %& | \; \{T:T, ..., T:T\} & \textit{table type}\\
 %& | \; X & \textit{type variable}\\
@@ -97,6 +97,26 @@ B \subtype B
 \mylabel{S-ANY}
 \]
 
+\subsection{Union type}
+
+\[
+\frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
+     {T_{1} \cup T_{2} \subtype T}
+\mylabel{S-UNION1}
+\]
+
+\[
+\frac{T \subtype T_{1}}
+     {T \subtype T_{1} \cup T_{2}}
+\mylabel{S-UNION2}
+\]
+
+\[
+\frac{T \subtype T_{2}}
+     {T \subtype T_{1} \cup T_{2}}
+\mylabel{S-UNION3}
+\]
+
 \section{Consistent-Subtyping}
 
 \subsection{Literal types}
@@ -144,5 +164,82 @@ T \lesssim \Any
 \Any \lesssim T
 \mylabel{C-ANY2}
 \]
+
+\subsection{Union type}
+
+\[
+\frac{T_{1} \lesssim T \;\;\; T_{2} \lesssim T}
+     {T_{1} \cup T_{2} \lesssim T}
+\mylabel{C-UNION1}
+\]
+
+\[
+\frac{T \lesssim T_{1}}
+     {T \lesssim T_{1} \cup T_{2}}
+\mylabel{C-UNION2}
+\]
+
+\[
+\frac{T \lesssim T_{2}}
+     {T \lesssim T_{1} \cup T_{2}}
+\mylabel{C-UNION3}
+\]
+
+\section{Typing Rules}
+
+\subsection{Abstract Syntax}
+
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rl}
+s ::= & \;\; \mathbf{skip} \; | \;
+s_{1} \; ; \; s_{2} \; | \;
+\vec{l} = \vec{e}  \; | \;
+\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
+\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} \\
+& | \; \mathbf{for} \; i = e_{1},e_{2},e_{3} \; \mathbf{do} \; s \; | \;
+\mathbf{for} \; \vec{i}{:}\vec{t} \; \mathbf{in} \; \vec{e} \; \mathbf{do} \; s \; | \;
+\mathbf{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \mathbf{in} \; s \\
+& | \; \mathbf{rec} \; i{:}t = f \; \mathbf{in} \; s \; | \;
+\mathbf{goto} \; i \; | \;
+{::} \; i \; {::} \; | \;
+\mathbf{return} \; \vec{e} \; | \;
+\mathbf{break} \\
+& | \; e_{1}(\vec{e_{2}})\\
+e ::= & \;\; \mathbf{nil} \; | \;
+{...} \; | \;
+\mathbf{true} \; | \;
+\mathbf{false} \; | \;
+{<}{\it number}{>} \; | \;
+{<}{\it string}{>} \; | \;
+f \; | \;
+\{ \; \vec{c} \; \} \\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
+e_{1} < e_{2} \; | \;
+e_{1} \le e_{2} \\
+& | \; e_{1} \; \mathbf{and} \; e_{2} \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \; | \;
+\mathbf{not} \; e \; | \;
+- e \; | \;
+\# \; e \; | \;
+e_{1}(\vec{e_{2}}) \; | \;
+l \\
+l ::= & \; i \; | \;
+e_{1}[e_{2}]\\
+f ::= & \; \mathbf{fun} \; (){:}t \; b \; | \;
+\mathbf{fun} \; ({...}{:}t_{1}){:}t_{2} \; b \; | \;
+\mathbf{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b \; | \;
+\mathbf{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b\\
+c ::= & \; e_{1} = e_{2} \; | \;
+e\\
+b ::= & \; s \; ; \; \mathbf{return} \; \vec{e}
+\end{array}
+$$
+\dend
+
+\subsection{Typing rules}
 
 \end{document}

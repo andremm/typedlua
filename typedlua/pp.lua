@@ -59,6 +59,11 @@ function type2str (t)
   elseif tag == "Base" then -- `Base{ base }
     str = str .. " " .. t[1]
   elseif tag == "Any" then -- `Any
+  elseif tag == "Union" then -- `Union{ type type }
+    str = str .. "{ "
+    str = str .. type2str(t[1]) .. ", "
+    str = str .. type2str(t[2])
+    str = str .. " }"
   else
     error("expecting a type, but got a " .. tag)
   end

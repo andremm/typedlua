@@ -5,6 +5,7 @@ type:
   `Literal{ literal }
   | `Base{ base }
   | `Any
+  | `Union{ type type }
 
 literal: nil | false | true | <number> | <string>
 
@@ -81,6 +82,16 @@ function types.isAny (t)
   return t.tag == "Any"
 end
 
+-- union type
+
+function types.Union (t1, t2)
+  return { tag = "Union", [1] = t1, [2] = t2 }
+end
+
+function types.isUnion (t)
+  return t.tag == "Union"
+end
+
 -- subtyping
 
 local function subtype_literal (t1, t2)
@@ -113,10 +124,21 @@ local function subtype_any (t1, t2)
   return types.isAny(t1) and types.isAny(t2)
 end
 
+local function subtype_union (t1, t2)
+  if types.isUnion(t1) then
+    return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
+  elseif types.isUnion(t2) then
+    return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
+  else
+    return false
+  end
+end
+
 function types.subtype (t1, t2)
   return subtype_any(t1, t2) or
          subtype_literal(t1, t2) or
-         subtype_base(t1, t2)
+         subtype_base(t1, t2) or
+         subtype_union(t1, t2)
 end
 
 -- consistent-subtyping
@@ -151,10 +173,39 @@ local function consistent_subtype_any (t1, t2)
   return types.isAny(t1) or types.isAny(t2)
 end
 
+local function consistent_subtype_union (t1, t2)
+  if types.isUnion(t1) then
+    return types.consistent_subtype(t1[1], t2) and types.consistent_subtype(t1[2], t2)
+  elseif types.isUnion(t2) then
+    return types.consistent_subtype(t1, t2[1]) or types.consistent_subtype(t1, t2[2])
+  else
+    return false
+  end
+end
+
 function types.consistent_subtype (t1, t2)
   return consistent_subtype_any(t1, t2) or
          consistent_subtype_literal(t1, t2) or
-         consistent_subtype_base(t1, t2)
+         consistent_subtype_base(t1, t2) or
+         consistent_subtype_union(t1, t2)
+end
+
+-- supertypeof
+
+function types.supertypeof (t)
+  if types.isFalse(t) or types.isTrue(t) then
+    return types.Boolean
+  elseif types.isLiteralNumber(t) then
+    return types.Number
+  elseif types.isLiteralString(t) then
+    return types.String
+  elseif types.isUnion(t) then
+    t[1] = types.supertypeof(t[1])
+    t[2] = types.supertypeof(t[2])
+    return t
+  else
+    return t
+  end
 end
 
 -- tostring
@@ -166,6 +217,8 @@ local function type2str (t)
     return t[1]
   elseif types.isAny(t) then
     return "any"
+  elseif types.isUnion(t) then
+    return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
   else
     error("expecting type but got " .. t.tag)
   end

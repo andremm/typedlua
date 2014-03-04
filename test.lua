@@ -1266,6 +1266,46 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:number?
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|string|nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Union{ `Base number, `Base string }, `Literal nil } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|string?
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Union{ `Base string, `Literal nil } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 x:number, y, z:boolean = 1, nil, true
 ]=]
 e = [=[
@@ -1876,6 +1916,26 @@ test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>'
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local x:number*
+]=]
+e = [=[
+test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '|', '?'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|
+]=]
+e = [=[
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'Type'
+]=]
+
+r = parse(s)
+assert(r == e)
+
 print("> testing types...")
 
 -- literal types
@@ -1896,6 +1956,9 @@ local String = types.String
 -- dynamic type
 
 local Any = types.Any
+
+-- test types
+local t, t1, t2
 
 -- type equality
 
@@ -1927,6 +1990,9 @@ assert(types.isBase(String))
 assert(types.isString(String))
 
 assert(types.isAny(Any))
+
+assert(types.isUnion(types.Union(Number,Nil)))
+assert(types.isUnion(types.Union(types.Union(Number,String),Nil)))
 
 -- subtyping
 
@@ -1984,6 +2050,25 @@ assert(not types.subtype(Any,Boolean))
 assert(not types.subtype(Any,Number))
 assert(not types.subtype(Any,String))
 
+t = types.Union(Number,Nil)
+
+assert(types.subtype(Number,t))
+assert(types.subtype(Nil,t))
+assert(types.subtype(t,t))
+
+assert(not types.subtype(t,Number))
+assert(not types.subtype(t,Nil))
+
+t = types.Union(Number,Any)
+
+assert(types.subtype(Number,t))
+assert(types.subtype(Any,t))
+assert(types.subtype(t,t))
+
+assert(not types.subtype(String,t))
+assert(not types.subtype(t,Any))
+assert(not types.subtype(t,Any))
+
 -- consistent-subtyping
 
 assert(types.consistent_subtype(Nil,Nil))
@@ -2039,6 +2124,25 @@ assert(types.consistent_subtype(Any,Word))
 assert(types.consistent_subtype(Any,Boolean))
 assert(types.consistent_subtype(Any,Number))
 assert(types.consistent_subtype(Any,String))
+
+t = types.Union(Number,Nil)
+
+assert(types.consistent_subtype(Number,t))
+assert(types.consistent_subtype(Nil,t))
+assert(types.consistent_subtype(t,t))
+
+assert(not types.consistent_subtype(t,Number))
+assert(not types.consistent_subtype(t,Nil))
+
+t = types.Union(Number,Any)
+
+assert(types.consistent_subtype(Number,t))
+assert(types.consistent_subtype(Any,t))
+assert(types.consistent_subtype(t,t))
+assert(types.consistent_subtype(String,t))
+assert(types.consistent_subtype(t,Any))
+
+assert(not types.consistent_subtype(t,String))
 
 print("> testing code generation...")
 

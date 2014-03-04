@@ -42,24 +42,36 @@ local function type2str (t)
   return types.tostring(t)
 end
 
-local function set_local (env, local_name, dec_type, inf_type, pos, scope)
-  if not dec_type then
-    if not inf_type or types.isNil(inf_type) then
-      dec_type = Any
-    else
-      dec_type = inf_type
+local function get_local (env, name)
+  local scope = env.scope
+  for s = scope, 0, -1 do
+    if env[s]["local"][name] then
+      return true
     end
   end
-  if types.subtype(inf_type, dec_type) then
-    return
-  elseif types.consistent_subtype(inf_type, dec_type) then
-    local msg = "using consitent-subtype"
+  return nil
+end
+
+local function set_local (env, id, inferred_type, scope)
+  local local_name, local_type, pos = id[1], id[2], id.pos
+  if not local_type then
+    if not inferred_type or types.isNil(inferred_type) then
+      local_type = Any
+    else
+      local_type = types.supertypeof(inferred_type)
+    end
+  end
+  if types.subtype(inferred_type, local_type) then
+  elseif types.consistent_subtype(inferred_type, local_type) then
+    local msg = "attempt to assign '%s' to '%s'"
+    msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     warning(env, msg, pos)
   else
     local msg = "attempt to assign '%s' to '%s'"
-    msg = string.format(msg, type2str(inf_type), type2str(dec_type))
+    msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     typeerror(env, msg, pos)
   end
+  env[scope]["local"][local_name] = local_type
 end
 
 local function set_type (node, t)
@@ -79,7 +91,8 @@ local function check_local (env, idlist, explist)
     if explist[k] then
       t = explist[k]["type"]
     end
-    set_local(env, v[1], v[2], t, v.pos, env.scope)
+    --set_local(env, v[1], v[2], t, v.pos, env.scope)
+    set_local(env, v, t, env.scope)
   end
 end
 

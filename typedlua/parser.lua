@@ -51,6 +51,7 @@ type:
   `Literal{ literal }
   | `Base{ base }
   | `Any
+  | `Union{ type type }
 
 literal: nil | false | true | <number> | <string>
 
@@ -218,16 +219,31 @@ end
 local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
-  Type = taggedCap("Literal", V"LiteralType") +
-         taggedCap("Base", V"BaseType") +
-         taggedCap("Any", V"DynamicType");
+  Type = V"UnionType";
+  UnionType = Cf(V"NullableType" * Cg(symb("|") * V"NullableType")^0,
+              function (t1, t2)
+                return { tag = "Union", [1] = t1, [2] = t2, pos = t1.pos }
+              end);
+  NullableType = V"PrimaryType" * taggedCap("Literal", symb("?"))^-1 /
+                 function (t, nullable)
+                   if nullable then
+                     return { tag = "Union", [1] = t, [2] = nullable, pos = t.pos }
+                   else
+                     return t
+                   end
+                 end;
+  PrimaryType = taggedCap("Literal", V"LiteralType") +
+                taggedCap("Base", V"BaseType") +
+                taggedCap("Any", V"DynamicType");
   LiteralType = V"NilType" + V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
   NilType = token("nil", "Type");
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
   NumberType = token(V"Number", "Type");
   StringType = token(V"String", "Type");
-  BaseType = token(C"boolean", "Type") + token(C"number", "Type") + token(C"string", "Type");
+  BaseType = token(C"boolean", "Type") +
+             token(C"number", "Type") +
+             token(C"string", "Type");
   DynamicType = token("any", "Type");
   -- parser
   Chunk = V"Block";
