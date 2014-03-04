@@ -1,6 +1,6 @@
 all: typedlua.pdf
 
-typedlua.pdf: typedlua.tex
+typedlua.pdf: typedlua.tex typedlua.bib
 	pdflatex typedlua.tex
 	bibtex typedlua
 	pdflatex typedlua.tex

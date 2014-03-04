@@ -265,7 +265,7 @@ To do that, soft typing relies on type inference for
 translating dynamically typed code to statically typed code.
 The type checker inserts run-time checks around inconsistent code and
 warns the programmer about the insertion of these run-time checks,
-as they mean the existence of potential type errors.
+as they indicate the existence of potential type errors.
 However, the programmer is free to choose between inspecting the
 run-time checks and simply running the code.
 Soft typing gives this choice to the programmer because it is one of
@@ -313,7 +313,7 @@ of higher-order functions; and they also show how to add blame
 annotations in the generated code as a way to track assertion
 failures back to the source of the error.
 
-BabyJ \citep{anderson2002babyj} is an object-oriented language
+BabyJ \citep{anderson2003babyj} is an object-oriented language
 without inheritance that allows programmers to incrementally annotate
 the code with more specific types.
 Programmers can choose between using the dynamically typed version
@@ -532,7 +532,7 @@ the type checking also belongs to the semantics of each operation.
 Still, we can view gradual typing as a way to formalize an optional
 type system when the gradual type system does not insert run-time
 checks.
-BabyJ \citep{anderson2002babyj} and Alore \citep{lehtosalo2011alore}
+BabyJ \citep{anderson2003babyj} and Alore \citep{lehtosalo2011alore}
 are two examples of object-oriented languages that use gradual
 typing to formalize their optional type systems.
 The optional type systems of both BabyJ and Alore are nominal.
@@ -1158,7 +1158,7 @@ decisions to be taken on this subject.
 For instance, our type system should handle the subtleties that
 come with metatables.
 
-\subsection{Similar Lua projects}
+\subsection{Related Lua projects}
 
 Metalua \citep{metalua} is a Lua compiler that supports compile-time
 metaprogramming (CTMP).
@@ -1194,7 +1194,7 @@ a single table constructor.
 Typed Lua has a simpler form of this feature, with a different
 formalization.
 Like Typed Lua, Tidal Lock also has local type inference.
-Unlike Typed Lua, Tidal Lock is not typing the common object-oriented
+Unlike Typed Lua, Tidal Lock does not type the common object-oriented
 idioms used by Lua programmers.
 
 \section{Expected contributions} \label{sec:con}
