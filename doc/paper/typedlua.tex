@@ -7,6 +7,7 @@
 \usepackage{url}
 
 \newcommand{\Any}{\mathbf{any}}
+\newcommand{\Top}{\mathbf{value}}
 \newcommand{\Nil}{\mathbf{nil}}
 \newcommand{\False}{\mathbf{false}}
 \newcommand{\True}{\mathbf{true}}
@@ -146,116 +147,109 @@ our plans for the future of Typed Lua.
 
 \section{Typed Lua} \label{sec:proposal}
 
-We begin this section presenting statistics about the usage of Lua
-features and idioms.
-We collected statistics about how programmers use tables, functions,
-dynamic type checking, object-oriented programming, and modules.
-We shall see that these statistics informed important design decisions
-on our optional type system.
-We end this section introducing Typed Lua through examples, and
-describing a few Lua projects that are similar to Typed Lua. 
+Lua is an imperative scripting language with first-class functions
+(with proper lexical scoping) where the main data structure is the
+{\em table}, an associative array that can play the part of arrays,
+records, maps, objects, etc., with syntactic sugar and
+metaprogramming through operator overloading built into
+the language. Unlike other scripting languages, Lua has very
+limited coercion among different data types.
+
+The primary use of Lua has always been as an embedded language
+for configuration and extension of other applications, and the result
+is a fragmented ecosystem of libraries, and different ideas among
+Lua programmers on how they should use the language features and
+how they should structure programs.
+
+The design of Typed Lua is informed by a (mostly automated) survey
+of Lua idioms used in a large corpus of Lua libraries, instead of
+relying just on the semantics of the language. We cover the main parts
+of the design, along with how they relate to Lua, in the rest of this section,
+and discuss some of what was left out in the current version of the design
+in the conclusion of the paper.
 
 \subsection{Atomic Types and Functions}
 
-Our main goal is to allow programmers to combine static and dynamic
-typing in Lua, so we propose Typed Lua as an extension to Lua 5.2
-syntax that introduces optional type annotations, and class-based
-object-oriented programming through the definition of classes,
-interfaces, and modules.
-An important requirement of Typed Lua is that it should be backwards
-compatible with Lua, that is, it should allow programmers to run any
-Lua code without modifications.
-For this reason, these syntactic extensions include new keywords
-that are not reserved words.
+Lua values can have one of eight {\em tags}: {\em nil}, {\em boolean},
+{\em number}, {\em string}, {\em function}, {\em table}, {\em userdata},
+and {\em thread}. We will see how Typed Lua assigns types to
+values of the first five in this section.
 
-Figure \ref{fig:typelang} shows that Typed Lua includes first-class
-and second-class types.
-Typed Lua uses first-class types for representing Lua values and
-second-class types for defining the signatures of functions.
-First-class types include literal types, base types, the type $\Any$,
-union types, function types, table types, and recursive types.
-Second-class types include the type $\Void$, first-class types,
-vararg types, and tuple types.
-Literal types are types that represent a single value
-(e.g., $\Nil$, $\False$, $\True$, literal numbers, and
-literal strings).
-Literal types are subtypes of their respective base types.
-More precisely, the literals $\False$ and $\True$ are subtypes of
-$\Boolean$, any literal number $n$ is subtype of $\Number$, and any
-literal string $s$ is subtype of $\String$.
-The type $\Any$ is the dynamic type that allows dynamic code coexist
-with static code.
-We will discuss union types, function types, table types, recursive
-types, and second-class types along this section.
+Figure~\ref{fig:typelang} gives the abstract syntax of Typed Lua
+types. Only {\em first-class types} correspond to actual Lua
+values; {\em second-class types} correspond to expression lists,
+and Typed Lua uses them to type multiple assignment and function
+application. Types are ordered by a subtype relationship, where
+any first-class type is a subtype of $\Top$.
+
+The {\em dynamic type} $\Any$ allows dynamically typed code to
+interoperate with statically typed code; it is a subtype of $\Top$, but
+neither a supertype nor a subtype of any other type. We relate $\Any$
+to other types with the {\em consistency} and {\em consistent-subtype}
+relationships used by gradual type systems. In practice, we can
+pass a value of the dynamic type anytime we want a value of some
+other type, and can pass any value where a value of the dynamic type
+is expected, but these operations are tracked by the type system,
+and the programmer can choose to be warned about them.
 
 \begin{figure}[!ht]
 \textbf{Type Language}\\
 \dstart
 $$
 \begin{array}{rlr}
-T ::= & & \textit{first-class types}\\
-& \;\; L & \textit{literal types}\\
+\multicolumn{3}{c}{\textbf{First-class types}} \\
+T ::= & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
+& | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
-& | \; T \cup T & \textit{union type}\\
-& | \; S \rightarrow S & \textit{function type}\\
-& | \; \{T:T, ..., T:T\} & \textit{table type}\\
-& | \; X & \textit{type variable}\\
-& | \; \mu X.T & \textit{recursive type}\\
-L ::= & \;\; \Nil \; | \; \False \; | \; \True \\
-& | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
-B ::= & \Boolean \; | \; \Number \; | \; \String & \\
-S ::= & \Void \; | \; V & \textit{second-class types}\\
+& | \; T \cup T & \textit{disjoint union types}\\
+& | \; S \rightarrow S & \textit{function types}\\
+& | \; \{T:T, ..., T:T\} & \textit{table types}\\
+& | \; X & \textit{type variables}\\
+& | \; \mu X.T & \textit{recursive types}\\
+& | \; X_i & \textit{projection types}\\
+L ::= & \multicolumn{2}{l}{\False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} } \\
+B ::= & \multicolumn{2}{l}{\Nil \; | \; \Boolean \; | \; \Number \; | \; \String} \\
+\multicolumn{3}{c}{} \\
+\multicolumn{3}{c}{\textbf{Second-class types}} \\
+S ::= &  \multicolumn{2}{l}{\Void \; |\; V \; | \; S \cup S} \\
 V ::= & \;\; T & \\
-& | \; T* & \textit{vararg type}\\
-& | \; T \times V & \textit{tuple type}
+& | \; T* & \textit{vararg types}\\
+& | \; T \times V & \textit{tuple types}
 \end{array}
 $$
 \dend
-\caption{Typed Lua types}
+\caption{Abstract syntax of Typed Lua types}
 \label{fig:typelang}
 \end{figure}
 
-Typed Lua allows optional type annotations in variable and function
-declarations.
-Whenever it is possible to use local type inference, the compiler
-assigns a more specific type to an unannotated declaration.
-When it is not possible to use local type inference, the compiler
-assigns the type $\Any$ to an unannotated declaration.
-For instance, in function declarations, the compiler does not infer
-a more specific type to unannotated input parameters, because,
-in this case, global type inference often is undecidable in a
-language with subtyping and overloading \citep{wells1999typability}.
+Typed Lua allows optional type annotations in variable function
+declarations. It assigns the dynamic type to any parameter that
+does not have an type annotation, but assigns more precise
+types to unnanotated variables, based on the type of the
+expression that gives the initial value of the variable.
 
-In the following example we use type annotations in a function
-declaration, and we do not use type annotations in a declaration of a
+In the following example, we use type annotations in a function
+declaration but do not use type annotations in the declaration of a
 local variable:
 \begin{verbatim}
-    local function fact (n:number):number
+    local function factorial(n: number): number
       if n == 0 then
         return 1
       else
-        return n * fact(n - 1)
+        return n * factorial(n - 1)
       end
     end
     local x = 5
-    print(fact(x))
+    print(factorial(x))
 \end{verbatim}
 
-Even though we did not add type annotations in the declaration of
-the local variable \texttt{x}, the compiler uses local type inference to
-assign the type $\Number$ to \texttt{x}.
-The compiler does not use the literal type $5$ instead of the base
-type $\Number$ because this would prevent
-programmers from assigning other numeric values to the variable
-\texttt{x}.
-The inference that we implement in Typed Lua is quite simple, as it
-uses only the type of the local expression.
-
-Typed Lua allows programmers to combine annotated code with
+The compiler assigns the type $\Number$ to the local variable \texttt{x},
+and this example compiles without warnings. Typed Lua allows
+programmers to combine annotated code with
 unannotated code, as we show in the following example:
 \begin{verbatim}
-    local function abs (n:number):number
+    local function abs(n: number)
       if n < 0 then
         return -n
       else
@@ -263,73 +257,93 @@ unannotated code, as we show in the following example:
       end
     end
 
-    local function dist (x, y)
+    local function distance(x, y)
       return abs(x - y)
     end
 \end{verbatim}
 
-The function \texttt{dist} receives two parameters of type $\Any$
-and returns a value of type $\Number$.
 The compiler assigns the dynamic type $\Any$ to the input
-parameters of \texttt{dist} because they do not have type annotations,
-and the compiler does not use global type inference, as we mentioned
-previously.
-The compiler infers the return type of \texttt{dist} because it is
-not a recursive function, that is, Typed Lua does not infer the return
-type of recursive functions.
+parameters of \texttt{distance} because they do not have type annotations.
+Subtracting a value of type $\Any$ from another also yields a value of
+type $\Any$ (Lua has operator overloading, so the minus operation
+is not guaranteed to return a number in this case), but
+consistent subtyping lets us pass a value of type $\Any$ to a
+function that expects a $\Number$. 
 
-We are using the consistent-subtyping relation of gradual
-typing to check the interaction among the dynamic type and the other
-types.
-More precisely, we can call \texttt{abs} inside \texttt{dist} because
-\texttt{x - y} is of type $\Any$, and the type $\Any$ is
-consistent with the type $\Number$.
-The type $\Any$ is not the union of all types, but it is a separate
-type.
+Even though the return types
+of both {\tt abs} and {\tt distance} are not given, the compiler is able to
+infer a return type of $\Number$ to both functions, as they are
+local and not recursive.
 
-Unlike gradual typing, we do not insert run-time checks that
-inspect the interaction between dynamically typed code and statically
-typed code during run-time.
-In other words, Typed Lua does not guarantee that dynamically typed
-code does not violate statically typed code.
-Typed Lua does not insert run-time checks because they can decrease
-run-time performance \citep{allende2013cis}.
-We believe that a careful evaluation of run-time checks should be done
-before inserting them on the type system.
-In the previous example, we cannot guarantee that \texttt{dist} is never
-going to call \texttt{abs} with a parameter that is not a number,
-because in the semantics of Lua the minus operator can result in a
-value that is not a number.
-Still, we can implement run-time checks in the future because we are
-using the consistent-subtyping relation of gradual typing to
-formalize our optional type system, and the type system is being
-designed to be sound.
+Lua has first-class functions, but they have some peculiarities. First,
+the number of arguments passed to a function does not need to
+match the function's arity; Lua silently drops extra arguments after
+evaluating them, or passes {\tt nil} in place of any missing arguments.
+Second, functions can return any number of values, and the number
+of values returned may not be statically known. Third, Lua also has
+multiple assignment, and the semantics of argument passing match
+those of multiple assignment (or vice-versa); calling a function is like
+doing a multiple assigment where the left side is the parameter list
+and the right side is the argument list. 
 
-Typed Lua includes function types because functions are first-class
-values in Lua.
-The syntax for defining a function type is \texttt{(s) -> (s)},
-where \texttt{s} is a second-class type.
+Typed Lua uses {\em second-class types} to encode the peculiarities
+of argument passing, multiple returns, and multiple assignment. We call
+them second-class because these types do not correspond to actual
+values and cannot be assigned to variables or parameters: they are an
+artifact of the interaction between the type system and the semantics of Lua.
+
 As we saw in Figure \ref{fig:typelang}, a second-class type in
-Typed Lua can be the type $\Void$, a first-class type, a variadic
-type, or a tuple type.
-We use tuple types to represent multiple parameters, multiple return
-values, and multiple assignments, and we use the variadic type to
-represent variadic functions and the vararg expression.
-Even though we already included the tuple type and the vararg type,
-we are still working on these types.
+Typed Lua can be the type $\Void$ (the empty tuple),
+a tuple of first-class types optionally ending in a variadic type,
+or a union of these tuples. A variadic type $T*$ is a generator for a
+sequence of values of type $T \cup \Nil$. Unions of tuples play
+an important part in functions that are overloaded on the return type,
+together with {\em projection types}. Both are explained in the next
+section.
 
-The next example shows how we can annotate a \texttt{map} function
-that receives another function as its parameter and uses this
-function to alter the elements of a list of numbers, which is
-also a parameter of \texttt{map}:
+Typed Lua always adds a
+variadic tail to the parts of a function type if none is specified, to match
+the semantics of Lua function calls. In the examples above, the types
+of {\tt factorial} and {\tt abs} are actually $\Number \times \Top *
+ \rightarrow \Number \times \Nil *$, and the type of {\tt distance} is
+$\Any \times \Any \times \Top * \rightarrow \Number \times \Nil *$.
+
+If we call {\tt abs} with extra arguments, Typed Lua silently ignores
+them, as the type signature lets {\tt abs} receive any number of extra
+arguments. If we call {\tt abs} in the right side of an assignment to
+more than one lvalue, Typed Lua checks if the first lvalue has a type
+consistent with $\Number$, and any other lvalues need to have a type
+consistent with $\Nil$.
+
+A variadic type can only appear in the tail position of a tuple,
+because Lua takes only the first value of any expression that appears
+in an expression list that is not in tail position. The following example
+shows the interaction between multiple returns and expression lists:
+
 \begin{verbatim}
-    local function map (f:(number)->(number),
-                        l:{number}):void
-      for i=1, #l do
-        l[i] = f(l[i] or 0)
-      end
+    local function multiple()
+      return 2, "foo"
     end
+
+    local function sum(x: number, y: number)
+      return x + y
+    end
+
+    local x, y, z = multiple(), multiple()
+    print(sum(multiple(), multiple())
 \end{verbatim}
+
+Function {\tt multiple} is
+$\Top * \rightarrow \Number \times \String \times \Nil *$,
+and {\tt sum} is $\Number \times \Number \times \Top * \rightarrow
+\Number \times \Nil *$. In the right side of the multiple assignment,
+only the first value produced by the first call to multiple gets used, so
+the type of the right side is $\Number \times \Number \times \String \times \Nil*$,
+and the types assigned to {\tt x}, {\tt y}, and {\tt z} are respectively $\Number$,
+$\Number$, and $\String$. This also means that the call to {\tt sum} compiles
+without errors, as the first two components of the tuple are consistent with
+the types of the parameters, and the other components are consistent with
+$\Top$.
 
 
 \subsection{Unions}
