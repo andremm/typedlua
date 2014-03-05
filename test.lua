@@ -1,6 +1,7 @@
 #!/usr/bin/env lua
 
 local code = require "typedlua.code"
+local checker = require "typedlua.checker"
 local parser = require "typedlua.parser"
 local pp = require "typedlua.pp"
 local types = require "typedlua.types"
@@ -14,6 +15,22 @@ local function parse (s)
   local t,m = parser.parse(s,filename)
   local r
   if not t then
+    r = m
+  else
+    r = pp.tostring(t)
+  end
+  return r .. "\n"
+end
+
+local function typecheck (s)
+  local t,m = parser.parse(s,filename)
+  local r
+  if not t then
+    error(m)
+    os.exit(1)
+  end
+  t,m = checker.typecheck(t,s,filename)
+  if m then
     r = m
   else
     r = pp.tostring(t)
@@ -2143,6 +2160,254 @@ assert(types.consistent_subtype(String,t))
 assert(types.consistent_subtype(t,Any))
 
 assert(not types.consistent_subtype(t,String))
+
+print("> testing type checker...")
+
+-- type check
+
+s = [=[
+local x, y, z = 1, "foo", false
+]=]
+e = [=[
+{ `Local{ { `Id "x", `Id "y", `Id "z" }, { `Number "1", `String "foo", `False } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string, z:boolean = 1, "foo", false
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number, `Id "y":`Base string, `Id "z":`Base boolean }, { `Number "1", `String "foo", `False } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:boolean, y:nil = true, nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Literal nil }, { `True, `Nil } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?, y:number|nil = 1 
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil }, `Id "y":`Union{ `Base number, `Literal nil } }, { `Number "1" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number = 1 + 1
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number }, { `Op{ "add", `Number "1", `Number "1" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:string = "hello" .. "world"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base string }, { `Op{ "concat", `String "hello", `String "world" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:boolean, y:boolean = nil == false, false == true
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "eq", `Nil, `False }, `Op{ "eq", `False, `True } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:boolean, y:boolean = 1 == 2, "foo" == "bar"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "eq", `Number "1", `Number "2" }, `Op{ "eq", `String "foo", `String "bar" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:boolean, y:boolean = 1 < 2, "foo" < "bar"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "lt", `Number "1", `Number "2" }, `Op{ "lt", `String "foo", `String "bar" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:nil, y:boolean = nil and 1, false and 1 
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Literal nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string? = 1 and 2, "foo" and nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Literal nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:number = nil or 1, false or 1 
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number, `Id "y":`Base number }, { `Op{ "or", `Nil, `Number "1" }, `Op{ "or", `False, `Number "1" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string? = 1 or 2, "foo" or nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Literal nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- do not type check
+
+s = [=[
+local x:boolean, y:boolean, z:number = 1, "foo"
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '1' to 'boolean'
+test.lua:1:18: type error, attempt to assign 'foo' to 'boolean'
+test.lua:1:29: type error, attempt to assign 'nil' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:number, z:string = false, true
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'false' to 'number'
+test.lua:1:17: type error, attempt to assign 'true' to 'number'
+test.lua:1:27: type error, attempt to assign 'nil' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x, y = 1 + "foo", "foo" + 1
+]=]
+e = [=[
+test.lua:1:18: type error, attempt to perform arithmetic on a 'string'
+test.lua:1:25: type error, attempt to perform arithmetic on a 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x, y = "foo" .. 1, 1 .. "foo"
+]=]
+e = [=[
+test.lua:1:23: type error, attempt to concatenate a 'number'
+test.lua:1:26: type error, attempt to concatenate a 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x, y = 1 < "foo", "foo" < 1
+]=]
+e = [=[
+test.lua:1:14: type error, attempt to compare 'number' with 'string'
+test.lua:1:25: type error, attempt to compare 'string' with 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x, y = nil < 1, true < "false"
+]=]
+e = [=[
+test.lua:1:14: type error, attempt to compare 'nil' with 'number'
+test.lua:1:23: type error, attempt to compare 'boolean' with 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:number = nil and 1, false and 1 
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'nil' to 'number'
+test.lua:1:17: type error, attempt to assign 'false' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:string, y:number|string = 1 and 2, "foo" and nil
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
+test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:nil, y:boolean = nil or 1, false or 1 
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '1' to 'nil'
+test.lua:1:14: type error, attempt to assign '1' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:string, y:number|string = 1 or 2, "foo" or nil
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
+test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
 
 print("> testing code generation...")
 

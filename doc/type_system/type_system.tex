@@ -14,8 +14,10 @@
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
 
+\newcommand{\kw}[1]{\mathbf{\texttt{#1}}}
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
+\newcommand{\env}{\Gamma}
 
 \def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
 \def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
@@ -193,53 +195,231 @@ T \lesssim \Any
 \dstart
 $$
 \begin{array}{rl}
-s ::= & \;\; \mathbf{skip} \; | \;
+s ::= & \;\; \kw{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = \vec{e}  \; | \;
-\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
-\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} \\
-& | \; \mathbf{for} \; i = e_{1},e_{2},e_{3} \; \mathbf{do} \; s \; | \;
-\mathbf{for} \; \vec{i}{:}\vec{t} \; \mathbf{in} \; \vec{e} \; \mathbf{do} \; s \; | \;
-\mathbf{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \mathbf{in} \; s \\
-& | \; \mathbf{rec} \; i{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{goto} \; i \; | \;
+\kw{while} \; e \; \kw{do} \; s \; | \;
+\kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} \\
+& | \; \kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s \; | \;
+\kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s \; | \;
+\kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s \\
+& | \; \kw{rec} \; i{:}t = f \; \kw{in} \; s \; | \;
+\kw{goto} \; i \; | \;
 {::} \; i \; {::} \; | \;
-\mathbf{return} \; \vec{e} \; | \;
-\mathbf{break} \\
+\kw{return} \; \vec{e} \; | \;
+\kw{break} \\
 & | \; e_{1}(\vec{e_{2}})\\
-e ::= & \;\; \mathbf{nil} \; | \;
-{...} \; | \;
-\mathbf{true} \; | \;
-\mathbf{false} \; | \;
+e ::= & \;\; \kw{nil} \; | \;
+\kw{false} \; | \;
+\kw{true} \; | \;
 {<}{\it number}{>} \; | \;
 {<}{\it string}{>} \; | \;
+{...} \; | \;
 f \; | \;
 \{ \; \vec{c} \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
 e_{1} < e_{2} \; | \;
-e_{1} \le e_{2} \\
-& | \; e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \; | \;
-\mathbf{not} \; e \; | \;
+e_{1} \; \kw{and} \; e_{2} \; | \;
+e_{1} \; \kw{or} \; e_{2} \\
+& | \; \kw{not} \; e \; | \;
 - e \; | \;
 \# \; e \; | \;
 e_{1}(\vec{e_{2}}) \; | \;
 l \\
 l ::= & \; i \; | \;
 e_{1}[e_{2}]\\
-f ::= & \; \mathbf{fun} \; (){:}t \; b \; | \;
-\mathbf{fun} \; ({...}{:}t_{1}){:}t_{2} \; b \; | \;
-\mathbf{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b \; | \;
-\mathbf{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b\\
+f ::= & \; \kw{fun} \; (){:}t \; b \; | \;
+\kw{fun} \; ({...}{:}t_{1}){:}t_{2} \; b \; | \;
+\kw{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b \; | \;
+\kw{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b\\
 c ::= & \; e_{1} = e_{2} \; | \;
 e\\
-b ::= & \; s \; ; \; \mathbf{return} \; \vec{e}
+b ::= & \; s \; ; \; \kw{return} \; \vec{e}
 \end{array}
 $$
 \dend
 
 \subsection{Typing rules}
+
+\subsubsection{Expressions}
+
+\[
+\env \vdash \kw{nil} : \Nil
+\mylabel{T-NIL}
+\]
+
+\[
+\env \vdash \kw{false} : \False
+\mylabel{T-FALSE}
+\]
+
+\[
+\env \vdash \kw{true} : \True
+\mylabel{T-TRUE}
+\]
+
+\[
+\env \vdash {<}{\it number}{>} : {<}{\it number}{>}
+\mylabel{T-NUMBER}
+\]
+
+\[
+\env \vdash {<}{\it string}{>} : {<}{\it string}{>}
+\mylabel{T-STRING}
+\]
+
+\[
+\env \vdash {...} : \Any
+\mylabel{T-DOTS}
+\]
+
+\[
+\env \vdash \{ \; \vec{c} \; \} : \Any
+\mylabel{T-TABLE}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \Number \;\;\;
+      T_{2} \subtype \Number}
+     {\env \vdash e_{1} + e_{2} : \Number}
+\mylabel{T-ARITH1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} + e_{2} : \Any}
+\mylabel{T-ARITH2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} + e_{2} : \Any}
+\mylabel{T-ARITH3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \String \;\;\;
+      T_{2} \subtype \String}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \String}
+\mylabel{T-CONCAT1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \Any}
+\mylabel{T-CONCAT2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \Any}
+\mylabel{T-CONCAT3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} == e_{2} : \Boolean}
+\mylabel{T-EQUAL}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \Number \;\;\;
+      T_{2} \subtype \Number}
+     {\env \vdash e_{1} < e_{2} : \Boolean}
+\mylabel{T-ORDER1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \String \;\;\;
+      T_{2} \subtype \String}
+     {\env \vdash e_{1} < e_{2} : \Boolean}
+\mylabel{T-ORDER2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} < e_{2} : \Any}
+\mylabel{T-ORDER3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} < e_{2} : \Any}
+\mylabel{T-ORDER4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Nil \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \kw{and} \; e_{2} : \Nil}
+\mylabel{T-AND1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\False \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \kw{and} \; e_{2} : \False}
+\mylabel{T-AND2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{and} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-AND3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Nil \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T}
+\mylabel{T-OR1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\False \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T}
+\mylabel{T-OR2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR3}
+\]
+
+\[
+\env \vdash \kw{not} \; e : \Any
+\mylabel{T-NOT}
+\]
+
+\[
+\env \vdash - e : \Any
+\mylabel{T-UNM}
+\]
+
+\[
+\env \vdash \# e : \Any
+\mylabel{T-LEN}
+\]
 
 \end{document}

@@ -91,8 +91,151 @@ local function check_local (env, idlist, explist)
     if explist[k] then
       t = explist[k]["type"]
     end
-    --set_local(env, v[1], v[2], t, v.pos, env.scope)
     set_local(env, v, t, env.scope)
+  end
+end
+
+local function check_arith (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  local msg = "attempt to perform arithmetic on a '%s'"
+  if types.subtype(t1, Number) and types.subtype(t2, Number) then
+    set_type(exp, Number)
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(Any))
+    warning(env, msg, exp1.pos)
+  elseif types.isAny(t2) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(Any))
+    warning(env, msg, exp2.pos)
+  else
+    set_type(exp, Any)
+    local wrong_type, wrong_pos = types.supertypeof(t1), exp1.pos
+    if types.subtype(t1, Number) or types.isAny(t1) then
+      wrong_type = types.supertypeof(t2)
+      wrong_pos = exp2.pos
+    end
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, wrong_pos)
+  end
+end
+
+local function check_concat (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  local msg = "attempt to concatenate a '%s'"
+  if types.subtype(t1, String) and types.subtype(t2, String) then
+    set_type(exp, String)
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(Any))
+    warning(env, msg, exp1.pos)
+  elseif types.isAny(t2) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(Any))
+    warning(env, msg, exp2.pos)
+  else
+    set_type(exp, Any)
+    local wrong_type, wrong_pos = types.supertypeof(t1), exp1.pos
+    if types.subtype(t1, String) or types.isAny(t1) then
+      wrong_type = types.supertypeof(t2)
+      wrong_pos = exp2.pos
+    end
+    msg = string.format(msg, type2str(wrong_type))
+    typeerror(env, msg, wrong_pos)
+  end
+end
+
+local function check_equal (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  set_type(exp, Boolean)
+end
+
+local function check_order (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  local msg = "attempt to compare '%s' with '%s'"
+  if types.subtype(t1, Number) and types.subtype(t2, Number) then
+    set_type(exp, Boolean)
+  elseif types.subtype(t1, String) and types.subtype(t2, String) then
+    set_type(exp, Boolean)
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(Any), types.supertypeof(t2))
+    warning(env, msg, exp1.pos)
+  elseif types.isAny(t2) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(types.supertypeof(t1)), type2str(Any))
+    warning(env, msg, exp2.pos)
+  else
+    set_type(exp, Any)
+    t1, t2 = types.supertypeof(t1), types.supertypeof(t2)
+    msg = string.format(msg, type2str(t1), type2str(t2))
+    typeerror(env, msg, exp.pos)
+  end
+end
+
+local function check_and (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  if types.isNil(t1) or types.isFalse(t1) then
+    set_type(exp, t1)
+  else
+    set_type(exp, types.Union(t1, t2))
+  end
+end
+
+local function check_or (env, exp)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  if types.isNil(t1) or types.isFalse(t1) then
+    set_type(exp, t2)
+  else
+    set_type(exp, types.Union(t1, t2))
+  end
+end
+
+local function check_binary_op (env, exp)
+  local op = exp[1]
+  if op == "add" or op == "sub" or
+     op == "mul" or op == "div" or op == "mod" or
+     op == "pow" then
+    check_arith(env, exp)
+  elseif op == "concat" then
+    check_concat(env, exp)
+  elseif op == "eq" then
+    check_equal(env, exp)
+  elseif op == "lt" or op == "le" then
+    check_order(env, exp)
+  elseif op == "and" then
+    check_and(env, exp)
+  elseif op == "or" then
+    check_or(env, exp)
+  else
+    error("expecting binary operator, but got " .. op)
+  end
+end
+
+local function check_unary_op (env, exp)
+  local op = exp[1]
+  if op == "not" then
+  elseif op == "unm" then
+  elseif op == "len" then
+  else
+    error("expecting unary operator, but got " .. op)
   end
 end
 
@@ -120,7 +263,11 @@ function check_exp (env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     set_type(exp, Any)
   elseif tag == "Op" then -- `Op{ opid expr expr? }
-    set_type(exp, Any)
+    if exp[3] then
+      check_binary_op(env, exp)
+    else
+      check_unary_op(env, exp)
+    end
   elseif tag == "Paren" then -- `Paren{ expr }
     check_paren(env, exp)
   elseif tag == "Call" then -- `Call{ expr expr* }
