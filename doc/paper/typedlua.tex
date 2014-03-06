@@ -348,33 +348,153 @@ $\Top$.
 
 \subsection{Unions}
 
-Typed Lua includes union types as a way to discriminate data
-structures that can hold values of several different, but fixed types.
-Next, we show an example:
+Typed Lua uses union types to encode some common Lua idioms:
+optional values, overloading based on the tags of input parameters,
+and overloading on the return type of the functions.
+
+Optional values are unions of some type and $\Nil$, and are so
+common that Typed Lua uses the {\tt t?} syntax for these unions.
+They appear any time a function has optional parameters, and
+any time the program reads a value from an array or map.
+
 \begin{verbatim}
-    local x:number?            -- OK
-    local y:number|string = 1  -- OK
-    local z:number = x         -- Error
+    local function message(name: string,
+                           greeting: string?)
+      local greeting = greeting or "Hello "
+      return greeting .. name
+    end
+    
+    print(message("Lua"))
+    print(message("Lua", "Hi"))
 \end{verbatim}
 
-The annotation \texttt{number?} is syntactic sugar for
-\texttt{number|nil} that means the type $\Number\;\cup\;\Nil$.
-Typed Lua includes the syntactic sugar \texttt{t?} because the
-type $t\;\cup\;\Nil$ is very common in Lua code.
+In this example, the second parameter is optional but, in the first
+line of the function, we declare a new variable that is guaranteed to
+have type $\String$ instead of $\String \cup \Nil$. In Lua, any value
+except {\tt nil} and {\tt false} are "truthy", so the short-circuiting
+{\tt or} operator is a common way of giving a default value to an
+optional parameter. Typed Lua encodes this idiom with a typing rule: if
+the left side of {\tt or} has type $T \cup Nil$ and the right side
+has type $T$ then the {\tt or} expression has type $T$.
 
-The last line of the previous example gives a type error because we
-are attempting to assign a value of type $\Number\;\cup\;\Nil$
-to a variable that accepts only values of type $\Number$.
-Although we can solve this type error changing the annotation of
-variable \texttt{z} from \texttt{number} to \texttt{number?}, there is
-another way that we can use to solve this type error without changing
-the annotation:
+Declaring a new {\tt greeting} variable that shadows the parameter
+is not necessary:
+
 \begin{verbatim}
-    local z:number = x or 0  -- OK
+    local function message(name: string, 
+                           greeting: string?)
+      greeting = greeting or "Hello "
+      return greeting .. name
+    end
 \end{verbatim}
 
-Typed Lua has a typing rule for checking that
-$t\;\cup\;\Nil\;\mathbf{or}\;t$ always has the type $t$.
+Typed Lua lets assignment change the type of a local variable in
+cases that respect a simple heuristic: the new type must be a subtype
+of the previous one, and only applies for the remainder of the
+current scope.
+
+Overloaded functions use the {\tt type} function to inspect
+the tag of their parameters, and perform different actions depending
+on what those tags are. The simplest case overloads on just a
+single parameter:
+
+\begin{verbatim}
+    local function overload(s1: string, 
+                            s2: string|number)
+      if type(s2) == "string" then
+        return s1 .. s2
+      else
+        -- string.rep: (string, number) -> string
+        return string.rep(s1, s2)
+      end
+    end
+\end{verbatim}
+
+Typed Lua has a small set of type predicates that, when used
+over a local variable in a condition, constrain the type of that
+variable. The function above uses the {\tt type(X) == "string"}
+predicate which constrains the type of $X$ from $T \cup \String$ to
+$\String$ when the predicate is true and $T$ otherwise. This is
+a simplified form of {\em flow typing}~\cite{guha:flow}.
+
+The type predicates can only discriminate based on tags, so they
+are limited on the kinds of unions that they can discriminate. It
+is possible to discriminate a union that combines a table type with
+a base type, or a table type with a function type, or a two base types,
+but it is not possible to discriminate between two different function
+types.
+
+Functions that overload their return types to signal the ocurrence
+of errors are another common Lua idiom. In this idiom, a function
+returns its normal set of return values in case of success but,
+if anything fails, returns {\tt nil} as the first value, followed
+by an error message or other data describing the error, as in the
+following example:
+
+\begin{verbatim}
+    local function idiv(d1: number, d2: number):
+          (number, number)|(nil, string)
+      if d2 == 0 then
+        return nil, "division by zero"
+      else
+        local r = d1 % d2
+        local q = (d1 - r)/d2
+        return q, r
+      end
+    end
+\end{verbatim}
+
+There is also special syntax for this idiom: we could
+annotate the return type of {\tt idiv} with {\tt (number, number)?}
+to denote the same union\footnote{The parentheses are always
+necessary here: {\tt number?} is {\tt number|nil}, while {\tt (number)}
+is {\tt (number)|(nil, string)}.}. 
+
+The full type of {\tt idiv} is $\Number \times \Number \times
+\Top * \rightarrow (\Number \times \Number \times \Nil *) \cup
+(\Nil \times \String \times \Nil *)$. A typical client of this
+function would use it as follows:
+
+\begin{verbatim}
+    local q, r = idiv(n1, n2)
+    -- q is number|nil, r is number|string
+    if q then
+      -- q and r are numbers
+    else
+      -- r is a string
+    end
+\end{verbatim}
+
+When Typed Lua encounters a union of tuples in the right side
+of an declaration, it stores the the union in a special type
+environment with a fresh name and assigns {\em projection types} 
+to the variables in the left side of the declaration. If the type
+variable is $X$, variable {\tt q} gets type $X_1$ and variable
+{\tt r} gets type $X_2$.
+
+If we need to check a projection type
+against some other type, we take the union of the corresponding
+component in each tuple. But if we a variable with a projection
+type appears in a type predicate, the predicate discriminates
+against all tuples in the union. In the example above,
+$X$ is $(\Number \times \Number \times \Nil *) \cup
+(\Nil \times \String \times \Nil *)$ outside of the {\tt if}
+statement, but $\Number \times \Number \times \Nil *$ in the
+{\tt then} block and $\Nil \times \String \times \Nil *$ in
+the {\tt else} block.
+
+Notice that we could also discriminate using {\tt r}, using
+{\tt type(r) == "number"} as our predicate, with the same
+result. The first form is more succint, and more idiomatic.
+We can also use projection types to write overloaded functions
+where the type of a parameter depends on the type of another
+parameter.
+
+Currently, a limitation of our overloading mechanisms is that
+the return type cannot depend on the input types; we cannot
+write a function that is guaranteed to return a number if
+passed a number and guaranteed to return a string if passed
+a string, for example.
 
 \subsection{Tables and Interfaces}
 
