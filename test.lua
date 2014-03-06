@@ -2295,6 +2295,36 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+local x:boolean, y:boolean = not nil, not false
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "not", `Nil }, `Op{ "not", `False } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number = -1
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number }, { `Op{ "unm", `Number "1" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number = #"foo"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Base number }, { `Op{ "len", `String "foo" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- do not type check
 
 s = [=[
@@ -2404,6 +2434,48 @@ local x:string, y:number|string = 1 or 2, "foo" or nil
 e = [=[
 test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
 test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string = not nil, not false
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:17: type error, attempt to assign 'boolean' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number, y:string = not 1, not "foo"
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign 'boolean' to 'number'
+test.lua:1:17: type error, attempt to assign 'boolean' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = -"foo"
+]=]
+e = [=[
+test.lua:1:12: type error, attempt to perform arithmetic on a 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x = #1
+]=]
+e = [=[
+test.lua:1:12: type error, attempt to get length of a 'number' value
 ]=]
 
 r = typecheck(s)

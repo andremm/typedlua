@@ -105,11 +105,11 @@ local function check_arith (env, exp)
     set_type(exp, Number)
   elseif types.isAny(t1) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(Any))
+    msg = string.format(msg, type2str(t1))
     warning(env, msg, exp1.pos)
   elseif types.isAny(t2) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(Any))
+    msg = string.format(msg, type2str(t2))
     warning(env, msg, exp2.pos)
   else
     set_type(exp, Any)
@@ -133,11 +133,11 @@ local function check_concat (env, exp)
     set_type(exp, String)
   elseif types.isAny(t1) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(Any))
+    msg = string.format(msg, type2str(t1))
     warning(env, msg, exp1.pos)
   elseif types.isAny(t2) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(Any))
+    msg = string.format(msg, type2str(t2))
     warning(env, msg, exp2.pos)
   else
     set_type(exp, Any)
@@ -170,11 +170,11 @@ local function check_order (env, exp)
     set_type(exp, Boolean)
   elseif types.isAny(t1) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(Any), types.supertypeof(t2))
+    msg = string.format(msg, type2str(t1), types.supertypeof(t2))
     warning(env, msg, exp1.pos)
   elseif types.isAny(t2) then
     set_type(exp, Any)
-    msg = string.format(msg, type2str(types.supertypeof(t1)), type2str(Any))
+    msg = string.format(msg, type2str(types.supertypeof(t1)), type2str(t2))
     warning(env, msg, exp2.pos)
   else
     set_type(exp, Any)
@@ -208,6 +208,48 @@ local function check_or (env, exp)
   end
 end
 
+local function check_not (env, exp)
+  local exp1 = exp[2]
+  check_exp(env, exp1)
+  set_type(exp, Boolean)
+end
+
+local function check_minus (env, exp)
+  local exp1 = exp[2]
+  check_exp(env, exp1)
+  local t1 = exp1["type"]
+  local msg = "attempt to perform arithmetic on a '%s'"
+  if types.subtype(t1, Number) then
+    set_type(exp, Number)
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(t1))
+    warning(env, msg, exp1.pos)
+  else
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(types.supertypeof(t1)))
+    typeerror(env, msg, exp1.pos)
+  end
+end
+
+local function check_len (env, exp)
+  local exp1 = exp[2]
+  check_exp(env, exp1)
+  local t1 = exp1["type"]
+  local msg = "attempt to get length of a '%s' value"
+  if types.subtype(t1, String) then
+    set_type(exp, Number)
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(t1))
+    warning(env, msg, exp1.pos)
+  else
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(types.supertypeof(t1)))
+    typeerror(env, msg, exp1.pos)
+  end
+end
+
 local function check_binary_op (env, exp)
   local op = exp[1]
   if op == "add" or op == "sub" or
@@ -232,8 +274,11 @@ end
 local function check_unary_op (env, exp)
   local op = exp[1]
   if op == "not" then
+    check_not(env, exp)
   elseif op == "unm" then
+    check_minus(env, exp)
   elseif op == "len" then
+    check_len(env, exp)
   else
     error("expecting unary operator, but got " .. op)
   end

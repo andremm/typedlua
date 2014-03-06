@@ -408,18 +408,35 @@ $$
 \]
 
 \[
-\env \vdash \kw{not} \; e : \Any
+\frac{\env \vdash e:T}
+     {\env \vdash \kw{not} \; e : \Boolean}
 \mylabel{T-NOT}
 \]
 
 \[
-\env \vdash - e : \Any
-\mylabel{T-UNM}
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \Number}
+     {\env \vdash - e : \Number}
+\mylabel{T-MINUS1}
 \]
 
 \[
-\env \vdash \# e : \Any
-\mylabel{T-LEN}
+\frac{\env \vdash e:\Any}
+     {\env \vdash - e : \Any}
+\mylabel{T-MINUS2}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \String}
+     {\env \vdash \# e : \Number}
+\mylabel{T-LEN1}
+\]
+
+\[
+\frac{\env \vdash e:\Any}
+     {\env \vdash \# e : \Any}
+\mylabel{T-LEN2}
 \]
 
 \end{document}
