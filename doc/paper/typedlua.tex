@@ -389,14 +389,15 @@ is not necessary:
 \end{verbatim}
 
 Typed Lua lets assignment change the type of a local variable in
-cases that respect a simple heuristic: the new type must be a subtype
-of the previous one, and only applies for the remainder of the
-current scope.
+cases that respect a simple heuristic: the new type must be a
+subtype of the previous one, and the variable must be local
+to the current function. The new type only applies for the
+remainder of the current scope.
 
 Overloaded functions use the {\tt type} function to inspect
-the tag of their parameters, and perform different actions depending
-on what those tags are. The simplest case overloads on just a
-single parameter:
+the tag of their parameters, and perform different actions
+depending on what those tags are. The simplest case overloads
+on just a single parameter:
 
 \begin{verbatim}
     local function overload(s1: string, 
@@ -694,7 +695,87 @@ and finally to $\{$``firstname": $\String$, ``lastname":
  $\String\}$. This is tricker than the type change introduced
 by assignment that we saw in Section 2.2, as what is changing
 is not just the type of the variable {\tt person} but the
-type of the value that {\tt person} points to.
+type of the value that {\tt person} points to. This is safe
+in the example above, but not in the example below:
+
+\begin{verbatim}
+    local bogus = { firstname = 1 }
+    local person: {} = bogus
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+\end{verbatim}
+
+The assignment on line two is perfectly legal, as the type
+of {\tt bogus} is a subtype of $\{\}$. But changing the type
+of {\tt person} would be unsound: {\tt person.firstname} is
+now a $\String$, but {\tt bogus.firstname} is still typed
+as a $\Number$. We do not even need to declare a type for
+aliasing to be a problem: 
+
+\begin{verbatim}
+    local person = {}
+    local bogus = person
+    bogus.firstname = 1
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+\end{verbatim}
+
+Taken individually, the changes to the type of the two
+variables look ok, but aliasing makes one of them unsound.
+The location of the change also matters, as the next example
+shows:
+
+\begin{verbatim}
+    local person = {}
+    local bogus = { firstname = 1 }
+    do
+      person.firstname = 1
+      bogus = person
+    end
+    do
+      person.firstname = "Lou"
+    end
+    -- bogus.firstname is now "Lou"
+\end{verbatim}
+
+The initial type of {\tt person} in all of these examples is
+$\{\}$, but the {\em origin} of this type judgment matters
+on whether it is sound to allow a change to the type of
+{\tt person} or not, even if the change is always towards
+a subtype of the current type.
+
+Typed Lua tags a variable with a table type as either
+{\em open} or {\em closed}. If a variable gets its type
+from a table constructor then it is open, otherwise it is
+always closed. The type of an open variable may change
+by field assignment, subject to two restrictions: the
+variable must be local to the current block, and the new type
+must be a subtype of the old type.
+
+Using a variable with an open type can also trigger a
+type change, if the type of the missing fields has
+{\tt nil} as a possible value. This lets the programmer
+incrementally create an instance of an interface with
+an optional type:
+
+\begin{verbatim}
+    local interface Person
+      firstname: string
+      middlename: string?
+      lastname: string
+    end
+
+    local user = {}
+    user.firstname = "Lou"
+    user.lastname = "Reed"
+    local person: Person = user
+\end{verbatim}
+
+Table types are the foundation for modules and objects in
+Typed Lua. Type changes triggered by field assignment are
+also an important part of Typed Lua's support for the
+idiomatic definition of Lua modules, which are the
+subject of the next section.
 
 \subsection{Modules}
 
