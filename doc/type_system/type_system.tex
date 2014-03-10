@@ -199,16 +199,17 @@ s ::= & \;\; \kw{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = \vec{e}  \; | \;
 \kw{while} \; e \; \kw{do} \; s \; | \;
-\kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} \\
-& | \; \kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s \; | \;
-\kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s \; | \;
-\kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s \\
-& | \; \kw{rec} \; i{:}t = f \; \kw{in} \; s \; | \;
+\kw{repeat} \; s \; \kw{until} \; e\\
+& | \; \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} \; | \;
+\kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s \; | \;
+\kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s\\
+& | \; \kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s \; | \;
+\kw{rec} \; i{:}t = f \; \kw{in} \; s \; | \;
 \kw{goto} \; i \; | \;
 {::} \; i \; {::} \; | \;
-\kw{return} \; \vec{e} \; | \;
-\kw{break} \\
-& | \; e_{1}(\vec{e_{2}})\\
+\kw{return} \; \vec{e}\\
+& | \; \kw{break} \; | \;
+e_{1}(\vec{e_{2}})\\
 e ::= & \;\; \kw{nil} \; | \;
 \kw{false} \; | \;
 \kw{true} \; | \;
@@ -242,6 +243,57 @@ $$
 \dend
 
 \subsection{Typing rules}
+
+\subsection{Statements}
+
+\[
+\env \vdash \kw{skip}
+\mylabel{T-SKIP}
+\]
+
+\[
+\frac{\env \vdash s_{1} \;\;\;
+      \env \vdash s_{2}}
+     {\env \vdash s_{1} \;;\; s_{2}}
+\mylabel{T-SEQ}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      \env \vdash s}
+     {\env \vdash \kw{while} \; e \; \kw{do} \; s}
+\mylabel{T-WHILE}
+\]
+
+\[
+\frac{\env \vdash s \;\;\;
+      \env \vdash e:T}
+     {\env \vdash \kw{repeat} \; s \; \kw{until} \; e}
+\mylabel{T-REPEAT}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      \env \vdash s_{1} \;\;\;
+      \env \vdash s_{2}}
+     {\env \vdash \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}}
+\mylabel{T-IF-ELSE}
+\]
+
+\[
+\env \vdash \kw{goto} \; i
+\mylabel{T-GOTO}
+\]
+
+\[
+\env \vdash {::} \; i \; {::}
+\mylabel{T-LABEL}
+\]
+
+\[
+\env \vdash \kw{break}
+\mylabel{T-BREAK}
+\]
 
 \subsubsection{Expressions}
 

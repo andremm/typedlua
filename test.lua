@@ -2325,6 +2325,66 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+while 1 do break end
+]=]
+e = [=[
+{ `While{ `Number "1", { `Break } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+repeat break until 1
+]=]
+e = [=[
+{ `Repeat{ { `Break }, `Number "1" } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 then local x = 1 end
+]=]
+e = [=[
+{ `If{ `Number "1", { `Local{ { `Id "x" }, { `Number "1" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 then local x = 1 else local x = "foo" end
+]=]
+e = [=[
+{ `If{ `Number "1", { `Local{ { `Id "x" }, { `Number "1" } } }, { `Local{ { `Id "x" }, { `String "foo" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  local x = 1
+elseif 2 then
+  local x = 2
+elseif 3 then
+  local x = 3
+elseif 4 then
+  local x = 4
+else
+  local x = "foo"
+end
+]=]
+e = [=[
+{ `If{ `Number "1", { `Local{ { `Id "x" }, { `Number "1" } } }, `Number "2", { `Local{ { `Id "x" }, { `Number "2" } } }, `Number "3", { `Local{ { `Id "x" }, { `Number "3" } } }, `Number "4", { `Local{ { `Id "x" }, { `Number "4" } } }, { `Local{ { `Id "x" }, { `String "foo" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- do not type check
 
 s = [=[
@@ -2476,6 +2536,70 @@ local x = #1
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to get length of a 'number' value
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+while 1 + "foo" do break end
+]=]
+e = [=[
+test.lua:1:11: type error, attempt to perform arithmetic on a 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+repeat break until 1 + nil
+]=]
+e = [=[
+test.lua:1:24: type error, attempt to perform arithmetic on a 'nil'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 then local x:string = 1 end
+]=]
+e = [=[
+test.lua:1:17: type error, attempt to assign '1' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 + false then local x:number = 1 else local x:number = "foo" end
+]=]
+e = [=[
+test.lua:1:8: type error, attempt to perform arithmetic on a 'boolean'
+test.lua:1:49: type error, attempt to assign 'foo' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+if 1 then
+  local x = 1
+elseif 2 + nil then
+  local x = 2
+elseif 3 + true then
+  local x:string = 3
+elseif 4 then
+  local x:boolean = 4
+else
+  local x = "foo"
+end
+]=]
+e = [=[
+test.lua:3:12: type error, attempt to perform arithmetic on a 'nil'
+test.lua:5:12: type error, attempt to perform arithmetic on a 'boolean'
+test.lua:6:9: type error, attempt to assign '3' to 'string'
+test.lua:8:9: type error, attempt to assign '4' to 'boolean'
 ]=]
 
 r = typecheck(s)

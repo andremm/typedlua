@@ -328,14 +328,40 @@ function check_exp (env, exp)
   end
 end
 
+local function check_while (env, stm)
+  check_exp(env, stm[1])
+  check_block(env, stm[2])
+end
+
+local function check_repeat (env, stm)
+  check_block(env, stm[1])
+  check_exp(env, stm[2])
+end
+
+local function check_if (env, stm)
+  for i = 1, #stm, 2 do
+    local exp, block = stm[i], stm[i + 1]
+    if block then
+      check_exp(env, exp)
+      check_block(env, block)
+    else
+      block = exp
+      check_block(env, block)
+    end
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
     check_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
   elseif tag == "While" then -- `While{ expr block }
+    check_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }
+    check_repeat(env, stm)
   elseif tag == "If" then -- `If{ (expr block)+ block? }
+    check_if(env, stm)
   elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
