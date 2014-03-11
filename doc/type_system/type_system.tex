@@ -281,6 +281,20 @@ $$
 \]
 
 \[
+\frac{\begin{aligned}
+      & \env \vdash e_{1}:T_{1} \;\;\;
+        \env \vdash e_{2}:T_{2} \;\;\;
+        \env \vdash e_{3}:T_{3} & \\
+      & T_{1} \lesssim \Number \;\;\;
+        T_{2} \lesssim \Number \;\;\;
+        T_{3} \lesssim \Number & \\
+      & \env, i:\Number \vdash s &
+      \end{aligned}}
+     {\kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s}
+\mylabel{T-FORNUM}
+\]
+
+\[
 \env \vdash \kw{goto} \; i
 \mylabel{T-GOTO}
 \]

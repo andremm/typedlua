@@ -351,6 +351,47 @@ local function check_if (env, stm)
   end
 end
 
+local function check_fornum (env, stm)
+  local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
+  id[2] = Number
+  begin_scope(env)
+  set_local(env, id, Number, env.scope)
+  check_exp(env, exp1)
+  local t1 = exp1["type"]
+  local msg = "'for' initial value must be a number"
+  if types.subtype(t1, Number) then
+  elseif types.consistent_subtype(t1, Number) then
+    warning(env, msg, exp1.pos)
+  else
+    typeerror(env, msg, exp1.pos)
+  end
+  check_exp(env, exp2)
+  local t2 = exp2["type"]
+  local msg = "'for' limit must be a number"
+  if types.subtype(t2, Number) then
+  elseif types.consistent_subtype(t2, Number) then
+    warning(env, msg, exp2.pos)
+  else
+    typeerror(env, msg, exp2.pos)
+  end
+  if block then
+    check_exp(env, exp3)
+    local t3 = exp3["type"]
+    local msg = "'for' step must be a number"
+    if types.subtype(t3, Number) then
+    elseif types.consistent_subtype(t3, Number) then
+      warning(env, msg, exp3.pos)
+    else
+      typeerror(env, msg, exp3.pos)
+    end
+    check_exp(env, exp3)
+  else
+    block = exp3
+  end
+  check_block(env, block)
+  end_scope(env)
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
@@ -363,6 +404,7 @@ function check_stm (env, stm)
   elseif tag == "If" then -- `If{ (expr block)+ block? }
     check_if(env, stm)
   elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
+    check_fornum(env, stm)
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
     check_local(env, stm[1], stm[2])

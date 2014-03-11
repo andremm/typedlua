@@ -2385,6 +2385,26 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+for i = 1, 10 do local x = i end
+]=]
+e = [=[
+{ `Fornum{ `Id "i":`Base number, `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i = 10, 1, -1 do local x = i end
+]=]
+e = [=[
+{ `Fornum{ `Id "i":`Base number, `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- do not type check
 
 s = [=[
@@ -2600,6 +2620,36 @@ test.lua:3:12: type error, attempt to perform arithmetic on a 'nil'
 test.lua:5:12: type error, attempt to perform arithmetic on a 'boolean'
 test.lua:6:9: type error, attempt to assign '3' to 'string'
 test.lua:8:9: type error, attempt to assign '4' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i = nil, 10 do local x = i end
+]=]
+e = [=[
+test.lua:1:9: type error, 'for' initial value must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i = 1, "foo" do local x = i end
+]=]
+e = [=[
+test.lua:1:12: type error, 'for' limit must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for i = 10, 1, false do local x = i end
+]=]
+e = [=[
+test.lua:1:16: type error, 'for' step must be a number
 ]=]
 
 r = typecheck(s)
