@@ -92,6 +92,34 @@ function types.isUnion (t)
   return t.tag == "Union"
 end
 
+function types.isUnionNil (t)
+  if types.isUnion(t) then
+    return types.isUnionNil(t[1]) or types.isUnionNil(t[2])
+  else
+    return types.isNil(t)
+  end
+end
+
+function types.UnionNoNil (t)
+  if types.isUnionNil(t) then
+    if types.isNil(t[1]) then
+      return t[2]
+    elseif types.isNil(t[2]) then
+      return t[1]
+    elseif types.isUnionNil(t[1]) then
+      t[1] = types.UnionNoNil(t[1])
+      return t
+    elseif types.isUnionNil(t[2]) then
+      t[2] = types.UnionNoNil(t[2])
+      return t
+    else
+      return t
+    end
+  else
+    return t
+  end
+end
+
 -- subtyping
 
 local function subtype_literal (t1, t2)

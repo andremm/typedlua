@@ -2010,6 +2010,18 @@ assert(types.isAny(Any))
 
 assert(types.isUnion(types.Union(Number,Nil)))
 assert(types.isUnion(types.Union(types.Union(Number,String),Nil)))
+assert(types.isUnion(types.Union(types.Union(Number,Nil),String)))
+assert(types.isUnion(types.Union(types.Union(Nil,Number),String)))
+
+assert(types.isUnionNil(types.Union(Number,Nil)))
+assert(types.isUnionNil(types.Union(types.Union(Number,String),Nil)))
+assert(types.isUnionNil(types.Union(types.Union(Number,Nil),String)))
+assert(types.isUnionNil(types.Union(types.Union(Nil,Number),String)))
+
+assert(not types.isUnionNil(types.Union(Number,Boolean)))
+assert(not types.isUnionNil(types.Union(types.Union(Number,String),Boolean)))
+assert(not types.isUnionNil(types.Union(types.Union(Number,Boolean),String)))
+assert(not types.isUnionNil(types.Union(types.Union(Boolean,Number),String)))
 
 -- subtyping
 
@@ -2296,6 +2308,17 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local x:number?
+local y:number = x or 0
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local x:boolean, y:boolean = not nil, not false
 ]=]
 e = [=[
@@ -2514,6 +2537,17 @@ local x:string, y:number|string = 1 or 2, "foo" or nil
 e = [=[
 test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
 test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+local y:number = x or nil
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
 ]=]
 
 r = typecheck(s)

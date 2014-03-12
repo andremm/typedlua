@@ -467,10 +467,24 @@ $$
 \]
 
 \[
-\frac{\env \vdash e_{1}:T_{1} \;\;\;
+\frac{\env \vdash e_{1}:T_{1} \cup \Nil \;\;\;
       \env \vdash e_{2}:T_{2}}
      {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{1} \cup T_{2}}
 \mylabel{T-OR3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \False \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{2}}
+\mylabel{T-OR4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR5}
 \]
 
 \[

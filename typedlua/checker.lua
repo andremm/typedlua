@@ -46,7 +46,7 @@ local function get_local (env, name)
   local scope = env.scope
   for s = scope, 0, -1 do
     if env[s]["local"][name] then
-      return true
+      return env[s]["local"][name]
     end
   end
   return nil
@@ -62,16 +62,19 @@ local function set_local (env, id, inferred_type, scope)
     end
   end
   if types.subtype(inferred_type, local_type) then
+    id["type"] = local_type
   elseif types.consistent_subtype(inferred_type, local_type) then
+    id["type"] = local_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     warning(env, msg, pos)
   else
+    id["type"] = inferred_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     typeerror(env, msg, pos)
   end
-  env[scope]["local"][local_name] = local_type
+  env[scope]["local"][local_name] = id
 end
 
 local function set_type (node, t)
@@ -203,6 +206,8 @@ local function check_or (env, exp)
   local t1, t2 = exp1["type"], exp2["type"]
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t2)
+  elseif types.isUnionNil(t1) then
+    set_type(exp, types.Union(types.UnionNoNil(t1), t2))
   else
     set_type(exp, types.Union(t1, t2))
   end
@@ -289,6 +294,22 @@ local function check_paren (env, exp)
   set_type(exp, exp[1]["type"])
 end
 
+local function check_id_read (env, exp)
+  local name = exp[1]
+  local local_var = get_local(env, name)
+  if local_var then
+    exp["type"] = local_var["type"]
+  else
+    local global = {}
+    global.tag = "Index"
+    global.pos = exp.pos
+    global[1] = { tag = "Id", [1] = "_ENV", pos = exp.pos }
+    global[2] = { tag = "String", [2] = name, pos = exp.pos }
+    check_exp(env, global)
+    set_type(exp, global["type"])
+  end
+end
+
 function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
@@ -320,7 +341,7 @@ function check_exp (env, exp)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> expr* }
     set_type(exp, Any)
   elseif tag == "Id" then -- `Id{ <string> }
-    set_type(exp, Any)
+    check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
     set_type(exp, Any)
   else
