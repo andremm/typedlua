@@ -112,64 +112,58 @@ preserve some of the idioms that Lua programmers are already used to,
 while adding new constructs that help programmers structure Lua
 programs.
 
-Lua is a small imperative scripting language that prefers to provide
-mechanisms instead of fixed policies for structuring programs,
-due to its history as an embedded extension language. Even features
-such as a module system and object orientation are a matter of 
-convention instead of built-in features.
 
-The lack of standard policies
-is a challenge for the design of a static type system for the Lua
-language, and our approach was to extract the most common
-idioms from a large corpus of Lua libraries as a guide to what
-Typed Lua should focus on, and setting fixed policies for organizing
-a program in modules and using class-based object orientation.
-
-Typed Lua allows statically typed Lua code to coexist and interact with 
-dynamically typed code. The Typed Lua compiler warns the programmer
-about type errors, but always generates Lua code that runs in unmodified
-Lua implementations. The programmer can enjoy some of the benefits
-of static types even without converting existing Lua modules to typed Lua:
-a dynamically typed module can export a statically typed interface, and
-statically typed users of the module will have their use of the module
-checked by the compiler.
-
-Unlike gradual type systems, Typed Lua does not insert run-time
-checks between dynamically and statically typed parts of the program.
-Unlike some optional type systems, the statically typed subset of
-Typed Lua is sound by design, so a later version of the Typed Lua
-compiler can swicth to gradual instead of just optional typing.
-
-In Section~\ref{sec:proposal} we outline the key parts in
-the design of Typed Lua. In Section~\ref{sec:review} we review
-related work on mixing static and dynamic typing in the same language.
-Finally, Section~\ref{sec:con} gives some concluding remarks and
-our plans for the future of Typed Lua.
-
-\section{Typed Lua} \label{sec:proposal}
-
-Lua is an imperative scripting language with first-class functions
-(with proper lexical scoping) where the main data structure is the
-{\em table}, an associative array that can play the part of arrays,
-records, maps, objects, etc., with syntactic sugar and
-metaprogramming through operator overloading built into
+Lua is a small imperative scripting language with first-class
+functions (with proper lexical scoping) where the main data
+structure is the {\em table}, an associative array that can
+play the part of arrays, records, maps, objects, etc.
+with syntactic sugar and metaprogramming through operator overloading built into
 the language. Unlike other scripting languages, Lua has very
 limited coercion among different data types.
 
 The primary use of Lua has always been as an embedded language
-for configuration and extension of other applications, and the result
-is a fragmented ecosystem of libraries, and different ideas among
-Lua programmers on how they should use the language features and
-how they should structure programs.
+for configuration and extension of other applications.
+Lua prefers to provide mechanisms instead of fixed policies
+for structuring programs, and even features
+such as a module system and object orientation are a matter of 
+convention instead of built into the language.
+The result is a fragmented ecosystem of libraries, and
+different ideas among Lua programmers on how they should use
+the language features and how they should structure programs.
 
-The design of Typed Lua is informed by a (mostly automated) survey
-of Lua idioms used in a large corpus of Lua libraries, instead of
-relying just on the semantics of the language. We cover the main parts
-of the design, along with how they relate to Lua, in the rest of this section,
-and discuss some of what was left out in the current version of the design
-in the conclusion of the paper.
+The lack of standard policies
+is a challenge for the design of a static type system for the Lua
+language. The design of Typed Lua is informed by a (mostly
+automated) survey of Lua idioms used in a large corpus of Lua
+libraries, instead of relying just on the semantics of the
+language.
 
-\subsection{Atomic Types and Functions}
+Typed Lua allows statically typed Lua code to coexist and
+interact with  ynamically typed code. The Typed Lua compiler
+warns the programmer about type errors, but always generates
+Lua code that runs in unmodified Lua implementations. The
+programmer can enjoy some of the benefits of static types even
+without converting existing Lua modules to typed Lua:
+a dynamically typed module can export a statically typed
+interface, and statically typed users of the module will have
+their use of the module checked by the compiler.
+
+Unlike gradual type systems, Typed Lua does not insert run-time
+checks between dynamically and statically typed parts of the
+program. Unlike some optional type systems, the statically
+typed subset of Typed Lua is sound by design, so a later
+version of the Typed Lua compiler can swicth to gradual
+instead of just optional typing.
+
+We cover the main parts of the design, along with
+how they relate to Lua, in Sections~\ref{sec:atomic}
+through~\ref{sec:classes}. Section~\ref{sec:review} reviews
+related work on mixing static and dynamic typing in the same
+language. Finally, Section~\ref{sec:con} gives some
+concluding remarks and future extensions for Typed Lua.
+
+\section{Atomic Types and Functions}
+\label{sec:atomic}
 
 Lua values can have one of eight {\em tags}: {\em nil}, {\em boolean},
 {\em number}, {\em string}, {\em function}, {\em table}, {\em userdata},
@@ -347,8 +341,8 @@ without errors, as the first two components of the tuple are consistent with
 the types of the parameters, and the other components are consistent with
 $\Top$.
 
-
-\subsection{Unions}
+\section{Unions}
+\label{sec:unions}
 
 Typed Lua uses union types to encode some common Lua idioms:
 optional values, overloading based on the tags of input parameters,
@@ -505,7 +499,8 @@ write a function that is guaranteed to return a number if
 passed a number and guaranteed to return a string if passed
 a string, for example.
 
-\subsection{Tables and Interfaces}
+\section{Tables and Interfaces}
+\label{sec:tables}
 
 Tables are the main mechanism that Lua has to build data
 structures. They are associative arrays where any value
@@ -779,15 +774,50 @@ also an important part of Typed Lua's support for the
 idiomatic definition of Lua modules, which are the
 subject of the next section.
 
-\subsection{Modules}
+\section{Modules}
+\label{sec:modules}
 
-Typed Lua will also introduce a specific syntax for defining modules.
-For now, each file is a module.
-We use all global names and their types to build the interface that
-represents the type of the module, in case the module is not returned
-at the end of the file.
+Lua's module system, like other parts of the language, is
+a matter of convention. When Lua first needs to load a
+module, it executes the module's source file as a function;
+the value that this function returns is the module, and Lua
+caches it for future loads. While a module can be any
+Lua value, most modules are tables where the fields
+of the table are functions and other values that the
+module exports.
 
-\subsection{Objects and Classes}
+The modules that we surveyed build this table using
+three distinct styles. In the first style, the module's
+source file ends
+with a {\tt return} statement that uses a table constructor
+with the exported members. In the second style, the
+module declares an empty table in the beginning of its
+source file, adds exported members to this table
+throughout the module, and returns this table at the end.
+
+These two styles are straightforward for Typed Lua, which
+can just take the type of the first value that the module
+returns and use it as the type of the module.
+
+In the third style, which has been deprecated in the current
+version of Lua, a module begins with a call to the {\tt module}
+function. This function installs a fresh table as the
+global environment for the rest of the module, so any
+assignments to global variables are field assignments to
+this table. The {\tt module} function also sets an {\tt \_M}
+field in this table as a circular reference to the table
+itself, so the module can end with {\tt return \_M}, but
+this explicit return is not necessary.
+
+While this style has been deprecated, our survey indicated
+that around a third of Lua modules in a popular module
+repository still use this style, so Typed Lua also
+supports this style: it treats accesses to global
+variables as field accesses to an open table
+in the top-level scope.
+
+\section{Objects and Classes}
+\label{sec:classes}
 
 Besides interfaces, Typed Lua will also introduce classes.
 We want to offer classes as a standard way for writing code that
