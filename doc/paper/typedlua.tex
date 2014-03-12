@@ -15,6 +15,7 @@
 \newcommand{\Number}{\mathbf{number}}
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
+\newcommand{\Const}{\mathbf{const}}
 
 \def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
 \def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
@@ -204,12 +205,13 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow S & \textit{function types}\\
-& | \; \{T:T, ..., T:T\} & \textit{table types}\\
+& | \; \{F, ..., F\} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 & | \; X_i & \textit{projection types}\\
 L ::= & \multicolumn{2}{l}{\False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} } \\
 B ::= & \multicolumn{2}{l}{\Nil \; | \; \Boolean \; | \; \Number \; | \; \String} \\
+F ::= & T:T \; | \; \Const \; T:T & \textit{field types} \\
 \multicolumn{3}{c}{} \\
 \multicolumn{3}{c}{\textbf{Second-class types}} \\
 S ::= &  \multicolumn{2}{l}{\Void \; |\; V \; | \; S \cup S} \\
