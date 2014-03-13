@@ -819,6 +819,16 @@ in the top-level scope.
 \section{Objects and Classes}
 \label{sec:classes}
 
+Lua's built-in support for object oriented programming is
+minimal. The basic mechanism is the {\tt :} syntactic
+sugar for method calls and method declarations.
+The Lua compiler translates {\tt obj:method(args)}
+to an operation that evaluates {\tt obj}, looks
+for a field named ``method" in the result, then calls
+it with the result of evaluating {\tt obj} as the
+first argument, followed by the result of evaluating
+the argument list in the original expression.
+
 Besides interfaces, Typed Lua will also introduce classes.
 We want to offer classes as a standard way for writing code that
 Lua programmers are already using, but without tying them to a
