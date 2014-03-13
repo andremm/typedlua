@@ -704,6 +704,7 @@ function statistics.init_merge ()
   merge.use_len = 0
   merge.len_count = 0
   merge.number_of_methods = 0
+  merge.prj_meth = 0
   merge.prj_colon = 0
   merge.prj_self = 0
   merge.prj_set_meth = 0
@@ -794,6 +795,11 @@ function statistics.merge (result, merge, project)
     if not merge.project[project].use_colon then
       merge.project[project].use_colon = true
       merge.prj_colon = merge.prj_colon + 1
+      if merge.project[project].use_self and
+         not merge.project[project].use_meth then
+        merge.project[project].use_meth = true
+        merge.prj_meth = merge.prj_meth + 1
+      end
     end
     if merge.project[project].use_setmetatable and
        not merge.project[project].use_set_colon then
@@ -811,6 +817,11 @@ function statistics.merge (result, merge, project)
     if not merge.project[project].use_self then
       merge.project[project].use_self = true
       merge.prj_self = merge.prj_self + 1
+      if merge.project[project].use_colon and
+         not merge.project[project].use_meth then
+        merge.project[project].use_meth = true
+        merge.prj_meth = merge.prj_meth + 1
+      end
     end
     if merge.project[project].use_setmetatable and
        not merge.project[project].use_set_self then
@@ -887,7 +898,11 @@ function statistics.log_merge (merge)
   print("use_len", merge.use_len)
   print("len_count", merge.len_count)
   print("number_of_methods", merge.number_of_methods)
-  print("prj_colon", merge.prj_colon)
+  print("prj_meth", (merge.prj_colon - merge.prj_meth) +
+                    (merge.prj_self - merge.prj_meth) +
+                     merge.prj_meth)
+  print("prj_colon", merge.prj_colon - merge.prj_meth)
+  print("prj_self", merge.prj_self - merge.prj_meth)
   print("prj_set_meth", (merge.prj_set_colon - merge.prj_set_meth) +
                         (merge.prj_set_self - merge.prj_set_meth) +
                          merge.prj_set_meth)
