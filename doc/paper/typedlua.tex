@@ -829,22 +829,120 @@ it with the result of evaluating {\tt obj} as the
 first argument, followed by the result of evaluating
 the argument list in the original expression.
 
-Besides interfaces, Typed Lua will also introduce classes.
-We want to offer classes as a standard way for writing code that
-Lua programmers are already using, but without tying them to a
-specific model.
-Our classes will not include static attributes and will also not offer
-privacy rules.
+We can use recursive table types to represent objects,
+and Typed Lua has syntactic sugar to make defining these
+types easier:
 
+\begin{verbatim}
+    interface Shape
+      x, y: number
+      const move: (dx: number, dy: number) => ()
+    end
+\end{verbatim}
+
+The double arrow in the type of the two methods is
+syntactic sugar for having a first parameter named
+{\tt self} with the same type as the interface. The
+{\tt const} qualifier is necessary for covariance
+in the types of the methods, and to make subtyping
+among object types work.
+
+Type-checking a method call is straightforward, but
+there is still the matter of how to construct a value with
+the object type above. The following example shows one
+way:
+
+\begin{verbatim}
+    local shape = { x = 0, y = 0 }
+    const function shape:move(dx: number, 
+                              dy: number)
+      self.x = self.x + dx
+      self.y = self.y + dy
+    end
+\end{verbatim}
+
+The {\tt :} syntactic sugar that the example uses also comes
+from Lua, and assigns a function to the field with a first
+parameter named {\tt self}, plus any other parameters.
+
+Lua has a mechanism for Self-like delegation of missing
+fields in a table. After we do {\tt setmetatable(t1,
+{ \_\_index = t2 })}, Lua looks up in {\tt t2} any missing
+fields of {\tt t1}. Lua programmers often use this mechanism
+to simulate classes, as in the following example:
+
+\begin{verbatim}
+    local Shape = { x = 0, y = 0 }
+    const function Shape:new(x: number, y: number)
+      local s = setmetatable({},
+                             { __index = self })
+      s.x = x
+      s.y = y
+      return shape
+    end
+    const function Shape:move(dx: number,
+                              dy: number)
+      self.x = self.x + dx
+      self.y = self.y + dy
+    end
+    local shape1 = Shape:new(0, 5)
+    local shape2 = Shape:new(10, 10)
+\end{verbatim} 
+
+Typed Lua assigns the type
+$\mathbf{Shape} \times \Number \times \Number \times
+\Top* \rightarrow \mathbf{Shape} \times \Nil*$ to
+{\tt new}. In a {\tt setmetatable} expression,
+if the type $t_1$ of the first operand is open and a supertype
+of the type $t_2$ of the second operand's {\_\_index} field,
+it changes the type of the first operand to $t_1$, and
+it remains open.
+
+As the result of {\tt setmetatable} can be an open
+table type, we can simulate single inheritance, and
+override methods:
+
+\begin{verbatim}
+    local Circle = setmetatable({},
+                                { __index = Shape })
+    Circle.radius = 0
+    const function Circle:new(x: number,
+                              y: number,
+                              radius: number)
+      local c = setmetatable(Shape:new(x, y),
+                             { __index = self })
+      c.radius = radius
+      return c
+    end
+    const function Circle:area()
+      return math.pi * self.radius * self.radius
+    end
+\end{verbatim} 
+
+Notice how we can call {\tt Shape}'s constructor inside
+the overriden constructor. A limitation of this class
+system is that the overriden constructors must be a
+subtype of the original constructor.
+
+If we erase all type and {\tt const} annotations, the
+two examples above are valid Lua code, with the same
+semantics as the Typed Lua Code.
+
+The current version of Typed Lua does not have a polymorphic
+type system, so programmers currently cannot hide the
+calls to {\tt setmetatable} behind nicer abstractions, as
+some Lua libraries do. A few Lua programs also use
+other features of {\tt setmetatable} which are currently
+not typeable, such as operator overloading.
 
 \section{Related Work}
- \label{sec:review}
+\label{sec:review}
 
-We begin this section presenting a little bit of the history about
-combining static and dynamic typing in the same language.
-After that, we introduce optional type systems and gradual typing.
-We end this section discussing why optional type systems and two
-other approaches are often called gradual typing.
+We begin this section presenting a little bit of the history
+about combining static and dynamic typing in the same language.
+After that, we introduce optional type systems and gradual
+typing. We end this section discussing why optional type
+systems and two other approaches are often called gradual typing.
 
 \subsection{A little bit of history}
 
