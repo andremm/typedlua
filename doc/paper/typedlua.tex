@@ -226,8 +226,8 @@ types to unnanotated variables, based on the type of the
 expression that gives the initial value of the variable.
 
 In the following example, we use type annotations in a function
-declaration but do not use type annotations in the declaration of a
-local variable:
+declaration but do not use type annotations in the declaration
+of a local variable:
 \begin{verbatim}
     local function factorial(n: number): number
       if n == 0 then
@@ -886,8 +886,13 @@ to simulate classes, as in the following example:
       self.y = self.y + dy
     end
     local shape1 = Shape:new(0, 5)
-    local shape2 = Shape:new(10, 10)
+    local shape2: Shape = Shape:new(10, 10)
 \end{verbatim} 
+
+In the last line of the example, notice how we can refer
+to {\tt Shape} in the type annotation, as a shortcut
+to the recursive table type that Typed Lua has assigned
+to this variable.
 
 Typed Lua assigns the type
 $\mathbf{Shape} \times \Number \times \Number \times
@@ -919,7 +924,8 @@ override methods:
     end
 \end{verbatim} 
 
-Notice how we can call {\tt Shape}'s constructor inside
+In the first line of the redefinition of {\tt new},
+notice how we can call {\tt Shape}'s constructor inside
 the overriden constructor. A limitation of this class
 system is that the overriden constructors must be a
 subtype of the original constructor.
@@ -938,193 +944,81 @@ not typeable, such as operator overloading.
 \section{Related Work}
 \label{sec:review}
 
-We begin this section presenting a little bit of the history
-about combining static and dynamic typing in the same language.
-After that, we introduce optional type systems and gradual
-typing. We end this section discussing why optional type
-systems and two other approaches are often called gradual typing.
+Common LISP introduced optional type annotations in the early
+eighties~\citep{steele1982ocl}, but they were optimization
+hints to the compiler instead of types for static checking.
+These annotations were unsafe, and could crash the program
+when wrong.
 
-\subsection{A little bit of history}
+\citet{abadi1989dts} used tagged pairs and explicit
+injection and projection operations (coercions) to embed dynamic
+typing in the simply-typed lambda calculus. Dynamically-typed
+values had a {\tt Dynamic} static type. \citet{thatte1990qst}
+removes the necessity of explicit coercions with a system
+that automatically inserts coercions and checks them for
+correctness.
 
-Common LISP \citep{steele1982ocl} introduced optional type annotations
-in the early eighties, but not for static type checking.
-Instead, programmers may choose to declare types of variables as
-optimization hints to the compiler, that is, type declarations are
-just one way to help the compiler to optimize code.
-These annotations are unsafe because they can crash the program
-when they are wrong.
+\textit{Soft typing}~\citep{cartwright1991soft} starts
+with a dynamically-typed language, and layers a static
+type system with a sophisticated global type inference
+algorithm on top, to try to find errors in programs
+without needing to rewrite them. In cases where an error
+may or may not be present, it warns the programmer and
+inserts a runtime check. One problem with the soft
+typing approach was the complexity of the inferred
+types, leading to errors that were difficult to understand
+and fix.
 
-\citet{abadi1989dts} extended the simply typed lambda calculus with the
-\texttt{Dynamic} type and the \texttt{dynamic} and \texttt{typecase}
-constructs, with the aim to safely integrate dynamic code in
-statically typed languages.
-The \texttt{Dynamic} type is a pair \texttt{(v,T)} where \texttt{v} is a
-value and \texttt{T} is the tag that represents the type of \texttt{v}.
-The constructs \texttt{dynamic} and \texttt{typecase} are explicit
-injection and projection operations, respectively.
-That is, \texttt{dynamic} builds values of type \texttt{Dynamic} and
-\texttt{typecase} safely inspects the type of a \texttt{Dynamic} value.
-Thus, migrating code between dynamic and static type checking requires
-changing type annotations and adding or removing \texttt{dynamic} and
-\texttt{typecase} constructs throughout the code.
+\textit{Dynamic typing}~\citep{henglein1994dts} is
+another approach for optimizing dynamically-typed programs.
+First the program is translated to a program that uses
+a {\tt Dynamic} type and explicit coercions and runtime checks,
+then a static analysis removes some  of these coercions and
+checks.
 
-The \textit{quasi-static} type system proposed by \citet{thatte1990qst}
-performs implicit coercions and run-time checks to replace the
-\texttt{dynamic} and \texttt{typecase} constructs that were proposed by
-\citet{abadi1989dts}.
-To do that, quasi-static typing relies on subtyping with a top type
-$\Omega$ that represents the dynamic type, and splits type checking
-into two phases.
-The first phase inserts implicit coercions from the dynamic type to
-the expected type, while the second phase performs what Thatte calls
-\textit{plausibility checking}, that is, it rewrites the program to
-guarantee that sequences of upcasts and downcasts always have a
-common subtype.
-
-\textit{Soft typing} \citep{cartwright1991soft} is another approach
-to combine static and dynamic typing in the same language.
-The main goal of soft typing is to add static type checking to
-dynamically typed languages without compromising their flexibility.
-To do that, soft typing relies on type inference for
-translating dynamically typed code to statically typed code.
-The type checker inserts run-time checks around inconsistent code and
-warns the programmer about the insertion of these run-time checks,
-as they mean the existence of potential type errors.
-However, the programmer is free to choose between inspecting the
-run-time checks and simply running the code.
-Soft typing gives this choice to the programmer because it is one of
-its key ideas, that is, type inference and static type checking should
-not prevent the programmer from running inconsistent code.
-One advantage of soft typing is the fact that the compiler for
-softly typed languages can use the translated code to generate
-more efficient code, as the translated code statically type checks.
-One disadvantage of soft typing is that it can be cumbersome when
-the inferred types are meaningless large types that just confuse the
-programmer.
-
-\textit{Dynamic typing} \citep{henglein1994dts} is an approach
-that optimizes code from dynamically typed languages by eliminating
-unnecessary checks of tags.
-The paper describes how to translate dynamically typed code to
-statically typed code that uses a \texttt{Dynamic} type.
-The translation is done through a coercion calculus that uses type
-inference to insert the operations that are necessary to type check
-the \texttt{Dynamic} type during run-time.
-Although soft typing and dynamic typing may seem similar, they are not.
-They are not similar because soft typing targets statically type
-checking of dynamically typed languages for detecting programming
-errors while dynamic typing targets the optimization of dynamically
-typed code through the elimination of unnecessary run-time checks.
-In other words, soft typing sees code optimization as a side effect
-that comes with static type checking.
-
-\citet{findler2002chf} proposed contracts for higher-order functions
-and blame annotations for run-time checks.
-Contracts perform dynamic checking instead of static checking,
-but deferring all verifications to run-time can lead to defects
-that are difficult to fix, because run-time errors can show a
-stack trace where it is not clear to programmers if the cause of a
-certain run-time error is in application code or library code.
-Even if programmers identify that the source of a certain run-time
-error is in library code, they still may have problems to identify
-if this run-time error is due to a violation of library's contract,
-or due to a bug, when the library is poorly documented.
-In this approach, programmers can insert assertions in the form of
-contracts that check the input and output of higher-order functions.
-Thus, \citet{findler2002chf} show how programmers can insert
-assertions in the form of contracts that check the input and output
-of higher-order functions; and they also show how to add blame
-annotations in the generated code as a way to track assertion
-failures back to the source of the error.
-
-BabyJ \citep{anderson2002babyj} is an object-oriented language
-without inheritance that allows programmers to incrementally annotate
-the code with more specific types.
-Programmers can choose between using the dynamically typed version
-of BabyJ, when they do not need types at all, and the statically
-typed version of BabyJ, when they need to annotate the code.
-In the statically typed BabyJ, programmers can use the
-\textit{permissive type} $*$ to annotate the parts of the code that
-still do not have a specific type or the parts of the code that should
-have dynamic behavior.
-The type system of BabyJ is nominal, so types are either class names
-or the permissive type $*$.
-However, the type system does not use type equality or subtyping,
-but the relation $\approx$ between two types.
-The relation $\approx$ holds when both types have the same name or
-any of them is the permissive type $*$.
-Even though the permissive type $*$ is similar to the dynamic type
-from previous approaches, BabyJ does not provide any way to add
-implicit or explicit run-time checks.
-
-\citet{ou2004dtd} specified a language that combines static types
-with dependent types.
-To ensure safety, the compiler automatically inserts coercions
-between dependent code and static code.
-The coercions are run-time checks that ensure static code does not
-crash dependent code during run-time.
-
-\subsection{Optional Type Systems}
-
-Optional type systems \citep{bracha2004pluggable} are an approach for
-plugging static typing in dynamically typed languages through
-optional type annotations that are used to perform compile-time type
-checking, though not influencing the original run-time semantics of
-the language.
-This means that optional type systems can be unsound without affecting
-language safety, because the run-time semantics should still catch
-type errors independently of the static type checking.
-More precisely, optional type systems are unsound if they do not catch
-some type errors, but we say that languages with unsound optional type
-systems are safe because the semantics of these languages catch during
-run-time the type errors that the optional type system did not catch.
-Although optional type systems maintain the simplicity and
-flexibility of dynamically typed languages, their static type
-checking cannot prove the absence of all type errors when the optional
-type system is unsound.
-
-Optional type systems have an interesting relation to the untyped
-lambda calculus and the typed lambda calculus.
-The semantic rules of the unytped lambda calculus are the same of the
-typed lambda calculus, and the type system is actually optional and
-serves only for discarding programs that may have undesired behaviors
-\citep{bracha2004pluggable}.
-
-Optional type systems make software evolution easier and
-allow language designers to experiment with
-\textit{pluggable type systems} \citep{bracha2004pluggable}.
-Pluggable type systems are different optional type systems for
-checking different aspects of the program.
-
-According to \citet{bracha2004pluggable}, optional type systems should
-not include mandatory type inference too, because mandatory type
-inference may decrease the expressiveness of the type system.
-Instead, optional type systems should implement type inference as
-an independent mechanism that can be turned on and off according to
-the programmers' needs.
-
-Unfortunately, there is no formalization on optional type systems,
-so each language ends up implementing its optional type system on
-its own way.
-Now we will briefly discuss some languages that provide an informal
-description of their optional type systems rather than a formal one.
+Instead of trying to add static checking to a dynamic
+language, \citet{findler2002chf} enhances
+the dynamic checks with the possibility of {\em contracts}
+that give assertions about the input and output of (possibly
+higher-order) functions. In case of higher-order functions,
+the actual failing check can be far away from the actual
+source of the error, so contracts can also add {\em blame
+annotations} to values as a way to trace failures back to
+the source.
 
 Strongtalk \citep{bracha1993strongtalk,bracha1996strongtalk} is
-a version of Smalltalk that comes with an optional type system that
-does not include any type inference.
+an optionally-typed version of Smalltalk. It has a
+polymorphic structural type system that programmers can use
+to annotate Smalltalk programs, but type annotations can be
+left out; unnanotated terms are dynamically typed, and can
+be cast to any static type. The interaction of the dynamic
+type with the rest of the type system is unsound, so
+Strongtalk uses the dynamically-checked semantics of
+Smalltalk when executing programs, even if the programs
+are statically typed.
 
-Dart \citep{dart} and TypeScript \citep{typescript} are new
-languages that are designed with an optional type system, and both
-use JavaScript as their code generation target because their main
-purpose is web development.
-In fact, Dart is a new class-based object-oriented language with
-optional type annotations while TypeScript is a strict superset of
-JavaScript that provides optional type annotations and class-based
-object-oriented programming.
-Both Dart and TypeScript perform type inference to deduce static
-types for unannotated code.
+Pluggable type systems~\citep{bracha2004pluggable} generalize
+the idea of Strongtalk, to have type systems that can be
+layered on top of a dynamic language without influencing
+its runtime semantics. These systems can be unsound in
+themselves, or in their interaction with the dynamically
+typed part of the language, without sacrificing runtime
+safety, as the semantics of the language catch any
+runtime errors caused by an unsound type system.
 
-\subsection{Gradual Typing}
+Dart~\citep{dart} and TypeScript~\citep{typescript} are
+two recent examples of languages with optional type systems
+in this style. Dart is an object-oriented language with
+a semantics that is similar to Smalltalk's, while TypeScript
+is an object-oriented extension of JavaScript. Dart has a
+nominal type system, while TypeScript has a structural one,
+but both type systems are designed on purpose with unsound
+parts (such as covariant arrays in case of Dart, and
+covariant function return types in case of TypeScript) to
+increase programmer convenience. The interaction of
+statically and dynamically typed code is also unsound.
+
+...........HERE........
 
 The main goal of gradual typing \citep{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
