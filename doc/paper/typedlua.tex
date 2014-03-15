@@ -1018,242 +1018,60 @@ covariant function return types in case of TypeScript) to
 increase programmer convenience. The interaction of
 statically and dynamically typed code is also unsound.
 
-...........HERE........
+\citep{tobin-hochstadt2006ims} shows how programs
+in the untyped lambda calculus can be incrementally
+translated to the simply typed lambda calculus, using
+contracts to guarantee that the untyped part cannot
+cause errors in the typed part, as a model on how
+scripts in a dynamically typed language can be
+incrementally translated to a statically typed
+language. This approach has been realized in the
+Typed Scheme (later Typed Racket) language~\citet{tobin-hochstadt2008ts}.
 
-The main goal of gradual typing \citep{siek2006gradual} is to allow
-programmers to choose between static and dynamic typing in the same
-language.
-To do that, \citet{siek2006gradual} extended the simply typed
-lambda calculus with the dynamic type $?$.
-In gradual typing, type annotations are optional, so an untyped
-variable is syntactic sugar for a variable whose declared type is
-the dynamic type $?$.
-Under these circumstances, we view gradual typing as a way to add
-a dynamic type to statically typed languages.
+Gradual typing~\citep{siek2006gradual} combines the
+optional type annotations of optional and pluggable
+type systems with higher-order contracts. The gradual
+type system is the simply typed lambda calculus enriched
+with a {\em dynamic type} $?$, where a value with the
+dynamic type can assume any type, and vice-versa.
+A dynamic value that assumes a static type generates
+a runtime check for a first-order value, or a wrapper
+for a higher-order value. A static value that assumes
+the dynamic type is tagged. The whole system is sound:
+any runtime errors in a well-typed program must happen
+in the dynamic parts. 
 
-The central idea of gradual typing is the \textit{consistency}
-relation, written $\tau_{1} \sim \tau_{2}$, that allows implicit
-conversions to and from the dynamic type, and disallows conversions
-between inconsistent types \citep{siek2006gradual}.
-For instance, $\mathbf{int} \sim \,?$ and $?\, \sim \mathbf{int}$,
-but $\mathbf{int} \not\sim \mathbf{string}$ and
-$\mathbf{string} \not\sim \mathbf{int}$. 
-The consistency relation is neither commutative nor transitive.
+While both gradual typing and the approach of
+\citep{tobin-hochstadt2006ims} have the goal of
+having a sound interaction of dynamically and statically
+typed code, they differ in the granularity, with the
+gradual typing providing a finer-grained transition from
+dynamically typed to statically typed code.
 
-Gradual typing is similar to the approaches proposed by
-\citet{abadi1989dts} and \citet{thatte1990qst} by including a
-dynamic type to a statically typed language.
-However, these three approaches differ in the way they handle the
-dynamic type.
-While \citet{siek2006gradual} rely on the consistency relation,
-\citet{abadi1989dts} rely on type equality with explicit projections
-and injections, and \citet{thatte1990qst} relies on subtyping.
-The subtyping relation actually is a pitfall on Thatte's quasi-static
-typing, because the dynamic type is put as the top and the bottom of
-the subtyping relation.
-Therefore, downcasts combined with the transitivity of subtyping
-accepts programs that should be rejected.
+Gradual typing has been combined with subtyping in
+a simple object calculus~\citet{siek2007objects}, with
+a nominal, polymorphic type system~\citet{ina:gradual},
+with a row polymorphism~\citet{tobin:gradual},
+and with the polymorphic lambda calculus~\citet{ahmed2011bfa}.
+Gradual typing also adopted blame tracking from
+higher-order
+contracts~\citet{siek2010blame,ahmed2001bfa,wadler2009wpc}.
 
-Later, \citet{siek2007objects} discovered that the consistency relation
-is orthogonal to subtyping, so we can combine the two relations to
-achieve both consistency and subtyping.
-The \textit{consistent-subtyping} relation,
-written $\tau_{1} \lesssim \tau_{2}$,
-is essential to design object-oriented languages that have a
-gradual type system.
-Like the consistency relation, and unlike the subtyping relation,
-the consistent-subtyping relation is not transitive.
+While Typed Racket is the first fully-featured programming
+language with a sound mixture of dynamic and static typing,
+Gradualtalk~\citep{allende2013gts} is the first 
+fully-featured language with a fine-grained gradual type
+system. In Gradualtalk's case, the extra runtime checks
+needed by gradual typing impose a big runtime
+cost~\citep{allende2013cis}, and the programmer has the
+option of turning off these checks, and downgrading
+Gradualtalk to an optional type system.
 
-Another important feature of gradual typing is the theoretic
-foundation that it provides for inserting run-time checks that
-prove dynamically typed code does not violate the invariants of
-statically typed code, thus preserving type safety.
-To do that, \citet{siek2006gradual} defined the run-time semantics
-of gradual typing as a translation to an intermediate language with
-explicit casts at the frontiers between statically and dynamically
-typed code.
-The semantics of these casts is based on the higher-order contracts
-proposed by \citet{findler2002chf}.
-
-However, \citet{herman2007sgt} showed that there is an efficiency
-concern regarding the run-time checks, because there are two
-ways that casts can lead to unbounded space consumption.
-The first affects tail recursion while the second appears when
-first-class functions or objects cross the border between
-static code and dynamic code, that is, some programs can apply
-repeated casts to the same function or object.
-\citet{herman2007sgt} use the coercion calculus of
-\citet{henglein1994dts} to solve the problem of space efficiency,
-that is, they use coercions to express casts.
-Their approach normalizes an arbitrary sequence of coercions to a
-coercion of bounded size.
-
-Another concern about casts is how to improve debugging support,
-because a cast application can be delayed and the error related
-to that cast application can appear far way from the real error.
-\citet{wadler2009wpc} developed the \textit{blame calculus} as a way
-to attack this issue, and \citet{ahmed2011bfa} extended the
-blame calculus with polymorphism.
-The blame calculus is an intermediate language to integrate
-static and dynamic typing that uses the blame tracking approach
-proposed by \citet{findler2002chf}.
-
-On the one hand, the blame calculus solves the issue regarding
-error reporting;
-on the other hand, it has the space efficiency problem reported
-by \citet{herman2007sgt}.
-Thus, \citet{siek2009casts} extended the coercion calculus of
-\citet{herman2007sgt} with blame tracking to achieve an
-implementation of the blame calculus that is space efficient.
-After that, \citet{siek2010blame} proposed a new solution that also
-attacks both problems.
-This new solution is based on a concept called \textit{threesome},
-which is a way to split a cast between two parties into two casts
-among three parties.
-A cast has a source and a target type (a \textit{twosome}),
-so we can split any cast into a downcast from the source to an
-intermediate type that is followed by an upcast from the intermediate
-type to the target type (a \textit{threesome}).
-
-ActionScript \citep{moock2007as3} is the first language that
-incorporated a gradual type system to its implementation and
-Perl 6 \citep{tang2007pri} is also being designed with a
-gradual type system, though there is little documentation about
-the gradual type systems of these languages.
-Grace \citep{black2012grace,black2013sg} is a new object-oriented,
-gradually typed, educational language.
-In Grace, modules are gradually typed objects, that is, modules
-may have types and methods as attributes, and can have a state
-\citep{homer2013modules}.
-Gradual Python \citep{reticulated} is an attempt to develop a
-gradual type system for Python that deals with mutable objects
-\citep{siek2013mutable}.
-Gradualtalk \citep{allende2013gts} is a gradually-typed Smalltalk
-that introduces a new cast insertion strategy for gradually-typed
-objects \citep{allende2013cis}.
-
-\subsection{Approaches that are often called Gradual Typing}
-
-Gradual typing is similar to optional type systems in that type
-annotations are optional, and unannotated code is dynamically
-typed, but unlike optional type systems, gradual typing changes 
-the run-time semantics to preserve type safety, and it is a way to
-add a dynamic type to statically typed languages. 
-More precisely, programming languages that include a gradual type
-system implement the semantics of statically typed languages, so
-the gradual type system inserts casts in the translated code to
-guarantee that types are consistent before execution, while
-programming languages that include an optional type system still
-implement the semantics of dynamically typed languages, so all
-the type checking also belongs to the semantics of each operation.
-
-Still, we can view gradual typing as a way to formalize an optional
-type system when the gradual type system does not insert run-time
-checks.
-BabyJ \citep{anderson2002babyj} and Alore \citep{lehtosalo2011alore}
-are two examples of object-oriented languages that use gradual
-typing to formalize their optional type systems.
-The optional type systems of both BabyJ and Alore are nominal.
-BabyJ uses the relation $\approx$ that is similar to the consistency
-relation while Alore combines  subtyping along with the consistency
-relation to define a \textit{consistent-or-subtype} relation.
-The consistent-or-subtype relation is different from the
-consistent-subtyping relation of \citet{siek2007objects}, but it is
-also written $\tau_{1} \lesssim \tau_{2}$.
-The consistent-or-subtype relation holds when $\tau_{1} \sim \tau_{2}$
-or $\tau_{1} <: \tau_{2}$, so $<:$ is transitive and $\sim$ is not.
-Alore also extends its optional type system to include optional
-monitoring of run-time type errors in the gradual typing style.
-
-Hence, optional type annotations for software evolution probably are
-the reasons why optional type systems are commonly called
-gradual type systems.
-Typed Clojure \citep{bonnaire-sergeant2012typed-clojure} is an
-optional type system for Clojure that now is adopting the
-gradual typing slogan.
-
-\citet{flanagan2006htc} introduced \textit{hybrid type checking},
-an approach that combines static types and refinement types.
-For instance, programmers can specify the refinement type
-$\{x:Int \;|\; x \ge 0\}$ when they need a type for natural numbers.
-The programmer can also choose between explicit or implicit casts.
-When casts are not explicit, the type checker uses a theorem prover
-to insert casts.
-In our example of natural numbers, a cast would be inserted to check
-whether an integer is greater than or equal to zero.
-
-Sage \citep{gronski2006sage} is a programming language that
-extended hybrid type checking with a dynamic type to
-support dynamic and static typing in the same language.
-Sage also offers optional type annotations in the gradual typing
-style, that is, unannotated code is syntactic sugar for
-code whose declared type is the dynamic type.
-
-Thus, the inclusion of a dynamic type to hybrid type checking
-along with optional type annotations, and the insertion of run-time
-checks probably are the reasons why hybrid type checking is
-also viewed as a form of gradual typing. 
-
-\citet{tobin-hochstadt2006ims} proposed another approach for gradually
-migrating from dynamically typed to statically typed code,
-and they coined the term \textit{from scripts to programs} for
-referring to this kind of interlanguage migration.
-In their approach, the migration from dynamically typed to
-statically typed code happens module-by-module, so they designed
-and implemented Typed Racket \citep{tobin-hochstadt2008ts} for
-this purpose.
-Typed Racket is a statically typed version of Racket
-(a Scheme dialect) that allows the programmer to write typed modules,
-so Typed Racket modules can coexist with Racket modules,
-which are untyped.
-
-The approach used by \citet{tobin-hochstadt2008ts} to design and
-implement Typed Racket probably is also called gradual typing
-because it allows the programmer to gradually migrate from untyped
-scripts to typed programs.
-However, note that Typed Racket is a statically typed language
-and type annotations are mandatory.
-So, what makes it gradual is a type system with a dynamic type
-that handles the interaction between Racket and Typed Racket modules.
-
-\subsection{Similar Lua projects}
-
-Metalua \citep{metalua} is a Lua compiler that supports compile-time
-metaprogramming (CTMP).
-CTMP is a kind of macro system that allows the programmers to interact
-with the compiler \citep{fleutot2007contrasting}. 
-Metalua extends Lua 5.1 syntax to include its macro system,
-and allows programmers to define their own syntax.
-Metalua can provide syntactical support for several object-oriented
-styles, and can also provide syntax for turning simple type
-annotations into run-time assertions.
-
-MoonScript \citep{moonscript} is a programming language that supports
-class-based object-oriented programming, and compiles to idiomatic
-Lua code.
-However, it does not perform compile-time type checking.
-
-LuaInspect \citep{luainspect} is a tool that uses MetaLua to perform
-some code analysis, such as flagging unknown global variables and
-table fields, checking the number of function arguments against
-signatures, and inferring function return values, but it does not
-try to analyze object-oriented code and does not perform compile-time
-type checking.
-
-Tidal Lock \citep{tidallock} is a prototype of another optional type
-system for Lua, which is written in Metalua.
-A remarkable feature of Tidal Lock is the way that it handles tables,
-because it allows the programmer to incrementally build the type of
-a table.
-More precisely, Tidal Lock allows the programmer to create an empty
-table to build its type according to the keys that the programmer
-inserts in it, so the programmer does not need to build the table in
-a single table constructor.
-Typed Lua has a simpler form of this feature, with a different
-formalization.
-Like Typed Lua, Tidal Lock also has local type inference.
-Unlike Typed Lua, Tidal Lock is not typing the common object-oriented
-idioms used by Lua programmers.
+Tidal Lock \citep{tidallock} is a prototype of another optional
+type system for Lua. Compared with Typed Lua, Tidal Lock
+has richer record types, and a more robust system of
+incremental evolution of these record types, but it lacks
+unions and support for expressing objects and classes.
 
 \section{Conclusion} \label{sec:con}
 
