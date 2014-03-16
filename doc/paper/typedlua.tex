@@ -38,7 +38,7 @@ André Murbach Maidl\\
 Fabio Mascarenhas\\
   \affaddr{UFRJ}\\
   \affaddr{Rio de Janeiro, Brazil}\\
-  \email{fabiom@dcc.ufrj.br}
+  \email{mascarenhas@ufrj.br}
 \alignauthor
 Roberto Ierusalimschy\\
   \affaddr{PUC-Rio}\\
@@ -51,19 +51,26 @@ Roberto Ierusalimschy\\
 \maketitle
 
 \begin{abstract}
+Dynamically typed languages trade flexibility and ease of
+use for safety, while statically typed languages prioritize
+the early detection of bugs, and provide a better framework
+for structure large programs. The idea of optional typing
+is to combine the two approaches in the same
+language: the programmer can begin development with
+dynamic types, and migrate to static types as the
+program matures. The challenge is designing a type system
+that feels natural to the programmer that is used to
+programming in a dynamic language.
+
+This paper presents the initial design of Typed Lua, an
+optionally-typed extension of the Lua scripting language.
+The design of Typed Lua's type system has a novel combination
+of features that preserves some of the idioms that Lua
+programmers are used to, while bringing static type
+safety to them.
 \end{abstract}
 
-\category{D.3.3}
-         {Programming Languages}
-         {Language Constructs and Features}
-\category{D.2.3}
-         {Programming Languages}
-         {Coding Tools and Techniques}
-         [Object-oriented programming]
-
-\terms{Languages,Verification}
-
-\keywords{Type Systems, Lua}
+\keywords{Lua programming language, type systems, optional typing, gradual typing}
 
 \section{Introduction} \label{sec:intro}
 
@@ -91,7 +98,7 @@ static type checking can lead programmers to migrate their code from
 a dynamically typed to a statically typed language, once their simple
 scripts become complex programs~\citep{tobin-hochstadt2006ims}.
 As this migration involves languages with different syntax and
-semantics, it requires a complete rewrite of existing programs intead
+semantics, it requires a complete rewrite of existing programs instead
 of incremental evolution from dynamic to static types.
 
 Ideally, programming languages should offer programmers the
@@ -106,12 +113,11 @@ do not affect the runtime semantics,
 gradual typing uses runtime checks to ensure that dynamically typed
 code does not violate the invariants of statically typed code.
 
-In this work we outline the design of Typed Lua:
+This paper presents the initial design of Typed Lua:
 an optional type system for Lua that is complex enough to
-preserve some of the idioms that Lua programmers are already used to,
-while adding new constructs that help programmers structure Lua
-programs.
-
+preserve some of the idioms that Lua programmers are already
+used to, while adding new constructs that help programmers
+structure Lua programs.
 
 Lua is a small imperative scripting language with first-class
 functions (with proper lexical scoping) where the main data
@@ -167,8 +173,8 @@ concluding remarks and future extensions for Typed Lua.
 
 Lua values can have one of eight {\em tags}: {\em nil}, {\em boolean},
 {\em number}, {\em string}, {\em function}, {\em table}, {\em userdata},
-and {\em thread}. We will see how Typed Lua assigns types to
-values of the first five in this section.
+and {\em thread}. In this section, we will see how Typed Lua assigns types to
+values of the first five.
 
 Figure~\ref{fig:typelang} gives the abstract syntax of Typed Lua
 types. Only {\em first-class types} correspond to actual Lua
@@ -226,7 +232,7 @@ $$
 Typed Lua allows optional type annotations in variable function
 declarations. It assigns the dynamic type to any parameter that
 does not have a type annotation, but assigns more precise
-types to unnanotated variables, based on the type of the
+types to unannotated variables, based on the type of the
 expression that gives the initial value of the variable.
 
 In the following example, we use type annotations in a function
@@ -256,7 +262,6 @@ unannotated code, as we show in the following example:
         return n
       end
     end
-
     local function distance(x, y)
       return abs(x - y)
     end
@@ -283,7 +288,7 @@ Second, functions can return any number of values, and the number
 of values returned may not be statically known. Third, Lua also has
 multiple assignment, and the semantics of argument passing match
 those of multiple assignment (or vice-versa); calling a function is like
-doing a multiple assigment where the left side is the parameter list
+doing a multiple assignment where the left side is the parameter list
 and the right side is the argument list. 
 
 Typed Lua uses {\em second-class types} to encode the peculiarities
@@ -325,11 +330,9 @@ shows the interaction between multiple returns and expression lists:
     local function multiple()
       return 2, "foo"
     end
-
     local function sum(x: number, y: number)
       return x + y
     end
-
     local x, y, z = multiple(), multiple()
     print(sum(multiple(), multiple())
 \end{verbatim}
@@ -429,7 +432,7 @@ a base type, or a table type with a function type, or a two base types,
 but it is not possible to discriminate between two different function
 types.
 
-Functions that overload their return types to signal the ocurrence
+Functions that overload their return types to signal the occurrence
 of errors are another common Lua idiom. In this idiom, a function
 returns its normal set of return values in case of success but,
 if anything fails, returns {\tt nil} as the first value, followed
@@ -490,7 +493,7 @@ the {\tt else} block.
 
 Notice that we could also discriminate {\tt r} using
 {\tt type(r) == "number"} as our predicate, with the same
-result. The first form is more succint, and more idiomatic.
+result. The first form is more succinct, and more idiomatic.
 We can also use projection types to write overloaded functions
 where the type of a parameter depends on the type of another
 parameter.
@@ -545,8 +548,8 @@ with a string literal:
 
 \begin{verbatim}
     local t: { string: number } = { foo = 1 }
-    local x: number = t.foo         -- x gets 1
-    local y: number = t["bar"]      -- runtime error
+    local x: number = t.foo       -- x gets 1
+    local y: number = t["bar"]    -- runtime error
 \end{verbatim}
 
 When accessing a map, there is always the possibility that
@@ -557,9 +560,9 @@ Lua tables, the programmer can use an union:
 
 \begin{verbatim}
     local t: { string: number? } = { foo = 1 }
-    local x: number = t.foo         -- error
-    local y: number = t.bar or 0    -- y gets 0
-    local z: number? = t["bar"]     -- z gets nil
+    local x: number = t.foo       -- compile error
+    local y: number = t.bar or 0  -- y gets 0
+    local z: number? = t["bar"]   -- z gets nil
 \end{verbatim}
 
 Now the Typed Lua compiler will complain about the assignment
@@ -637,7 +640,6 @@ type declarations:
       return "Hello, " .. person.firstname ..
              " " .. person.lastname
     end
-
     local user1 = { firstname = "Lewis",
                     middlename = "Allan",
                     lastname = "Reed" }
@@ -645,7 +647,6 @@ type declarations:
     local user3 = { lastname = "Reed",
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
-
     print(greeter(user1)) -- Hello, Lewis Reed
     print(greeter(user2)) -- Error
     print(greeter(user3)) -- Hello, Lou Reed
@@ -662,7 +663,6 @@ variable of this record type, as the following example shows:
       middlename: string?
       lastname: string
     end
-
     local user1: Person = { firstname = "Lewis",
                             middlename = "Allan",
                             lastname = "Reed" }
@@ -726,7 +726,7 @@ aliasing to be a problem:
 \end{verbatim}
 
 Taken individually, the changes to the type of the two
-variables look ok, but aliasing makes one of them unsound.
+variables look fine, but aliasing makes one of them unsound.
 The location of the change also matters, as the next example
 shows:
 
@@ -770,7 +770,6 @@ an optional type:
       middlename: string?
       lastname: string
     end
-
     local user = {}
     user.firstname = "Lou"
     user.lastname = "Reed"
@@ -935,8 +934,8 @@ override methods:
 
 In the first line of the redefinition of {\tt new},
 notice how we can call {\tt Shape}'s constructor inside
-the overriden constructor. A limitation of this class
-system is that the overriden constructor must be a
+the overridden constructor. A limitation of this class
+system is that the overridden constructor must be a
 subtype of the original constructor, so the type of
 {\tt radius} has to be very permissive.
 
@@ -1001,7 +1000,7 @@ Strongtalk \citep{bracha1993strongtalk,bracha1996strongtalk} is
 an optionally-typed version of Smalltalk. It has a
 polymorphic structural type system that programmers can use
 to annotate Smalltalk programs, but type annotations can be
-left out; unnanotated terms are dynamically typed, and can
+left out; unannotated terms are dynamically typed, and can
 be cast to any static type. The interaction of the dynamic
 type with the rest of the type system is unsound, so
 Strongtalk uses the dynamically-checked semantics of
@@ -1089,7 +1088,7 @@ structural typing, which can also be expressed with
 Typed Lua's modules as tables.
 
 The main feature of Typed Racket's type system is
-{\em ocurrence typing}~\citep{tobin:occur}, where
+{\em occurrence typing}~\citep{tobin:occur}, where
 the type of a variable can be refined through tests
 using predicates that check the runtime type of
 the variable. As these types of checks are common in
@@ -1102,7 +1101,50 @@ has richer record types, and a more robust system of
 incremental evolution of these record types, but it lacks
 unions and support for expressing objects and classes.
 
-\section{Conclusion} \label{sec:con}
+\section{Conclusion}
+\label{sec:con}
+
+This paper presented the initial design of Typed Lua,
+an optional type system for the Lua scripting language.
+While Lua shares several characteristics with other
+dynamic languages such as JavaScript, so Typed Lua's
+type system has several parts in common with optional
+and gradual type systems for dynamic languages,
+Lua also has some uncommon features. 
+
+These language features demanded features in the type
+system that are not present in the type systems of these
+other languages: functions with flexible arity and
+their interaction with multiple assignment, functions
+that are overloaded on the {\em number} of values
+they return, and how to support the idiomatic way of
+handling their return values, and incremental evolution
+of record and object types.
+
+Typed Lua is a work in progress: while the design covers
+most of the Lua language as it is actually used by Lua
+programmers, there are missing parts. A major omission
+of the current version is the lack of polymorphic function
+and table types, which will be present in the next version.
+The {\tt setmetatable} primitive that we briefly saw in
+Section~6 has several other uses that are currently
+outside of the scope of the type system: operator
+overloading, proxies, changing the behavior of built-in
+types, multiple inheritance, etc. Finally, Lua has
+one-shot delimited continuations~\citep{james2011yield}
+in the form of {\em couroutines}~\citep{moura:coro},
+which are also currently ignored by the type system.
+
+Unlike some of the other optional type systems,
+the type system of Typed Lua does not have deliberately
+unsound parts, but we still do not have proofs that the
+novel parts of our type system are sound.
+
+Finally, while we our survey of Lua modules gives some
+confidence that the design of Typed Lua is useful for
+the majority of Lua programs, we have to validate the
+design by using Typed Lua to to type a representative 
+sample of Lua modules.
 
 \bibliographystyle{abbrvnat}
 \bibliography{typedlua}
