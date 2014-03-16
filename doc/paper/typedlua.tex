@@ -68,8 +68,8 @@ Roberto Ierusalimschy\\
 \section{Introduction} \label{sec:intro}
 
 Dynamically typed languages such as Lua avoid static types in favor of
-run-time {\em type tags} that classify the values they compute, and
-their implementations use these tags to perform run-time (or dynamic)
+runtime {\em type tags} that classify the values they compute, and
+their implementations use these tags to perform runtime (or dynamic)
 checking and guarantee that only valid operations are
 performed~\citep{pierce2002tpl}.
 
@@ -101,9 +101,9 @@ option to choose between static and dynamic typing:
 that offer programmers the option to use type annotations where static
 typing is needed, incrementally migrating a system from dynamic
 to static types. The difference between these two approaches is the
-way they treat run-time semantics: while optional type systems
-do not affect the run-time semantics,
-gradual typing uses run-time checks to ensure that dynamically typed
+way they treat runtime semantics: while optional type systems
+do not affect the runtime semantics,
+gradual typing uses runtime checks to ensure that dynamically typed
 code does not violate the invariants of statically typed code.
 
 In this work we outline the design of Typed Lua:
@@ -139,16 +139,16 @@ libraries, instead of relying just on the semantics of the
 language.
 
 Typed Lua allows statically typed Lua code to coexist and
-interact with  ynamically typed code. The Typed Lua compiler
+interact with dynamically typed code. The Typed Lua compiler
 warns the programmer about type errors, but always generates
 Lua code that runs in unmodified Lua implementations. The
 programmer can enjoy some of the benefits of static types even
-without converting existing Lua modules to typed Lua:
+without converting existing Lua modules to Typed Lua:
 a dynamically typed module can export a statically typed
 interface, and statically typed users of the module will have
 their use of the module checked by the compiler.
 
-Unlike gradual type systems, Typed Lua does not insert run-time
+Unlike gradual type systems, Typed Lua does not insert runtime
 checks between dynamically and statically typed parts of the
 program. Unlike some optional type systems, the statically
 typed subset of Typed Lua is sound by design, so a later
@@ -178,10 +178,14 @@ application. Types are ordered by a subtype relationship, where
 any first-class type is a subtype of $\Top$.
 
 The {\em dynamic type} $\Any$ allows dynamically typed code to
-interoperate with statically typed code; it is a subtype of $\Top$, but
-neither a supertype nor a subtype of any other type. We relate $\Any$
-to other types with the {\em consistency} and {\em consistent-subtype}
-relationships used by gradual type systems. In practice, we can
+interoperate with statically typed code; it is a subtype of 
+$\Top$, but
+neither a supertype nor a subtype of any other type. We relate 
+$\Any$
+to other types with the {\em consistency} and {\em consistent-
+subtype}
+relationships used by gradual type systems~\citep{siek2006gradual,siek2007objects}.
+ In practice, we can
 pass a value of the dynamic type anytime we want a value of some
 other type, and can pass any value where a value of the dynamic type
 is expected, but these operations are tracked by the type system,
@@ -208,7 +212,7 @@ B ::= & \multicolumn{2}{l}{\Nil \; | \; \Boolean \; | \; \Number \; | \; \String
 F ::= & T:T \; | \; \Const \; T:T & \textit{field types} \\
 \multicolumn{3}{c}{} \\
 \multicolumn{3}{c}{\textbf{Second-class types}} \\
-S ::= &  \multicolumn{2}{l}{\Void \; |\; V \; | \; S \cup S} \\
+S ::= &  \multicolumn{2}{l}{\; V \; | \; V \cup S} \\
 V ::= & \;\; T & \\
 & | \; T* & \textit{vararg types}\\
 & | \; T \times V & \textit{tuple types}
@@ -221,7 +225,7 @@ $$
 
 Typed Lua allows optional type annotations in variable function
 declarations. It assigns the dynamic type to any parameter that
-does not have an type annotation, but assigns more precise
+does not have a type annotation, but assigns more precise
 types to unnanotated variables, based on the type of the
 expression that gives the initial value of the variable.
 
@@ -288,13 +292,14 @@ them second-class because these types do not correspond to actual
 values and cannot be assigned to variables or parameters: they are an
 artifact of the interaction between the type system and the semantics of Lua.
 
-As we saw in Figure \ref{fig:typelang}, a second-class type in
-Typed Lua can be the type $\Void$ (the empty tuple),
-a tuple of first-class types optionally ending in a variadic type,
-or a union of these tuples. A variadic type $T*$ is a generator for a
+As we can see in Figure \ref{fig:typelang}, a second-class
+type in Typed Lua can be a tuple of first-class types
+optionally ending in a variadic type, or a union of these
+tuples. A variadic type $T*$ is a generator for a
 sequence of values of type $T \cup \Nil$. Unions of tuples play
-an important part in functions that are overloaded on the return type,
-together with {\em projection types}. Both are explained in the next
+an important part in functions that are overloaded on the
+return type, together with {\em projection types}. Both are
+explained in the next
 section.
 
 Typed Lua always adds a
@@ -364,17 +369,17 @@ any time the program reads a value from an array or map.
     print(message("Lua", "Hi"))
 \end{verbatim}
 
-In this example, the second parameter is optional but, in the first
-line of the function, we declare a new variable that is guaranteed to
-have type $\String$ instead of $\String \cup \Nil$. In Lua, any value
-except {\tt nil} and {\tt false} are "truthy", so the short-circuiting
-{\tt or} operator is a common way of giving a default value to an
-optional parameter. Typed Lua encodes this idiom with a typing rule: if
-the left side of {\tt or} has type $T \cup Nil$ and the right side
-has type $T$ then the {\tt or} expression has type $T$.
+In this example, the second parameter is optional but, in the
+first line of the function, we declare a new variable that is
+guaranteed to have type $\String$ instead of $\String \cup \Nil$.
+In Lua, any value except {\tt nil} and {\tt false} are ``truthy",
+so the short-circuiting {\tt or} operator is a common way of
+giving a default value to an optional parameter. Typed Lua
+encodes this idiom with a typing rule: if
+the left side of {\tt or} has type $T \cup \Nil$ and the right side has type $T$ then the {\tt or} expression has type $T$.
 
-Declaring a new {\tt greeting} variable that shadows the parameter
-is not necessary:
+Declaring a new {\tt greeting} variable that shadows the
+parameter is not necessary:
 
 \begin{verbatim}
     local function message(name: string, 
@@ -386,9 +391,12 @@ is not necessary:
 
 Typed Lua lets assignment change the type of a local variable in
 cases that respect a simple heuristic: the new type must be a
-subtype of the previous one, and the variable must be local
-to the current function. The new type only applies for the
-remainder of the current scope.
+subtype of the previous one, the variable must be local
+to the current function, and the variable must not have been
+assigned to in another function. The new type only applies for
+the remainder of the current scope. In the case of {\tt
+greeting}, the assignment on line three changes its type to
+$\String$.
 
 Overloaded functions use the {\tt type} function to inspect
 the tag of their parameters, and perform different actions
@@ -444,7 +452,7 @@ following example:
 There is also special syntax for this idiom: we could
 annotate the return type of {\tt idiv} with {\tt (number, number)?}
 to denote the same union\footnote{The parentheses are always
-necessary here: {\tt number?} is {\tt number|nil}, while {\tt (number)}
+necessary here: {\tt number?} is {\tt number|nil}, while {\tt (number)?}
 is {\tt (number)|(nil, string)}.}. 
 
 The full type of {\tt idiv} is $\Number \times \Number \times
@@ -471,7 +479,7 @@ variable is $X$, variable {\tt q} gets type $X_1$ and variable
 
 If we need to check a projection type
 against some other type, we take the union of the corresponding
-component in each tuple. But if we a variable with a projection
+component in each tuple. But if a variable with a projection
 type appears in a type predicate, the predicate discriminates
 against all tuples in the union. In the example above,
 $X$ is $(\Number \times \Number \times \Nil *) \cup
@@ -480,7 +488,7 @@ statement, but $\Number \times \Number \times \Nil *$ in the
 {\tt then} block and $\Nil \times \String \times \Nil *$ in
 the {\tt else} block.
 
-Notice that we could also discriminate using {\tt r}, using
+Notice that we could also discriminate {\tt r} using
 {\tt type(r) == "number"} as our predicate, with the same
 result. The first form is more succint, and more idiomatic.
 We can also use projection types to write overloaded functions
@@ -746,8 +754,9 @@ Typed Lua tags a variable with a table type as either
 from a table constructor then it is open, otherwise it is
 always closed. The type of an open variable may change
 by field assignment, subject to two restrictions: the
-variable must be local to the current block, and the new type
-must be a subtype of the old type.
+variable must be local to the current block, the new type
+must be a subtype of the old type, and the variable
+cannot have been assigned to in another function.
 
 Using a variable with an open type can also trigger a
 type change, if the type of the missing fields has
@@ -819,7 +828,7 @@ in the top-level scope.
 \section{Objects and Classes}
 \label{sec:classes}
 
-Lua's built-in support for object oriented programming is
+Lua's built-in support for object-oriented programming is
 minimal. The basic mechanism is the {\tt :} syntactic
 sugar for method calls and method declarations.
 The Lua compiler translates {\tt obj:method(args)}
@@ -878,7 +887,7 @@ to simulate classes, as in the following example:
                              { __index = self })
       s.x = x
       s.y = y
-      return shape
+      return s
     end
     const function Shape:move(dx: number,
                               dy: number)
@@ -913,10 +922,10 @@ override methods:
     Circle.radius = 0
     const function Circle:new(x: number,
                               y: number,
-                              radius: number)
+                              radius: value)
       local c = setmetatable(Shape:new(x, y),
                              { __index = self })
-      c.radius = radius
+      c.radius = tonumber(radius)
       return c
     end
     const function Circle:area()
@@ -927,8 +936,9 @@ override methods:
 In the first line of the redefinition of {\tt new},
 notice how we can call {\tt Shape}'s constructor inside
 the overriden constructor. A limitation of this class
-system is that the overriden constructors must be a
-subtype of the original constructor.
+system is that the overriden constructor must be a
+subtype of the original constructor, so the type of
+{\tt radius} has to be very permissive.
 
 If we erase all type and {\tt const} annotations, the
 two examples above are valid Lua code, with the same
@@ -969,7 +979,8 @@ typing approach was the complexity of the inferred
 types, leading to errors that were difficult to understand
 and fix.
 
-\textit{Dynamic typing}~\citep{henglein1994dts} is
+While the goal of soft typing is catching errors,
+\textit{dynamic typing}~\citep{henglein1994dts} is
 another approach for optimizing dynamically-typed programs.
 First the program is translated to a program that uses
 a {\tt Dynamic} type and explicit coercions and runtime checks,
@@ -1026,7 +1037,7 @@ cause errors in the typed part, as a model on how
 scripts in a dynamically typed language can be
 incrementally translated to a statically typed
 language. This approach has been realized in the
-Typed Scheme (later Typed Racket) language~\citet{tobin-hochstadt2008ts}.
+Typed Scheme (later Typed Racket) language~\citet{tobin-hochstadt2008ts}. 
 
 Gradual typing~\citep{siek2006gradual} combines the
 optional type annotations of optional and pluggable
@@ -1067,7 +1078,25 @@ cost~\citep{allende2013cis}, and the programmer has the
 option of turning off these checks, and downgrading
 Gradualtalk to an optional type system.
 
-Tidal Lock \citep{tidallock} is a prototype of another optional
+Grace~\citet{black2013sg} is an object-oriented language
+with optional typing. Grace is not an dynamically typed
+language that has been extended with an optional type system,
+but a language that has been designed from the ground up
+to have both static and dynamic typing. \citet{homer2013modules}
+explores some useful patterns that derive from Grace's
+use of objects as modules and its brand of optional
+structural typing, which can also be expressed with
+Typed Lua's modules as tables.
+
+The main feature of Typed Racket's type system is
+{\em ocurrence typing}~\citep{tobin:occur}, where
+the type of a variable can be refined through tests
+using predicates that check the runtime type of
+the variable. As these types of checks are common in
+other languages, related systems have
+appeared~\citep{guha:flow,winther:flow,pearce:whiley}.
+
+Tidal Lock~\citep{tidallock} is a prototype of another optional
 type system for Lua. Compared with Typed Lua, Tidal Lock
 has richer record types, and a more robust system of
 incremental evolution of these record types, but it lacks
