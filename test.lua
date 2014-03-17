@@ -1226,7 +1226,7 @@ s = [=[
 local x:nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Literal nil }, {  } } }
+{ `Local{ { `Id "x":`Base nil }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1286,7 +1286,7 @@ s = [=[
 local x:number?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1296,7 +1296,7 @@ s = [=[
 local x:number|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1306,7 +1306,7 @@ s = [=[
 local x:number|string|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Union{ `Base number, `Base string }, `Literal nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Union{ `Base number, `Base string }, `Base nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1316,7 +1316,7 @@ s = [=[
 local x:number|string?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Union{ `Base string, `Literal nil } } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Union{ `Base string, `Base nil } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1957,7 +1957,6 @@ print("> testing types...")
 
 -- literal types
 
-local Nil = types.Nil
 local False = types.False
 local True = types.True
 local Double = types.Literal(1.1)
@@ -1966,9 +1965,14 @@ local Word = types.Literal("w")
 
 -- base types
 
+local Nil = types.Nil
 local Boolean = types.Boolean
 local Number = types.Number
 local String = types.String
+
+-- top type
+
+local Value = types.Value
 
 -- dynamic type
 
@@ -1978,9 +1982,6 @@ local Any = types.Any
 local t, t1, t2
 
 -- type equality
-
-assert(types.isLiteral(Nil))
-assert(types.isNil(Nil))
 
 assert(types.isLiteral(False))
 assert(types.isFalse(False))
@@ -1997,6 +1998,9 @@ assert(types.isLiteralNumber(Integer))
 assert(types.isLiteral(Word))
 assert(types.isLiteralString(Word))
 
+assert(types.isBase(Nil))
+assert(types.isNil(Nil))
+
 assert(types.isBase(Boolean))
 assert(types.isBoolean(Boolean))
 
@@ -2005,6 +2009,8 @@ assert(types.isNumber(Number))
 
 assert(types.isBase(String))
 assert(types.isString(String))
+
+assert(types.isValue(Value))
 
 assert(types.isAny(Any))
 
@@ -2025,7 +2031,6 @@ assert(not types.isUnionNil(types.Union(types.Union(Boolean,Number),String)))
 
 -- subtyping
 
-assert(types.subtype(Nil,Nil))
 assert(types.subtype(False,False))
 assert(types.subtype(True,True))
 assert(types.subtype(Double,Double))
@@ -2045,6 +2050,7 @@ assert(not types.subtype(Double,Integer))
 assert(not types.subtype(Integer,Word))
 assert(not types.subtype(Word,Nil))
 
+assert(types.subtype(Nil,Nil))
 assert(types.subtype(Boolean,Boolean))
 assert(types.subtype(Number,Number))
 assert(types.subtype(String,String))
@@ -2054,6 +2060,31 @@ assert(not types.subtype(Boolean,True))
 assert(not types.subtype(Number,Double))
 assert(not types.subtype(Number,Integer))
 assert(not types.subtype(String,Word))
+
+assert(types.subtype(False,Value))
+assert(types.subtype(True,Value))
+assert(types.subtype(Double,Value))
+assert(types.subtype(Integer,Value))
+assert(types.subtype(Word,Value))
+assert(types.subtype(Nil,Value))
+assert(types.subtype(Boolean,Value))
+assert(types.subtype(Number,Value))
+assert(types.subtype(String,Value))
+assert(types.subtype(Value,Value))
+assert(types.subtype(Any,Value))
+assert(types.subtype(types.Union(Number,Nil),Value))
+
+assert(not types.subtype(Value,False))
+assert(not types.subtype(Value,True))
+assert(not types.subtype(Value,Double))
+assert(not types.subtype(Value,Integer))
+assert(not types.subtype(Value,Word))
+assert(not types.subtype(Value,Nil))
+assert(not types.subtype(Value,Boolean))
+assert(not types.subtype(Value,Number))
+assert(not types.subtype(Value,String))
+assert(not types.subtype(Value,Any))
+assert(not types.subtype(Value,types.Union(Number,Nil)))
 
 assert(types.subtype(Any,Any))
 
@@ -2100,7 +2131,6 @@ assert(not types.subtype(t,Any))
 
 -- consistent-subtyping
 
-assert(types.consistent_subtype(Nil,Nil))
 assert(types.consistent_subtype(False,False))
 assert(types.consistent_subtype(True,True))
 assert(types.consistent_subtype(Double,Double))
@@ -2120,6 +2150,7 @@ assert(not types.consistent_subtype(Double,Integer))
 assert(not types.consistent_subtype(Integer,Word))
 assert(not types.consistent_subtype(Word,Nil))
 
+assert(types.consistent_subtype(Nil,Nil))
 assert(types.consistent_subtype(Boolean,Boolean))
 assert(types.consistent_subtype(Number,Number))
 assert(types.consistent_subtype(String,String))
@@ -2130,7 +2161,33 @@ assert(not types.consistent_subtype(Number,Double))
 assert(not types.consistent_subtype(Number,Integer))
 assert(not types.consistent_subtype(String,Word))
 
+assert(types.consistent_subtype(False,Value))
+assert(types.consistent_subtype(True,Value))
+assert(types.consistent_subtype(Double,Value))
+assert(types.consistent_subtype(Integer,Value))
+assert(types.consistent_subtype(Word,Value))
+assert(types.consistent_subtype(Nil,Value))
+assert(types.consistent_subtype(Boolean,Value))
+assert(types.consistent_subtype(Number,Value))
+assert(types.consistent_subtype(String,Value))
+assert(types.consistent_subtype(Value,Value))
+assert(types.consistent_subtype(types.Union(Number,Nil),Value))
+
+assert(not types.consistent_subtype(Value,False))
+assert(not types.consistent_subtype(Value,True))
+assert(not types.consistent_subtype(Value,Double))
+assert(not types.consistent_subtype(Value,Integer))
+assert(not types.consistent_subtype(Value,Word))
+assert(not types.consistent_subtype(Value,Nil))
+assert(not types.consistent_subtype(Value,Boolean))
+assert(not types.consistent_subtype(Value,Number))
+assert(not types.consistent_subtype(Value,String))
+assert(not types.consistent_subtype(Value,types.Union(Number,Nil)))
+
 assert(types.consistent_subtype(Any,Any))
+
+assert(types.consistent_subtype(Any,Value))
+assert(types.consistent_subtype(Value,Any))
 
 assert(types.consistent_subtype(Nil,Any))
 assert(types.consistent_subtype(False,Any))
@@ -2178,6 +2235,16 @@ print("> testing type checker...")
 -- type check
 
 s = [=[
+local x:value, y:value, z:value = 1, "foo"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Value, `Id "y":`Value, `Id "z":`Value }, { `Number "1", `String "foo" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local x, y, z = 1, "foo", false
 ]=]
 e = [=[
@@ -2201,7 +2268,7 @@ s = [=[
 local x:boolean, y:nil = true, nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Literal nil }, { `True, `Nil } } }
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base nil }, { `True, `Nil } } }
 ]=]
 
 r = typecheck(s)
@@ -2211,7 +2278,7 @@ s = [=[
 local x:number?, y:number|nil = 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil }, `Id "y":`Union{ `Base number, `Literal nil } }, { `Number "1" } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base nil }, `Id "y":`Union{ `Base number, `Base nil } }, { `Number "1" } } }
 ]=]
 
 r = typecheck(s)
@@ -2271,7 +2338,7 @@ s = [=[
 local x:nil, y:boolean = nil and 1, false and 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Literal nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
+{ `Local{ { `Id "x":`Base nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2281,7 +2348,7 @@ s = [=[
 local x:number, y:string? = 1 and 2, "foo" and nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Literal nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Base nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2301,7 +2368,7 @@ s = [=[
 local x:number, y:string? = 1 or 2, "foo" or nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Literal nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Base nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2312,7 +2379,7 @@ local x:number?
 local y:number = x or 0
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Literal nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2429,6 +2496,19 @@ r = typecheck(s)
 assert(r == e)
 
 -- do not type check
+
+s = [=[
+local v:value
+local a:boolean, b:number, c:string = v, v, v
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign 'value' to 'boolean'
+test.lua:2:18: type error, attempt to assign 'value' to 'number'
+test.lua:2:28: type error, attempt to assign 'value' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
 
 s = [=[
 local x:boolean, y:boolean, z:number = 1, "foo"

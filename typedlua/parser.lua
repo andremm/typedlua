@@ -50,12 +50,13 @@ opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
 type:
   `Literal{ literal }
   | `Base{ base }
+  | `Value
   | `Any
   | `Union{ type type }
 
-literal: nil | false | true | <number> | <string>
+literal: false | true | <number> | <string>
 
-base: 'boolean' | 'number' | 'string'
+base: 'nil' | 'boolean' | 'number' | 'string'
 ]]
 local parser = {}
 
@@ -224,9 +225,10 @@ local G = { V"TypedLua",
               function (t1, t2)
                 return { tag = "Union", [1] = t1, [2] = t2, pos = t1.pos }
               end);
-  NullableType = V"PrimaryType" * taggedCap("Literal", symb("?"))^-1 /
+  NullableType = V"PrimaryType" * taggedCap("Base", symb("?"))^-1 /
                  function (t, nullable)
                    if nullable then
+                     nullable[1] = "nil"
                      return { tag = "Union", [1] = t, [2] = nullable, pos = t.pos }
                    else
                      return t
@@ -234,16 +236,18 @@ local G = { V"TypedLua",
                  end;
   PrimaryType = taggedCap("Literal", V"LiteralType") +
                 taggedCap("Base", V"BaseType") +
+                taggedCap("Value", V"TopType") +
                 taggedCap("Any", V"DynamicType");
-  LiteralType = V"NilType" + V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
-  NilType = token("nil", "Type");
+  LiteralType = V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
   NumberType = token(V"Number", "Type");
   StringType = token(V"String", "Type");
-  BaseType = token(C"boolean", "Type") +
+  BaseType = token(C"nil", "Type") +
+             token(C"boolean", "Type") +
              token(C"number", "Type") +
              token(C"string", "Type");
+  TopType = token("value", "Type");
   DynamicType = token("any", "Type");
   -- parser
   Chunk = V"Block";

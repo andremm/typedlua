@@ -5,6 +5,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
+\newcommand{\Top}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
 \newcommand{\Nil}{\mathbf{nil}}
 \newcommand{\False}{\mathbf{false}}
@@ -36,18 +37,19 @@
 \dstart
 $$
 \begin{array}{rlr}
-T ::= & & \textit{first-class types}\\
-& \;\; L & \textit{literal types}\\
+\multicolumn{3}{c}{\textbf{First-class types}}\\
+T ::= & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
+& | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
-& | \; T \cup T & \textit{union type}\\
+& | \; T \cup T & \textit{disjoint union types}\\
 %& | \; S \rightarrow S & \textit{function type}\\
 %& | \; \{T:T, ..., T:T\} & \textit{table type}\\
 %& | \; X & \textit{type variable}\\
 %& | \; \mu X.T & \textit{recursive type}\\
-L ::= & \Nil \; | \; \False \; | \; \True \; | \;
+L ::= & \False \; | \; \True \; | \;
   {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
-B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+B ::= & \Nil \; | \; \Boolean \; | \; \Number \; | \; \String & \\
 %S ::= & \Void \; | \; V & \textit{second-class types}\\
 %V ::= & \;\; T & \\
 %& | \; T* & \textit{vararg type}\\
@@ -92,6 +94,13 @@ B \subtype B
 \mylabel{S-BASE}
 \]
 
+\subsection{Top type}
+
+\[
+T \subtype \Top
+\mylabel{S-TOP}
+\]
+
 \subsection{Dynamic type}
 
 \[
@@ -99,7 +108,7 @@ B \subtype B
 \mylabel{S-ANY}
 \]
 
-\subsection{Union type}
+\subsection{Union types}
 
 \[
 \frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
@@ -153,6 +162,13 @@ L \lesssim L
 \[
 B \lesssim B
 \mylabel{C-BASE}
+\]
+
+\subsection{Top type}
+
+\[
+T \lesssim \Top
+\mylabel{C-TOP}
 \]
 
 \subsection{Dynamic type}

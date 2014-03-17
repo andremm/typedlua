@@ -4,12 +4,13 @@ This file implements the available types in Typed Lua
 type:
   `Literal{ literal }
   | `Base{ base }
+  | `Value
   | `Any
   | `Union{ type type }
 
-literal: nil | false | true | <number> | <string>
+literal: false | true | <number> | <string>
 
-base: 'boolean' | 'number' | 'string'
+base: 'nil' | 'boolean' | 'number' | 'string'
 ]]
 
 local types = {}
@@ -20,18 +21,12 @@ function types.Literal (l)
   return { tag = "Literal", [1] = l }
 end
 
-types.Nil = types.Literal(nil)
-
 types.False = types.Literal(false)
 
 types.True = types.Literal(true)
 
 function types.isLiteral (t)
   return t.tag == "Literal"
-end
-
-function types.isNil (t)
-  return types.isLiteral(t) and t[1] == nil
 end
 
 function types.isFalse (t)
@@ -52,6 +47,8 @@ end
 
 -- base types
 
+types.Nil = { tag = "Base", [1] = "nil" }
+
 types.Boolean = { tag = "Base", [1] = "boolean" }
 
 types.Number = { tag = "Base", [1] = "number" }
@@ -60,6 +57,10 @@ types.String = { tag = "Base", [1] = "string" }
 
 function types.isBase (t)
   return t.tag == "Base"
+end
+
+function types.isNil (t)
+  return types.isBase(t) and t[1] == "nil"
 end
 
 function types.isBoolean (t)
@@ -74,6 +75,14 @@ function types.isString (t)
   return types.isBase(t) and t[1] == "string"
 end
 
+-- top type
+
+types.Value = { tag = "Value" }
+
+function types.isValue (t)
+  return t.tag == "Value"
+end
+
 -- dynamic type
 
 types.Any = { tag = "Any" }
@@ -82,7 +91,7 @@ function types.isAny (t)
   return t.tag == "Any"
 end
 
--- union type
+-- union types
 
 function types.Union (t1, t2)
   return { tag = "Union", [1] = t1, [2] = t2 }
@@ -148,6 +157,10 @@ local function subtype_base (t1, t2)
   end
 end
 
+local function subtype_top (t1, t2)
+  return types.isValue(t2)
+end
+
 local function subtype_any (t1, t2)
   return types.isAny(t1) and types.isAny(t2)
 end
@@ -163,9 +176,10 @@ local function subtype_union (t1, t2)
 end
 
 function types.subtype (t1, t2)
-  return subtype_any(t1, t2) or
-         subtype_literal(t1, t2) or
+  return subtype_literal(t1, t2) or
          subtype_base(t1, t2) or
+         subtype_top(t1, t2) or
+         subtype_any(t1, t2) or
          subtype_union(t1, t2)
 end
 
@@ -197,6 +211,10 @@ local function consistent_subtype_base (t1, t2)
   end
 end
 
+local function consistent_subtype_top (t1, t2)
+  return types.isValue(t2)
+end
+
 local function consistent_subtype_any (t1, t2)
   return types.isAny(t1) or types.isAny(t2)
 end
@@ -212,9 +230,10 @@ local function consistent_subtype_union (t1, t2)
 end
 
 function types.consistent_subtype (t1, t2)
-  return consistent_subtype_any(t1, t2) or
-         consistent_subtype_literal(t1, t2) or
+  return consistent_subtype_literal(t1, t2) or
          consistent_subtype_base(t1, t2) or
+         consistent_subtype_top(t1, t2) or
+         consistent_subtype_any(t1, t2) or
          consistent_subtype_union(t1, t2)
 end
 
@@ -243,6 +262,8 @@ local function type2str (t)
     return tostring(t[1])
   elseif types.isBase(t) then
     return t[1]
+  elseif types.isValue(t) then
+    return "value"
   elseif types.isAny(t) then
     return "any"
   elseif types.isUnion(t) then
