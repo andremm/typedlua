@@ -93,8 +93,34 @@ end
 
 -- union types
 
+local function union_length (t)
+  if types.isUnion(t) then
+    return union_length(t[1]) + union_length(t[2])
+  else
+    return 1
+  end
+end
+
+local function union_member (t1, t2)
+  if types.isUnion(t1) and types.isUnion(t2) then
+    return union_member(t1[1], t2) and union_member(t1[2], t2)
+  elseif not types.isUnion(t1) and types.isUnion(t2) then
+    return union_member(t1, t2[1]) or union_member(t1, t2[2])
+  else
+    return types.equal(t1, t2)
+  end
+end
+
 function types.Union (t1, t2)
-  return { tag = "Union", [1] = t1, [2] = t2 }
+  if union_member(t1, t2) then
+    return t2
+  elseif union_member(t2, t1) then
+    return t1
+  elseif types.isUnion(t1) and types.isUnion(t2) then
+    return types.Union(t1[2], types.Union(t1[1], t2))
+  else
+    return { tag = "Union", [1] = t1, [2] = t2 }
+  end
 end
 
 function types.isUnion (t)
@@ -127,6 +153,52 @@ function types.UnionNoNil (t)
   else
     return t
   end
+end
+
+-- equality
+
+local function equal_literal (t1, t2)
+  if types.isLiteral(t1) and types.isLiteral(t2) then
+    return t1[1] == t2[1]
+  else
+    return false
+  end
+end
+
+local function equal_base (t1, t2)
+  if types.isBase(t1) and types.isBase(t2) then
+    return t1[1] == t2[1]
+  else
+    return false
+  end
+end
+
+local function equal_top (t1, t2)
+  return types.isValue(t1) and types.isValue(t2)
+end
+
+local function equal_any (t1, t2)
+  return types.isAny(t1) and types.isAny(t2)
+end
+
+local function equal_union (t1, t2)
+  if types.isUnion(t1) and types.isUnion(t2) then
+    if union_length(t1) == union_length(t2) then
+      return union_member(t1[1], t2) and union_member(t1[2], t2)
+    else
+      return false
+    end
+  else
+    return false
+  end
+end
+
+function types.equal (t1, t2)
+  return equal_literal(t1, t2) or
+         equal_base(t1, t2) or
+         equal_top(t1, t2) or
+         equal_any(t1, t2) or
+         equal_union(t1, t2)
 end
 
 -- subtyping

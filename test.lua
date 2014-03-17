@@ -1313,7 +1313,37 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:number|nil|nil|nil|nil
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number|nil|string|nil|number|boolean|string
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Union{ `Union{ `Base number, `Base nil }, `Base string }, `Base boolean } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 local x:number|string?
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Union{ `Base string, `Base nil } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:number?|string?
 ]=]
 e = [=[
 { `Local{ { `Id "x":`Union{ `Base number, `Union{ `Base string, `Base nil } } }, {  } } }
@@ -2028,6 +2058,48 @@ assert(not types.isUnionNil(types.Union(Number,Boolean)))
 assert(not types.isUnionNil(types.Union(types.Union(Number,String),Boolean)))
 assert(not types.isUnionNil(types.Union(types.Union(Number,Boolean),String)))
 assert(not types.isUnionNil(types.Union(types.Union(Boolean,Number),String)))
+
+assert(types.equal(False,False))
+assert(types.equal(True,True))
+assert(types.equal(Double,Double))
+assert(types.equal(Integer,Integer))
+assert(types.equal(Word,Word))
+
+assert(types.equal(Nil,Nil))
+assert(types.equal(Boolean,Boolean))
+assert(types.equal(Number,Number))
+assert(types.equal(String,String))
+
+assert(types.equal(Value,Value))
+
+assert(types.equal(Any,Any))
+
+assert(types.equal(types.Union(Number,Nil),types.Union(Nil,Number)))
+
+t1 = types.Union(types.Union(Number,String),Nil)
+t2 = types.Union(types.Union(String,Nil),Number)
+assert(types.equal(t1,t2))
+
+assert(not types.equal(False,True))
+assert(not types.equal(True,False))
+assert(not types.equal(Double,Integer))
+assert(not types.equal(Integer,Double))
+assert(not types.equal(Word,String))
+
+assert(not types.equal(Nil,Boolean))
+assert(not types.equal(Boolean,Number))
+assert(not types.equal(Number,String))
+assert(not types.equal(String,Nil))
+
+assert(not types.equal(Value,Any))
+
+assert(not types.equal(Any,Value))
+
+assert(not types.equal(types.Union(Number,Nil),types.Union(Number,String)))
+
+t1 = types.Union(types.Union(Number,String),Nil)
+t2 = types.Union(types.Union(String,Nil),Boolean)
+assert(not types.equal(t1,t2))
 
 -- subtyping
 

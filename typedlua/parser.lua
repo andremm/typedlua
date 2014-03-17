@@ -62,6 +62,7 @@ local parser = {}
 
 local lpeg = require "lpeg"
 local scope = require "typedlua.scope"
+local types = require "typedlua.types"
 
 lpeg.locale(lpeg)
 
@@ -223,13 +224,13 @@ local G = { V"TypedLua",
   Type = V"UnionType";
   UnionType = Cf(V"NullableType" * Cg(symb("|") * V"NullableType")^0,
               function (t1, t2)
-                return { tag = "Union", [1] = t1, [2] = t2, pos = t1.pos }
+                return types.Union(t1, t2)
               end);
   NullableType = V"PrimaryType" * taggedCap("Base", symb("?"))^-1 /
                  function (t, nullable)
                    if nullable then
                      nullable[1] = "nil"
-                     return { tag = "Union", [1] = t, [2] = nullable, pos = t.pos }
+                     return types.Union(t, nullable)
                    else
                      return t
                    end
