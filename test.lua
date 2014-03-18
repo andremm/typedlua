@@ -1353,6 +1353,46 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:(number) -> (number)
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Function{ { `Base number }, { `Base number } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:(value*) -> (nil*)
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Function{ { `Vararg { `Value } }, { `Vararg { `Base nil } } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:(number,string,boolean) -> (string,number,boolean)
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Function{ { `Base number, `Base string, `Base boolean }, { `Base string, `Base number, `Base boolean } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:(number,string,value*) -> (string,number,nil*)
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Function{ { `Base number, `Base string, `Vararg { `Value } }, { `Base string, `Base number, `Vararg { `Base nil } } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 x:number, y, z:boolean = 1, nil, true
 ]=]
 e = [=[
@@ -1406,7 +1446,7 @@ s = [=[
 local function f (x:any):any end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Any, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:{ `Any }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1456,7 +1496,37 @@ s = [=[
 local function f (x:any, ...:any):any end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Any, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:{ `Any }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:(any) -> (any)):(any) -> (any) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Any }, { `Any } } }:{ `Function{ { `Any }, { `Any } } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f (x:(number, number) -> (number, nil*)):number* end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Base number, `Base number }, { `Base number, `Vararg { `Base nil } } } }:{ `Vararg { `Base number } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f ():number, nil* end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:{ `Base number, `Vararg { `Base nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1977,7 +2047,7 @@ s = [=[
 local x:number|
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'Type'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '(', 'Type'
 ]=]
 
 r = parse(s)

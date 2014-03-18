@@ -4,7 +4,7 @@ This module impements a pretty printer to the AST
 local pp = {}
 
 local block2str, stm2str, exp2str, var2str, type2str
-local explist2str, varlist2str, parlist2str, fieldlist2str
+local explist2str, varlist2str, parlist2str, fieldlist2str, typelist2str
 
 local function iscntrl (x)
   if (x >= 0 and x <= 31) or (x == 127) then return true end
@@ -51,6 +51,21 @@ local function string2str (s)
   return string.format('"%s"', fixed_string(s))
 end
 
+function typelist2str (typelist)
+  local l, len = {}, #typelist
+  if typelist[len].tag == "Vararg" then
+    for k = 1, len - 1 do
+      l[k] = type2str(typelist[k])
+    end
+    l[len] = "`Vararg { " .. type2str(typelist[len][1]) .. " }"
+  else
+    for k, v in ipairs(typelist) do
+      l[k] = type2str(v)
+    end
+  end
+  return "{ " .. table.concat(l, ", ") .. " }"
+end
+
 function type2str (t)
   local tag = t.tag
   local str = "`" .. tag
@@ -64,6 +79,11 @@ function type2str (t)
     str = str .. "{ "
     str = str .. type2str(t[1]) .. ", "
     str = str .. type2str(t[2])
+    str = str .. " }"
+  elseif tag == "Function" then -- `Function{ typelist typelist }
+    str = str .. "{ "
+    str = str .. typelist2str(t[1]) .. ", "
+    str = str .. typelist2str(t[2])
     str = str .. " }"
   else
     error("expecting a type, but got a " .. tag)
@@ -150,11 +170,11 @@ function exp2str (exp)
     str = str .. " " .. number2str(exp[1])
   elseif tag == "String" then -- `String{ <string> }
     str = str .. " " .. string2str(exp[1])
-  elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block }
+  elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } typelist? block }
     str = str .. "{ "
     str = str .. parlist2str(exp[1])
     if exp[3] then
-      str = str .. ":" .. type2str(exp[2])
+      str = str .. ":" .. typelist2str(exp[2])
       str = str .. ", " .. block2str(exp[3])
     else
       str = str .. ", " .. block2str(exp[2])

@@ -29,7 +29,7 @@ expr:
   | `False
   | `Number{ <number> }
   | `String{ <string> }
-  | `Function{ { ident* { `Dots type? }? } type? block }
+  | `Function{ { ident* { `Dots type? }? } typelist? block }
   | `Table{ ( `Pair{ expr expr } | expr )* }
   | `Op{ opid expr expr? }
   | `Paren{ expr }       -- significant to cut multiple values returns
@@ -53,10 +53,13 @@ type:
   | `Value
   | `Any
   | `Union{ type type }
+  | `Function{ typelist typelist }
 
 literal: false | true | <number> | <string>
 
 base: 'nil' | 'boolean' | 'number' | 'string'
+
+typelist: `Tuple{ type+ { `VarArg type }? } | `Tuple{ type* { `VarArg type } }
 ]]
 local parser = {}
 
@@ -238,7 +241,8 @@ local G = { V"TypedLua",
   PrimaryType = taggedCap("Literal", V"LiteralType") +
                 taggedCap("Base", V"BaseType") +
                 taggedCap("Value", V"TopType") +
-                taggedCap("Any", V"DynamicType");
+                taggedCap("Any", V"DynamicType") +
+                taggedCap("Function", V"FunctionType");
   LiteralType = V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
@@ -250,6 +254,16 @@ local G = { V"TypedLua",
              token(C"string", "Type");
   TopType = token("value", "Type");
   DynamicType = token("any", "Type");
+  FunctionType = symb("(") * V"TypeList" * symb(")") * symb("->") * symb("(") * V"TypeList" * symb(")");
+  TypeList = sepby1(V"Type", symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
+             function (t, vararg)
+               if vararg then
+                 vararg[1] = t[#t]
+                 table.remove(t)
+                 table.insert(t, vararg)
+               end
+               return t
+             end;
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
@@ -356,7 +370,7 @@ local G = { V"TypedLua",
             P(true) / function () return {} end;
   TypedVarArg = taggedCap("Dots", symb("...") * (symb(":") * V"Type")^-1);
   FuncBody = taggedCap("Function", symb("(") * V"ParList" * symb(")") *
-             (symb(":") * V"Type")^-1 * V"Block" * kw("end"));
+             (symb(":") * V"TypeList")^-1 * V"Block" * kw("end"));
   FuncStat = taggedCap("Set", kw("function") * V"FuncName" * V"FuncBody") /
              function (t)
                if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end
