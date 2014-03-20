@@ -114,7 +114,11 @@ function code_exp (exp, i)
   elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
     local str = "function ("
     str = str .. code_parlist(exp[1], i) .. ")\n"
-    str = str .. code_block(exp[2], i) .. ident("end", i)
+    if not exp[3] then
+      str = str .. code_block(exp[2], i) .. ident("end", i)
+    else
+      str = str .. code_block(exp[3], i) .. ident("end", i)
+    end
     return str
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     local str = "{" .. code_fieldlist(exp, i) .. "}"

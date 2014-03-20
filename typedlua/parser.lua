@@ -254,8 +254,9 @@ local G = { V"TypedLua",
              token(C"string", "Type");
   TopType = token("value", "Type");
   DynamicType = token("any", "Type");
-  FunctionType = symb("(") * V"TypeList" * symb(")") * symb("->") * symb("(") * V"TypeList" * symb(")");
-  TypeList = sepby1(V"Type", symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
+  FunctionType = V"TypeList" * symb("->") * V"TypeList";
+  TypeList = symb("(") * sepby1(V"Type", symb(","), "Tuple") *
+             taggedCap("Vararg", symb("*"))^-1 * symb(")") /
              function (t, vararg)
                if vararg then
                  vararg[1] = t[#t]

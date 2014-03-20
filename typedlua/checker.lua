@@ -9,6 +9,7 @@ local lineno = scope.lineno
 local begin_scope, end_scope = scope.begin_scope, scope.end_scope
 local begin_function, end_function = scope.begin_function, scope.end_function
 
+local Value = types.Value
 local Any = types.Any
 local Nil = types.Nil
 local False = types.False
@@ -96,6 +97,10 @@ local function check_local (env, idlist, explist)
     end
     set_local(env, v, t, env.scope)
   end
+end
+
+local function check_localrec (env, id, exp)
+
 end
 
 local function check_arith (env, exp)
@@ -310,6 +315,58 @@ local function check_id_read (env, exp)
   end
 end
 
+local function check_parameters (env, parlist)
+  local t = { tag = "Tuple" }
+  local vararg = { tag = "Vararg", [1] = Value }
+  local len = #parlist
+  local is_vararg = false
+  if len > 0 and parlist[len].tag == "Dots" then
+    is_vararg = true
+    len = len - 1
+  end
+  local i = 1
+  while i <= len do
+    local id = parlist[i]
+    if not id[2] then id[2] = Any end
+    set_local(env, id, id[2], env.scope)
+    t[i] = id[2]
+    i = i + 1
+  end
+  if not is_vararg then
+    t[i] = vararg
+  else
+    local v = parlist[i]
+    if not v[1] then v[1] = Any end
+    vararg[1] = v[1]
+  end
+  t[i] = vararg
+  return t
+end
+
+local function check_return_type (typelist)
+  local len = #typelist
+  if typelist[len].tag ~= "Vararg" then
+    table.insert(typelist, { tag = "Vararg", [1] = Nil })
+  end
+  return typelist
+end
+
+local function check_function (env, exp)
+  begin_function(env)
+  begin_scope(env)
+  local idlist, typelist, block = exp[1], exp[2], exp[3]
+  if not block then
+    block = typelist
+    typelist = { tag = "Tuple", [1] = { tag = "Vararg", [1] = Nil } }
+  end
+  local t1 = check_parameters(env, idlist)
+  local t2 = check_return_type(typelist)
+  check_block(env, block)
+  set_type(exp, types.Function(t1, t2))
+  end_scope(env)
+  end_function(env)
+end
+
 function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
@@ -325,7 +382,7 @@ function check_exp (env, exp)
   elseif tag == "String" then -- `String{ <string> }
     set_type(exp, types.Literal(exp[1]))
   elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block }
-    set_type(exp, Any)
+    check_function(env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
     set_type(exp, Any)
   elseif tag == "Op" then -- `Op{ opid expr expr? }
@@ -430,6 +487,7 @@ function check_stm (env, stm)
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
     check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
+    check_localrec(env, stm[1], stm[2])
   elseif tag == "Goto" then -- `Goto{ <string> }
   elseif tag == "Label" then -- `Label{ <string> }
   elseif tag == "Return" then -- `Return{ <expr>* }

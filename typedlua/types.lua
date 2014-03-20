@@ -7,10 +7,13 @@ type:
   | `Value
   | `Any
   | `Union{ type type }
+  | `Function{ typelist typelist }
 
 literal: false | true | <number> | <string>
 
 base: 'nil' | 'boolean' | 'number' | 'string'
+
+typelist: `Tuple{ type* `Vararg{ type } }
 ]]
 
 local types = {}
@@ -153,6 +156,16 @@ function types.UnionNoNil (t)
   else
     return t
   end
+end
+
+-- function types
+
+function types.Function (t1, t2)
+  return { tag = "Function", [1] = t1, [2] = t2 }
+end
+
+function types.isFunction (t)
+  return t.tag == "Function"
 end
 
 -- equality
@@ -329,6 +342,16 @@ end
 
 -- tostring
 
+local function typelist2str (typelist)
+  local l = {}
+  local len = #typelist
+  for i = 1, len - 1 do
+    l[i] = types.tostring(typelist[i])
+  end
+  l[len] = types.tostring(typelist[len][1]) .. "*"
+  return table.concat(l, ", ")
+end
+
 local function type2str (t)
   if types.isLiteral(t) then
     return tostring(t[1])
@@ -340,6 +363,8 @@ local function type2str (t)
     return "any"
   elseif types.isUnion(t) then
     return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
+  elseif types.isFunction(t) then
+    return "(" .. typelist2str(t[1]) .. ") -> (" .. typelist2str(t[2]) .. ")"
   else
     error("expecting type but got " .. t.tag)
   end

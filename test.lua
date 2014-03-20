@@ -1443,7 +1443,7 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-local function f (x:any):any end
+local function f (x:any):(any) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:{ `Any }, {  } } } } }
@@ -1493,7 +1493,7 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-local function f (x:any, ...:any):any end
+local function f (x:any, ...:any):(any) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:{ `Any }, {  } } } } }
@@ -1503,7 +1503,7 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-local function f (x:(any) -> (any)):(any) -> (any) end
+local function f (x:(any) -> (any)):((any) -> (any)) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Any }, { `Any } } }:{ `Function{ { `Any }, { `Any } } }, {  } } } } }
@@ -1513,7 +1513,7 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-local function f (x:(number, number) -> (number, nil*)):number* end
+local function f (x:(number, number) -> (number, nil*)):(number*) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Base number, `Base number }, { `Base number, `Vararg { `Base nil } } } }:{ `Vararg { `Base number } }, {  } } } } }
@@ -1523,7 +1523,7 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-local function f ():number, nil* end
+local function f ():(number, nil*) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ {  }:{ `Base number, `Vararg { `Base nil } }, {  } } } } }
