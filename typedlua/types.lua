@@ -6,7 +6,7 @@ type:
   | `Base{ base }
   | `Value
   | `Any
-  | `Union{ type type }
+  | `Union{ type type type* }
   | `Function{ typelist typelist }
 
 literal: false | true | <number> | <string>
@@ -96,33 +96,24 @@ end
 
 -- union types
 
-local function union_length (t)
-  if types.isUnion(t) then
-    return union_length(t[1]) + union_length(t[2])
-  else
-    return 1
-  end
-end
-
-local function union_member (t1, t2)
-  if types.isUnion(t1) and types.isUnion(t2) then
-    return union_member(t1[1], t2) and union_member(t1[2], t2)
-  elseif not types.isUnion(t1) and types.isUnion(t2) then
-    return union_member(t1, t2[1]) or union_member(t1, t2[2])
-  else
-    return types.equal(t1, t2)
-  end
-end
-
 function types.Union (t1, t2)
-  if union_member(t1, t2) then
-    return t2
-  elseif union_member(t2, t1) then
-    return t1
-  elseif types.isUnion(t1) and types.isUnion(t2) then
-    return types.Union(t1[2], types.Union(t1[1], t2))
-  else
-    return { tag = "Union", [1] = t1, [2] = t2 }
+  if types.isUnion(t1) then
+    if not types.isUnion(t2) then
+      t1[#t1 + 1] = t2
+      return t1
+    else
+      for k, v in ipairs(t2) do
+        t1[#t1 + 1] = v
+      end
+      return t1
+    end
+  elseif not types.isUnion(t1) then
+    if types.isUnion(t2) then
+      t2[#t2 + 1] = t1
+      return t2
+    else
+      return { tag = "Union", [1] = t1, [2] = t2 }
+    end
   end
 end
 
@@ -132,26 +123,29 @@ end
 
 function types.isUnionNil (t)
   if types.isUnion(t) then
-    return types.isUnionNil(t[1]) or types.isUnionNil(t[2])
+    for k, v in ipairs(t) do
+      if types.isNil(v) then
+        return true
+      end
+    end
+    return false
   else
-    return types.isNil(t)
+    return false
   end
 end
 
 function types.UnionNoNil (t)
   if types.isUnionNil(t) then
-    if types.isNil(t[1]) then
-      return t[2]
-    elseif types.isNil(t[2]) then
-      return t[1]
-    elseif types.isUnionNil(t[1]) then
-      t[1] = types.UnionNoNil(t[1])
-      return t
-    elseif types.isUnionNil(t[2]) then
-      t[2] = types.UnionNoNil(t[2])
-      return t
+    local n = { tag = "Union" }
+    for k, v in ipairs(t) do
+      if not types.isNil(v) then
+        n[#n + 1] = v
+      end
+    end
+    if #n == 1 then
+      return n[1]
     else
-      return t
+      return n
     end
   else
     return t
@@ -166,52 +160,6 @@ end
 
 function types.isFunction (t)
   return t.tag == "Function"
-end
-
--- equality
-
-local function equal_literal (t1, t2)
-  if types.isLiteral(t1) and types.isLiteral(t2) then
-    return t1[1] == t2[1]
-  else
-    return false
-  end
-end
-
-local function equal_base (t1, t2)
-  if types.isBase(t1) and types.isBase(t2) then
-    return t1[1] == t2[1]
-  else
-    return false
-  end
-end
-
-local function equal_top (t1, t2)
-  return types.isValue(t1) and types.isValue(t2)
-end
-
-local function equal_any (t1, t2)
-  return types.isAny(t1) and types.isAny(t2)
-end
-
-local function equal_union (t1, t2)
-  if types.isUnion(t1) and types.isUnion(t2) then
-    if union_length(t1) == union_length(t2) then
-      return union_member(t1[1], t2) and union_member(t1[2], t2)
-    else
-      return false
-    end
-  else
-    return false
-  end
-end
-
-function types.equal (t1, t2)
-  return equal_literal(t1, t2) or
-         equal_base(t1, t2) or
-         equal_top(t1, t2) or
-         equal_any(t1, t2) or
-         equal_union(t1, t2)
 end
 
 -- subtyping
@@ -252,9 +200,19 @@ end
 
 local function subtype_union (t1, t2)
   if types.isUnion(t1) then
-    return types.subtype(t1[1], t2) and types.subtype(t1[2], t2)
+    for k, v in ipairs(t1) do
+      if not types.subtype(v, t2) then
+        return false
+      end
+    end
+    return true
   elseif types.isUnion(t2) then
-    return types.subtype(t1, t2[1]) or types.subtype(t1, t2[2])
+    for k, v in ipairs(t2) do
+      if types.subtype(t1, v) then
+        return true
+      end
+    end
+    return false
   else
     return false
   end
@@ -306,9 +264,19 @@ end
 
 local function consistent_subtype_union (t1, t2)
   if types.isUnion(t1) then
-    return types.consistent_subtype(t1[1], t2) and types.consistent_subtype(t1[2], t2)
+    for k, v in ipairs(t1) do
+      if not types.consistent_subtype(v, t2) then
+        return false
+      end
+    end
+    return true
   elseif types.isUnion(t2) then
-    return types.consistent_subtype(t1, t2[1]) or types.consistent_subtype(t1, t2[2])
+    for k, v in ipairs(t2) do
+      if types.consistent_subtype(t1, v) then
+        return true
+      end
+    end
+    return false
   else
     return false
   end
@@ -362,7 +330,11 @@ local function type2str (t)
   elseif types.isAny(t) then
     return "any"
   elseif types.isUnion(t) then
-    return "(" .. type2str(t[1]) .. " | " .. type2str(t[2]) .. ")"
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v)
+    end
+    return "(" .. table.concat(l, " | ") .. ")"
   elseif types.isFunction(t) then
     return "(" .. typelist2str(t[1]) .. ") -> (" .. typelist2str(t[2]) .. ")"
   else

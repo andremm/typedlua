@@ -75,11 +75,12 @@ function type2str (t)
     str = str .. " " .. t[1]
   elseif tag == "Value" or -- `Value
          tag == "Any" then -- `Any
-  elseif tag == "Union" then -- `Union{ type type }
-    str = str .. "{ "
-    str = str .. type2str(t[1]) .. ", "
-    str = str .. type2str(t[2])
-    str = str .. " }"
+  elseif tag == "Union" then -- `Union{ type type type* }
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v)
+    end
+    str = str .. "{ " .. table.concat(l, ", ") .. " }"
   elseif tag == "Function" then -- `Function{ typelist typelist }
     str = str .. "{ "
     str = str .. typelist2str(t[1]) .. ", "

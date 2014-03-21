@@ -52,7 +52,7 @@ type:
   | `Base{ base }
   | `Value
   | `Any
-  | `Union{ type type }
+  | `Union{ type type type* }
   | `Function{ typelist typelist }
 
 literal: false | true | <number> | <string>
@@ -65,7 +65,6 @@ local parser = {}
 
 local lpeg = require "lpeg"
 local scope = require "typedlua.scope"
-local types = require "typedlua.types"
 
 lpeg.locale(lpeg)
 
@@ -224,20 +223,19 @@ end
 local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
-  Type = V"UnionType";
-  UnionType = Cf(V"NullableType" * Cg(symb("|") * V"NullableType")^0,
-              function (t1, t2)
-                return types.Union(t1, t2)
-              end);
-  NullableType = V"PrimaryType" * taggedCap("Base", symb("?"))^-1 /
+  Type = V"NullableType";
+  NullableType = V"UnionType" * taggedCap("Base", symb("?") * Cc("nil"))^-1 /
                  function (t, nullable)
                    if nullable then
-                     nullable[1] = "nil"
-                     return types.Union(t, nullable)
+                     t[#t + 1] = nullable
+                   end
+                   if #t == 1 then
+                     return t[1]
                    else
                      return t
                    end
                  end;
+  UnionType = taggedCap("Union", V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0);
   PrimaryType = taggedCap("Literal", V"LiteralType") +
                 taggedCap("Base", V"BaseType") +
                 taggedCap("Value", V"TopType") +
