@@ -141,34 +141,29 @@ T \subtype \Top
 \subsection{Vararg types}
 
 \[
-\Nil* \subtype T{*}
-\mylabel{S-VARARG1}
-\]
-
-\[
-\frac{T_{1} \subtype T_{2}}
+\frac{T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
      {T_{1}* \subtype T_{2}*}
-\mylabel{S-VARARG2}
-\]
-
-\[
-\frac{T_{1} \cup \Nil \subtype T_{2}}
-     {T_{1}* \subtype T_{2}}
-\mylabel{S-VARARG3}
-\]
-
-\[
-\frac{T_{1} \subtype T_{2} \cup \Nil}
-     {T_{1} \subtype T_{2}*}
-\mylabel{S-VARARG4}
+\mylabel{S-VARARG}
 \]
 
 \subsection{Tuple types}
 
 \[
-\frac{T_{1} \subtype T_{2} \;\;\; S_{1} \subtype S_{2}}
-     {T_{1} \times S_{1} \subtype T_{2} \times S_{2}}
-\mylabel{S-TUPLE}
+\frac{T_{1} \subtype T_{2} \;\;\; V_{1} \subtype V_{2}}
+     {T_{1} \times V_{1} \subtype T_{2} \times V_{2}}
+\mylabel{S-TUPLE1}
+\]
+
+\[
+\frac{T_{1} \cup \Nil \subtype T_{2} \;\;\; T_{1}* \subtype V_{2}}
+     {T_{1}* \subtype T_{2} \times V_{2}}
+\mylabel{S-TUPLE2}
+\]
+
+\[
+\frac{T_{1} \subtype T_{2} \cup \Nil \;\;\; V_{1} \subtype T_{2}*}
+     {T_{1} \times V_{1} \subtype T_{2}*}
+\mylabel{S-TUPLE3}
 \]
 
 \section{Consistent-Subtyping}
@@ -257,34 +252,29 @@ T \lesssim \Any
 \subsection{Vararg types}
 
 \[
-\Nil* \lesssim T{*}
-\mylabel{C-VARARG1}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{2}}
+\frac{T_{1} \cup \Nil \lesssim T_{2} \cup \Nil}
      {T_{1}* \lesssim T_{2}*}
-\mylabel{C-VARARG2}
-\]
-
-\[
-\frac{T_{1} \cup \Nil \subtype T_{2}}
-     {T_{1}* \lesssim T_{2}}
-\mylabel{C-VARARG3}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{2} \cup \Nil}
-     {T_{1} \lesssim T_{2}*}
-\mylabel{C-VARARG4}
+\mylabel{C-VARARG}
 \]
 
 \subsection{Tuple types}
 
 \[
-\frac{T_{1} \lesssim T_{2} \;\;\; S_{1} \lesssim S_{2}}
-     {T_{1} \times S_{1} \lesssim T_{2} \times S_{2}}
-\mylabel{C-TUPLE}
+\frac{T_{1} \lesssim T_{2} \;\;\; V_{1} \lesssim V_{2}}
+     {T_{1} \times V_{1} \lesssim T_{2} \times V_{2}}
+\mylabel{C-TUPLE1}
+\]
+
+\[
+\frac{T_{1} \cup \Nil \lesssim T_{2} \;\;\; T_{1}* \lesssim V_{2}}
+     {T_{1}* \lesssim T_{2} \times V_{2}}
+\mylabel{C-TUPLE2}
+\]
+
+\[
+\frac{T_{1} \lesssim T_{2} \cup \Nil \;\;\; V_{1} \lesssim T_{2}*}
+     {T_{1} \times V_{1} \lesssim T_{2}*}
+\mylabel{C-TUPLE3}
 \]
 
 \section{Typing Rules}
@@ -576,7 +566,7 @@ $$
 \[
 \frac{\env \vdash e_{1}:T_{1} \cup \False \;\;\;
       \env \vdash e_{2}:T_{2}}
-     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{2}}
+     {\env \vdash e_{1} \; \kw{or} \; e_{2} : T_{1} \cup T_{2}}
 \mylabel{T-OR4}
 \]
 
