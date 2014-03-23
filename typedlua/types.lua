@@ -162,6 +162,26 @@ function types.isFunction (t)
   return t.tag == "Function"
 end
 
+-- tuple types
+
+function types.Tuple (...)
+  return { tag = "Tuple", ... }
+end
+
+function types.isTuple (t)
+  return t.tag == "Tuple"
+end
+
+-- vararg types
+
+function types.Vararg (t)
+  return { tag = "Vararg", [1] = t }
+end
+
+function types.isVararg (t)
+  return t.tag == "Vararg"
+end
+
 -- subtyping
 
 local function subtype_literal (t1, t2)
@@ -218,12 +238,61 @@ local function subtype_union (t1, t2)
   end
 end
 
+local function subtype_function (t1, t2)
+  if types.isFunction(t1) and types.isFunction(t2) then
+    return types.subtype(t2[1], t1[1]) and types.subtype(t1[2], t2[2])
+  else
+    return false
+  end
+end
+
+local function subtype_vararg (t1, t2)
+  if types.isVararg(t1) and types.isVararg(t2) then
+    local t1_nil = types.Union(t1[1], types.Nil)
+    local t2_nil = types.Union(t2[1], types.Nil)
+    return types.subtype(t1_nil, t2_nil)
+  elseif types.isVararg(t1) and not types.isVararg(t2) then
+    local t1_nil = types.Union(t1[1], types.Nil)
+    return types.subtype(t1_nil, t2)
+  elseif not types.isVararg(t1) and types.isVararg(t2) then
+    local t2_nil = types.Union(t2[1], types.Nil)
+    return types.subtype(t1, t2_nil)
+  else
+    return types.subtype(t1[1], t2[1])
+  end
+end
+
+local function subtype_tuple (t1, t2)
+  if types.isTuple(t1) and types.isTuple(t2) then
+    local len1, len2 = #t1, #t2
+    if len1 < len2 then
+      for i = #t1 + 1, #t2 do
+        t1[i] = t1[len1]
+      end
+    elseif len1 > len2 then
+      for i = #t2 + 1, #t1 do
+        t2[i] = t2[len2]
+      end
+    end
+    for i = 1, #t1 do
+      if not subtype_vararg(t1[i], t2[i]) then
+        return false
+      end
+    end
+    return true
+  else
+    return false
+  end
+end
+
 function types.subtype (t1, t2)
   return subtype_literal(t1, t2) or
          subtype_base(t1, t2) or
          subtype_top(t1, t2) or
          subtype_any(t1, t2) or
-         subtype_union(t1, t2)
+         subtype_union(t1, t2) or
+         subtype_function(t1, t2) or
+         subtype_tuple(t1, t2)
 end
 
 -- consistent-subtyping
@@ -282,12 +351,61 @@ local function consistent_subtype_union (t1, t2)
   end
 end
 
+local function consistent_subtype_function (t1, t2)
+  if types.isFunction(t1) and types.isFunction(t2) then
+    return types.consistent_subtype(t2[1], t1[1]) and types.consistent_subtype(t1[2], t2[2])
+  else
+    return false
+  end
+end
+
+local function consistent_subtype_vararg (t1, t2)
+  if types.isVararg(t1) and types.isVararg(t2) then
+    local t1_nil = types.Union(t1[1], types.Nil)
+    local t2_nil = types.Union(t2[1], types.Nil)
+    return types.consistent_subtype(t1_nil, t2_nil)
+  elseif types.isVararg(t1) and not types.isVararg(t2) then
+    local t1_nil = types.Union(t1[1], types.Nil)
+    return types.consistent_subtype(t1_nil, t2)
+  elseif not types.isVararg(t1) and types.isVararg(t2) then
+    local t2_nil = types.Union(t2[1], types.Nil)
+    return types.consistent_subtype(t1, t2_nil)
+  else
+    return types.consistent_subtype(t1[1], t2[1])
+  end
+end
+
+local function consistent_subtype_tuple (t1, t2)
+  if types.isTuple(t1) and types.isTuple(t2) then
+    local len1, len2 = #t1, #t2
+    if len1 < len2 then
+      for i = #t1 + 1, #t2 do
+        t1[i] = t1[len1]
+      end
+    elseif len1 > len2 then
+      for i = #t2 + 1, #t1 do
+        t2[i] = t2[len2]
+      end
+    end
+    for i = 1, #t1 do
+      if not consistent_subtype_vararg(t1[i], t2[i]) then
+        return false
+      end
+    end
+    return true
+  else
+    return false
+  end
+end
+
 function types.consistent_subtype (t1, t2)
   return consistent_subtype_literal(t1, t2) or
          consistent_subtype_base(t1, t2) or
          consistent_subtype_top(t1, t2) or
          consistent_subtype_any(t1, t2) or
-         consistent_subtype_union(t1, t2)
+         consistent_subtype_union(t1, t2) or
+         consistent_subtype_function(t1, t2) or
+         consistent_subtype_tuple(t1, t2)
 end
 
 -- supertypeof

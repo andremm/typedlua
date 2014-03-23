@@ -2080,7 +2080,7 @@ local Value = types.Value
 local Any = types.Any
 
 -- test types
-local t, t1, t2
+local t, t1, t2, t3, t4
 
 -- type equality
 
@@ -2129,6 +2129,21 @@ assert(not types.isUnionNil(types.Union(Number,Boolean)))
 assert(not types.isUnionNil(types.Union(types.Union(Number,String),Boolean)))
 assert(not types.isUnionNil(types.Union(types.Union(Number,Boolean),String)))
 assert(not types.isUnionNil(types.Union(types.Union(Boolean,Number),String)))
+
+t1 = types.Vararg(Value)
+t2 = types.Vararg(Nil)
+
+assert(types.isFunction(types.Function(types.Tuple(t1), types.Tuple(t2))))
+assert(types.isTuple(types.Tuple(t1)))
+assert(types.isTuple(types.Tuple(t2)))
+assert(types.isVararg(t1))
+assert(types.isVararg(t2))
+
+assert(not types.isFunction(Nil))
+assert(not types.isTuple(t1))
+assert(not types.isTuple(t2))
+assert(not types.isVararg(types.Tuple(t1)))
+assert(not types.isVararg(types.Tuple(t2)))
 
 -- subtyping
 
@@ -2230,6 +2245,33 @@ assert(not types.subtype(String,t))
 assert(not types.subtype(t,Any))
 assert(not types.subtype(t,Any))
 
+t1 = types.Tuple(types.Vararg(Value))
+t2 = types.Tuple(types.Vararg(Nil))
+
+assert(types.subtype(types.Function(t1,t2), types.Function(t1,t2)))
+assert(types.subtype(types.Function(t1,t2), types.Function(t2,t1)))
+assert(types.subtype(types.Function(t2,t1), types.Function(t2,t1)))
+assert(not types.subtype(types.Function(t2,t1), types.Function(t1,t2)))
+
+t1 = types.Tuple(types.Vararg(Number))
+
+assert(types.subtype(types.Function(t1,t2), types.Function(t1,t2)))
+assert(types.subtype(types.Function(t1,t2), types.Function(t2,t1)))
+assert(types.subtype(types.Function(t2,t1), types.Function(t2,t1)))
+assert(not types.subtype(types.Function(t2,t1), types.Function(t1,t2)))
+
+t3 = types.Vararg(Nil)
+t4 = types.Tuple(Number,Number,t3)
+
+assert(types.subtype(types.Function(t1,t2), types.Function(t2,t2)))
+assert(not types.subtype(types.Function(t3,t2), types.Function(t1,t2)))
+
+t3 = types.Vararg(Number)
+t4 = types.Tuple(Number,Number,Number,t3)
+
+assert(types.subtype(types.Function(t1,t1), types.Function(t4,t1)))
+assert(not types.subtype(types.Function(t4,t1), types.Function(t1,t1)))
+
 -- consistent-subtyping
 
 assert(types.consistent_subtype(False,False))
@@ -2330,6 +2372,28 @@ assert(types.consistent_subtype(String,t))
 assert(types.consistent_subtype(t,Any))
 
 assert(not types.consistent_subtype(t,String))
+
+t1 = types.Tuple(types.Vararg(Any))
+t2 = types.Tuple(types.Vararg(Nil))
+
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t1,t2)))
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t2,t1)))
+assert(types.consistent_subtype(types.Function(t2,t1), types.Function(t2,t1)))
+assert(types.consistent_subtype(types.Function(t2,t1), types.Function(t1,t2)))
+
+t2 = types.Tuple(types.Vararg(Number))
+
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t1,t2)))
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t2,t1)))
+assert(types.consistent_subtype(types.Function(t2,t1), types.Function(t2,t1)))
+assert(types.consistent_subtype(types.Function(t2,t1), types.Function(t1,t2)))
+
+t3 = types.Vararg(Any)
+t4 = types.Tuple(Any,Any,t3)
+
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t2,t1)))
+assert(types.consistent_subtype(types.Function(t4,t2), types.Function(t1,t2)))
+assert(types.consistent_subtype(types.Function(t1,t2), types.Function(t4,t2)))
 
 print("> testing type checker...")
 
