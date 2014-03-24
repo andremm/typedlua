@@ -321,7 +321,7 @@ s = [=[
 f = 9e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -331,7 +331,7 @@ s = [=[
 f = 5.e
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -341,7 +341,7 @@ s = [=[
 f = .9e-
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:1:8: syntax error, unexpected '-', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -351,7 +351,7 @@ s = [=[
 f = 5.9e+
 ]=]
 e = [=[
-test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:1:9: syntax error, unexpected '+', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -365,7 +365,7 @@ s = [=[
 hex = 0xG
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -434,7 +434,7 @@ unfinished
 comment
 ]=]
 e = [=[
-test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', '[', '.', ':'
+test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -1383,16 +1383,6 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-x:number, y, z:boolean = 1, nil, true
-]=]
-e = [=[
-{ `Set{ { `Id "x":`Base number, `Id "y", `Id "z":`Base boolean }, { `Number "1", `Nil, `True } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
 for k:number, v:string in ipairs({"hello", "world"}) do end
 ]=]
 e = [=[
@@ -1601,7 +1591,6 @@ test.lua:3:1: syntax error, <break> not inside a loop
 
 r = parse(s)
 assert(r == e)
-
 
 -- concatenation expressions
 
@@ -1984,7 +1973,17 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
-x:any = x:any
+x:number, y, z:boolean = 1, nil, true
+]=]
+e = [=[
+test.lua:1:9: syntax error, unexpected ',', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+x = x:any
 ]=]
 e = [=[
 test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('

@@ -390,7 +390,7 @@ local G = { V"TypedLua",
   GoToStat = taggedCap("Goto", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("Return", kw("return") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(";")^-1);
   ExprStat = Cmt(
-             ((V"TypedGlobal" + V"SuffixedExp") *
+             (V"SuffixedExp" *
                 (Cc(function (...)
                            local vl = {...}
                            local el = vl[#vl]
@@ -418,8 +418,7 @@ local G = { V"TypedLua",
                            return false
                          end)))
              , function (s, i, s1, f, ...) return f(s1, ...) end);
-  Assignment = ((symb(",") * (V"TypedGlobal" + V"SuffixedExp"))^1)^-1 * symb("=") * V"ExpList";
-  TypedGlobal = taggedCap("Id", token(V"Name", "Name") * symb(":") * V"Type" * -V"FuncArgs");
+  Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
          V"BreakStat" + V"GoToStat" + V"ExprStat";
