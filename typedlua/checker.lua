@@ -82,25 +82,133 @@ local function set_type (node, t)
   node["type"] = t
 end
 
+local function set_return_type (env, t)
+  env["function"][env.fscope]["return_type"] = t
+end
+
+local function set_vararg_type (env, t)
+  env["function"][env.fscope]["vararg_type"] = t
+end
+
 local function check_explist (env, explist)
   for k, v in ipairs(explist) do
     check_exp(env, v)
   end
 end
 
+local function first_class (t)
+  if types.isTuple(t) then
+    return first_class(t[1])
+  elseif types.isVararg(t) then
+    if types.isNil(t[1]) then
+      return t[1]
+    else
+      return types.Union(t[1], Nil)
+    end
+  else
+    return t
+  end
+end
+
+local function explist2typelist (explist)
+  local len = #explist
+  if len == 0 then
+    return types.Tuple(types.Vararg(Nil))
+  else
+    local typelist = { tag = "Tuple" }
+    for i = 1, len - 1 do
+      typelist[i] = first_class(explist[i]["type"])
+    end
+    local last_type = explist[len]["type"]
+    if types.isTuple(last_type) then
+      for k, v in ipairs(last_type) do
+        typelist[#typelist + 1] = v
+      end
+    else
+      typelist[#typelist + 1] = last_type
+    end
+    if not types.isVararg(typelist[#typelist]) then
+      typelist[#typelist + 1] = types.Vararg(Nil)
+    end
+    return typelist
+  end
+end
+
+local function check_parameters (env, parlist)
+  local t = types.Tuple()
+  local vararg = types.Vararg(Value)
+  local len = #parlist
+  local is_vararg = false
+  if len > 0 and parlist[len].tag == "Dots" then
+    is_vararg = true
+    len = len - 1
+  end
+  local i = 1
+  while i <= len do
+    local id = parlist[i]
+    if not id[2] then id[2] = Any end
+    set_local(env, id, id[2], env.scope)
+    t[i] = id[2]
+    i = i + 1
+  end
+  if not is_vararg then
+    t[i] = vararg
+  else
+    local v = parlist[i]
+    if not v[1] then v[1] = Any end
+    vararg[1] = v[1]
+  end
+  t[i] = vararg
+  return t
+end
+
+local function check_return_type (typelist)
+  local len = #typelist
+  if not types.isVararg(typelist[len]) then
+    typelist[#typelist + 1] = types.Vararg(Nil)
+  end
+  return typelist
+end
+
 local function check_local (env, idlist, explist)
   check_explist(env, explist)
+  local typelist = explist2typelist(explist)
+  local last_type = typelist[#typelist]
+  local fill_type = Nil
+  if types.isVararg(last_type) and not types.isNil(last_type[1]) then
+    fill_type = types.Union(last_type[1], Nil)
+  end
   for k, v in ipairs(idlist) do
-    local t = Nil
-    if explist[k] then
-      t = explist[k]["type"]
-    end
+    local t = fill_type
+    if typelist[k] then t = first_class(typelist[k]) end
     set_local(env, v, t, env.scope)
   end
 end
 
 local function check_localrec (env, id, exp)
+  local scope = env.scope
+  begin_function(env)
+  begin_scope(env)
+  local idlist, typelist, block = exp[1], exp[2], exp[3]
+  if not block then
+    block = typelist
+    typelist = types.Tuple(types.Vararg(Any))
+  end
+  local t1 = check_parameters(env, idlist)
+  local t2 = check_return_type(typelist)
+  local t = types.Function(t1, t2)
+  set_type(exp, t)
+  id[2] = t
+  set_local(env, id, t, scope)
+  set_return_type(env, t2)
+  check_block(env, block)
+  end_scope(env)
+  end_function(env)
+end
 
+local function check_dots (env, exp)
+  local t = env["function"][env.fscope]["vararg_type"]
+  set_type(exp, types.Vararg(t))
 end
 
 local function check_arith (env, exp)
@@ -315,52 +423,17 @@ local function check_id_read (env, exp)
   end
 end
 
-local function check_parameters (env, parlist)
-  local t = { tag = "Tuple" }
-  local vararg = { tag = "Vararg", [1] = Value }
-  local len = #parlist
-  local is_vararg = false
-  if len > 0 and parlist[len].tag == "Dots" then
-    is_vararg = true
-    len = len - 1
-  end
-  local i = 1
-  while i <= len do
-    local id = parlist[i]
-    if not id[2] then id[2] = Any end
-    set_local(env, id, id[2], env.scope)
-    t[i] = id[2]
-    i = i + 1
-  end
-  if not is_vararg then
-    t[i] = vararg
-  else
-    local v = parlist[i]
-    if not v[1] then v[1] = Any end
-    vararg[1] = v[1]
-  end
-  t[i] = vararg
-  return t
-end
-
-local function check_return_type (typelist)
-  local len = #typelist
-  if typelist[len].tag ~= "Vararg" then
-    table.insert(typelist, { tag = "Vararg", [1] = Nil })
-  end
-  return typelist
-end
-
 local function check_function (env, exp)
   begin_function(env)
   begin_scope(env)
   local idlist, typelist, block = exp[1], exp[2], exp[3]
   if not block then
     block = typelist
-    typelist = { tag = "Tuple", [1] = { tag = "Vararg", [1] = Nil } }
+    typelist = types.Tuple(types.Vararg(Any))
   end
   local t1 = check_parameters(env, idlist)
   local t2 = check_return_type(typelist)
+  set_return_type(env, t2)
   check_block(env, block)
   set_type(exp, types.Function(t1, t2))
   end_scope(env)
@@ -372,7 +445,7 @@ function check_exp (env, exp)
   if tag == "Nil" then
     set_type(exp, Nil)
   elseif tag == "Dots" then
-    set_type(exp, Any)
+    check_dots(env, exp)
   elseif tag == "True" then
     set_type(exp, True)
   elseif tag == "False" then
@@ -470,11 +543,53 @@ local function check_fornum (env, stm)
   end_scope(env)
 end
 
+local function check_var_assignment (env, var, inferred_type)
+  local tag = var.tag
+  if tag == "Id" then
+    local name = var[1]
+    local local_var = get_local(env, name)
+    if local_var then
+      local local_type = local_var["type"]
+      if types.subtype(inferred_type, local_type) then
+      elseif types.consistent_subtype(inferred_type, local_type) then
+        local msg = "attempt to assign '%s' to '%s'"
+        msg = string.format(msg, type2str(inferred_type), type2str(local_type))
+        warning(env, msg, var.pos)
+      else
+        local msg = "attempt to assign '%s' to '%s'"
+        msg = string.format(msg, type2str(inferred_type), type2str(local_type))
+        typeerror(env, msg, var.pos)
+      end
+    else
+      local msg = "local variable '%s' is not defined"
+      msg = string.format(msg, name)
+      typeerror(env, msg, var.pos)
+    end
+  elseif tag == "Index" then
+  end
+end
+
+local function check_assignment (env, varlist, explist)
+  check_explist(env, explist)
+  local typelist = explist2typelist(explist)
+  local last_type = typelist[#typelist]
+  local fill_type = Nil
+  if types.isVararg(last_type) and not types.isNil(last_type[1]) then
+    fill_type = types.Union(last_type[1], Nil)
+  end
+  for k, v in ipairs(varlist) do
+    local t = fill_type
+    if typelist[k] then t = first_class(typelist[k]) end
+    check_var_assignment(env, v, t)
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
     check_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
+    check_assignment(env, stm[1], stm[2])
   elseif tag == "While" then -- `While{ expr block }
     check_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }
@@ -487,7 +602,7 @@ function check_stm (env, stm)
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
     check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
-    check_localrec(env, stm[1], stm[2])
+    check_localrec(env, stm[1][1], stm[2][1])
   elseif tag == "Goto" then -- `Goto{ <string> }
   elseif tag == "Label" then -- `Label{ <string> }
   elseif tag == "Return" then -- `Return{ <expr>* }
@@ -522,6 +637,8 @@ function checker.typecheck (ast, subject, filename)
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
   begin_function(env)
+  set_vararg_type(env, String)
+  set_return_type(env, types.Tuple(types.Vararg(Any)))
   check_block(env, ast)
   end_function(env)
   if #env.messages > 0 then

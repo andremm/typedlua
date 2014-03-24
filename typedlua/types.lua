@@ -258,7 +258,7 @@ local function subtype_vararg (t1, t2)
     local t2_nil = types.Union(t2[1], types.Nil)
     return types.subtype(t1, t2_nil)
   else
-    return types.subtype(t1[1], t2[1])
+    return types.subtype(t1, t2)
   end
 end
 
@@ -266,20 +266,45 @@ local function subtype_tuple (t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
     local len1, len2 = #t1, #t2
     if len1 < len2 then
-      for i = #t1 + 1, #t2 do
-        t1[i] = t1[len1]
+      local i = 1
+      while i < len1 do
+        if not subtype_vararg(t1[i], t2[i]) then
+          return false
+        end
+        i = i + 1
       end
+      local j = i
+      while j <= len2 do
+        if not subtype_vararg(t1[i], t2[j]) then
+          return false
+        end
+        j = j + 1
+      end
+      return true
     elseif len1 > len2 then
-      for i = #t2 + 1, #t1 do
-        t2[i] = t2[len2]
+      local i = 1
+      while i < len2 do
+        if not subtype_vararg(t1[i], t2[i]) then
+          return false
+        end
+        i = i + 1
       end
-    end
-    for i = 1, #t1 do
-      if not subtype_vararg(t1[i], t2[i]) then
-        return false
+      local j = i
+      while j <= len1 do
+        if not subtype_vararg(t1[j], t2[i]) then
+          return false
+        end
+        j = j + 1
       end
+      return true
+    else
+      for k, v in ipairs(t1) do
+        if not subtype_vararg(t1[k], t2[k]) then
+          return false
+        end
+      end
+      return true
     end
-    return true
   else
     return false
   end
@@ -371,7 +396,7 @@ local function consistent_subtype_vararg (t1, t2)
     local t2_nil = types.Union(t2[1], types.Nil)
     return types.consistent_subtype(t1, t2_nil)
   else
-    return types.consistent_subtype(t1[1], t2[1])
+    return types.consistent_subtype(t1, t2)
   end
 end
 
@@ -379,20 +404,45 @@ local function consistent_subtype_tuple (t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
     local len1, len2 = #t1, #t2
     if len1 < len2 then
-      for i = #t1 + 1, #t2 do
-        t1[i] = t1[len1]
+      local i = 1
+      while i < len1 do
+        if not consistent_subtype_vararg(t1[i], t2[i]) then
+          return false
+        end
+        i = i + 1
       end
+      local j = i
+      while j <= len2 do
+        if not consistent_subtype_vararg(t1[i], t2[j]) then
+          return false
+        end
+        j = j + 1
+      end
+      return true
     elseif len1 > len2 then
-      for i = #t2 + 1, #t1 do
-        t2[i] = t2[len2]
+      local i = 1
+      while i < len2 do
+        if not consistent_subtype_vararg(t1[i], t2[i]) then
+          return false
+        end
+        i = i + 1
       end
-    end
-    for i = 1, #t1 do
-      if not consistent_subtype_vararg(t1[i], t2[i]) then
-        return false
+      local j = i
+      while j <= len1 do
+        if not consistent_subtype_vararg(t1[j], t2[i]) then
+          return false
+        end
+        j = j + 1
       end
+      return true
+    else
+      for k, v in ipairs(t1) do
+        if not consistent_subtype_vararg(t1[k], t2[k]) then
+          return false
+        end
+      end
+      return true
     end
-    return true
   else
     return false
   end
@@ -410,6 +460,16 @@ end
 
 -- supertypeof
 
+local function typelist_supertypeof (typelist)
+  local l = types.Tuple()
+  local len = #typelist
+  for i = 1, len - 1 do
+    l[i] = types.supertypeof(typelist[i])
+  end
+  l[len] = types.Vararg(types.supertypeof(typelist[len][1]))
+  return l
+end
+
 function types.supertypeof (t)
   if types.isFalse(t) or types.isTrue(t) then
     return types.Boolean
@@ -418,9 +478,17 @@ function types.supertypeof (t)
   elseif types.isLiteralString(t) then
     return types.String
   elseif types.isUnion(t) then
-    t[1] = types.supertypeof(t[1])
-    t[2] = types.supertypeof(t[2])
-    return t
+    local t1 = types.supertypeof(t[1])
+    local t2 = types.supertypeof(t[2])
+    local n = types.Union(t1, t2)
+    for i = 3, #t do
+      n[i] = types.supertypeof(t[i])
+    end
+    return n
+  elseif types.isFunction(t) then
+    local t1 = typelist_supertypeof(t[1])
+    local t2 = typelist_supertypeof(t[2])
+    return types.Function(t1,t2)
   else
     return t
   end
