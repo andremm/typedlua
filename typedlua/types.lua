@@ -246,7 +246,7 @@ local function subtype_function (t1, t2)
   end
 end
 
-local function subtype_vararg (t1, t2)
+function types.subtype_vararg (t1, t2)
   if types.isVararg(t1) and types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
     local t2_nil = types.Union(t2[1], types.Nil)
@@ -268,14 +268,14 @@ local function subtype_tuple (t1, t2)
     if len1 < len2 then
       local i = 1
       while i < len1 do
-        if not subtype_vararg(t1[i], t2[i]) then
+        if not types.subtype_vararg(t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len2 do
-        if not subtype_vararg(t1[i], t2[j]) then
+        if not types.subtype_vararg(t1[i], t2[j]) then
           return false
         end
         j = j + 1
@@ -284,14 +284,14 @@ local function subtype_tuple (t1, t2)
     elseif len1 > len2 then
       local i = 1
       while i < len2 do
-        if not subtype_vararg(t1[i], t2[i]) then
+        if not types.subtype_vararg(t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len1 do
-        if not subtype_vararg(t1[j], t2[i]) then
+        if not types.subtype_vararg(t1[j], t2[i]) then
           return false
         end
         j = j + 1
@@ -299,7 +299,7 @@ local function subtype_tuple (t1, t2)
       return true
     else
       for k, v in ipairs(t1) do
-        if not subtype_vararg(t1[k], t2[k]) then
+        if not types.subtype_vararg(t1[k], t2[k]) then
           return false
         end
       end
@@ -384,7 +384,7 @@ local function consistent_subtype_function (t1, t2)
   end
 end
 
-local function consistent_subtype_vararg (t1, t2)
+function types.consistent_subtype_vararg (t1, t2)
   if types.isVararg(t1) and types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
     local t2_nil = types.Union(t2[1], types.Nil)
@@ -406,14 +406,14 @@ local function consistent_subtype_tuple (t1, t2)
     if len1 < len2 then
       local i = 1
       while i < len1 do
-        if not consistent_subtype_vararg(t1[i], t2[i]) then
+        if not types.consistent_subtype_vararg(t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len2 do
-        if not consistent_subtype_vararg(t1[i], t2[j]) then
+        if not types.consistent_subtype_vararg(t1[i], t2[j]) then
           return false
         end
         j = j + 1
@@ -422,14 +422,14 @@ local function consistent_subtype_tuple (t1, t2)
     elseif len1 > len2 then
       local i = 1
       while i < len2 do
-        if not consistent_subtype_vararg(t1[i], t2[i]) then
+        if not types.consistent_subtype_vararg(t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len1 do
-        if not consistent_subtype_vararg(t1[j], t2[i]) then
+        if not types.consistent_subtype_vararg(t1[j], t2[i]) then
           return false
         end
         j = j + 1
@@ -437,7 +437,7 @@ local function consistent_subtype_tuple (t1, t2)
       return true
     else
       for k, v in ipairs(t1) do
-        if not consistent_subtype_vararg(t1[k], t2[k]) then
+        if not types.consistent_subtype_vararg(t1[k], t2[k]) then
           return false
         end
       end

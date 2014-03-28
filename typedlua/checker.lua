@@ -82,6 +82,10 @@ local function set_type (node, t)
   node["type"] = t
 end
 
+local function get_return_type (env)
+  return env["function"][env.fscope]["return_type"]
+end
+
 local function set_return_type (env, t)
   env["function"][env.fscope]["return_type"] = t
 end
@@ -440,6 +444,86 @@ local function check_function (env, exp)
   end_function(env)
 end
 
+local function check_argument (env, name, t1, t2, i, pos)
+  if types.subtype_vararg(t1, t2) then
+  elseif types.consistent_subtype_vararg(t1, t2) then
+    local msg = "parameter %d of %s, attempt to assign '%s' to '%s'"
+    msg = string.format(msg, i, name, type2str(t1), type2str(t2))
+    warning(env, msg, pos)
+  else
+    local msg = "parameter %d of %s, attempt to assign '%s' to '%s'"
+    msg = string.format(msg, i, name, type2str(t1), type2str(t2))
+    typeerror(env, msg, pos)
+  end
+end
+
+local function check_arguments (env, name, t1, t2, pos)
+  local len1, len2 = #t1, #t2
+  if len1 < len2 then
+    local i = 1
+    while i < len1 do
+      check_argument(env, name, t1[i], t2[i], i, pos)
+      i = i + 1
+    end
+    local j = i
+    while j <= len2 do
+      check_argument(env, name, t1[i], t2[j], j, pos)
+      j = j + 1
+    end
+  elseif len1 > len2 then
+    local i = 1
+    while i < len2 do
+      check_argument(env, name, t1[i], t2[i], i, pos)
+      i = i + 1
+    end
+    local j = i
+    while j <= len1 do
+      check_argument(env, name, t1[j], t2[i], i, pos)
+      j = j + 1
+    end
+  else
+    for k, v in ipairs(t1) do
+      check_argument(env, name, t1[k], t2[k], k, pos)
+    end
+  end
+end
+
+local function var2name (var)
+  local tag = var.tag
+  if tag == "Id" then
+    return var[1]
+  elseif tag == "Index" then
+    return " "
+  end
+end
+
+local function check_call (env, exp)
+  local exp1 = exp[1]
+  local explist = {}
+  check_exp(env, exp1)
+  local name = var2name(exp1)
+  for i = 2, #exp do
+    explist[i - 1] = exp[i]
+  end
+  check_explist(env, explist)
+  local typelist = explist2typelist(explist)
+  local t = exp1["type"]
+  if types.isFunction(t) then
+    check_arguments(env, name, typelist, t[1], exp.pos)
+    set_type(exp, t[2])
+  elseif types.isAny(t) then
+    local msg = "attempt to call %s of type 'any'"
+    msg = string.format(msg, name)
+    warning(env, msg, exp.pos)
+    set_type(exp, Any)
+  else
+    local msg = "attempt to call %s of type '%s'"
+    msg = string.format(msg, name, type2str(t))
+    typeerror(env, msg, exp.pos)
+    set_type(exp, Nil)
+  end
+end
+
 function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
@@ -467,7 +551,7 @@ function check_exp (env, exp)
   elseif tag == "Paren" then -- `Paren{ expr }
     check_paren(env, exp)
   elseif tag == "Call" then -- `Call{ expr expr* }
-    set_type(exp, Any)
+    check_call(env, exp)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> expr* }
     set_type(exp, Any)
   elseif tag == "Id" then -- `Id{ <string> }
@@ -584,6 +668,19 @@ local function check_assignment (env, varlist, explist)
   end
 end
 
+local function check_return (env, stm)
+  check_explist(env, stm)
+  local typelist = explist2typelist(stm)
+  local t = get_return_type(env)
+  local msg = "return type does not match function signature"
+  if types.subtype(t, typelist) then
+  elseif types.consistent_subtype(t, typelist) then
+    warning(env, msg, stm.pos)
+  else
+    typeerror(env, msg, stm.pos)
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
@@ -606,8 +703,10 @@ function check_stm (env, stm)
   elseif tag == "Goto" then -- `Goto{ <string> }
   elseif tag == "Label" then -- `Label{ <string> }
   elseif tag == "Return" then -- `Return{ <expr>* }
+    check_return(env, stm)
   elseif tag == "Break" then
   elseif tag == "Call" then -- `Call{ expr expr* }
+    check_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
   else
     error("cannot type check statement " .. tag)

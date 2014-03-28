@@ -32,8 +32,8 @@ local op = { add = " + ",
 
 local function code_call (call, i)
   local l = {}
-  for i=2, #call do
-    l[i] = code_exp(call[i], i)
+  for k = 2, #call do
+    l[k - 1] = code_exp(call[k], i)
   end
   return code_exp(call[1], i) .. "(" .. table.concat(l, ",") .. ")"
 end
@@ -220,7 +220,11 @@ function code_stm (stm, i)
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
     local str = ident("local function ", i) .. code_var(stm[1][1], i)
     str = str .. " (" .. code_parlist(stm[2][1][1], i) .. ")\n"
-    str = str .. code_block(stm[2][1][2], i) .. ident("end", i)
+    if not stm[2][1][3] then
+      str = str .. code_block(stm[2][1][2], i) .. ident("end", i)
+    else
+      str = str .. code_block(stm[2][1][3], i) .. ident("end", i)
+    end
     return str
   elseif tag == "Goto" then -- `Goto{ <string> }
     local str = ident("goto ", i) .. stm[1]
