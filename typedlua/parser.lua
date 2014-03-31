@@ -54,6 +54,7 @@ type:
   | `Any
   | `Union{ type type type* }
   | `Function{ typelist typelist }
+  | `Table{ { type type }+ }
 
 literal: false | true | <number> | <string>
 
@@ -240,7 +241,8 @@ local G = { V"TypedLua",
                 taggedCap("Base", V"BaseType") +
                 taggedCap("Value", V"TopType") +
                 taggedCap("Any", V"DynamicType") +
-                taggedCap("Function", V"FunctionType");
+                taggedCap("Function", V"FunctionType") +
+                taggedCap("Table", V"TableType");
   LiteralType = V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
@@ -253,6 +255,16 @@ local G = { V"TypedLua",
   TopType = token("value", "Type");
   DynamicType = token("any", "Type");
   FunctionType = V"TypeList" * symb("->") * V"TypeList";
+  TableType = symb("{") * V"FieldTypeList" * symb("}");
+  FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0 +
+                  V"PrimaryType" /
+                  function (t)
+                    local f = { tag = "Field", pos = t.pos }
+                    f[1] = { tag = "Base", [1] = "number", pos = t.pos }
+                    f[2] = t
+                    return f
+                  end;
+  FieldType = taggedCap("Field", V"PrimaryType" * symb(":") * V"Type");
   TypeList = symb("(") * sepby1(V"Type", symb(","), "Tuple") *
              taggedCap("Vararg", symb("*"))^-1 * symb(")") /
              function (t, vararg)

@@ -86,6 +86,12 @@ function type2str (t)
     str = str .. typelist2str(t[1]) .. ", "
     str = str .. typelist2str(t[2])
     str = str .. " }"
+  elseif tag == "Table" then -- `Table{ {type type}+ }
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
+    end
+    str = str .. "{ " .. table.concat(l, ", ") .. " }"
   else
     error("expecting a type, but got a " .. tag)
   end

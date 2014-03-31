@@ -2036,7 +2036,7 @@ s = [=[
 local x:number|
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '(', 'Type'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '{', '(', 'Type'
 ]=]
 
 r = parse(s)
