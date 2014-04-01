@@ -8,6 +8,7 @@ type:
   | `Any
   | `Union{ type type type* }
   | `Function{ typelist typelist }
+  | `Table{ { type type }+ }
 
 literal: false | true | <number> | <string>
 
@@ -162,6 +163,16 @@ function types.isFunction (t)
   return t.tag == "Function"
 end
 
+-- table types
+
+function types.Table (...)
+  return { tag = "Table", ... }
+end
+
+function types.isTable (t)
+  return t.tag == "Table"
+end
+
 -- tuple types
 
 function types.Tuple (...)
@@ -246,6 +257,27 @@ local function subtype_function (t1, t2)
   end
 end
 
+local function subtype_table (t1, t2)
+  if types.isTable(t1) and types.isTable(t2) then
+    local len1, len2 = #t1, #t2
+    for i = 1, len2 do
+      local subtype = false
+      for j = 1, len1 do
+        if types.subtype(t1[j][1], t2[i][1]) and
+           types.subtype(t2[i][1], t1[j][1]) and
+           types.subtype(t1[j][2], t2[i][2]) then
+           subtype = true
+           break
+        end
+      end
+      if not subtype then return false end
+    end
+    return true
+  else
+    return false
+  end
+end
+
 function types.subtype_vararg (t1, t2)
   if types.isVararg(t1) and types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
@@ -317,6 +349,7 @@ function types.subtype (t1, t2)
          subtype_any(t1, t2) or
          subtype_union(t1, t2) or
          subtype_function(t1, t2) or
+         subtype_table(t1, t2) or
          subtype_tuple(t1, t2)
 end
 
@@ -379,6 +412,27 @@ end
 local function consistent_subtype_function (t1, t2)
   if types.isFunction(t1) and types.isFunction(t2) then
     return types.consistent_subtype(t2[1], t1[1]) and types.consistent_subtype(t1[2], t2[2])
+  else
+    return false
+  end
+end
+
+local function consistent_subtype_table (t1, t2)
+  if types.isTable(t1) and types.isTable(t2) then
+    local len1, len2 = #t1, #t2
+    for i = 1, len2 do
+      local consistent_subtype = false
+      for j = 1, len1 do
+        if types.consistent_subtype(t1[j][1], t2[i][1]) and
+           types.consistent_subtype(t2[i][1], t1[j][1]) and
+           types.consistent_subtype(t1[j][2], t2[i][2]) then
+           consistent_subtype = true
+           break
+        end
+      end
+      if not consistent_subtype then return false end
+    end
+    return true
   else
     return false
   end
@@ -455,6 +509,7 @@ function types.consistent_subtype (t1, t2)
          consistent_subtype_any(t1, t2) or
          consistent_subtype_union(t1, t2) or
          consistent_subtype_function(t1, t2) or
+         consistent_subtype_table(t1, t2) or
          consistent_subtype_tuple(t1, t2)
 end
 
@@ -489,6 +544,14 @@ function types.supertypeof (t)
     local t1 = typelist_supertypeof(t[1])
     local t2 = typelist_supertypeof(t[2])
     return types.Function(t1,t2)
+  elseif types.isTable(t) then
+    local n = { tag = "Table" }
+    for k, v in ipairs(t) do
+      n[k] = { tag = "Field" }
+      n[k][1] = v[1]
+      n[k][2] = types.supertypeof(v[2])
+    end
+    return n
   else
     return t
   end
@@ -523,6 +586,12 @@ local function type2str (t)
     return "(" .. table.concat(l, " | ") .. ")"
   elseif types.isFunction(t) then
     return "(" .. typelist2str(t[1]) .. ") -> (" .. typelist2str(t[2]) .. ")"
+  elseif types.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
+    end
+    return "{" .. table.concat(l, ", ") .. "}"
   else
     error("expecting type but got " .. t.tag)
   end

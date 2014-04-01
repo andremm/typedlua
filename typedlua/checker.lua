@@ -427,6 +427,39 @@ local function check_id_read (env, exp)
   end
 end
 
+local function check_index_read (env, exp)
+  local exp1, exp2 = exp[1], exp[2]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = exp1["type"], exp2["type"]
+  local msg = "attempt to index '%s'"
+  if types.isTable(t1) then
+    local t
+    for k, v in ipairs(t1) do
+      if types.subtype(v[1], t2) and types.subtype(t2, v[1]) then
+        t = v[2]
+        break
+      end
+    end
+    if t then
+      set_type(exp, t)
+    else
+      set_type(exp, Nil)
+      msg = msg .. " with '%s'"
+      msg = string.format(msg, type2str(t1), type2str(t2))
+      typeerror(env, msg, exp.pos)
+    end
+  elseif types.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, type2str(t1))
+    warning(env, msg, exp.pos)
+  else
+    set_type(exp, Nil)
+    msg = string.format(msg, type2str(t1))
+    typeerror(env, msg, exp.pos)
+  end
+end
+
 local function check_function (env, exp)
   begin_function(env)
   begin_scope(env)
@@ -442,6 +475,28 @@ local function check_function (env, exp)
   set_type(exp, types.Function(t1, t2))
   end_scope(env)
   end_function(env)
+end
+
+local function check_fieldlist (env, exp)
+  local t = { tag = "Table" }
+  local i = 1
+  for k, v in ipairs(exp) do
+    local tag = v.tag
+    if tag == "Pair" then
+      check_exp(env, v[1])
+      check_exp(env, v[2])
+      t[k] = { tag = "Field" }
+      t[k][1] = v[1]["type"]
+      t[k][2] = v[2]["type"]
+    else
+      check_exp(env, v)
+      t[k] = { tag = "Field" }
+      t[k][1] = types.Literal(i)
+      t[k][2] = v["type"]
+      i = i + 1
+    end
+  end
+  set_type(exp, t)
 end
 
 local function check_argument (env, name, t1, t2, i, pos)
@@ -541,7 +596,7 @@ function check_exp (env, exp)
   elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block }
     check_function(env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
-    set_type(exp, Any)
+    check_fieldlist(env, exp)
   elseif tag == "Op" then -- `Op{ opid expr expr? }
     if exp[3] then
       check_binary_op(env, exp)
@@ -557,7 +612,7 @@ function check_exp (env, exp)
   elseif tag == "Id" then -- `Id{ <string> }
     check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
-    set_type(exp, Any)
+    check_index_read(env, exp)
   else
     error("cannot type check expression " .. tag)
   end
@@ -650,6 +705,18 @@ local function check_var_assignment (env, var, inferred_type)
       typeerror(env, msg, var.pos)
     end
   elseif tag == "Index" then
+    check_exp(env, var)
+    local field_type = var["type"]
+    if types.subtype(inferred_type, field_type) then
+    elseif types.consistent_subtype(inferred_type, field_type) then
+      local msg = "attempt to assign '%s' to '%s'"
+      msg = string.format(msg, type2str(inferred_type), type2str(field_type))
+      warning(env, msg, var.pos)
+    else
+      local msg = "attempt to assign '%s' to '%s'"
+      msg = string.format(msg, type2str(inferred_type), type2str(field_type))
+      typeerror(env, msg, var.pos)
+    end
   end
 end
 

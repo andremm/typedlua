@@ -45,7 +45,7 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow S & \textit{function types}\\
-%& | \; \{T:T, ..., T:T\} & \textit{table types}\\
+& | \; \{T:T, ..., T:T\} & \textit{table types}\\
 %& | \; X & \textit{type variables}\\
 %& | \; \mu X.T & \textit{recursive types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
@@ -111,7 +111,7 @@ T \subtype \Top
 \mylabel{S-ANY}
 \]
 
-\subsection{Union types}
+\subsection{Disjoint union types}
 
 \[
 \frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
@@ -137,6 +137,17 @@ T \subtype \Top
 \frac{S_{3} \subtype S_{1} \;\;\; S_{2} \subtype S_{4}}
      {S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
 \mylabel{S-FUNCTION}
+\]
+
+\subsection{Table types}
+
+\[
+\frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+      L_{j} \subtype L_{i}' \;\;\; L_{i}' \subtype L_{j} \;\;\;
+      F_{j} \subtype F_{i}'}
+     {\{L_{1}:F_{1}, ..., L_{m}:F_{m}\} \subtype
+      \{L_{1}':F_{1}', ..., L_{n}':F_{n}'\}}
+\mylabel{S-TABLE}
 \]
 
 \subsection{Vararg types}
@@ -222,7 +233,7 @@ T \lesssim \Any
 \mylabel{C-ANY2}
 \]
 
-\subsection{Union types}
+\subsection{Disjoint union types}
 
 \[
 \frac{T_{1} \lesssim T \;\;\; T_{2} \lesssim T}
@@ -248,6 +259,17 @@ T \lesssim \Any
 \frac{S_{3} \lesssim S_{1} \;\;\; S_{2} \lesssim S_{4}}
      {S_{1} \rightarrow S_{2} \lesssim S_{3} \rightarrow S_{4}}
 \mylabel{C-FUNCTION}
+\]
+
+\subsection{Table types}
+
+\[
+\frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+      L_{j} \lesssim L_{i}' \;\;\; L_{i}' \lesssim L_{j} \;\;\;
+      F_{j} \lesssim F_{i}'}
+     {\{L_{1}:F_{1}, ..., L_{m}:F_{m}\} \lesssim
+      \{L_{1}':F_{1}', ..., L_{n}':F_{n}'\}}
+\mylabel{C-TABLE}
 \]
 
 \subsection{Vararg types}
@@ -308,7 +330,7 @@ e ::= & \;\; \kw{nil} \; | \;
 {<}{\it string}{>} \; | \;
 {...} \; | \;
 f \; | \;
-\{ \; \vec{c} \; \} \\
+\{ \; \vec{c}\; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -326,8 +348,7 @@ f ::= & \; \kw{fun} \; (){:}t \; b \; | \;
 \kw{fun} \; ({...}{:}t_{1}){:}t_{2} \; b \; | \;
 \kw{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b \; | \;
 \kw{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b\\
-c ::= & \; e_{1} = e_{2} \; | \;
-e\\
+c ::= & \; e_{1} = e_{2}\\
 b ::= & \; s \; ; \; \kw{return} \; \vec{e}
 \end{array}
 $$
@@ -549,7 +570,8 @@ $$
 \]
 
 \[
-\env \vdash \{ \; \vec{c} \; \} : \Any
+\frac{\env \vdash \vec{c} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \}}
+     {\env \vdash \{ \; \vec{c} \; \} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \}}
 \mylabel{T-TABLE}
 \]
 
@@ -739,6 +761,39 @@ $$
       \env \vdash e_{1}:\Any}
      {\env \vdash e_{1}(\vec{e_{2}}) : \Any{*}}
 \mylabel{T-EXPCALL2}
+\]
+
+\subsection{Left-hand side}
+
+\[
+\frac{\env(i) = T}
+     {\env \vdash i : T}
+\mylabel{T-ID}
+\]
+
+\[
+\frac{\env \vdash e_{1} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \} \;\;\;
+      \env \vdash e_{2} : T \;\;\;
+      \exists i \in 1..n \;
+      T_{i} \subtype T \;\;\; T \subtype T_{i}}
+     {\env \vdash e_{1}[e_{2}] : T_{i}'}
+\mylabel{T-INDEX1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1}[e_{2}] : \Any}
+\mylabel{T-INDEX2}
+\]
+
+\subsection{Constructor fields}
+
+\[
+\frac{\env \vdash e_{1} : T_{1} \;\;\;
+      \env \vdash e_{2} : T_{2}}
+     {\env \vdash e_{1} = e_{2} : T_{1}:T_{2}}
+\mylabel{T-PAIR}
 \]
 
 \end{document}
