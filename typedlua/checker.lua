@@ -682,6 +682,13 @@ local function check_fornum (env, stm)
   end_scope(env)
 end
 
+local function check_forin (env, idlist, explist, block)
+  begin_scope(env)
+  check_local(env, idlist, explist)
+  check_block(env, block)
+  end_scope(env)
+end
+
 local function check_var_assignment (env, var, inferred_type)
   local tag = var.tag
   if tag == "Id" then
@@ -763,6 +770,7 @@ function check_stm (env, stm)
   elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
     check_fornum(env, stm)
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
+    check_forin(env, stm[1], stm[2], stm[3])
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
     check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
@@ -802,10 +810,16 @@ function checker.typecheck (ast, subject, filename)
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
+  local ENV = { tag = "Id", [1] = "_ENV", [2] = types.Table() }
   begin_function(env)
+  begin_scope(env)
   set_vararg_type(env, String)
   set_return_type(env, types.Tuple(types.Vararg(Any)))
-  check_block(env, ast)
+  set_local(env, ENV, ENV[2], env.scope)
+  for k, v in ipairs(ast) do
+    check_stm(env, v)
+  end
+  end_scope(env)
   end_function(env)
   if #env.messages > 0 then
     return ast, table.concat(env.messages, "\n")
