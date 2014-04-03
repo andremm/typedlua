@@ -371,9 +371,9 @@ $$
 \]
 
 \[
-\frac{\env \vdash \vec{e}:S_{1} \;\;\;
-      \env \vdash \vec{l}:S_{2} \;\;\;
-      \env \vdash S_{1} \lesssim S_{2}}
+\frac{\env \vdash \vec{l}:S_{1} \;\;\;
+      \env \vdash \vec{e}:S_{2} \;\;\;
+      \env \vdash S_{2} \lesssim S_{1}}
      {\env \vdash \vec{l} = \vec{e}}
 \mylabel{T-ASSIGNMENT}
 \]
@@ -408,25 +408,26 @@ $$
       & T_{1} \lesssim \Number \;\;\;
         T_{2} \lesssim \Number \;\;\;
         T_{3} \lesssim \Number & \\
-      & \env, i:\Number \vdash s &
+      & \env, i:T_{1} \vdash s &
       \end{aligned}}
      {\env \vdash \kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s}
 \mylabel{T-FORNUM}
 \]
 
 \[
-\frac{\env \vdash \vec{e}:S_{1} \;\;\;
-      \env \vdash \vec{i}{:}\vec{t}:S_{2} \;\;\;
-      S_{1} \lesssim S_{2} \;\;\;
-      \env, \vec{i}{:}\vec{t}}
+\frac{\env \vdash \vec{i}{:}\vec{t}:S_{1} \;\;\;
+      \env \vdash \vec{e}:S_{2} \;\;\;
+      S_{2} \lesssim S_{1} \;\;\;
+      \env, \vec{i}{:}\vec{t} \vdash s}
      {\env \vdash \kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s}
 \mylabel{T-FORIN}
 \]
 
 \[
-\frac{\env \vdash \vec{e}:S \;\;\;
-      S \lesssim T_{1} \times {...} \times T_{n} \times \Top{*} \;\;\;
-      \env, \vec{i}:\vec{t} \vdash s}
+\frac{\env \vdash \vec{i}{:}\vec{t}:S_{1} \;\;\;
+      \env \vdash \vec{e}:S_{2} \;\;\;
+      S_{2} \lesssim S_{1} \;\;\;
+      \env, \vec{i}{:}\vec{t} \vdash s}
      {\env \vdash \kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s}
 \mylabel{T-LOCAL}
 \]
@@ -462,16 +463,16 @@ $$
 \]
 
 \[
-\frac{\env \vdash \vec{e_{2}}:S_{1} \;\;\;
-      \env \vdash e_{1}:S_{2} \rightarrow S_{3} \;\;\;
-      S_{1} \lesssim S_{2}}
+\frac{\env \vdash e_{1}:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash \vec{e_{2}}:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
      {\env \vdash e_{1}(\vec{e_{2}})}
 \mylabel{T-STMCALL1}
 \]
 
 \[
-\frac{\env \vdash \vec{e_{2}}:S \;\;\;
-      \env \vdash e_{1}:\Any}
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash \vec{e_{2}}:S}
      {\env \vdash e_{1}(\vec{e_{2}})}
 \mylabel{T-STMCALL2}
 \]
@@ -749,16 +750,16 @@ $$
 \]
 
 \[
-\frac{\env \vdash \vec{e_{2}}:S_{1} \;\;\;
-      \env \vdash e_{1}:S_{2} \rightarrow S_{3} \;\;\;
-      S_{1} \lesssim S_{2}}
-     {\env \vdash e_{1}(\vec{e_{2}}) : S_{3}}
+\frac{\env \vdash e_{1}:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash \vec{e_{2}}:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e_{1}(\vec{e_{2}}) : S_{2}}
 \mylabel{T-EXPCALL1}
 \]
 
 \[
-\frac{\env \vdash \vec{e_{2}}:S \;\;\;
-      \env \vdash e_{1}:\Any}
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash \vec{e_{2}}:S}
      {\env \vdash e_{1}(\vec{e_{2}}) : \Any{*}}
 \mylabel{T-EXPCALL2}
 \]
