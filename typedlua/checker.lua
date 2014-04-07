@@ -500,8 +500,8 @@ local function check_fieldlist (env, exp)
 end
 
 local function check_argument (env, name, t1, t2, i, pos)
-  if types.subtype_vararg(t1, t2) then
-  elseif types.consistent_subtype_vararg(t1, t2) then
+  if types.subtype(t1, t2) then
+  elseif types.consistent_subtype(t1, t2) then
     local msg = "parameter %d of %s, attempt to assign '%s' to '%s'"
     msg = string.format(msg, i, name, type2str(t1), type2str(t2))
     warning(env, msg, pos)

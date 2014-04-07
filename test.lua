@@ -1346,7 +1346,7 @@ s = [=[
 local x:(number) -> (number)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ { `Base number }, { `Base number } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number }, `Tuple{ `Base number } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1356,7 +1356,7 @@ s = [=[
 local x:(value*) -> (nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ { `Vararg { `Value } }, { `Vararg { `Base nil } } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Vararg{ `Base nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1366,7 +1366,7 @@ s = [=[
 local x:(number,string,boolean) -> (string,number,boolean)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ { `Base number, `Base string, `Base boolean }, { `Base string, `Base number, `Base boolean } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Base boolean }, `Tuple{ `Base string, `Base number, `Base boolean } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1376,7 +1376,7 @@ s = [=[
 local x:(number,string,value*) -> (string,number,nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ { `Base number, `Base string, `Vararg { `Value } }, { `Base string, `Base number, `Vararg { `Base nil } } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Vararg{ `Base nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1426,7 +1426,7 @@ s = [=[
 local function f (x:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:{ `Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Tuple{ `Any }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1476,7 +1476,7 @@ s = [=[
 local function f (x:any, ...:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:{ `Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Tuple{ `Any }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1486,7 +1486,7 @@ s = [=[
 local function f (x:(any) -> (any)):((any) -> (any)) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Any }, { `Any } } }:{ `Function{ { `Any }, { `Any } } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Any }, `Tuple{ `Any } } }:`Tuple{ `Function{ `Tuple{ `Any }, `Tuple{ `Any } } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1496,7 +1496,7 @@ s = [=[
 local function f (x:(number, number) -> (number, nil*)):(number*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ { `Base number, `Base number }, { `Base number, `Vararg { `Base nil } } } }:{ `Vararg { `Base number } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Base number, `Base number }, `Tuple{ `Base number, `Vararg{ `Base nil } } } }:`Tuple{ `Vararg{ `Base number } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1506,7 +1506,7 @@ s = [=[
 local function f ():(number, nil*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:{ `Base number, `Vararg { `Base nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Base nil } }, {  } } } } }
 ]=]
 
 r = parse(s)

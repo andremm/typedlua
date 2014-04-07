@@ -54,13 +54,13 @@ type:
   | `Any
   | `Union{ type type type* }
   | `Function{ typelist typelist }
-  | `Table{ { type type }+ }
+  | `Table{ { type type }* }
+  | `Tuple{ type* }
+  | `Vararg{ type }
 
 literal: false | true | <number> | <string>
 
 base: 'nil' | 'boolean' | 'number' | 'string'
-
-typelist: `Tuple{ type+ { `VarArg type }? } | `Tuple{ type* { `VarArg type } }
 ]]
 local parser = {}
 
