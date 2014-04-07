@@ -263,9 +263,9 @@ local function subtype_table (t1, t2)
     for i = 1, len2 do
       local subtype = false
       for j = 1, len1 do
-        if types.subtype(t1[j][1], t2[i][1]) and
-           types.subtype(t2[i][1], t1[j][1]) and
-           types.subtype(t1[j][2], t2[i][2]) then
+        if types.subtype(t1[i][1], t2[j][1]) and
+           types.subtype(t2[j][2], t1[i][2]) and
+           types.subtype(t1[i][2], t2[j][2]) then
            subtype = true
            break
         end
@@ -428,9 +428,9 @@ local function consistent_subtype_table (t1, t2)
     for i = 1, len2 do
       local consistent_subtype = false
       for j = 1, len1 do
-        if types.consistent_subtype(t1[j][1], t2[i][1]) and
-           types.consistent_subtype(t2[i][1], t1[j][1]) and
-           types.consistent_subtype(t1[j][2], t2[i][2]) then
+        if types.consistent_subtype(t1[i][1], t2[j][1]) and
+           types.consistent_subtype(t2[j][2], t1[i][2]) and
+           types.consistent_subtype(t1[i][2], t2[j][2]) then
            consistent_subtype = true
            break
         end
@@ -551,8 +551,8 @@ function types.supertypeof (t)
     end
     return n
   elseif types.isFunction(t) then
-    local t1 = typelist_supertypeof(t[1])
-    local t2 = typelist_supertypeof(t[2])
+    local t1 = types.supertypeof(t[1])
+    local t2 = types.supertypeof(t[2])
     return types.Function(t1,t2)
   elseif types.isTable(t) then
     local n = { tag = "Table" }
@@ -562,6 +562,15 @@ function types.supertypeof (t)
       n[k][2] = types.supertypeof(v[2])
     end
     return n
+  elseif types.isTuple(t) then
+    local n = types.Tuple()
+    for k, v in ipairs(t) do
+      n[k] = types.supertypeof(v)
+    end
+    return n
+  elseif types.isVararg(t) then
+    local n = types.supertypeof(t[1])
+    return types.Vararg(n)
   else
     return t
   end

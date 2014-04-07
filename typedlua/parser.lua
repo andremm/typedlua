@@ -255,8 +255,20 @@ local G = { V"TypedLua",
   TopType = token("value", "Type");
   DynamicType = token("any", "Type");
   FunctionType = V"TypeList" * symb("->") * V"TypeList";
-  TableType = symb("{") * V"FieldTypeList" * symb("}");
-  FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0;
+  TableType = symb("{") * (V"RecordType" + V"HashType") * symb("}");
+  RecordType = V"FieldType" * (symb(",") * V"FieldType")^0;
+  HashType = V"Type" * (symb(":") * V"Type")^-1 /
+             function (t1, t2)
+               local t = { tag = "Field" }
+               if not t2 then
+                 t[1] = { tag = "Base", [1] = "number" }
+                 t[2] = t1
+               else
+                 t[1] = t1
+                 t[2] = t2
+               end
+               return t
+             end;
   FieldType = taggedCap("Field", taggedCap("Literal", V"LiteralType") * symb(":") * V"Type");
   TypeList = symb("(") * sepby1(V"Type", symb(","), "Tuple") *
              taggedCap("Vararg", symb("*"))^-1 * symb(")") /
