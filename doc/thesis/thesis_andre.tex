@@ -1,0 +1,99 @@
+\documentclass[pdftex,12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[square,semicolon]{natbib}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+
+\newcommand{\Any}{\mathbf{any}}
+\newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\False}{\mathbf{false}}
+\newcommand{\True}{\mathbf{true}}
+\newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Number}{\mathbf{number}}
+\newcommand{\String}{\mathbf{string}}
+\newcommand{\Void}{\mathbf{void}}
+\newcommand{\X}{$\bullet$}
+
+\def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
+\def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+
+\textsc{\LARGE PUC--Rio}\\[1.5cm]
+\textsc{\Large Informatics Department}\\[1.0cm]
+\textsc{\Large PhD Thesis}\\[0.5cm]
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\HRule \\[0.4cm]
+{\huge \bfseries Typed Lua: An Optional Type System for Lua}\\[0.4cm]
+\HRule \\[1.5cm]
+
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+André Murbach Maidl
+\end{flushleft}
+\end{minipage}
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Advisors:} \\
+Roberto Ierusalimschy \\
+Fabio Mascarenhas
+\end{flushright}
+\end{minipage}
+
+\vfill
+{\large \today}
+
+\end{center}
+\end{titlepage}
+
+\newpage
+\pagenumbering{roman}
+
+\tableofcontents
+
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+%\listoftables
+%\addcontentsline{toc}{chapter}{List of Tables}
+
+%\chapter*{Resumo}
+%\addcontentsline{toc}{chapter}{Resumo}
+
+%\chapter*{Abstract}
+%\addcontentsline{toc}{chapter}{Abstract}
+
+\newpage
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+\label{chap:intro}
+\input{introduction.tex}
+
+\chapter{Blending static and dynamic typing}
+\label{chap:review}
+\input{review.tex}
+
+\chapter{The design \& implementation of Typed Lua}
+\label{chap:typedlua}
+\input{typedlua.tex}
+
+\chapter{Case studies}
+\label{chap:cases}
+\input{cases.tex}
+
+\chapter{Conclusions}
+\label{chap:conc}
+\input{conclusions.tex}
+
+\bibliographystyle{plainnat}
+\bibliography{thesis_andre}
+
+\end{document}

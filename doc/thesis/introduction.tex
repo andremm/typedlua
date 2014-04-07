@@ -1,0 +1,148 @@
+Dynamically typed languages such as Lua avoid static types in favor of
+simplicity and flexibility, because the absence of static types means
+that programmers do not need to bother about abstracting types that
+should be validated by a type checker.
+Instead, dynamically typed languages use run-time \textit{type tags}
+to classify the values they compute, so their implementation can use
+these tags to perform run-time (or dynamic) type checking
+\citep{pierce2002tpl}.
+
+This simplicity and flexibility allow programmers to write code that
+might require a quite complex type system to statically type check,
+though it may also hide bugs that will be caught only after deployment
+if programmers do not properly test their code.
+In contrast, static type checking helps programmers detect many 
+bugs during the development phase.
+Static types also provide a conceptual framework that helps
+programmers define modules and interfaces that can be combined to
+structure the development of programs.
+
+Thus, early error detection and better program structure are two
+advantages of static type checking that can lead programmers to
+migrate their code from a dynamically typed to a statically
+typed language, when their simple scripts become complex programs
+\citep{tobin-hochstadt2006ims}.
+Dynamically typed languages certainly help programmers during the
+beginning of a project, because their simplicity and flexibility
+allow quick development and make it easier to change code according to
+changing requirements.
+However, programmers tend to migrate from dynamically typed to
+statically typed code as soon as the project has consolidated its
+requirements, because the robustness of static types helps
+programmers link requirements to abstractions.
+This migration usually involves different languages that have
+different syntax and semantics, which usually require a complete
+rewrite of existing programs instead of incremental evolution from
+dynamic to static types.
+
+Ideally, programming languages should offer programmers the
+option to choose between static and dynamic typing:
+\textit{optional type systems} \citep{bracha2004pluggable} and
+\textit{gradual typing} \citep{siek2006gradual} are two similar
+approaches for blending static and dynamic typing in the same
+language.
+The aim of both approaches is to offer programmers the option
+to use type annotations where static typing is needed and avoid them
+where dynamic typing is sufficient.
+The difference between these two approaches is the way they treat
+run-time semantics.
+While optional type systems do not affect the run-time semantics,
+gradual typing uses run-time checks to ensure that dynamically typed
+code does not violate the invariants of statically typed code.
+
+Programmers and researchers sometimes use the term gradual typing
+to mean the incremental evolution of dynamically typed code to
+statically typed code.
+For this reason, gradual typing may also refer to optional type
+systems and other approaches that blend static and dynamic typing to
+help programmers incrementally migrate from dynamic to static typing
+without having to switch to a different language, though all these
+approaches differ in the way they handle static and dynamic typing
+together.
+We use the term gradual typing for referring to the work of
+\citet{siek2006gradual}.
+
+In this work we propose the design and implementation of Typed Lua:
+an optional type system for Lua that should be complex enough to
+preserve some of the Lua idioms that programmers are already used to,
+but that should also include new constructs that help programmers
+structure Lua programs.
+
+Lua is a small scripting language, so designing an optional type
+system for Lua should shed some light on optional type systems for
+scripting languages in general.
+Lua provides mechanisms for organizing a program in modules and
+writing object-oriented programs, but it does not set policy on how
+these features should behave, due to its use as an embedded and
+extension language.
+Thus, implementing an optional type system for Lua should offer Lua
+programmers one way to obtain most of the advantages of static typing
+without compromising the simplicity and flexibility of dynamic typing.
+
+So far, Typed Lua should be a strict superset of Lua that
+provides optional type annotations, compile-time type checking, and
+class-based object-oriented programming through the definition of
+classes, interfaces, and modules.
+In practice, we should implement Typed Lua as a programming
+language that extends Lua syntax to add optional type annotations
+and standard constructions for structuring Lua code.
+The compiler should use static types to perform compile-time type
+checking, but should also allow Lua code to coexist with Typed Lua
+code, and generate Lua code that runs in unmodified Lua
+implementations.
+We have an ongoing implementation of the Typed Lua compiler that is
+available online\footnote{https://github.com/andremm/typedlua}.
+
+Typed Lua intended use is as an application language, and we view
+that policies for organizing a program in modules and writing
+object-oriented programs should be part of the language and
+enforced by its optional type system.
+An application language is a programming language that helps
+programmers develop applications from scratch until these
+applications evolve to complex systems rather than just scripts.
+
+We also believe that Typed Lua will help programmers give a more
+formal documentation to already existing Lua code, as static types
+are also a useful source of documentation in languages that provide
+type annotations, because type annotations are always validated by
+the type checker and therefore never get outdated.
+Thus, programmers can use Typed Lua to define axioms about the
+interfaces and types of dynamically typed modules.
+We will enforce this point by using Typed Lua to statically type
+the interface of the Lua standard libraries and other commonly used
+Lua libraries, so our compiler can check their usage by Typed Lua
+code.
+
+Typed Lua will perform a very limited form of local type inference
+\citep{pierce2000lti}, as static typing does not necessarily mean
+that programmers need to insert type annotations in the code.
+Several statically typed languages such as Haskell provide some
+amount of type inference that automatically deduces the types of
+expressions.
+Still, Typed Lua will need a small amount of type annotations due
+to the nature of its optional type system.
+
+Typed Lua will not deal with code optimization, although another
+important advantage of static types is that they help the compiler
+perform optimizations and generate more efficient code.
+However, we believe that the formalization of our optional type
+system will be precise enough to aid optimization in some Lua
+implementations.
+
+We will use some of the ideas of gradual typing to formalize Typed Lua.
+Even though Typed Lua is an optional type system and thus will not
+include run-time checks between dynamic and static regions of the
+code, we believe that using the foundations of gradual typing to
+formalize our optional type system will allow us to include run-time
+checks in the future.
+
+%In Section \ref{sec:review} we review the literature about static and
+%dynamic typing in the same language, which includes the discussion
+%about the particularities between optional type systems and gradual
+%typing.
+%In Section \ref{sec:proposal} we describe the reasons why Typed Lua
+%includes features of object-oriented programming and the status of
+%its design and implementation.
+%In Section \ref{sec:con} we outline our expected contributions.
+%In Section \ref{sec:plan} we present the work plan for thesis completion.
+

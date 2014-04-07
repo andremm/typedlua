@@ -1,0 +1,47 @@
+Our main contribution is the design of a complete optional type system
+for Lua, a procedural scripting language.
+TypeScript is a complete optional type system for JavaScript,
+but it does not include union types, and it uses arrays to represent
+variadic functions and multiple return values.
+Gradualtalk is a complete gradual type system for Smalltalk,
+but Smalltalk is an object-oriented language that does
+not handle multiple return values, multiple assignments, and
+variadic functions.
+Gradualtalk also mixes nominal and structural typing because of
+the object-oriented nature of Smalltalk.
+Typed Racket is a complete static type system for Racket, a functional
+language.
+Typed Racket makes it easier to migrate from untyped to typed code,
+but the migration happens module-by-module and type annotations are
+mandatory on typed modules.
+There are research on the design of optional and gradual type systems
+for JavaScript, Perl, and Python, but they are either experimental or
+limited in their coverage.
+Furthermore, Typed Lua includes table types that use types as keys,
+instead of identifiers, and the fact that Typed Lua also includes
+literal types makes its table types subsume the usual idea of
+record types.
+
+Although each language is different, we believe that several parts of
+the design of Typed Lua should be relevant to other scripting languages.
+Most notably, JavaScript shares with Lua the use of tests of type tags
+as a way of encoding optional and overloaded parameters, and the
+proliferation of class-based object systems built on top of the
+language's delegation mechanisms.
+
+Typed Lua should also be a major contribution to the Lua community,
+because it offers a framework that programmers can use to document,
+test, and better structure their applications.
+For libraries where a full conversion to static type checking should
+prove unfeasible or too much work, the community can use Typed Lua
+just to document the external interfaces of the libraries,
+giving the benefits of static type checking to the users of these
+libraries.
+
+Finally, Typed Lua can be a base for further research and development
+of static type systems for the Lua language, such as the use of static
+analysis of Lua API calls for checking that a native library is
+exporting the interface to Lua code that it declares, the use of
+effect types for typing Lua coroutines, and the use of static types
+for code optimization.
+
