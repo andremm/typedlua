@@ -241,6 +241,8 @@ function code_stm (stm, i)
     return code_call(stm, i)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     return code_invoke(stm, i)
+  elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
+    return ""
   else
     error("tyring to generate code for a statement, but got " .. tag)
   end

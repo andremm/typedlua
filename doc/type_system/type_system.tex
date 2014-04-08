@@ -46,8 +46,8 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow S & \textit{function types}\\
 & | \; \{T:T, ..., T:T\} & \textit{table types}\\
-%& | \; X & \textit{type variables}\\
-%& | \; \mu X.T & \textit{recursive types}\\
+& | \; X & \textit{type variables}\\
+& | \; \mu X.T & \textit{recursive types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Nil \; | \; \Boolean \; | \; \Number \; | \; \String & \\
 \multicolumn{3}{c}{}\\
@@ -143,8 +143,8 @@ T \subtype \Top
 
 \[
 \frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-      L_{j} \subtype L_{i}' \;\;\; L_{i}' \subtype L_{j} \;\;\;
-      F_{j} \subtype F_{i}'}
+      L_{i}' \subtype L_{j} \;\;\;
+      F_{j} \subtype F_{i}' \;\;\; F_{i}' \subtype F_{j}}
      {\{L_{1}:F_{1}, ..., L_{m}:F_{m}\} \subtype
       \{L_{1}':F_{1}', ..., L_{n}':F_{n}'\}}
 \mylabel{S-TABLE}

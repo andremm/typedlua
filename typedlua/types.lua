@@ -9,6 +9,7 @@ type:
   | `Union{ type type type* }
   | `Function{ type type }
   | `Table{ { type type }* }
+  | `Variable{ <string> }
   | `Tuple{ type* }
   | `Vararg{ type }
 
@@ -173,6 +174,16 @@ function types.isTable (t)
   return t.tag == "Table"
 end
 
+-- type variables
+
+function types.Variable (t)
+  return { tag = "Variable", [1] = t }
+end
+
+function types.isVariable (t)
+  return t.tag == "Variable"
+end
+
 -- tuple types
 
 function types.Tuple (...)
@@ -195,7 +206,7 @@ end
 
 -- subtyping
 
-local function subtype_literal (t1, t2)
+local function subtype_literal (env, t1, t2)
   if types.isLiteral(t1) and types.isLiteral(t2) then
     return t1[1] == t2[1]
   elseif types.isLiteral(t1) and types.isBase(t2) then
@@ -213,7 +224,7 @@ local function subtype_literal (t1, t2)
   end
 end
 
-local function subtype_base (t1, t2)
+local function subtype_base (env, t1, t2)
   if types.isBase(t1) and types.isBase(t2) then
     return t1[1] == t2[1]
   else
@@ -221,25 +232,25 @@ local function subtype_base (t1, t2)
   end
 end
 
-local function subtype_top (t1, t2)
+local function subtype_top (env, t1, t2)
   return types.isValue(t2)
 end
 
-local function subtype_any (t1, t2)
+local function subtype_any (env, t1, t2)
   return types.isAny(t1) and types.isAny(t2)
 end
 
-local function subtype_union (t1, t2)
+local function subtype_union (env, t1, t2)
   if types.isUnion(t1) then
     for k, v in ipairs(t1) do
-      if not types.subtype(v, t2) then
+      if not types.subtype(env, v, t2) then
         return false
       end
     end
     return true
   elseif types.isUnion(t2) then
     for k, v in ipairs(t2) do
-      if types.subtype(t1, v) then
+      if types.subtype(env, t1, v) then
         return true
       end
     end
@@ -249,36 +260,54 @@ local function subtype_union (t1, t2)
   end
 end
 
-local function subtype_function (t1, t2)
+local function subtype_function (env, t1, t2)
   if types.isFunction(t1) and types.isFunction(t2) then
-    return types.subtype(t2[1], t1[1]) and types.subtype(t1[2], t2[2])
+    return types.subtype(env, t2[1], t1[1]) and types.subtype(env, t1[2], t2[2])
   else
     return false
   end
 end
 
-local function subtype_table (t1, t2)
+local function subtype_table (env, t1, t2)
   if types.isTable(t1) and types.isTable(t2) then
-    local len1, len2 = #t1, #t2
-    for i = 1, len2 do
-      local subtype = false
-      for j = 1, len1 do
-        if types.subtype(t1[i][1], t2[j][1]) and
-           types.subtype(t2[j][2], t1[i][2]) and
-           types.subtype(t1[i][2], t2[j][2]) then
-           subtype = true
-           break
-        end
+  local m, n = #t1, #t2
+  for i = 1, n do
+    local subtype = false
+    for j = 1, m do
+      if types.subtype(env, t2[i][1], t1[j][1]) and
+         types.subtype(env, t1[j][2], t2[i][2]) and
+         types.subtype(env, t2[i][2], t1[j][2]) then
+        subtype = true
+        break
       end
-      if not subtype then return false end
     end
-    return true
+    if not subtype then
+      return false
+    end
+  end
+  return true
   else
     return false
   end
 end
 
-local function subtype_tuple (t1, t2)
+local function get_type (env, t)
+  return env[t] or types.Nil
+end
+
+local function subtype_variable (env, t1, t2)
+  if types.isVariable(t1) and types.isVariable(t2) then
+    return types.subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+  elseif types.isVariable(t1) and not types.isVariable(t2) then
+    return types.subtype(env, get_type(env, t1[1]), t2)
+  elseif not types.isVariable(t1) and types.isVariable(t2) then
+    return types.subtype(env, t1, get_type(env, t2[1]))
+  else
+    return false
+  end
+end
+
+local function subtype_tuple (env, t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
     local len1, len2 = #t1, #t2
     if not types.isVararg(t1[len1]) or
@@ -288,14 +317,14 @@ local function subtype_tuple (t1, t2)
     if len1 < len2 then
       local i = 1
       while i < len1 do
-        if not types.subtype(t1[i], t2[i]) then
+        if not types.subtype(env, t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len2 do
-        if not types.subtype(t1[i], t2[j]) then
+        if not types.subtype(env, t1[i], t2[j]) then
           return false
         end
         j = j + 1
@@ -304,14 +333,14 @@ local function subtype_tuple (t1, t2)
     elseif len1 > len2 then
       local i = 1
       while i < len2 do
-        if not types.subtype(t1[i], t2[i]) then
+        if not types.subtype(env, t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len1 do
-        if not types.subtype(t1[j], t2[i]) then
+        if not types.subtype(env, t1[j], t2[i]) then
           return false
         end
         j = j + 1
@@ -319,7 +348,7 @@ local function subtype_tuple (t1, t2)
       return true
     else
       for k, v in ipairs(t1) do
-        if not types.subtype(t1[k], t2[k]) then
+        if not types.subtype(env, t1[k], t2[k]) then
           return false
         end
       end
@@ -330,9 +359,9 @@ local function subtype_tuple (t1, t2)
   end
 end
 
-function types.subtype (t1, t2)
+function types.subtype (env, t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
-    return subtype_tuple(t1, t2)
+    return subtype_tuple(env, t1, t2)
   elseif types.isTuple(t1) and not types.isTuple(t2) then
     return false
   elseif not types.isTuple(t1) and types.isTuple(t2) then
@@ -340,27 +369,28 @@ function types.subtype (t1, t2)
   elseif types.isVararg(t1) and types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
     local t2_nil = types.Union(t2[1], types.Nil)
-    return types.subtype(t1_nil, t2_nil)
+    return types.subtype(env, t1_nil, t2_nil)
   elseif types.isVararg(t1) and not types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
-    return types.subtype(t1_nil, t2)
+    return types.subtype(env, t1_nil, t2)
   elseif not types.isVararg(t1) and types.isVararg(t2) then
     local t2_nil = types.Union(t2[1], types.Nil)
-    return types.subtype(t1, t2_nil)
+    return types.subtype(env, t1, t2_nil)
   else
-    return subtype_literal(t1, t2) or
-           subtype_base(t1, t2) or
-           subtype_top(t1, t2) or
-           subtype_any(t1, t2) or
-           subtype_union(t1, t2) or
-           subtype_function(t1, t2) or
-           subtype_table(t1, t2)
+    return subtype_literal(env, t1, t2) or
+           subtype_base(env, t1, t2) or
+           subtype_top(env, t1, t2) or
+           subtype_any(env, t1, t2) or
+           subtype_union(env, t1, t2) or
+           subtype_function(env, t1, t2) or
+           subtype_table(env, t1, t2) or
+           subtype_variable(env, t1, t2)
   end
 end
 
 -- consistent-subtyping
 
-local function consistent_subtype_literal (t1, t2)
+local function consistent_subtype_literal (env, t1, t2)
   if types.isLiteral(t1) and types.isLiteral(t2) then
     return t1[1] == t2[1]
   elseif types.isLiteral(t1) and types.isBase(t2) then
@@ -378,7 +408,7 @@ local function consistent_subtype_literal (t1, t2)
   end
 end
 
-local function consistent_subtype_base (t1, t2)
+local function consistent_subtype_base (env, t1, t2)
   if types.isBase(t1) and types.isBase(t2) then
     return t1[1] == t2[1]
   else
@@ -386,25 +416,25 @@ local function consistent_subtype_base (t1, t2)
   end
 end
 
-local function consistent_subtype_top (t1, t2)
+local function consistent_subtype_top (env, t1, t2)
   return types.isValue(t2)
 end
 
-local function consistent_subtype_any (t1, t2)
+local function consistent_subtype_any (env, t1, t2)
   return types.isAny(t1) or types.isAny(t2)
 end
 
-local function consistent_subtype_union (t1, t2)
+local function consistent_subtype_union (env, t1, t2)
   if types.isUnion(t1) then
     for k, v in ipairs(t1) do
-      if not types.consistent_subtype(v, t2) then
+      if not types.consistent_subtype(env, v, t2) then
         return false
       end
     end
     return true
   elseif types.isUnion(t2) then
     for k, v in ipairs(t2) do
-      if types.consistent_subtype(t1, v) then
+      if types.consistent_subtype(env, t1, v) then
         return true
       end
     end
@@ -414,36 +444,50 @@ local function consistent_subtype_union (t1, t2)
   end
 end
 
-local function consistent_subtype_function (t1, t2)
+local function consistent_subtype_function (env, t1, t2)
   if types.isFunction(t1) and types.isFunction(t2) then
-    return types.consistent_subtype(t2[1], t1[1]) and types.consistent_subtype(t1[2], t2[2])
+    return types.consistent_subtype(env, t2[1], t1[1]) and types.consistent_subtype(env, t1[2], t2[2])
   else
     return false
   end
 end
 
-local function consistent_subtype_table (t1, t2)
+local function consistent_subtype_table (env, t1, t2)
   if types.isTable(t1) and types.isTable(t2) then
-    local len1, len2 = #t1, #t2
-    for i = 1, len2 do
-      local consistent_subtype = false
-      for j = 1, len1 do
-        if types.consistent_subtype(t1[i][1], t2[j][1]) and
-           types.consistent_subtype(t2[j][2], t1[i][2]) and
-           types.consistent_subtype(t1[i][2], t2[j][2]) then
-           consistent_subtype = true
-           break
-        end
+  local m, n = #t1, #t2
+  for i = 1, n do
+    local subtype = false
+    for j = 1, m do
+      if types.consistent_subtype(env, t2[i][1], t1[j][1]) and
+         types.consistent_subtype(env, t1[j][2], t2[i][2]) and
+         types.consistent_subtype(env, t2[i][2], t1[j][2]) then
+        subtype = true
+        break
       end
-      if not consistent_subtype then return false end
     end
-    return true
+    if not subtype then
+      return false
+    end
+  end
+  return true
   else
     return false
   end
 end
 
-local function consistent_subtype_tuple (t1, t2)
+local function consistent_subtype_variable (env, t1, t2)
+  if types.isVariable(t1) and types.isVariable(t2) then
+    return types.consistent_subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+  elseif types.isVariable(t1) and not types.isVariable(t2) then
+    return types.consistent_subtype(env, get_type(env, t1[1]), t2)
+  elseif not types.isVariable(t1) and types.isVariable(t2) then
+    return types.consistent_subtype(env, t1, get_type(env, t2[1]))
+  else
+    return false
+  end
+end
+
+local function consistent_subtype_tuple (env, t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
     local len1, len2 = #t1, #t2
     if not types.isVararg(t1[len1]) or
@@ -453,14 +497,14 @@ local function consistent_subtype_tuple (t1, t2)
     if len1 < len2 then
       local i = 1
       while i < len1 do
-        if not types.consistent_subtype(t1[i], t2[i]) then
+        if not types.consistent_subtype(env, t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len2 do
-        if not types.consistent_subtype(t1[i], t2[j]) then
+        if not types.consistent_subtype(env, t1[i], t2[j]) then
           return false
         end
         j = j + 1
@@ -469,14 +513,14 @@ local function consistent_subtype_tuple (t1, t2)
     elseif len1 > len2 then
       local i = 1
       while i < len2 do
-        if not types.consistent_subtype(t1[i], t2[i]) then
+        if not types.consistent_subtype(env, t1[i], t2[i]) then
           return false
         end
         i = i + 1
       end
       local j = i
       while j <= len1 do
-        if not types.consistent_subtype(t1[j], t2[i]) then
+        if not types.consistent_subtype(env, t1[j], t2[i]) then
           return false
         end
         j = j + 1
@@ -484,7 +528,7 @@ local function consistent_subtype_tuple (t1, t2)
       return true
     else
       for k, v in ipairs(t1) do
-        if not types.consistent_subtype(t1[k], t2[k]) then
+        if not types.consistent_subtype(env, t1[k], t2[k]) then
           return false
         end
       end
@@ -495,9 +539,9 @@ local function consistent_subtype_tuple (t1, t2)
   end
 end
 
-function types.consistent_subtype (t1, t2)
+function types.consistent_subtype (env, t1, t2)
   if types.isTuple(t1) and types.isTuple(t2) then
-    return consistent_subtype_tuple(t1, t2)
+    return consistent_subtype_tuple(env, t1, t2)
   elseif types.isTuple(t1) and not types.isTuple(t2) then
     return false
   elseif not types.isTuple(t1) and types.isTuple(t2) then
@@ -505,21 +549,22 @@ function types.consistent_subtype (t1, t2)
   elseif types.isVararg(t1) and types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
     local t2_nil = types.Union(t2[1], types.Nil)
-    return types.consistent_subtype(t1_nil, t2_nil)
+    return types.consistent_subtype(env, t1_nil, t2_nil)
   elseif types.isVararg(t1) and not types.isVararg(t2) then
     local t1_nil = types.Union(t1[1], types.Nil)
-    return types.consistent_subtype(t1_nil, t2)
+    return types.consistent_subtype(env, t1_nil, t2)
   elseif not types.isVararg(t1) and types.isVararg(t2) then
     local t2_nil = types.Union(t2[1], types.Nil)
-    return types.consistent_subtype(t1, t2_nil)
+    return types.consistent_subtype(env, t1, t2_nil)
   else
-    return consistent_subtype_literal(t1, t2) or
-           consistent_subtype_base(t1, t2) or
-           consistent_subtype_top(t1, t2) or
-           consistent_subtype_any(t1, t2) or
-           consistent_subtype_union(t1, t2) or
-           consistent_subtype_function(t1, t2) or
-           consistent_subtype_table(t1, t2)
+    return consistent_subtype_literal(env, t1, t2) or
+           consistent_subtype_base(env, t1, t2) or
+           consistent_subtype_top(env, t1, t2) or
+           consistent_subtype_any(env, t1, t2) or
+           consistent_subtype_union(env, t1, t2) or
+           consistent_subtype_function(env, t1, t2) or
+           consistent_subtype_table(env, t1, t2) or
+           consistent_subtype_variable(env, t1, t2)
   end
 end
 
@@ -594,13 +639,15 @@ local function type2str (t)
     end
     return "(" .. table.concat(l, " | ") .. ")"
   elseif types.isFunction(t) then
-    return type2(t[1]) .. " -> " .. type2str(t[2])
+    return type2str(t[1]) .. " -> " .. type2str(t[2])
   elseif types.isTable(t) then
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
     end
     return "{" .. table.concat(l, ", ") .. "}"
+  elseif types.isVariable(t) then
+    return t[1]
   elseif types.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do

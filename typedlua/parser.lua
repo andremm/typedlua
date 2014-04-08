@@ -21,6 +21,7 @@ stat:
   | `Return{ <expr*> }                        -- return e1, e2...
   | `Break                                    -- break
   | apply
+  | `Interface{ <string> { <string> type }+ }
 
 expr:
   `Nil
@@ -55,6 +56,7 @@ type:
   | `Union{ type type type* }
   | `Function{ typelist typelist }
   | `Table{ { type type }* }
+  | `Variable{ <string> }
   | `Tuple{ type* }
   | `Vararg{ type }
 
@@ -242,7 +244,8 @@ local G = { V"TypedLua",
                 taggedCap("Value", V"TopType") +
                 taggedCap("Any", V"DynamicType") +
                 taggedCap("Function", V"FunctionType") +
-                taggedCap("Table", V"TableType");
+                taggedCap("Table", V"TableType") +
+                taggedCap("Variable", token(V"Name", "Type"));
   LiteralType = V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
@@ -406,6 +409,9 @@ local G = { V"TypedLua",
   BreakStat = taggedCap("Break", kw("break"));
   GoToStat = taggedCap("Goto", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("Return", kw("return") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(";")^-1);
+  InterfaceStat = taggedCap("Interface", kw("interface") * token(V"Name", "Name") *
+                  V"InterfaceDec"^1 * kw("end"));
+  InterfaceDec = taggedCap("InterfaceDec", token(V"Name", "Name") * symb(":") * V"Type");
   ExprStat = Cmt(
              (V"SuffixedExp" *
                 (Cc(function (...)
@@ -438,7 +444,7 @@ local G = { V"TypedLua",
   Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
-         V"BreakStat" + V"GoToStat" + V"ExprStat";
+         V"BreakStat" + V"GoToStat" + V"InterfaceStat" + V"ExprStat";
   -- lexer
   Space = space^1;
   Equals = P"="^0;
@@ -844,6 +850,8 @@ function traverse_stm (env, stm)
     return traverse_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     return traverse_invoke(env, stm)
+  elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
+    return true
   else
     error("expecting a statement, but got a " .. tag)
   end
