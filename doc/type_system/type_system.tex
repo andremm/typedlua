@@ -14,11 +14,13 @@
 \newcommand{\Number}{\mathbf{number}}
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
+\newcommand{\Const}{\mathbf{const}}
 
 \newcommand{\kw}[1]{\mathbf{\texttt{#1}}}
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
 \newcommand{\env}{\Gamma}
+\newcommand{\senv}{\Sigma}
 \newcommand{\ret}{\string_RET}
 
 \def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
@@ -45,15 +47,15 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow S & \textit{function types}\\
-& | \; \{T:T, ..., T:T\} & \textit{table types}\\
+& | \; \{F, ..., F\} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Nil \; | \; \Boolean \; | \; \Number \; | \; \String & \\
+F ::= & T:T \; | \; \Const \; T:T & \textit{field types}\\ 
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
-S ::= & V & \\
-%S ::= & V \; | \; V \cup S & \\
+S ::= & V \; | \; V \cup S & \\
 V ::= & \;\; T & \\
 & | \; T* & \textit{vararg types}\\
 & | \; T \times V & \textit{tuple types}
@@ -66,76 +68,78 @@ $$
 \subsection{Literal types}
 
 \[
-L \subtype L
+\senv \vdash L \subtype L
 \mylabel{S-LITERAL}
 \]
 
 \[
-\False \subtype \Boolean
+\senv \vdash \False \subtype \Boolean
 \mylabel{S-FALSE}
 \]
 
 \[
-\True \subtype \Boolean
+\senv \vdash \True \subtype \Boolean
 \mylabel{S-TRUE}
 \]
 
 \[
-{<}{\it number}{>} \subtype \Number
+\senv \vdash {<}{\it number}{>} \subtype \Number
 \mylabel{S-NUMBER}
 \]
 
 \[
-{<}{\it string}{>} \subtype \String
+\senv \vdash {<}{\it string}{>} \subtype \String
 \mylabel{S-STRING}
 \]
 
 \subsection{Base types}
 
 \[
-B \subtype B
+\senv \vdash B \subtype B
 \mylabel{S-BASE}
 \]
 
 \subsection{Top type}
 
 \[
-T \subtype \Top
+\senv \vdash T \subtype \Top
 \mylabel{S-TOP}
 \]
 
 \subsection{Dynamic type}
 
 \[
-\Any \subtype \Any
+\senv \vdash \Any \subtype \Any
 \mylabel{S-ANY}
 \]
 
 \subsection{Disjoint union types}
 
 \[
-\frac{T_{1} \subtype T \;\;\; T_{2} \subtype T}
-     {T_{1} \cup T_{2} \subtype T}
+\frac{\senv \vdash T_{1} \subtype T \;\;\;
+      \senv \vdash T_{2} \subtype T}
+     {\senv \vdash T_{1} \cup T_{2} \subtype T}
 \mylabel{S-UNION1}
 \]
 
 \[
-\frac{T \subtype T_{1}}
-     {T \subtype T_{1} \cup T_{2}}
+\frac{\senv \vdash T \subtype T_{1}}
+     {\senv \vdash T \subtype T_{1} \cup T_{2}}
 \mylabel{S-UNION2}
 \]
 
 \[
-\frac{T \subtype T_{2}}
-     {T \subtype T_{1} \cup T_{2}}
+\frac{\senv \vdash T \subtype T_{2}}
+     {\senv \vdash T \subtype T_{1} \cup T_{2}}
 \mylabel{S-UNION3}
 \]
 
 \subsection{Function types}
 
 \[
-\frac{S_{3} \subtype S_{1} \;\;\; S_{2} \subtype S_{4}}
-     {S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
+\frac{\senv \vdash S_{3} \subtype S_{1} \;\;\;
+      \senv \vdash S_{2} \subtype S_{4}}
+     {\senv \vdash S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
 \mylabel{S-FUNCTION}
 \]
 
@@ -143,161 +147,79 @@ T \subtype \Top
 
 \[
 \frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-      L_{i}' \subtype L_{j} \;\;\;
-      F_{j} \subtype F_{i}' \;\;\; F_{i}' \subtype F_{j}}
-     {\{L_{1}:F_{1}, ..., L_{m}:F_{m}\} \subtype
-      \{L_{1}':F_{1}', ..., L_{n}':F_{n}'\}}
+      \senv \vdash F_{i} \subtype F_{j}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\} \subtype \{F_{1}', ..., F_{n}'\}}
 \mylabel{S-TABLE}
+\]
+
+\subsection{Recursive types}
+
+\[
+\frac{\senv, X \subtype Y \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \mu X.T_{1} \subtype \mu Y.T_{2}}
+\mylabel{S-RECURSIVE}
+\]
+
+\subsection{Field types}
+
+\[
+\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
+      \senv \vdash T_{2} \subtype T_{4} \;\;\;
+      \senv \vdash T_{4} \subtype T_{2}}
+     {\senv \vdash T_{1}:T_{2} \subtype T_{3}:T_{4}}
+\mylabel{S-FIELD1}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \subtype T_{3} \;\;\;
+      \senv \vdash T_{2} \subtype T_{4} \;\;\;
+      \senv \vdash T_{4} \subtype T_{2}}
+     {\senv \vdash \Const \; T_{1}:T_{2} \subtype T_{3}:T_{4}}
+\mylabel{S-FIELD2}
 \]
 
 \subsection{Vararg types}
 
 \[
-\frac{T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
-     {T_{1}* \subtype T_{2}*}
+\frac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
+     {\senv \vdash T_{1}* \subtype T_{2}*}
 \mylabel{S-VARARG}
 \]
 
 \subsection{Tuple types}
 
 \[
-\frac{T_{1} \subtype T_{2} \;\;\; V_{1} \subtype V_{2}}
-     {T_{1} \times V_{1} \subtype T_{2} \times V_{2}}
+\frac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash V_{1} \subtype V_{2}}
+     {\senv \vdash T_{1} \times V_{1} \subtype T_{2} \times V_{2}}
 \mylabel{S-TUPLE1}
 \]
 
 \[
-\frac{T_{1} \cup \Nil \subtype T_{2} \;\;\; T_{1}* \subtype V_{2}}
-     {T_{1}* \subtype T_{2} \times V_{2}}
+\frac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \;\;\;
+      \senv \vdash T_{1}* \subtype V_{2}}
+     {\senv \vdash T_{1}* \subtype T_{2} \times V_{2}}
 \mylabel{S-TUPLE2}
 \]
 
 \[
-\frac{T_{1} \subtype T_{2} \cup \Nil \;\;\; V_{1} \subtype T_{2}*}
-     {T_{1} \times V_{1} \subtype T_{2}*}
+\frac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil \;\;\;
+      \senv \vdash V_{1} \subtype T_{2}*}
+     {\senv \vdash T_{1} \times V_{1} \subtype T_{2}*}
 \mylabel{S-TUPLE3}
 \]
 
 \section{Consistent-Subtyping}
 
-\subsection{Literal types}
-
+Similar to the subtyping rules, except those that handle the dynamic type:
 \[
-L \lesssim L
-\mylabel{C-LITERAL}
-\]
-
-\[
-\False \lesssim \Boolean
-\mylabel{C-FALSE}
-\]
-
-\[
-\True \lesssim \Boolean
-\mylabel{C-TRUE}
-\]
-
-\[
-{<}{\it number}{>} \lesssim \Number
-\mylabel{C-NUMBER}
-\]
-
-\[
-{<}{\it string}{>} \lesssim \String
-\mylabel{C-STRING}
-\]
-
-\subsection{Base types}
-
-\[
-B \lesssim B
-\mylabel{C-BASE}
-\]
-
-\subsection{Top type}
-
-\[
-T \lesssim \Top
-\mylabel{C-TOP}
-\]
-
-\subsection{Dynamic type}
-
-\[
-T \lesssim \Any
+\senv \vdash T \lesssim \Any
 \mylabel{C-ANY1}
 \]
 
 \[
-\Any \lesssim T
+\senv \vdash \Any \lesssim T
 \mylabel{C-ANY2}
-\]
-
-\subsection{Disjoint union types}
-
-\[
-\frac{T_{1} \lesssim T \;\;\; T_{2} \lesssim T}
-     {T_{1} \cup T_{2} \lesssim T}
-\mylabel{C-UNION1}
-\]
-
-\[
-\frac{T \lesssim T_{1}}
-     {T \lesssim T_{1} \cup T_{2}}
-\mylabel{C-UNION2}
-\]
-
-\[
-\frac{T \lesssim T_{2}}
-     {T \lesssim T_{1} \cup T_{2}}
-\mylabel{C-UNION3}
-\]
-
-\subsection{Function types}
-
-\[
-\frac{S_{3} \lesssim S_{1} \;\;\; S_{2} \lesssim S_{4}}
-     {S_{1} \rightarrow S_{2} \lesssim S_{3} \rightarrow S_{4}}
-\mylabel{C-FUNCTION}
-\]
-
-\subsection{Table types}
-
-\[
-\frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-      L_{j} \lesssim L_{i}' \;\;\; L_{i}' \lesssim L_{j} \;\;\;
-      F_{j} \lesssim F_{i}'}
-     {\{L_{1}:F_{1}, ..., L_{m}:F_{m}\} \lesssim
-      \{L_{1}':F_{1}', ..., L_{n}':F_{n}'\}}
-\mylabel{C-TABLE}
-\]
-
-\subsection{Vararg types}
-
-\[
-\frac{T_{1} \cup \Nil \lesssim T_{2} \cup \Nil}
-     {T_{1}* \lesssim T_{2}*}
-\mylabel{C-VARARG}
-\]
-
-\subsection{Tuple types}
-
-\[
-\frac{T_{1} \lesssim T_{2} \;\;\; V_{1} \lesssim V_{2}}
-     {T_{1} \times V_{1} \lesssim T_{2} \times V_{2}}
-\mylabel{C-TUPLE1}
-\]
-
-\[
-\frac{T_{1} \cup \Nil \lesssim T_{2} \;\;\; T_{1}* \lesssim V_{2}}
-     {T_{1}* \lesssim T_{2} \times V_{2}}
-\mylabel{C-TUPLE2}
-\]
-
-\[
-\frac{T_{1} \lesssim T_{2} \cup \Nil \;\;\; V_{1} \lesssim T_{2}*}
-     {T_{1} \times V_{1} \lesssim T_{2}*}
-\mylabel{C-TUPLE3}
 \]
 
 \section{Typing Rules}
