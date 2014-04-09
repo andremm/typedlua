@@ -82,6 +82,15 @@ local function set_type (node, t)
   node["type"] = t
 end
 
+local function infer_return_type (env, t)
+  local fscope = env.fscope
+  if not env["function"][env.fscope]["inferred_return_type"] then
+    env["function"][env.fscope]["inferred_return_type"] = {}
+  end
+  local a = env["function"][env.fscope]["inferred_return_type"]
+  a[#a + 1] = t
+end
+
 local function get_return_type (env)
   return env["function"][env.fscope]["return_type"]
 end
@@ -161,6 +170,7 @@ local function check_parameters (env, parlist)
     local v = parlist[i]
     if not v[1] then v[1] = Any end
     vararg[1] = v[1]
+    set_vararg_type(env, v[1])
   end
   t[i] = vararg
   return t
@@ -211,7 +221,7 @@ local function check_localrec (env, id, exp)
 end
 
 local function check_dots (env, exp)
-  local t = env["function"][env.fscope]["vararg_type"]
+  local t = env["function"][env.fscope]["vararg_type"] or Nil
   set_type(exp, types.Vararg(t))
 end
 
@@ -579,6 +589,60 @@ local function check_call (env, exp)
   end
 end
 
+local function check_invoke (env, exp)
+  local exp1, exp2 = exp[1], exp[2]
+  local explist = {}
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  for i = 3, #exp do
+    explist[i - 2] = exp[i]
+  end
+  check_explist(env, explist)
+  local typelist = explist2typelist(explist)
+  local t1, t2 = exp1["type"], exp2["type"]
+  local msg = "attempt to index '%s'"
+  if types.isTable(t1) then
+    local t
+    for k, v in ipairs(t1) do
+      if types.subtype(env["variale"], v[1], t2) and types.subtype(env["variable"], t2, v[1]) then
+        t = v[2]
+        break
+      end
+    end
+    if t then
+      if types.isFunction(t) then
+        check_arguments(env, exp2[1], typelist, t[1], exp.pos)
+        set_type(exp, t[2])
+      elseif types.isAny(t) then
+        local msg = "attempt to call %s of type 'any'"
+        msg = string.format(msg, exp2[1])
+        warning(env, msg, exp.pos)
+        set_type(exp, Any)
+      else
+        local msg = "attempt to call %s of type '%s'"
+        msg = string.format(msg, exp2[1], type2str(t))
+        typeerror(env, msg, exp.pos)
+        set_type(exp, Nil)
+      end
+    else
+      local msg = "cannot invoke undeclared method %s"
+      msg = string.format(msg, exp2[1])
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Nil)
+    end
+  elseif types.isAny(t1) then
+    local msg = "attempt to index value of type 'any' to invoke method %s"
+    msg = string.format(msg, exp2[1])
+    warning(env, msg, exp.pos)
+    set_type(exp, Any)
+  else
+    local msg = "attempt to index value of type '%s' to invoke method %s"
+    msg = string.format(msg, type2str(t1), exp2[1])
+    typeerror(env, msg, exp.pos)
+    set_type(exp, Nil)
+  end
+end
+
 function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
@@ -607,8 +671,8 @@ function check_exp (env, exp)
     check_paren(env, exp)
   elseif tag == "Call" then -- `Call{ expr expr* }
     check_call(env, exp)
-  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> expr* }
-    set_type(exp, Any)
+  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
+    check_invoke(env, exp)
   elseif tag == "Id" then -- `Id{ <string> }
     check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
@@ -745,12 +809,15 @@ end
 local function check_return (env, stm)
   check_explist(env, stm)
   local typelist = explist2typelist(stm)
+  infer_return_type(env, types.supertypeof(typelist))
   local t = get_return_type(env)
-  local msg = "return type does not match function signature"
-  if types.subtype(env["variable"], t, typelist) then
-  elseif types.consistent_subtype(env["variable"], t, typelist) then
+  local msg = "return type '%s' does not match '%s'"
+  if types.subtype(env["variable"], typelist, t) then
+  elseif types.consistent_subtype(env["variable"], typelist, t) then
+    msg = string.format(msg, type2str(typelist), type2str(t))
     warning(env, msg, stm.pos)
   else
+    msg = string.format(msg, type2str(typelist), type2str(t))
     typeerror(env, msg, stm.pos)
   end
 end
@@ -795,6 +862,7 @@ function check_stm (env, stm)
   elseif tag == "Call" then -- `Call{ expr expr* }
     check_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
+    check_invoke(env, stm)
   elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
     check_interface(env, stm)
   else
