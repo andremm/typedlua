@@ -771,21 +771,54 @@ local function check_var_assignment (env, var, inferred_type)
         typeerror(env, msg, var.pos)
       end
     else
-      local msg = "local variable '%s' is not defined"
-      msg = string.format(msg, name)
-      typeerror(env, msg, var.pos)
+      local global = {}
+      global.tag = "Index"
+      global.pos = var.pos
+      global[1] = { tag = "Id", [1] = "_ENV", pos = var.pos }
+      global[2] = { tag = "String", [1] = name, pos = var.pos }
+      check_var_assignment(env, global, inferred_type)
     end
   elseif tag == "Index" then
-    check_exp(env, var)
-    local field_type = var["type"]
-    if types.subtype(env["variable"], inferred_type, field_type) then
-    elseif types.consistent_subtype(env["variable"], inferred_type, field_type) then
-      local msg = "attempt to assign '%s' to '%s'"
-      msg = string.format(msg, type2str(inferred_type), type2str(field_type))
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+    local t1, t2 = exp1["type"], exp2["type"]
+    if types.isTable(t1) then
+      local t
+      for k, v in ipairs(t1) do
+        if types.subtype(env["variable"], v[1], t2) and
+           types.subtype(env["variable"], t2, v[1]) then
+          t = v[2]
+          break
+        end
+      end
+      if t then
+        if types.subtype(env["variable"], inferred_type, t) then
+        elseif types.consistent_subtype(env["variable"], inferred_type, t) then
+          local msg = "attempt to assign '%s' to '%s'"
+          msg = string.format(msg, type2str(inferred_type), type2str(t))
+          warning(env, msg, var.pos)
+        else
+          local msg = "attempt to assign '%s' to '%s'"
+          msg = string.format(msg, type2str(inferred_type), type2str(t))
+          typeerror(env, msg, var.pos)
+        end
+      else
+        if t1.open then
+          local f = { tag = "Field", [1] = t2, [2] = types.supertypeof(inferred_type) }
+          t1[#t1 + 1] = f
+        else
+          local msg = "attempt to use '%s' to index closed table"
+          msg = string.format(msg, type2str(t2))
+          typeerror(env, msg, var.pos)
+        end
+      end
+    elseif types.isAny(t1) then
+      local msg = "attempt to index value of type 'any'"
       warning(env, msg, var.pos)
     else
-      local msg = "attempt to assign '%s' to '%s'"
-      msg = string.format(msg, type2str(inferred_type), type2str(field_type))
+      local msg = "attempt to index value of type '%s'"
+      msg = string.format(msg, type2str(t1))
       typeerror(env, msg, var.pos)
     end
   end
@@ -894,6 +927,7 @@ function checker.typecheck (ast, subject, filename)
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
   local ENV = { tag = "Id", [1] = "_ENV", [2] = types.Table() }
+  ENV[2].open = true
   begin_function(env)
   begin_scope(env)
   set_vararg_type(env, String)
