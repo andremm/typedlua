@@ -431,7 +431,7 @@ local function check_id_read (env, exp)
     global.tag = "Index"
     global.pos = exp.pos
     global[1] = { tag = "Id", [1] = "_ENV", pos = exp.pos }
-    global[2] = { tag = "String", [2] = name, pos = exp.pos }
+    global[2] = { tag = "String", [1] = name, pos = exp.pos }
     check_exp(env, global)
     set_type(exp, global["type"])
   end

@@ -1,4 +1,4 @@
-We begin this section presenting a little bit of the history about
+We begin this chapter presenting a little bit of the history about
 combining static and dynamic typing in the same language.
 After that, we introduce optional type systems and gradual typing.
 We end this section discussing why optional type systems and two
@@ -28,7 +28,7 @@ Thus, migrating code between dynamic and static type checking requires
 changing type annotations and adding or removing \texttt{dynamic} and
 \texttt{typecase} constructs throughout the code.
 
-The \textit{quasi-static} type system proposed by \citet{thatte1990qst}
+The \emph{quasi-static} type system proposed by \citet{thatte1990qst}
 performs implicit coercions and run-time checks to replace the
 \texttt{dynamic} and \texttt{typecase} constructs that were proposed by
 \citet{abadi1989dts}.
@@ -37,11 +37,11 @@ $\Omega$ that represents the dynamic type, and splits type checking
 into two phases.
 The first phase inserts implicit coercions from the dynamic type to
 the expected type, while the second phase performs what Thatte calls
-\textit{plausibility checking}, that is, it rewrites the program to
+\emph{plausibility checking}, that is, it rewrites the program to
 guarantee that sequences of upcasts and downcasts always have a
 common subtype.
 
-\textit{Soft typing} \citep{cartwright1991soft} is another approach
+\emph{Soft typing} \citep{cartwright1991soft} is another approach
 to combine static and dynamic typing in the same language.
 The main goal of soft typing is to add static type checking to
 dynamically typed languages without compromising their flexibility.
@@ -51,7 +51,7 @@ The type checker inserts run-time checks around inconsistent code and
 warns the programmer about the insertion of these run-time checks,
 as they indicate the existence of potential type errors.
 However, the programmer is free to choose between inspecting the
-run-time checks and simply running the code.
+run-time checks or simply running the code.
 Soft typing gives this choice to the programmer because it is one of
 its key ideas, that is, type inference and static type checking should
 not prevent the programmer from running inconsistent code.
@@ -62,7 +62,7 @@ One disadvantage of soft typing is that it can be cumbersome when
 the inferred types are meaningless large types that just confuse the
 programmer.
 
-\textit{Dynamic typing} \citep{henglein1994dts} is an approach
+\emph{Dynamic typing} \citep{henglein1994dts} is an approach
 that optimizes code from dynamically typed languages by eliminating
 unnecessary checks of tags.
 The paper describes how to translate dynamically typed code to
@@ -80,7 +80,7 @@ that comes with static type checking.
 
 \citet{findler2002chf} proposed contracts for higher-order functions
 and blame annotations for run-time checks.
-Contracts perform dynamic checking instead of static checking,
+Contracts perform dynamic type checking instead of static type checking,
 but deferring all verifications to run-time can lead to defects
 that are difficult to fix, because run-time errors can show a
 stack trace where it is not clear to programmers if the cause of a
@@ -90,12 +90,9 @@ error is in library code, they still may have problems to identify
 if this run-time error is due to a violation of library's contract,
 or due to a bug, when the library is poorly documented.
 In this approach, programmers can insert assertions in the form of
-contracts that check the input and output of higher-order functions.
-Thus, \citet{findler2002chf} show how programmers can insert
-assertions in the form of contracts that check the input and output
-of higher-order functions; and they also show how to add blame
-annotations in the generated code as a way to track assertion
-failures back to the source of the error.
+contracts that check the input and output of higher-order functions;
+and the compiler add blame annotations in the generated code as a way
+to track assertion failures back to the source of the error.
 
 BabyJ \citep{anderson2003babyj} is an object-oriented language
 without inheritance that allows programmers to incrementally annotate
@@ -104,7 +101,7 @@ Programmers can choose between using the dynamically typed version
 of BabyJ, when they do not need types at all, and the statically
 typed version of BabyJ, when they need to annotate the code.
 In the statically typed BabyJ, programmers can use the
-\textit{permissive type} $*$ to annotate the parts of the code that
+\emph{permissive type} $*$ to annotate the parts of the code that
 still do not have a specific type or the parts of the code that should
 have dynamic behavior.
 The type system of BabyJ is nominal, so types are either class names
@@ -131,58 +128,59 @@ plugging static typing in dynamically typed languages through
 optional type annotations that are used to perform compile-time type
 checking, though not influencing the original run-time semantics of
 the language.
-This means that optional type systems can be unsound without affecting
-language safety, because the run-time semantics should still catch
-type errors independently of the static type checking.
-More precisely, optional type systems are unsound if they do not catch
-some type errors, but we say that languages with unsound optional type
-systems are safe because the semantics of these languages catch during
-run-time the type errors that the optional type system did not catch.
-Although optional type systems maintain the simplicity and
-flexibility of dynamically typed languages, their static type
-checking cannot prove the absence of all type errors when the optional
-type system is unsound.
-
-Optional type systems have an interesting relation to the untyped
-lambda calculus and the typed lambda calculus.
-The semantic rules of the unytped lambda calculus are the same of the
-typed lambda calculus, and the type system is actually optional and
-serves only for discarding programs that may have undesired behaviors
-\citep{bracha2004pluggable}.
-
-Optional type systems make software evolution easier and
-allow language designers to experiment with
-\textit{pluggable type systems} \citep{bracha2004pluggable}.
-Pluggable type systems are different optional type systems for
-checking different aspects of the program.
-
-According to \citet{bracha2004pluggable}, optional type systems should
-not include mandatory type inference too, because mandatory type
-inference may decrease the expressiveness of the type system.
-Instead, optional type systems should implement type inference as
-an independent mechanism that can be turned on and off according to
-the programmers' needs.
-
-Unfortunately, there is no formalization on optional type systems,
-so each language ends up implementing its optional type system on
-its own way.
-Now we will briefly discuss some languages that provide an informal
-description of their optional type systems rather than a formal one.
+That is, the run-time semantics should still catch type errors
+independently of the static type checking.
+For instance, we can view the typed lambda calculus as an optional
+type system for the untyped lambda calculus, because both have the
+same semantic rules and the type system serves only for discarding
+programs that may have undesired behaviors \citep{bracha2004pluggable}.
 
 Strongtalk \citep{bracha1993strongtalk,bracha1996strongtalk} is
-a version of Smalltalk that comes with an optional type system that
-does not include any type inference.
+a version of Smalltalk that comes with an optional type system.
+It has a polymorphic type system that programmers can use to annotate
+Smalltalk code or leave type annotations out.
+Strongtalk assigns a dynamic type to unannotated expressions and allows
+programmers to cast unannotated expressions to any static type.
+This means that the interaction of the dynamic type with the rest of
+the type system is unsound, so Strongtalk uses the original run-time
+semantics of Smalltalk when executing programs, even if programs are
+statically typed.
+
+\emph{Pluggable type systems} \citep{bracha2004pluggable} generalize
+the idea of optional type systems that Strongtalk put in practice,
+to have different optional type systems that can be layered on top
+of a dynamically typed language without affecting its original run-time
+semantics.
+Although these systems can be unsound on their interaction with the
+dynamically typed part of the language or even by design, their
+unsoundness does not affect run-time safety, as the language run-time
+semantics still cathes any run-time errors caused by an unsound
+type system.
 
 Dart \citep{dart} and TypeScript \citep{typescript} are new
 languages that are designed with an optional type system, and both
 use JavaScript as their code generation target because their main
 purpose is web development.
 In fact, Dart is a new class-based object-oriented language with
-optional type annotations while TypeScript is a strict superset of
+optional type annotations and a semantics that resembles the
+semantics of Smalltalk, while TypeScript is a strict superset of
 JavaScript that provides optional type annotations and class-based
 object-oriented programming.
-Both Dart and TypeScript perform type inference to deduce static
-types for unannotated code.
+Dart has a nominal type system, while TypeScript has a structural
+one, but both are unsound by design.
+For instance, Dart has covariant arrays, while TypeScript has
+covariant function return types;
+without counting the interaction between statically and dynamically
+typed code that is also unsound.
+
+Unfortunately, there is no common formalization for optional type
+systems, so each language ends up implementing its optional type
+system on its own way.
+Strongtalk, Dart, and TypeScript provide an informal description of
+their optional type systems rather than a formal one.
+In the next section we shall see that we can use some aspects
+of gradual typing \citep{siek2006gradual,siek2007objects} to
+formalize optional type systems.
 
 \section{Gradual Typing}
 
@@ -197,13 +195,14 @@ the dynamic type $?$.
 Under these circumstances, we view gradual typing as a way to add
 a dynamic type to statically typed languages.
 
-The central idea of gradual typing is the \textit{consistency}
+The central idea of gradual typing is the \emph{consistency}
 relation, written $\tau_{1} \sim \tau_{2}$, that allows implicit
 conversions to and from the dynamic type, and disallows conversions
 between inconsistent types \citep{siek2006gradual}.
-For instance, $\mathbf{int} \sim \,?$ and $?\, \sim \mathbf{int}$,
-but $\mathbf{int} \not\sim \mathbf{string}$ and
-$\mathbf{string} \not\sim \mathbf{int}$. 
+For instance, $\mathbf{int} \sim \;?$, $? \sim \mathbf{int}$,
+$\mathbf{string} \sim \;?$, and $? \sim \mathbf{string}$,
+but $\mathbf{int} \not\sim \mathbf{string}$, and
+$\mathbf{string} \not\sim \mathbf{int}$.
 The consistency relation is neither commutative nor transitive.
 
 Gradual typing is similar to the approaches proposed by
@@ -223,7 +222,7 @@ accepts programs that should be rejected.
 Later, \citet{siek2007objects} discovered that the consistency relation
 is orthogonal to subtyping, so we can combine the two relations to
 achieve both consistency and subtyping.
-The \textit{consistent-subtyping} relation,
+The \emph{consistent-subtyping} relation,
 written $\tau_{1} \lesssim \tau_{2}$,
 is essential to design object-oriented languages that have a
 gradual type system.
@@ -257,7 +256,7 @@ coercion of bounded size.
 Another concern about casts is how to improve debugging support,
 because a cast application can be delayed and the error related
 to that cast application can appear far way from the real error.
-\citet{wadler2009wpc} developed the \textit{blame calculus} as a way
+\citet{wadler2009wpc} developed the \emph{blame calculus} as a way
 to attack this issue, and \citet{ahmed2011bfa} extended the
 blame calculus with polymorphism.
 The blame calculus is an intermediate language to integrate
@@ -273,13 +272,13 @@ Thus, \citet{siek2009casts} extended the coercion calculus of
 implementation of the blame calculus that is space efficient.
 After that, \citet{siek2010blame} proposed a new solution that also
 attacks both problems.
-This new solution is based on a concept called \textit{threesome},
+This new solution is based on a concept called \emph{threesome},
 which is a way to split a cast between two parties into two casts
 among three parties.
-A cast has a source and a target type (a \textit{twosome}),
+A cast has a source and a target type (a \emph{twosome}),
 so we can split any cast into a downcast from the source to an
 intermediate type that is followed by an upcast from the intermediate
-type to the target type (a \textit{threesome}).
+type to the target type (a \emph{threesome}).
 
 ActionScript \citep{moock2007as3} is the first language that
 incorporated a gradual type system to its implementation and
@@ -302,9 +301,9 @@ objects \citep{allende2013cis}.
 
 Gradual typing is similar to optional type systems in that type
 annotations are optional, and unannotated code is dynamically
-typed, but unlike optional type systems, gradual typing changes 
+typed, but unlike optional type systems, gradual typing changes
 the run-time semantics to preserve type safety, and it is a way to
-add a dynamic type to statically typed languages. 
+add a dynamic type to statically typed languages.
 More precisely, programming languages that include a gradual type
 system implement the semantics of statically typed languages, so
 the gradual type system inserts casts in the translated code to
@@ -322,12 +321,12 @@ typing to formalize their optional type systems.
 The optional type systems of both BabyJ and Alore are nominal.
 BabyJ uses the relation $\approx$ that is similar to the consistency
 relation while Alore combines  subtyping along with the consistency
-relation to define a \textit{consistent-or-subtype} relation.
+relation to define a \emph{consistent-or-subtype} relation.
 The consistent-or-subtype relation is different from the
 consistent-subtyping relation of \citet{siek2007objects}, but it is
 also written $\tau_{1} \lesssim \tau_{2}$.
 The consistent-or-subtype relation holds when $\tau_{1} \sim \tau_{2}$
-or $\tau_{1} <: \tau_{2}$, so $<:$ is transitive and $\sim$ is not.
+or $\tau_{1} <: \tau_{2}$, where $<:$ is transitive and $\sim$ is not.
 Alore also extends its optional type system to include optional
 monitoring of run-time type errors in the gradual typing style.
 
@@ -338,8 +337,8 @@ Typed Clojure \citep{bonnaire-sergeant2012typed-clojure} is an
 optional type system for Clojure that now is adopting the
 gradual typing slogan.
 
-\citet{flanagan2006htc} introduced \textit{hybrid type checking},
-an approach that combines static types and refinement types.
+\citet{flanagan2006htc} introduced \emph{hybrid type checking},
+an approach that combines static types and \emph{refinement} types.
 For instance, programmers can specify the refinement type
 $\{x:Int \;|\; x \ge 0\}$ when they need a type for natural numbers.
 The programmer can also choose between explicit or implicit casts.
@@ -358,11 +357,11 @@ code whose declared type is the dynamic type.
 Thus, the inclusion of a dynamic type to hybrid type checking
 along with optional type annotations, and the insertion of run-time
 checks probably are the reasons why hybrid type checking is
-also viewed as a form of gradual typing. 
+also viewed as a form of gradual typing.
 
 \citet{tobin-hochstadt2006ims} proposed another approach for gradually
 migrating from dynamically typed to statically typed code,
-and they coined the term \textit{from scripts to programs} for
+and they coined the term \emph{from scripts to programs} for
 referring to this kind of interlanguage migration.
 In their approach, the migration from dynamically typed to
 statically typed code happens module-by-module, so they designed
