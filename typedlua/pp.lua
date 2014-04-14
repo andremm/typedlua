@@ -61,7 +61,8 @@ function type2str (t)
   elseif tag == "Nil" or -- `Nil
          tag == "Value" or -- `Value
          tag == "Any" then -- `Any
-  elseif tag == "Union" then -- `Union{ type type type* }
+  elseif tag == "Union" or
+         tag == "Unionlist" then -- `Union{ type type type* }
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v)

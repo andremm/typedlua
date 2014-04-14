@@ -176,14 +176,6 @@ local function check_parameters (env, parlist)
   return t
 end
 
-local function check_return_type (typelist)
-  local len = #typelist
-  if not types.isVararg(typelist[len]) then
-    typelist[#typelist + 1] = types.Vararg(Nil)
-  end
-  return typelist
-end
-
 local function check_local (env, idlist, explist)
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
@@ -209,7 +201,7 @@ local function check_localrec (env, id, exp)
     typelist = types.Tuple(types.Vararg(Any))
   end
   local t1 = check_parameters(env, idlist)
-  local t2 = check_return_type(typelist)
+  local t2 = typelist
   local t = types.Function(t1, t2)
   set_type(exp, t)
   id[2] = t
@@ -479,7 +471,7 @@ local function check_function (env, exp)
     typelist = types.Tuple(types.Vararg(Any))
   end
   local t1 = check_parameters(env, idlist)
-  local t2 = check_return_type(typelist)
+  local t2 = typelist
   set_return_type(env, t2)
   check_block(env, block)
   set_type(exp, types.Function(t1, t2))

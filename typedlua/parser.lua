@@ -257,7 +257,7 @@ local G = { V"TypedLua",
   NilType = taggedCap("Nil", token(C"nil", "Type"));
   TopType = taggedCap("Value", token("value", "Type"));
   DynamicType = taggedCap("Any", token("any", "Type"));
-  FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"RetTypeList");
+  FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"NullableRetTypeList");
   TableType = taggedCap("Table", symb("{") * V"FieldTypeList"^-1 * symb("}"));
   VariableType = taggedCap("Variable", token(V"Name", "Type"));
   FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0 +
@@ -296,7 +296,39 @@ local G = { V"TypedLua",
                end
                return t
              end;
-  RetType = V"RetTypeList";
+  NullableRetTypeList = V"UnionRetTypeList" * (symb("?") * Cc(true))^-1 /
+                        function (t, nullable)
+                          if nullable then
+                            local e = { tag = "Tuple" }
+                            e[1] = { tag = "Nil" }
+                            e[2] = { tag = "Base", [1] = "string" }
+                            e[3] = { tag = "Vararg", [1] = { tag = "Nil" } }
+                            t[#t + 1] = e
+                          end
+                          if #t == 1 then
+                            return t[1]
+                          else
+                            return t
+                          end
+                        end;
+  UnionRetTypeList = taggedCap("Unionlist", V"RetTypeList" * Cg(symb("|") * V"RetTypeList")^0);
+  RetType = V"NullableRetTypeList" +
+            V"Type" /
+            function (t)
+              local n = { tag = "Vararg", [1] = { tag = "Nil" } }
+              if t.tag == "Union" then
+                local u = { tag = "Unionlist" }
+                for k, v in ipairs(t) do
+                  local l = { tag = "Tuple" }
+                  l[1] = v
+                  l[2] = n
+                  u[k] = l
+                end
+                return u
+              else
+                return { tag = "Tuple", [1] = t, [2] = n }
+              end
+            end;
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;

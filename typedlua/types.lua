@@ -11,6 +11,7 @@ type:
   | `Function{ type type }
   | `Table{ { type type }* }
   | `Variable{ <string> }
+  | `Unionlist{ type type type* }
   | `Tuple{ type* }
   | `Vararg{ type }
 
@@ -185,6 +186,12 @@ end
 
 function types.isVariable (t)
   return t.tag == "Variable"
+end
+
+-- union list
+
+function types.isUnionlist (t)
+  return t.tag == "Unionlist"
 end
 
 -- tuple types
@@ -367,7 +374,21 @@ local function subtype_tuple (env, t1, t2)
 end
 
 function types.subtype (env, t1, t2)
-  if types.isTuple(t1) and types.isTuple(t2) then
+  if types.isUnionlist(t1) then
+    for k, v in ipairs(t1) do
+      if not types.subtype(env, v, t2) then
+        return false
+      end
+    end
+    return true
+  elseif types.isUnionlist(t2) then
+    for k, v in ipairs(t2) do
+      if types.subtype(env, t1, v) then
+        return true
+      end
+    end
+    return false
+  elseif types.isTuple(t1) and types.isTuple(t2) then
     return subtype_tuple(env, t1, t2)
   elseif types.isTuple(t1) and not types.isTuple(t2) then
     return false
@@ -552,7 +573,21 @@ local function consistent_subtype_tuple (env, t1, t2)
 end
 
 function types.consistent_subtype (env, t1, t2)
-  if types.isTuple(t1) and types.isTuple(t2) then
+  if types.isUnionlist(t1) then
+    for k, v in ipairs(t1) do
+      if not types.consistent_subtype(env, v, t2) then
+        return false
+      end
+    end
+    return true
+  elseif types.isUnionlist(t2) then
+    for k, v in ipairs(t2) do
+      if types.consistent_subtype(env, t1, v) then
+        return true
+      end
+    end
+    return false
+  elseif types.isTuple(t1) and types.isTuple(t2) then
     return consistent_subtype_tuple(env, t1, t2)
   elseif types.isTuple(t1) and not types.isTuple(t2) then
     return false
@@ -620,6 +655,13 @@ function types.supertypeof (t)
       n[k][2] = types.supertypeof(v[2])
     end
     return n
+  elseif types.isUnionlist(t) then
+    local t1 = types.supertypeof(t[1])
+    local t2 = types.supertypeof(t[2])
+    local n = { tag = "Unionlist", [1] = t1, [2] = t2 }
+    for i = 3, #t do
+      n[i] = types.supertypeof(t[i])
+    end
   elseif types.isTuple(t) then
     local n = types.Tuple()
     for k, v in ipairs(t) do
@@ -647,7 +689,8 @@ local function type2str (t)
     return "value"
   elseif types.isAny(t) then
     return "any"
-  elseif types.isUnion(t) then
+  elseif types.isUnion(t) or
+         types.isUnionlist(t) then
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v)
