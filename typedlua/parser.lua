@@ -51,6 +51,7 @@ opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
 type:
   `Literal{ literal }
   | `Base{ base }
+  | `Nil
   | `Value
   | `Any
   | `Union{ type type type* }
@@ -62,7 +63,7 @@ type:
 
 literal: false | true | <number> | <string>
 
-base: 'nil' | 'boolean' | 'number' | 'string'
+base: 'boolean' | 'number' | 'string'
 ]]
 local parser = {}
 
@@ -227,7 +228,7 @@ local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
   Type = V"NullableType";
-  NullableType = V"UnionType" * taggedCap("Base", symb("?") * Cc("nil"))^-1 /
+  NullableType = V"UnionType" * taggedCap("Nil", symb("?"))^-1 /
                  function (t, nullable)
                    if nullable then
                      t[#t + 1] = nullable
@@ -239,42 +240,54 @@ local G = { V"TypedLua",
                    end
                  end;
   UnionType = taggedCap("Union", V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0);
-  PrimaryType = taggedCap("Literal", V"LiteralType") +
-                taggedCap("Base", V"BaseType") +
-                taggedCap("Value", V"TopType") +
-                taggedCap("Any", V"DynamicType") +
-                taggedCap("Function", V"FunctionType") +
-                taggedCap("Table", V"TableType") +
-                taggedCap("Variable", token(V"Name", "Type"));
-  LiteralType = V"FalseType" + V"TrueType" + V"NumberType" + V"StringType";
+  PrimaryType = V"LiteralType" +
+                V"BaseType" +
+                V"NilType" +
+                V"TopType" +
+                V"DynamicType" +
+                V"FunctionType" +
+                V"TableType" +
+                V"VariableType";
+  LiteralType = taggedCap("Literal", V"FalseType" + V"TrueType" + V"NumberType" + V"StringType");
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
   NumberType = token(V"Number", "Type");
   StringType = token(V"String", "Type");
-  BaseType = token(C"nil", "Type") +
-             token(C"boolean", "Type") +
-             token(C"number", "Type") +
-             token(C"string", "Type");
-  TopType = token("value", "Type");
-  DynamicType = token("any", "Type");
-  FunctionType = V"TypeList" * symb("->") * V"TypeList";
-  TableType = symb("{") * (V"RecordType" + V"HashType") * symb("}");
-  RecordType = V"FieldType" * (symb(",") * V"FieldType")^0;
-  HashType = V"Type" * (symb(":") * V"Type")^-1 /
-             function (t1, t2)
-               local t = { tag = "Field" }
-               if not t2 then
-                 t[1] = { tag = "Base", [1] = "number" }
-                 t[2] = t1
-               else
-                 t[1] = t1
-                 t[2] = t2
-               end
-               return t
-             end;
-  FieldType = taggedCap("Field", taggedCap("Literal", V"LiteralType") * symb(":") * V"Type");
-  TypeList = symb("(") * sepby1(V"Type", symb(","), "Tuple") *
-             taggedCap("Vararg", symb("*"))^-1 * symb(")") /
+  BaseType = taggedCap("Base", token(C"boolean", "Type") + token(C"number", "Type") + token(C"string", "Type"));
+  NilType = taggedCap("Nil", token(C"nil", "Type"));
+  TopType = taggedCap("Value", token("value", "Type"));
+  DynamicType = taggedCap("Any", token("any", "Type"));
+  FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"RetTypeList");
+  TableType = taggedCap("Table", symb("{") * V"FieldTypeList"^-1 * symb("}"));
+  VariableType = taggedCap("Variable", token(V"Name", "Type"));
+  FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0 +
+                  V"Type" /
+                  function (t2)
+                    local t1 = { tag = "Base", [1] = "number" }
+                    return { tag = "Field", [1] = t1, [2] = t2 }
+                  end;
+  FieldType = taggedCap("Field", V"KeyType" * symb(":") * V"Type");
+  KeyType = V"LiteralType" +
+            V"BaseType" +
+            V"TopType" +
+            V"DynamicType";
+  ArgTypeList = symb("(") * (V"TypeList" + V"ValueStar") * symb(")") /
+                function (t)
+                  if t[#t].tag ~= "Vararg" then
+                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Value" } }
+                  end
+                  return t
+                end;
+  RetTypeList = symb("(") * (V"TypeList" + V"NilStar") * symb(")") /
+                function (t)
+                  if t[#t].tag ~= "Vararg" then
+                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Nil" } }
+                  end
+                  return t
+                end;
+  ValueStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Value", P(true))));
+  NilStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Nil", P(true))));
+  TypeList = sepby1(V"Type", symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
              function (t, vararg)
                if vararg then
                  vararg[1] = t[#t]
@@ -283,6 +296,7 @@ local G = { V"TypedLua",
                end
                return t
              end;
+  RetType = V"RetTypeList";
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;
@@ -389,7 +403,7 @@ local G = { V"TypedLua",
             P(true) / function () return {} end;
   TypedVarArg = taggedCap("Dots", symb("...") * (symb(":") * V"Type")^-1);
   FuncBody = taggedCap("Function", symb("(") * V"ParList" * symb(")") *
-             (symb(":") * V"TypeList")^-1 * V"Block" * kw("end"));
+             (symb(":") * V"RetType")^-1 * V"Block" * kw("end"));
   FuncStat = taggedCap("Set", kw("function") * V"FuncName" * V"FuncBody") /
              function (t)
                if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end

@@ -1226,7 +1226,7 @@ s = [=[
 local x:nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base nil }, {  } } }
+{ `Local{ { `Id "x":`Nil }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1286,7 +1286,7 @@ s = [=[
 local x:number?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1296,7 +1296,7 @@ s = [=[
 local x:number|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1306,7 +1306,7 @@ s = [=[
 local x:number|string|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Base nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1316,7 +1316,7 @@ s = [=[
 local x:number|nil|nil|nil|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1326,7 +1326,7 @@ s = [=[
 local x:number|nil|string|nil|number|boolean|string
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil, `Base string, `Base boolean } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Base string, `Base boolean } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1336,7 +1336,7 @@ s = [=[
 local x:number|string?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Base nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1346,7 +1346,7 @@ s = [=[
 local x:(number) -> (number)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number }, `Tuple{ `Base number } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1356,7 +1356,7 @@ s = [=[
 local x:(value*) -> (nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Vararg{ `Base nil } } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1366,7 +1366,7 @@ s = [=[
 local x:(number,string,boolean) -> (string,number,boolean)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Base boolean }, `Tuple{ `Base string, `Base number, `Base boolean } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Base boolean, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Base boolean, `Vararg{ `Nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1376,7 +1376,7 @@ s = [=[
 local x:(number,string,value*) -> (string,number,nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Vararg{ `Base nil } } } }, {  } } }
+{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Vararg{ `Nil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1426,7 +1426,7 @@ s = [=[
 local function f (x:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Tuple{ `Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Tuple{ `Any, `Vararg{ `Nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1476,7 +1476,7 @@ s = [=[
 local function f (x:any, ...:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Tuple{ `Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Tuple{ `Any, `Vararg{ `Nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1486,7 +1486,7 @@ s = [=[
 local function f (x:(any) -> (any)):((any) -> (any)) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Any }, `Tuple{ `Any } } }:`Tuple{ `Function{ `Tuple{ `Any }, `Tuple{ `Any } } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Any, `Vararg{ `Value } }, `Tuple{ `Any, `Vararg{ `Nil } } } }:`Tuple{ `Function{ `Tuple{ `Any, `Vararg{ `Value } }, `Tuple{ `Any, `Vararg{ `Nil } } }, `Vararg{ `Nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1496,7 +1496,7 @@ s = [=[
 local function f (x:(number, number) -> (number, nil*)):(number*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Base number, `Base number }, `Tuple{ `Base number, `Vararg{ `Base nil } } } }:`Tuple{ `Vararg{ `Base number } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }:`Tuple{ `Vararg{ `Base number } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1506,7 +1506,7 @@ s = [=[
 local function f ():(number, nil*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Base nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -2098,9 +2098,6 @@ assert(types.isLiteralNumber(Integer))
 assert(types.isLiteral(Word))
 assert(types.isLiteralString(Word))
 
-assert(types.isBase(Nil))
-assert(types.isNil(Nil))
-
 assert(types.isBase(Boolean))
 assert(types.isBoolean(Boolean))
 
@@ -2109,6 +2106,8 @@ assert(types.isNumber(Number))
 
 assert(types.isBase(String))
 assert(types.isString(String))
+
+assert(types.isNil(Nil))
 
 assert(types.isValue(Value))
 
@@ -2434,7 +2433,7 @@ s = [=[
 local x:boolean, y:nil = true, nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base nil }, { `True, `Nil } } }
+{ `Local{ { `Id "x":`Base boolean, `Id "y":`Nil }, { `True, `Nil } } }
 ]=]
 
 r = typecheck(s)
@@ -2444,7 +2443,7 @@ s = [=[
 local x:number?, y:number|nil = 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil }, `Id "y":`Union{ `Base number, `Base nil } }, { `Number "1" } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil }, `Id "y":`Union{ `Base number, `Nil } }, { `Number "1" } } }
 ]=]
 
 r = typecheck(s)
@@ -2504,7 +2503,7 @@ s = [=[
 local x:nil, y:boolean = nil and 1, false and 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
+{ `Local{ { `Id "x":`Nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2514,7 +2513,7 @@ s = [=[
 local x:number, y:string? = 1 and 2, "foo" and nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Base nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2534,7 +2533,7 @@ s = [=[
 local x:number, y:string? = 1 or 2, "foo" or nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Base nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2545,7 +2544,7 @@ local x:number?
 local y:number = x or 0
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
 ]=]
 
 r = typecheck(s)

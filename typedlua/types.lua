@@ -4,6 +4,7 @@ This file implements the available types in Typed Lua
 type:
   `Literal{ literal }
   | `Base{ base }
+  | `Nil
   | `Value
   | `Any
   | `Union{ type type type* }
@@ -15,7 +16,7 @@ type:
 
 literal: false | true | <number> | <string>
 
-base: 'nil' | 'boolean' | 'number' | 'string'
+base: 'boolean' | 'number' | 'string'
 ]]
 
 local types = {}
@@ -52,8 +53,6 @@ end
 
 -- base types
 
-types.Nil = { tag = "Base", [1] = "nil" }
-
 types.Boolean = { tag = "Base", [1] = "boolean" }
 
 types.Number = { tag = "Base", [1] = "number" }
@@ -62,10 +61,6 @@ types.String = { tag = "Base", [1] = "string" }
 
 function types.isBase (t)
   return t.tag == "Base"
-end
-
-function types.isNil (t)
-  return types.isBase(t) and t[1] == "nil"
 end
 
 function types.isBoolean (t)
@@ -78,6 +73,14 @@ end
 
 function types.isString (t)
   return types.isBase(t) and t[1] == "string"
+end
+
+-- nil type
+
+types.Nil = { tag = "Nil" }
+
+function types.isNil (t)
+  return t.tag == "Nil"
 end
 
 -- top type
@@ -232,6 +235,10 @@ local function subtype_base (env, t1, t2)
   end
 end
 
+local function subtype_nil (env, t1, t2)
+  return types.isNil(t1) and types.isNil(t2)
+end
+
 local function subtype_top (env, t1, t2)
   return types.isValue(t2)
 end
@@ -379,6 +386,7 @@ function types.subtype (env, t1, t2)
   else
     return subtype_literal(env, t1, t2) or
            subtype_base(env, t1, t2) or
+           subtype_nil(env, t1, t2) or
            subtype_top(env, t1, t2) or
            subtype_any(env, t1, t2) or
            subtype_union(env, t1, t2) or
@@ -414,6 +422,10 @@ local function consistent_subtype_base (env, t1, t2)
   else
     return false
   end
+end
+
+local function consistent_subtype_nil (env, t1, t2)
+  return types.isNil(t1) and types.isNil(t2)
 end
 
 local function consistent_subtype_top (env, t1, t2)
@@ -559,6 +571,7 @@ function types.consistent_subtype (env, t1, t2)
   else
     return consistent_subtype_literal(env, t1, t2) or
            consistent_subtype_base(env, t1, t2) or
+           consistent_subtype_nil(env, t1, t2) or
            consistent_subtype_top(env, t1, t2) or
            consistent_subtype_any(env, t1, t2) or
            consistent_subtype_union(env, t1, t2) or
@@ -628,6 +641,8 @@ local function type2str (t)
     return tostring(t[1])
   elseif types.isBase(t) then
     return t[1]
+  elseif types.isNil(t) then
+    return "nil"
   elseif types.isValue(t) then
     return "value"
   elseif types.isAny(t) then

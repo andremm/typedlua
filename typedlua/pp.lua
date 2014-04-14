@@ -58,7 +58,8 @@ function type2str (t)
     str = str .. " " .. tostring(t[1])
   elseif tag == "Base" then -- `Base{ base }
     str = str .. " " .. t[1]
-  elseif tag == "Value" or -- `Value
+  elseif tag == "Nil" or -- `Nil
+         tag == "Value" or -- `Value
          tag == "Any" then -- `Any
   elseif tag == "Union" then -- `Union{ type type type* }
     local l = {}

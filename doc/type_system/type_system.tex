@@ -43,6 +43,7 @@ $$
 \multicolumn{3}{c}{\textbf{First-class types}}\\
 T ::= & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
+& | \; \Nil & \textit{nil type}\\
 & | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
@@ -51,13 +52,13 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
-B ::= & \Nil \; | \; \Boolean \; | \; \Number \; | \; \String & \\
-F ::= & T:T \; | \; \Const \; T:T & \textit{field types}\\ 
+B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
+K ::= & L \; | \; B \; | \; \Top \; | \; \Any \; | \; \{ \} & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
 S ::= & V \; | \; V \cup S & \\
-V ::= & \;\; T & \\
-& | \; T* & \textit{vararg types}\\
+V ::= & \;\; T* & \textit{vararg types}\\
 & | \; T \times V & \textit{tuple types}
 \end{array}
 $$
@@ -97,6 +98,13 @@ $$
 \[
 \senv \vdash B \subtype B
 \mylabel{S-BASE}
+\]
+
+\subsection{Nil type}
+
+\[
+\senv \vdash \Nil \subtype \Nil
+\mylabel{S-NIL}
 \]
 
 \subsection{Top type}
@@ -171,11 +179,24 @@ $$
 \]
 
 \[
-\frac{\senv \vdash T_{1} \subtype T_{3} \;\;\;
-      \senv \vdash T_{2} \subtype T_{4} \;\;\;
-      \senv \vdash T_{4} \subtype T_{2}}
+\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
+      \senv \vdash T_{2} \subtype T_{4}}
      {\senv \vdash \Const \; T_{1}:T_{2} \subtype T_{3}:T_{4}}
 \mylabel{S-FIELD2}
+\]
+
+\[
+\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
+      \senv \vdash T_{2} \subtype T_{4}}
+     {\senv \vdash T_{1}:T_{2} \subtype \Const \; T_{3}:T_{4}}
+\mylabel{S-FIELD3}
+\]
+
+\[
+\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
+      \senv \vdash T_{2} \subtype T_{4}}
+     {\senv \vdash \Const \; T_{1}:T_{2} \subtype \Const \; T_{3}:T_{4}}
+\mylabel{S-FIELD4}
 \]
 
 \subsection{Vararg types}
