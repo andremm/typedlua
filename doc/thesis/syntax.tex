@@ -1,0 +1,67 @@
+\begin{align*}
+\textit{chunk} & ::= \; \textit{block}\\
+\textit{block} & ::= \; \{\textit{stat}\} \; [\textit{retstat}]\\
+\textit{stat} & ::= \; \texttt{`;'}\\
+& | \; \textit{varlist} \; \texttt{`='} \; \textit{explist}\\
+& | \; \textit{functioncall}\\
+& | \; \textit{label}\\
+& | \; \textbf{break}\\ 
+& | \; \textbf{goto} \; \textit{Name}\\
+& | \; \textbf{do} \; \textit{block} \; \textbf{end}\\
+& | \; \textbf{while} \; \textit{exp} \; \textbf{do} \; \textit{block} \; \textbf{end}\\
+& | \; \textbf{repeat} \; \textit{block} \; \textbf{until} \; \textit{exp}\\
+& | \; \textbf{if} \; \textit{exp} \; \textbf{then} \; \textit{block} \;
+  \{\textbf{elseif} \; \textit{exp} \; \textbf{then} \; \textit{block}\} \;
+  [\textbf{else} \; \textit{block}] \; \textbf{end}\\ 
+& | \; \textbf{for} \; \textit{Name} \; \texttt{`='} \; \textit{exp} \;
+  \texttt{`,'} \; \textit{exp} \; [\texttt{`,'} \; \textit{exp}] \;
+  \textbf{do} \; \textit{block} \; \textbf{end}\\
+& | \; \textbf{for} \; \textit{namelist} \; \textbf{in} \; \textit{explist} \;
+  \textbf{do} \; \textit{block} \; \textbf{end}\\
+& | \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}\\
+& | \; \textbf{local} \; \textbf{function} \; \textit{Name} \; \textit{funcbody}\\
+& | \; \textbf{local} \; \textit{namelist} \; [\texttt{`='} \; \textit{explist}]\\
+\textit{retstat} & ::= \; \textbf{return} \; [\textit{explist}] \; [\texttt{`;'}]\\
+\textit{label} & ::= \; \texttt{`::'} \; \textit{Name} \; \texttt{`::'}\\
+\textit{funcname} & ::= \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
+\textit{varlist} & ::= \textit{var} \; \{\texttt{`,'} \; \textit{var}\}\\
+\textit{var} & ::= \textit{Name} \; | \;
+  \textit{prefixexp} \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; | \;
+  \textit{prefixexp} \; \texttt{`.'} \; \textit{Name}\\
+\textit{namelist} & ::= \; \textit{Name} \; \{\texttt{`,'} \; \textit{Name}\}\\
+\textit{explist} & ::= \; \textit{exp} \; \{\texttt{`,'} \; \textit{exp}\}\\
+\textit{exp} & ::= \textbf{nil} \; | \;
+  \textbf{false} \; | \;
+  \textbf{true} \; | \;
+  \textit{Number} \; | \;
+  \textit{String} \; | \;
+  \texttt{`...'} \; | \;
+  \textit{functiondef}\\
+& | \; \textit{prefixexp} \; | \;
+  \textit{tableconstructor} \; | \;
+  \textit{exp} \; \textit{binop} \; \textit{exp} \; | \;
+  \textit{unop} \; \textit{exp}\\
+\textit{prefixexp} & ::= \textit{var} \; | \;
+  \textit{functioncall} \; | \;
+  \texttt{`('} \; \textit{exp} \; \texttt{`)'}\\
+\textit{functioncall} & ::= \; \textit{prefixexp} \; \textit{args} \; | \;
+  \textit{prefixexp} \; \texttt{`:'} \; \textit{Name} \; \textit{args}\\
+\textit{args} & ::= \; \texttt{`('} \; [\textit{explist}] \; \texttt{`)'} \; | \;
+  \textit{tableconstructor} \; | \;
+  \textit{String}\\
+\textit{functiondef} & ::= \; \textbf{function} \; \textit{funcbody}\\
+\textit{funcbody} & ::= \; \texttt{`('} \; [\textit{parlist}] \; \texttt{`)'} \; \textit{block} \; \textbf{end}\\
+\textit{parlist} & ::= \; \textit{namelist} \; [\texttt{`,'} \; \texttt{`...'}] \; | \; \texttt{`...'}\\
+\textit{tableconstructor} & ::= \; \texttt{`\{'} \; [\textit{fieldlist}] \; \texttt{`\}'}\\
+\textit{fieldlist} & ::= \; \textit{field} \; \{\textit{fieldsep} \; \textit{field}\} \; [\textit{fieldsep}]\\
+\textit{field} & ::= \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
+  \textit{Name} \; \texttt{`='} \; \textit{exp} \; | \;
+  \textit{exp}\\
+\textit{fieldsep} & ::= \; \texttt{`,'} \; | \; \texttt{`;'}\\
+\textit{binop} & ::= \; \texttt{`+'} \; | \; \texttt{`-'} \; | \; \texttt{`*'} \; | \; \texttt{`/'} \; | \;
+  \texttt{`\textasciicircum'} \; | \; \texttt{`\%'} \; | \; \texttt{`..'}\\
+& | \; \texttt{`<'} \; | \; \texttt{`<='} \; | \; \texttt{`>'} \; | \; \texttt{`>='} \; | \;
+  \texttt{`=='} \; | \; \texttt{`\textasciitilde='}\\
+& | \; \textbf{and} \; | \; \textbf{or}\\
+\textit{unop} & ::= \; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'}
+\end{align*}
