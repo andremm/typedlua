@@ -47,7 +47,7 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
-& | \; S \rightarrow S & \textit{function types}\\
+& | \; S \rightarrow R & \textit{function types}\\
 & | \; \{F, ..., F\} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
@@ -57,9 +57,9 @@ F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\
 K ::= & L \; | \; B \; | \; \Top \; | \; \Any \; | \; \{ \} & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
-S ::= & V \; | \; V \cup S & \\
-V ::= & \;\; T* & \textit{vararg types}\\
-& | \; T \times V & \textit{tuple types}
+S ::= & \;\; T* & \textit{vararg types}\\
+& | \; T \times S & \textit{tuple types}\\
+R ::= & S \; | \; S \cup R & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -171,31 +171,31 @@ $$
 \subsection{Field types}
 
 \[
-\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
-      \senv \vdash T_{2} \subtype T_{4} \;\;\;
-      \senv \vdash T_{4} \subtype T_{2}}
-     {\senv \vdash T_{1}:T_{2} \subtype T_{3}:T_{4}}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash T_{2} \subtype T_{1}}
+     {\senv \vdash K_{1}:T_{1} \subtype K_{2}:T_{2}}
 \mylabel{S-FIELD1}
 \]
 
 \[
-\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
-      \senv \vdash T_{2} \subtype T_{4}}
-     {\senv \vdash \Const \; T_{1}:T_{2} \subtype T_{3}:T_{4}}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype K_{2}:T_{2}}
 \mylabel{S-FIELD2}
 \]
 
 \[
-\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
-      \senv \vdash T_{2} \subtype T_{4}}
-     {\senv \vdash T_{1}:T_{2} \subtype \Const \; T_{3}:T_{4}}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
 \mylabel{S-FIELD3}
 \]
 
 \[
-\frac{\senv \vdash T_{3} \subtype T_{1} \;\;\;
-      \senv \vdash T_{2} \subtype T_{4}}
-     {\senv \vdash \Const \; T_{1}:T_{2} \subtype \Const \; T_{3}:T_{4}}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
 \mylabel{S-FIELD4}
 \]
 
@@ -716,11 +716,10 @@ $$
 \]
 
 \[
-\frac{\env \vdash e_{1} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \} \;\;\;
+\frac{\env \vdash e_{1} : \{ K_{1}:T_{1}, ..., K_{n}:T_{n} \} \;\;\;
       \env \vdash e_{2} : T \;\;\;
-      \exists i \in 1..n \;
-      T_{i} \subtype T \;\;\; T \subtype T_{i}}
-     {\env \vdash e_{1}[e_{2}] : T_{i}'}
+      \exists i \in 1..n \; T \lesssim K_{i}}
+     {\env \vdash e_{1}[e_{2}] : T_{i}}
 \mylabel{T-INDEX1}
 \]
 
@@ -734,9 +733,9 @@ $$
 \subsection{Constructor fields}
 
 \[
-\frac{\env \vdash e_{1} : T_{1} \;\;\;
-      \env \vdash e_{2} : T_{2}}
-     {\env \vdash e_{1} = e_{2} : T_{1}:T_{2}}
+\frac{\env \vdash e_{1} : K \;\;\;
+      \env \vdash e_{2} : T}
+     {\env \vdash e_{1} = e_{2} : K:T}
 \mylabel{T-PAIR}
 \]
 

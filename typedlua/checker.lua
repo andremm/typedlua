@@ -78,6 +78,41 @@ local function set_local (env, id, inferred_type, scope)
   env[scope]["local"][local_name] = id
 end
 
+local function set_local_table (env, id, inferred_type, scope)
+  local local_name, local_type, pos = id[1], id[2], id.pos
+  local valid_assignent = false
+  for i = 1, #local_type do
+    local subtype_key, subtype_value = false, false
+    for j = 1, #inferred_type do
+      if types.subtype(env["variable"], inferred_type[j][1], local_type[i][1]) then
+        subtype_key = true
+        if types.subtype(env["variable"], inferred_type[j][2], local_type[i][2]) then
+          subtype_value = true
+        else
+          subtype_value = false
+          break
+        end
+      end
+    end
+    if (subtype_key and subtype_value) or
+       (not subtype_key and types.isUnionNil(local_type[i][2])) then
+      valid_assignment = true
+    else
+      valid_assignment = false
+      break
+    end
+  end
+  if not valid_assignment then
+    id["type"] = inferred_type
+    local msg = "attempt to assign '%s' to '%s'"
+    msg = string.format(msg, type2str(inferred_type), type2str(local_type))
+    typeerror(env, msg, pos)
+  else
+    id["type"] = local_type
+  end
+  env[scope]["local"][local_name] = id
+end
+
 local function set_type (node, t)
   node["type"] = t
 end
@@ -187,7 +222,14 @@ local function check_local (env, idlist, explist)
   for k, v in ipairs(idlist) do
     local t = fill_type
     if typelist[k] then t = first_class(typelist[k]) end
-    set_local(env, v, t, env.scope)
+    if v[2] and types.isVariable(v[2]) then
+      v[2] = env["variable"][v[2][1]]
+    end
+    if v[2] and types.isTable(v[2]) and types.isTable(t) and explist[k].tag == "Table" then
+      set_local_table(env, v, t, env.scope)
+    else
+      set_local(env, v, t, env.scope)
+    end
   end
 end
 
@@ -438,7 +480,7 @@ local function check_index_read (env, exp, top_level)
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
-      if types.subtype(env["variable"], v[1], t2) and types.subtype(env["variable"], t2, v[1]) then
+      if types.subtype(env["variable"], t2, v[1]) then
         t = v[2]
         break
       end
@@ -597,7 +639,7 @@ local function check_invoke (env, exp, top_level)
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
-      if types.subtype(env["variale"], v[1], t2) and types.subtype(env["variable"], t2, v[1]) then
+      if types.subtype(env["variable"], t2, v[1]) then
         t = v[2]
         break
       end
@@ -779,8 +821,7 @@ local function check_var_assignment (env, var, inferred_type)
     if types.isTable(t1) then
       local t
       for k, v in ipairs(t1) do
-        if types.subtype(env["variable"], v[1], t2) and
-           types.subtype(env["variable"], t2, v[1]) then
+        if types.subtype(env["variable"], t2, v[1]) then
           t = v[2]
           break
         end
@@ -930,6 +971,7 @@ function checker.typecheck (ast, subject, filename)
   set_vararg_type(env, String)
   set_return_type(env, types.Tuple(types.Vararg(Any)))
   set_local(env, ENV, ENV[2], env.scope)
+--[[
   for k, v in ipairs(ast) do
     check_stm(env, v, true)
   end
@@ -939,6 +981,7 @@ function checker.typecheck (ast, subject, filename)
     return ast, table.concat(env.messages, "\n")
   end
   ENV[2].open = false
+]]
   for k, v in ipairs(ast) do
     check_stm(env, v, false)
   end

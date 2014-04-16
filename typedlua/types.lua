@@ -311,7 +311,11 @@ end
 
 local function subtype_variable (env, t1, t2)
   if types.isVariable(t1) and types.isVariable(t2) then
-    return types.subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+    if t1[1] == t2[1] then
+      return true
+    else
+      return types.subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+    end
   elseif types.isVariable(t1) and not types.isVariable(t2) then
     return types.subtype(env, get_type(env, t1[1]), t2)
   elseif not types.isVariable(t1) and types.isVariable(t2) then
@@ -510,7 +514,11 @@ end
 
 local function consistent_subtype_variable (env, t1, t2)
   if types.isVariable(t1) and types.isVariable(t2) then
-    return types.consistent_subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+    if t1[1] == t2[1] then
+      return true
+    else
+      return types.consistent_subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
+    end
   elseif types.isVariable(t1) and not types.isVariable(t2) then
     return types.consistent_subtype(env, get_type(env, t1[1]), t2)
   elseif not types.isVariable(t1) and types.isVariable(t2) then
