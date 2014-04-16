@@ -1,3 +1,4 @@
+\allowdisplaybreaks
 \begin{align*}
 \textit{chunk} & ::= \; \textit{block}\\
 \textit{block} & ::= \; \{\textit{stat}\} \; [\textit{retstat}]\\
@@ -21,6 +22,8 @@
 & | \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textbf{function} \; \textit{Name} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textit{namelist} \; [\texttt{`='} \; \textit{explist}]\\
+& | \; \textbf{interface} \; \textit{Name} \; \textit{interfacedec} \;
+  \{\textit{interfacedec}\} \; \textbf{end}\\
 \textit{retstat} & ::= \; \textbf{return} \; [\textit{explist}] \; [\texttt{`;'}]\\
 \textit{label} & ::= \; \texttt{`::'} \; \textit{Name} \; \texttt{`::'}\\
 \textit{funcname} & ::= \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
@@ -28,7 +31,8 @@
 \textit{var} & ::= \textit{Name} \; | \;
   \textit{prefixexp} \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; | \;
   \textit{prefixexp} \; \texttt{`.'} \; \textit{Name}\\
-\textit{namelist} & ::= \; \textit{Name} \; \{\texttt{`,'} \; \textit{Name}\}\\
+\textit{namelist} & ::= \; \textit{Name} \; [\texttt{`:'} \; \textit{type}] \;
+  \{\texttt{`,'} \; \textit{Name} \; [\texttt{`:'} \; \textit{type}]\}\\
 \textit{explist} & ::= \; \textit{exp} \; \{\texttt{`,'} \; \textit{exp}\}\\
 \textit{exp} & ::= \textbf{nil} \; | \;
   \textbf{false} \; | \;
@@ -50,8 +54,10 @@
   \textit{tableconstructor} \; | \;
   \textit{String}\\
 \textit{functiondef} & ::= \; \textbf{function} \; \textit{funcbody}\\
-\textit{funcbody} & ::= \; \texttt{`('} \; [\textit{parlist}] \; \texttt{`)'} \; \textit{block} \; \textbf{end}\\
-\textit{parlist} & ::= \; \textit{namelist} \; [\texttt{`,'} \; \texttt{`...'}] \; | \; \texttt{`...'}\\
+\textit{funcbody} & ::= \; \texttt{`('} \; [\textit{parlist}] \; \texttt{`)'} \; [\texttt{`:'} \; \textit{rettype}] \;
+  \textit{block} \; \textbf{end}\\
+\textit{parlist} & ::= \; \textit{namelist} \; [\texttt{`,'} \; \texttt{`...'} \; [\texttt{`:'} \; \textit{type}]] \; | \;
+  \texttt{`...'} \; [\texttt{`:'} \; \textit{type}]\\
 \textit{tableconstructor} & ::= \; \texttt{`\{'} \; [\textit{fieldlist}] \; \texttt{`\}'}\\
 \textit{fieldlist} & ::= \; \textit{field} \; \{\textit{fieldsep} \; \textit{field}\} \; [\textit{fieldsep}]\\
 \textit{field} & ::= \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
@@ -63,5 +69,38 @@
 & | \; \texttt{`<'} \; | \; \texttt{`<='} \; | \; \texttt{`>'} \; | \; \texttt{`>='} \; | \;
   \texttt{`=='} \; | \; \texttt{`\textasciitilde='}\\
 & | \; \textbf{and} \; | \; \textbf{or}\\
-\textit{unop} & ::= \; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'}
+\textit{unop} & ::= \; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'}\\
+\textit{interfacedec} & ::= \; \textit{Name} \; \texttt{`:'} \; \textit{type}\\
+\textit{type} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
+\textit{primarytype} & ::= \; \textit{literaltype} \; | \;
+  \textit{basetype} \; | \;
+  \textbf{nil} \; | \;
+  \textbf{value} \; | \;
+  \textbf{any} \; | \;
+  \textit{Name}\\
+& | \; \textit{functiontype} \; | \;
+  \textit{tabletype} \; | \;
+  \textit{primarytype} \; \texttt{`|'} \; \textit{primarytype}\\
+\textit{literaltype} & ::= \; \textbf{false} \; | \;
+  \textbf{true} \; | \;
+  \textit{Number} \; | \;
+  \textit{String}\\
+\textit{basetype} & ::= \; \textbf{boolean} \; | \;
+  \textbf{number} \; | \;
+  \textbf{string}\\
+\textit{functiontype} & ::= \; \textit{secondarytype} \; \texttt{`->'} \; \textit{rettypelist}\\
+\textit{tabletype} & ::= \; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
+\textit{secondarytype} & ::= \; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+\textit{typelist} & ::= \; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
+\textit{rettypelist} & ::= \; \textit{secondaryunion} \; [\texttt{`?'}]\\
+\textit{secondaryunion} & ::= \; \textit{secondarytype} \; | \;
+  \textit{secondaryunion} \; \texttt{`|'} \; \textit{secondaryunion}\\
+\textit{tabletypebody} & ::= \; \textit{type} \; | \; \textit{fieldtypelist}\\
+\textit{fieldtypelist} & ::= \; \textit{fieldtype} \; \{\texttt{`,'} \; \textit{fieldtype}\}\\ 
+\textit{fieldtype} & ::= \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
+\textit{keytype} & ::= \; \textit{literaltype} \; | \;
+  \textit{basetype} \; | \;
+  \textbf{value} \; | \;
+  \textbf{any}\\
+\textit{rettype} & ::= \; \textit{type} \; | \; \textit{rettypelist}\\
 \end{align*}
