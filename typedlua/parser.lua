@@ -229,7 +229,7 @@ local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
   Type = V"NullableType";
-  NullableType = V"UnionType" * taggedCap("Nil", symb("?"))^-1 / types.Union;
+  NullableType = V"UnionType" * (symb("?") * Cc(types.Nil))^-1 / types.Union;
   UnionType = V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0;
   PrimaryType = V"LiteralType" +
                 V"BaseType" +
@@ -239,87 +239,36 @@ local G = { V"TypedLua",
                 V"FunctionType" +
                 V"TableType" +
                 V"VariableType";
-  LiteralType = taggedCap("Literal", V"FalseType" + V"TrueType" + V"NumberType" + V"StringType");
+  LiteralType = (V"FalseType" + V"TrueType" + V"NumberType" + V"StringType") / types.Literal;
   FalseType = token("false", "Type") * Cc(false);
   TrueType = token("true", "Type") * Cc(true);
   NumberType = token(V"Number", "Type");
   StringType = token(V"String", "Type");
-  BaseType = taggedCap("Base", token(C"boolean", "Type") + token(C"number", "Type") + token(C"string", "Type"));
-  NilType = taggedCap("Nil", token(C"nil", "Type"));
-  TopType = taggedCap("Value", token("value", "Type"));
-  DynamicType = taggedCap("Any", token("any", "Type"));
-  FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"NullableRetTypeList");
-  TableType = taggedCap("Table", symb("{") * V"FieldTypeList"^-1 * symb("}"));
-  VariableType = taggedCap("Variable", token(V"Name", "Type"));
+  BaseType = token("boolean", "Type") * Cc(types.Boolean) +
+             token("number", "Type") * Cc(types.Number) +
+             token("string", "Type") * Cc(types.String);
+  NilType = token("nil", "Type") * Cc(types.Nil);
+  TopType = token("value", "Type") * Cc(types.Value);
+  DynamicType = token("any", "Type") * Cc(types.Any);
+  VariableType = token(V"Name", "Type") / types.Variable;
+  FunctionType = V"ArgTypeList" * symb("->") * V"NullableRetTypeList" / types.Function;
+  TableType = symb("{") * V"FieldTypeList"^-1 * symb("}") / types.Table;
+  ArgTypeList = symb("(") * (V"TypeList" + Cc(types.ValueStar)) * symb(")") / types.ArgTuple;
+  RetTypeList = symb("(") * (V"TypeList" + Cc(types.NilStar)) * symb(")") / types.RetTuple;
+  TypeList = V"VarargType" / types.Tuple +
+             V"Type" * Cg(symb(",") * V"Type" * -symb("*"))^0 * (symb(",") * V"VarargType")^-1 / types.Tuple;
+  VarargType = V"Type" * symb("*") / types.Vararg;
+  NullableRetTypeList = V"UnionRetTypeList" * (symb("?") * Cc(types.ErrorRetTuple))^-1 / types.Unionlist;
+  UnionRetTypeList = V"RetTypeList" * Cg(symb("|") * V"RetTypeList")^0;
   FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0 +
-                  V"Type" /
-                  function (t2)
-                    local t1 = { tag = "Base", [1] = "number" }
-                    return { tag = "Field", [1] = t1, [2] = t2 }
-                  end;
-  FieldType = taggedCap("Field", V"KeyType" * symb(":") * V"Type");
+                  V"Type" / types.Field;
+  FieldType = V"KeyType" * symb(":") * V"Type" / types.Field;
   KeyType = V"LiteralType" +
             V"BaseType" +
             V"TopType" +
             V"DynamicType";
-  ArgTypeList = symb("(") * (V"TypeList" + V"ValueStar") * symb(")") /
-                function (t)
-                  if t[#t].tag ~= "Vararg" then
-                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Value" } }
-                  end
-                  return t
-                end;
-  RetTypeList = symb("(") * (V"TypeList" + V"NilStar") * symb(")") /
-                function (t)
-                  if t[#t].tag ~= "Vararg" then
-                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Nil" } }
-                  end
-                  return t
-                end;
-  ValueStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Value", P(true))));
-  NilStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Nil", P(true))));
-  TypeList = sepby1(V"Type", symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
-             function (t, vararg)
-               if vararg then
-                 vararg[1] = t[#t]
-                 table.remove(t)
-                 table.insert(t, vararg)
-               end
-               return t
-             end;
-  NullableRetTypeList = V"UnionRetTypeList" * (symb("?") * Cc(true))^-1 /
-                        function (t, nullable)
-                          if nullable then
-                            local e = { tag = "Tuple" }
-                            e[1] = { tag = "Nil" }
-                            e[2] = { tag = "Base", [1] = "string" }
-                            e[3] = { tag = "Vararg", [1] = { tag = "Nil" } }
-                            t[#t + 1] = e
-                          end
-                          if #t == 1 then
-                            return t[1]
-                          else
-                            return t
-                          end
-                        end;
-  UnionRetTypeList = taggedCap("Unionlist", V"RetTypeList" * Cg(symb("|") * V"RetTypeList")^0);
   RetType = V"NullableRetTypeList" +
-            V"Type" /
-            function (t)
-              local n = { tag = "Vararg", [1] = { tag = "Nil" } }
-              if t.tag == "Union" then
-                local u = { tag = "Unionlist" }
-                for k, v in ipairs(t) do
-                  local l = { tag = "Tuple" }
-                  l[1] = v
-                  l[2] = n
-                  u[k] = l
-                end
-                return u
-              else
-                return { tag = "Tuple", [1] = t, [2] = n }
-              end
-            end;
+            V"Type" / types.Type2RetTuple;
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;

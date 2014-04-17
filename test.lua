@@ -1383,6 +1383,56 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:{string}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Base number:`Base string } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{string:number}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Base string:`Base number } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{'firstname':string, 'lastname':string}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{'tag':string, number:string}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Literal tag:`Base string, `Base number:`Base string } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{'f':(number) -> (number), 't':{number:number}}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Literal f:`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } }, `Literal t:`Table{ `Base number:`Base number } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 for k:number, v:string in ipairs({"hello", "world"}) do end
 ]=]
 e = [=[
@@ -1507,6 +1557,46 @@ local function f ():(number, nil*) end
 ]=]
 e = [=[
 { `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Nil } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f ():number end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Nil } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f ():number? end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Vararg{ `Nil } } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f ():(number) | (nil,string) end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, {  } } } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local function f ():(number)? end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -2052,6 +2142,45 @@ test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'i
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local x:() -> number
+]=]
+e = [=[
+test.lua:1:15: syntax error, unexpected 'number', expecting '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:() -> (number)? | (string)?
+]=]
+e = [=[
+test.lua:1:35: syntax error, unexpected '?', expecting '->'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{()->():string}
+]=]
+e = [=[
+test.lua:1:16: syntax error, unexpected ':', expecting '}', '?', '|'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{string:t 1}
+]=]
+e = [=[
+test.lua:1:19: syntax error, unexpected '1', expecting '}', ',', '?', '|'
+]=]
+
+r = parse(s)
+assert(r == e)
 
 print("> testing types...")
 

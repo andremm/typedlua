@@ -185,6 +185,14 @@ end
 
 -- table types
 
+function types.Field (t1, t2)
+  if not t2 then
+    return { tag = "Field", [1] = types.Number, [2] = t1 }
+  else
+    return { tag = "Field", [1] = t1, [2] = t2 }
+  end
+end
+
 function types.Table (...)
   return { tag = "Table", ... }
 end
@@ -220,6 +228,14 @@ end
 
 -- union list
 
+function types.Unionlist (...)
+  local t = types.Union(...)
+  if types.isUnion(t) then
+    t.tag = "Unionlist"
+  end
+  return t
+end
+
 function types.isUnionlist (t)
   return t.tag == "Unionlist"
 end
@@ -234,6 +250,35 @@ function types.isTuple (t)
   return t.tag == "Tuple"
 end
 
+function types.ArgTuple (t)
+  if not types.isVararg(t[#t]) then
+    t[#t + 1] = types.ValueStar
+  end
+  return t
+end
+
+function types.RetTuple (t)
+  if not types.isVararg(t[#t]) then
+    t[#t + 1] = types.NilStar
+  end
+  return t
+end
+
+function types.Type2RetTuple (t)
+  local n = {}
+  if types.isUnion(t) then
+    n.tag = "Unionlist"
+    for k, v in ipairs(t) do
+      local a = { tag = "Tuple", [1] = v }
+      n[#n + 1] = types.RetTuple(a)
+    end
+  else
+    local a = { tag = "Tuple", [1] = t }
+    n = types.RetTuple(a)
+  end
+  return n
+end
+
 -- vararg types
 
 function types.Vararg (t)
@@ -243,6 +288,12 @@ end
 function types.isVararg (t)
   return t.tag == "Vararg"
 end
+
+types.ValueStar = { tag = "Vararg", [1] = types.Value }
+
+types.NilStar = { tag = "Vararg", [1] = types.Nil }
+
+types.ErrorRetTuple = { tag = "Tuple", [1] = types.Nil, [2] = types.String, [3] = types.NilStar }
 
 -- subtyping
 
