@@ -102,24 +102,39 @@ end
 
 -- union types
 
-function types.Union (t1, t2)
-  if types.isUnion(t1) then
-    if not types.isUnion(t2) then
-      t1[#t1 + 1] = t2
-      return t1
-    else
-      for k, v in ipairs(t2) do
-        t1[#t1 + 1] = v
+function types.Union (...)
+  local l1, l2 = {...}, {}
+  local t = { tag = "Union" }
+  -- remove duplicated types
+  for i = 1, #l1 do
+    local enter = true
+    for j = i + 1, #l1 do
+      if types.subtype({}, l1[i], l1[j]) and types.subtype({}, l1[j], l1[i]) then
+        enter = false
+        break
       end
-      return t1
     end
-  elseif not types.isUnion(t1) then
-    if types.isUnion(t2) then
-      t2[#t2 + 1] = t1
-      return t2
-    else
-      return { tag = "Union", [1] = t1, [2] = t2 }
+    if enter then
+      l2[#l2 + 1] = l1[i]
     end
+  end
+  -- simplify union
+  for i = 1, #l2 do
+    local enter = true
+    for j = 1, #l2 do
+      if i ~= j and types.subtype({}, l2[i], l2[j]) then
+        enter = false
+        break
+      end
+    end
+    if enter then
+      t[#t + 1] = l2[i]
+    end
+  end
+  if #t == 1 then
+    return t[1]
+  else
+    return t
   end
 end
 
@@ -176,6 +191,21 @@ end
 
 function types.isTable (t)
   return t.tag == "Table"
+end
+
+function types.isValidTable (env, t)
+  if types.isTable(t) then
+    for i = 1, #t do
+      for j = 1, #t do
+        if i ~= j and types.subtype(env, t[i][1], t[j][1]) then
+          return false
+        end
+      end
+    end
+    return true
+  else
+    return false
+  end
 end
 
 -- type variables

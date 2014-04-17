@@ -69,6 +69,7 @@ local parser = {}
 
 local lpeg = require "lpeg"
 local scope = require "typedlua.scope"
+local types = require "typedlua.types"
 
 lpeg.locale(lpeg)
 
@@ -228,18 +229,8 @@ local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
   Type = V"NullableType";
-  NullableType = V"UnionType" * taggedCap("Nil", symb("?"))^-1 /
-                 function (t, nullable)
-                   if nullable then
-                     t[#t + 1] = nullable
-                   end
-                   if #t == 1 then
-                     return t[1]
-                   else
-                     return t
-                   end
-                 end;
-  UnionType = taggedCap("Union", V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0);
+  NullableType = V"UnionType" * taggedCap("Nil", symb("?"))^-1 / types.Union;
+  UnionType = V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0;
   PrimaryType = V"LiteralType" +
                 V"BaseType" +
                 V"NilType" +

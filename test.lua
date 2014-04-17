@@ -1320,17 +1320,17 @@ e = [=[
 ]=]
 
 r = parse(s)
---assert(r == e)
+assert(r == e)
 
 s = [=[
 local x:number|nil|string|nil|number|boolean|string
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Base string, `Base boolean } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
 ]=]
 
 r = parse(s)
---assert(r == e)
+assert(r == e)
 
 s = [=[
 local x:number|string?
@@ -2119,9 +2119,9 @@ assert(types.isUnion(types.Union(types.Union(Number,Nil),String)))
 assert(types.isUnion(types.Union(types.Union(Nil,Number),String)))
 
 assert(types.isUnionNil(types.Union(Number,Nil)))
-assert(types.isUnionNil(types.Union(types.Union(Number,String),Nil)))
-assert(types.isUnionNil(types.Union(types.Union(Number,Nil),String)))
-assert(types.isUnionNil(types.Union(types.Union(Nil,Number),String)))
+assert(types.isUnionNil(types.Union(Number,String,Nil)))
+assert(types.isUnionNil(types.Union(Number,Nil,String)))
+assert(types.isUnionNil(types.Union(Nil,Number),String))
 
 assert(not types.isUnionNil(types.Union(Number,Boolean)))
 assert(not types.isUnionNil(types.Union(types.Union(Number,String),Boolean)))
