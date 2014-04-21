@@ -1383,6 +1383,26 @@ r = parse(s)
 assert(r == e)
 
 s = [=[
+local x:{}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{  } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{{{{{}}}}}
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Table{ `Base number:`Table{ `Base number:`Table{ `Base number:`Table{ `Base number:`Table{  } } } } } }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
 local x:{string}
 ]=]
 e = [=[
@@ -2177,6 +2197,16 @@ local x:{string:t 1}
 ]=]
 e = [=[
 test.lua:1:19: syntax error, unexpected '1', expecting '}', ',', '?', '|'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local x:{{{{{}}}}
+]=]
+e = [=[
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '}', '?', '|'
 ]=]
 
 r = parse(s)

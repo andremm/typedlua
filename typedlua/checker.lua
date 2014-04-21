@@ -144,8 +144,59 @@ local function check_explist (env, explist, top_level)
   end
 end
 
+local function resize_tuple (t, n)
+  local tuple = { tag = "Tuple" }
+  local vararg = t[#t][1]
+  for i = 1, #t - 1 do
+    tuple[i] = t[i]
+  end
+  for i = #t, n - 1 do
+    if types.isNil(vararg) then
+      tuple[i] = vararg
+    else
+      tuple[i] = types.Union(vararg, Nil)
+    end
+  end
+  tuple[n] = types.Vararg(vararg)
+  return tuple
+end
+
+local function unionlist2tuple (t)
+  local max = 1
+  for i = 1, #t do
+    if #t[i] > max then max = #t[i] end
+  end
+  local u = {}
+  for i = 1, #t do
+    if #t[i] < max then
+      u[i] = resize_tuple(t[i], max)
+    else
+      u[i] = t[i]
+    end
+  end
+  local l = {}
+  for i = 1, #u do
+    for j = 1, #u[i] do
+      if not l[j] then l[j] = {} end
+      table.insert(l[j], u[i][j])
+    end
+  end
+  local n = { tag = "Tuple" }
+  for i = 1, #l - 1 do
+    n[i] = types.Union(table.unpack(l[i]))
+  end
+  local vs = {}
+  for k, v in ipairs(l[#l]) do
+    table.insert(vs, v[1])
+  end
+  n[#l] = types.Vararg(types.Union(table.unpack(vs)))
+  return n
+end
+
 local function first_class (t)
-  if types.isTuple(t) then
+  if types.isUnionlist(t) then
+    return first_class(unionlist2tuple(t))
+  elseif types.isTuple(t) then
     return first_class(t[1])
   elseif types.isVararg(t) then
     if types.isNil(t[1]) then
@@ -168,6 +219,9 @@ local function explist2typelist (explist)
       typelist[i] = first_class(explist[i]["type"])
     end
     local last_type = explist[len]["type"]
+    if types.isUnionlist(last_type) then
+      last_type = unionlist2tuple(last_type)
+    end
     if types.isTuple(last_type) then
       for k, v in ipairs(last_type) do
         typelist[#typelist + 1] = v
