@@ -1,11 +1,11 @@
-We begin this section presenting statistics about the usage of Lua
+We begin this chapter presenting statistics about the usage of Lua
 features and idioms.
 We collected statistics about how programmers use tables, functions,
 dynamic type checking, object-oriented programming, and modules.
 We shall see that these statistics informed important design decisions
 on our optional type system.
-We end this section introducing Typed Lua through examples, and
-describing a few Lua projects that are similar to Typed Lua. 
+We end this chapter introducing Typed Lua through examples, and
+describing a few Lua projects that are similar to Typed Lua.
 
 \section{Statistics about the usage of Lua}
 
@@ -16,7 +16,7 @@ We downloaded the 3928 \texttt{.lua} files that were available in
 the LuaRocks repository at February 1st 2014.
 However, we ignored files that are not compatible with Lua 5.2,
 the latest version of Lua.
-We also ignored \textit{machine-generated} files and test files,
+We also ignored \emph{machine-generated} files and test files,
 because these files may not represent idiomatic Lua code,
 and might skew our statistics towards non-typical uses of Lua.
 This left 2598 \texttt{.lua} files from 262 different projects for
@@ -193,7 +193,7 @@ their last parameter is the vararg expression.
 We also observed that 5\% of the initialization of lists
 (or 2\% of the occurrences of the table constructor) use solely the
 vararg expression.
-Typed Lua should include a \textit{vararg type} to handle variadic
+Typed Lua should include a \emph{vararg type} to handle variadic
 functions and vararg expressions.
 
 \section{Typed Lua through examples}
@@ -234,22 +234,22 @@ types, and second-class types along this section.
 \dstart
 $$
 \begin{array}{rlr}
-T ::= & & \textit{first-class types}\\
-& \;\; L & \textit{literal types}\\
-& | \; B & \textit{base types}\\
-& | \; \Any & \textit{dynamic type}\\
-& | \; T \cup T & \textit{union type}\\
-& | \; S \rightarrow S & \textit{function type}\\
-& | \; \{T:T, ..., T:T\} & \textit{table type}\\
-& | \; X & \textit{type variable}\\
-& | \; \mu X.T & \textit{recursive type}\\
+T ::= & & \emph{first-class types}\\
+& \;\; L & \emph{literal types}\\
+& | \; B & \emph{base types}\\
+& | \; \Any & \emph{dynamic type}\\
+& | \; T \cup T & \emph{union type}\\
+& | \; S \rightarrow S & \emph{function type}\\
+& | \; \{T:T, ..., T:T\} & \emph{table type}\\
+& | \; X & \emph{type variable}\\
+& | \; \mu X.T & \emph{recursive type}\\
 L ::= & \Nil \; | \; \False \; | \; \True \; | \;
   {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
-S ::= & \Void \; | \; V & \textit{second-class types}\\
+S ::= & \Void \; | \; V & \emph{second-class types}\\
 V ::= & \;\; T & \\
-& | \; T* & \textit{vararg type}\\
-& | \; T \times V & \textit{tuple type}
+& | \; T* & \emph{vararg type}\\
+& | \; T \times V & \emph{tuple type}
 \end{array}
 $$
 \dend
