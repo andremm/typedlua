@@ -69,7 +69,6 @@ local parser = {}
 
 local lpeg = require "lpeg"
 local scope = require "typedlua.scope"
-local types = require "typedlua.types"
 
 lpeg.locale(lpeg)
 
@@ -228,9 +227,17 @@ end
 local G = { V"TypedLua",
   TypedLua = V"Shebang"^-1 * V"Skip" * V"Chunk" * -1 + report_error();
   -- type language
-  Type = V"NullableType";
-  NullableType = V"UnionType" * (symb("?") * Cc(types.Nil))^-1 / types.Union;
-  UnionType = V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0;
+  Type = V"NilableType";
+  NilableType = V"UnionType" * (symb("?") * taggedCap("Nil", P(true)))^-1 /
+                function (t, n)
+                  if n then t[#t + 1] = n end
+                  if #t > 1 then
+                    return t
+                  else
+                    return t[1]
+                  end
+                end;
+  UnionType = taggedCap("Union", V"PrimaryType" * Cg(symb("|") * V"PrimaryType")^0);
   PrimaryType = V"LiteralType" +
                 V"BaseType" +
                 V"NilType" +
@@ -239,36 +246,68 @@ local G = { V"TypedLua",
                 V"FunctionType" +
                 V"TableType" +
                 V"VariableType";
-  LiteralType = (V"FalseType" + V"TrueType" + V"NumberType" + V"StringType") / types.Literal;
-  FalseType = token("false", "Type") * Cc(false);
-  TrueType = token("true", "Type") * Cc(true);
-  NumberType = token(V"Number", "Type");
-  StringType = token(V"String", "Type");
-  BaseType = token("boolean", "Type") * Cc(types.Boolean) +
-             token("number", "Type") * Cc(types.Number) +
-             token("string", "Type") * Cc(types.String);
-  NilType = token("nil", "Type") * Cc(types.Nil);
-  TopType = token("value", "Type") * Cc(types.Value);
-  DynamicType = token("any", "Type") * Cc(types.Any);
-  VariableType = token(V"Name", "Type") / types.Variable;
-  FunctionType = V"ArgTypeList" * symb("->") * V"NullableRetTypeList" / types.Function;
-  TableType = symb("{") * (V"FieldTypeList" + Cc(nil)) * symb("}") / types.Table;
-  ArgTypeList = symb("(") * (V"TypeList" + Cc(types.ValueStar)) * symb(")") / types.ArgTuple;
-  RetTypeList = symb("(") * (V"TypeList" + Cc(types.NilStar)) * symb(")") / types.RetTuple;
-  TypeList = V"VarargType" / types.Tuple +
-             V"Type" * Cg(symb(",") * V"Type" * -symb("*"))^0 * (symb(",") * V"VarargType")^-1 / types.Tuple;
-  VarargType = V"Type" * symb("*") / types.Vararg;
-  NullableRetTypeList = V"UnionRetTypeList" * (symb("?") * Cc(types.ErrorRetTuple))^-1 / types.Unionlist;
-  UnionRetTypeList = V"RetTypeList" * Cg(symb("|") * V"RetTypeList")^0;
-  FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0 +
-                  V"Type" / types.Field;
-  FieldType = V"KeyType" * symb(":") * V"Type" / types.Field;
+  LiteralType = taggedCap("Literal", V"LiteralFalse" + V"LiteralTrue" + V"LiteralNumber" + V"LiteralString");
+  LiteralFalse = token("false", "Type") * Cc(false);
+  LiteralTrue = token("true", "Type") * Cc(true);
+  LiteralNumber = token(V"Number", "Type");
+  LiteralString = token(V"String", "Type");
+  BaseType = taggedCap("Base", V"BaseBoolean" + V"BaseNumber" + V"BaseString");
+  BaseBoolean = token("boolean", "Type") * Cc("boolean");
+  BaseNumber = token("number", "Type") * Cc("number");
+  BaseString = token("string", "Type") * Cc("string");
+  NilType = taggedCap("Nil", token("nil", "Type"));
+  TopType = taggedCap("Value", token("value", "Type"));
+  DynamicType = taggedCap("Any", token("any", "Type"));
+  FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"NilableRetTypeList");
+  ArgTypeList = symb("(") * (V"TypeList" + V"ValueStar") * symb(")") /
+                function (t)
+                  if t[#t].tag ~= "Vararg" then
+                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Value" } }
+                  end
+                  return t
+                end;
+  NilableRetTypeList = V"UnionRetTypeList" * (symb("?") * V"RetError")^-1 /
+                       function (t, n)
+                         if n then t[#t + 1] = n end
+                         if #t > 1 then
+                           return t
+                         else
+                           return t[1]
+                         end
+                       end;
+  UnionRetTypeList = taggedCap("Unionlist", V"RetTypeList" * Cg(symb("|") * V"RetTypeList")^0);
+  RetTypeList = symb("(") * (V"TypeList" + V"NilStar") * symb(")") /
+                function (t)
+                  if t[#t].tag ~= "Vararg" then
+                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Nil" } }
+                  end
+                  return t
+                end;
+  TypeList = sepby1(V"Type", symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
+             function (t, v)
+               if v then
+                 v[1] = t[#t]
+                 t[#t] = v
+               end
+               return t
+             end;
+  ValueStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Value", P(true))));
+  NilStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Nil", P(true))));
+  RetError = taggedCap("Tuple", taggedCap("Nil", P(true)) *
+                                taggedCap("Base", Cc("string")) *
+                                taggedCap("Vararg", taggedCap("Nil", P(true))));
+  TableType = taggedCap("Table", symb("{") * (V"TableTypeBody" + Cc(nil)) * symb("}"));
+  TableTypeBody = V"FieldTypeList" +
+                  taggedCap("Field", taggedCap("Base", Cc("number")) * V"Type");
+  FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0;
+  FieldType = taggedCap("Field", V"KeyType" * symb(":") * V"Type");
   KeyType = V"LiteralType" +
-            V"BaseType" +
+	    V"BaseType" +
             V"TopType" +
             V"DynamicType";
-  RetType = V"NullableRetTypeList" +
-            V"Type" / types.Type2RetTuple;
+  VariableType = taggedCap("Variable", token(V"Name", "Type"));
+  RetType = V"NilableRetTypeList" +
+            taggedCap("Tuple", V"Type" * taggedCap("Vararg", taggedCap("Nil", P(true))));
   -- parser
   Chunk = V"Block";
   StatList = (symb(";") + V"Stat")^0;

@@ -1316,7 +1316,7 @@ s = [=[
 local x:number|nil|nil|nil|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Nil, `Nil, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1326,7 +1326,7 @@ s = [=[
 local x:number|nil|string|nil|number|boolean|string
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Base string, `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1596,7 +1596,7 @@ s = [=[
 local function f ():number? end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Vararg{ `Nil } } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Union{ `Base number, `Nil }, `Vararg{ `Nil } }, {  } } } } }
 ]=]
 
 r = parse(s)
