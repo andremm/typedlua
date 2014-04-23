@@ -11,6 +11,7 @@ type:
   | `Function{ type type }
   | `Table{ { type type }* }
   | `Variable{ <string> }
+  | `Recursive{ <string> type }
   | `Unionlist{ type type type* }
   | `Tuple{ type* }
   | `Vararg{ type }
@@ -226,6 +227,16 @@ function types.isVariable (t)
   return t.tag == "Variable"
 end
 
+-- recursive types
+
+function types.Recursive (x, t)
+  return { tag = "Recursive", [1] = x, [2] = t }
+end
+
+function types.isRecursive (t)
+  return t.tag == "Recursive"
+end
+
 -- union list
 
 function types.Unionlist (...)
@@ -386,21 +397,18 @@ local function subtype_table (env, t1, t2)
   end
 end
 
-local function get_type (env, t)
-  return env[t] or types.Nil
-end
-
 local function subtype_variable (env, t1, t2)
   if types.isVariable(t1) and types.isVariable(t2) then
-    if t1[1] == t2[1] then
-      return true
-    else
-      return types.subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
-    end
-  elseif types.isVariable(t1) and not types.isVariable(t2) then
-    return types.subtype(env, get_type(env, t1[1]), t2)
-  elseif not types.isVariable(t1) and types.isVariable(t2) then
-    return types.subtype(env, t1, get_type(env, t2[1]))
+    return env[t1[1] .. t2[1]]
+  else
+    return false
+  end
+end
+
+local function subtype_recursive (env, t1, t2)
+  if types.isRecursive(t1) and types.isRecursive(t2) then
+    env[t1[1] .. t2[1]] = true
+    return types.subtype(env, t1[2], t2[2])
   else
     return false
   end
@@ -498,7 +506,8 @@ function types.subtype (env, t1, t2)
            subtype_union(env, t1, t2) or
            subtype_function(env, t1, t2) or
            subtype_table(env, t1, t2) or
-           subtype_variable(env, t1, t2)
+           subtype_variable(env, t1, t2) or
+           subtype_recursive(env, t1, t2)
   end
 end
 
@@ -595,15 +604,16 @@ end
 
 local function consistent_subtype_variable (env, t1, t2)
   if types.isVariable(t1) and types.isVariable(t2) then
-    if t1[1] == t2[1] then
-      return true
-    else
-      return types.consistent_subtype(env, get_type(env, t1[1]), get_type(env, t2[1]))
-    end
-  elseif types.isVariable(t1) and not types.isVariable(t2) then
-    return types.consistent_subtype(env, get_type(env, t1[1]), t2)
-  elseif not types.isVariable(t1) and types.isVariable(t2) then
-    return types.consistent_subtype(env, t1, get_type(env, t2[1]))
+    return env[t1[1] .. t2[1]]
+  else
+    return false
+  end
+end
+
+local function consistent_subtype_recursive (env, t1, t2)
+  if types.isRecursive(t1) and types.isRecursive(t2) then
+    env[t1[1] .. t2[1]] = true
+    return types.consistent_subtype(env, t1[2], t2[2])
   else
     return false
   end
@@ -701,7 +711,8 @@ function types.consistent_subtype (env, t1, t2)
            consistent_subtype_union(env, t1, t2) or
            consistent_subtype_function(env, t1, t2) or
            consistent_subtype_table(env, t1, t2) or
-           consistent_subtype_variable(env, t1, t2)
+           consistent_subtype_variable(env, t1, t2) or
+           consistent_subtype_recursive(env, t1, t2)
   end
 end
 
@@ -795,6 +806,8 @@ local function type2str (t)
     return "{" .. table.concat(l, ", ") .. "}"
   elseif types.isVariable(t) then
     return t[1]
+  elseif types.isRecursive(t) then
+    return t[1] .. "." .. type2str(t[2])
   elseif types.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do

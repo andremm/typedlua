@@ -81,6 +81,11 @@ function type2str (t)
     str = str .. "{ " .. table.concat(l, ", ") .. " }"
   elseif tag == "Variable" then -- `Variable{ <string> }
     str = str .. " " .. t[1]
+  elseif tag == "Recursive" then -- `Recursive{ <string> type } 
+    str = str .. "{ "
+    str = str .. t[1] .. ", "
+    str = str .. type2str(t[2])
+    str = str .. " }"
   elseif tag == "Tuple" then
     local l = {}
     for k, v in ipairs(t) do

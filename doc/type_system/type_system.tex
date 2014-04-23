@@ -48,13 +48,14 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow R & \textit{function types}\\
+& | \; \{ \} & \textit{empty table type}\\
 & | \; \{F, ..., F\} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
 F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
-K ::= & L \; | \; B \; | \; \Top \; | \; \Any \; | \; \{ \} & \textit{key types}\\
+K ::= & L \; | \; B \; | \; \Top \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
 S ::= & \;\; T* & \textit{vararg types}\\
@@ -67,7 +68,7 @@ $$
 \subsection{Well-formed table types}
 
 \[
-\forall i \not\exists j \; i \not= j \wedge K_{i} \subtype K_{j}
+\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
 \]
 
 \section{Subtyping}
@@ -166,11 +167,19 @@ $$
 \mylabel{S-TABLE}
 \]
 
+\subsection{Type variables}
+
+\[
+\frac{X_{1} \subtype X_{2} \in \senv}
+     {\senv \vdash X_{1} \subtype X_{2}}
+\mylabel{S-VARIABLE}
+\]
+
 \subsection{Recursive types}
 
 \[
-\frac{\senv, X \subtype Y \vdash T_{1} \subtype T_{2}}
-     {\senv \vdash \mu X.T_{1} \subtype \mu Y.T_{2}}
+\frac{\senv, X_{1} \subtype X_{2} \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \mu X_{1}.T_{1} \subtype \mu X_{2}.T_{2}}
 \mylabel{S-RECURSIVE}
 \]
 

@@ -62,9 +62,9 @@ local function set_local (env, id, inferred_type, scope)
       local_type = types.supertypeof(inferred_type)
     end
   end
-  if types.subtype(env["variable"], inferred_type, local_type) then
+  if types.subtype({}, inferred_type, local_type) then
     id["type"] = local_type
-  elseif types.consistent_subtype(env["variable"], inferred_type, local_type) then
+  elseif types.consistent_subtype({}, inferred_type, local_type) then
     id["type"] = local_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
@@ -84,9 +84,9 @@ local function set_local_table (env, id, inferred_type, scope)
   for i = 1, #local_type do
     local subtype_key, subtype_value = false, false
     for j = 1, #inferred_type do
-      if types.subtype(env["variable"], inferred_type[j][1], local_type[i][1]) then
+      if types.subtype({}, inferred_type[j][1], local_type[i][1]) then
         subtype_key = true
-        if types.subtype(env["variable"], inferred_type[j][2], local_type[i][2]) then
+        if types.subtype({}, inferred_type[j][2], local_type[i][2]) then
           subtype_value = true
         else
           subtype_value = false
@@ -319,7 +319,7 @@ local function check_arith (env, exp, top_level)
   check_exp(env, exp2, top_level)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to perform arithmetic on a '%s'"
-  if types.subtype(env["variable"], t1, Number) and types.subtype(env["variable"], t2, Number) then
+  if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
     set_type(exp, Number)
   elseif types.isAny(t1) then
     set_type(exp, Any)
@@ -332,7 +332,7 @@ local function check_arith (env, exp, top_level)
   else
     set_type(exp, Any)
     local wrong_type, wrong_pos = types.supertypeof(t1), exp1.pos
-    if types.subtype(env["variable"], t1, Number) or types.isAny(t1) then
+    if types.subtype({}, t1, Number) or types.isAny(t1) then
       wrong_type = types.supertypeof(t2)
       wrong_pos = exp2.pos
     end
@@ -347,7 +347,7 @@ local function check_concat (env, exp, top_level)
   check_exp(env, exp2, top_level)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to concatenate a '%s'"
-  if types.subtype(env["variable"], t1, String) and types.subtype(env["variable"], t2, String) then
+  if types.subtype({}, t1, String) and types.subtype({}, t2, String) then
     set_type(exp, String)
   elseif types.isAny(t1) then
     set_type(exp, Any)
@@ -360,7 +360,7 @@ local function check_concat (env, exp, top_level)
   else
     set_type(exp, Any)
     local wrong_type, wrong_pos = types.supertypeof(t1), exp1.pos
-    if types.subtype(env["variable"], t1, String) or types.isAny(t1) then
+    if types.subtype({}, t1, String) or types.isAny(t1) then
       wrong_type = types.supertypeof(t2)
       wrong_pos = exp2.pos
     end
@@ -382,9 +382,9 @@ local function check_order (env, exp, top_level)
   check_exp(env, exp2, top_level)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to compare '%s' with '%s'"
-  if types.subtype(env["variable"], t1, Number) and types.subtype(env["variable"], t2, Number) then
+  if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
     set_type(exp, Boolean)
-  elseif types.subtype(env["variable"], t1, String) and types.subtype(env["variable"], t2, String) then
+  elseif types.subtype({}, t1, String) and types.subtype({}, t2, String) then
     set_type(exp, Boolean)
   elseif types.isAny(t1) then
     set_type(exp, Any)
@@ -439,7 +439,7 @@ local function check_minus (env, exp)
   check_exp(env, exp1)
   local t1 = exp1["type"]
   local msg = "attempt to perform arithmetic on a '%s'"
-  if types.subtype(env["variable"], t1, Number) then
+  if types.subtype({}, t1, Number) then
     set_type(exp, Number)
   elseif types.isAny(t1) then
     set_type(exp, Any)
@@ -457,7 +457,7 @@ local function check_len (env, exp)
   check_exp(env, exp1)
   local t1 = exp1["type"]
   local msg = "attempt to get length of a '%s' value"
-  if types.subtype(env["variable"], t1, String) then
+  if types.subtype({}, t1, String) then
     set_type(exp, Number)
   elseif types.isAny(t1) then
     set_type(exp, Any)
@@ -534,7 +534,7 @@ local function check_index_read (env, exp, top_level)
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
-      if types.subtype(env["variable"], t2, v[1]) then
+      if types.subtype({}, t2, v[1]) then
         t = v[2]
         break
       end
@@ -599,8 +599,8 @@ local function check_fieldlist (env, exp, top_level)
 end
 
 local function check_argument (env, name, t1, t2, i, pos)
-  if types.subtype(env["variable"], t1, t2) then
-  elseif types.consistent_subtype(env["variable"], t1, t2) then
+  if types.subtype({}, t1, t2) then
+  elseif types.consistent_subtype({}, t1, t2) then
     local msg = "parameter %d of %s, attempt to assign '%s' to '%s'"
     msg = string.format(msg, i, name, type2str(t1), type2str(t2))
     warning(env, msg, pos)
@@ -693,7 +693,7 @@ local function check_invoke (env, exp, top_level)
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
-      if types.subtype(env["variable"], t2, v[1]) then
+      if types.subtype({}, t2, v[1]) then
         t = v[2]
         break
       end
@@ -802,8 +802,8 @@ local function check_fornum (env, stm, top_level)
   check_exp(env, exp1, top_level)
   local t1 = exp1["type"]
   local msg = "'for' initial value must be a number"
-  if types.subtype(env["variable"], t1, Number) then
-  elseif types.consistent_subtype(env["variable"], t1, Number) then
+  if types.subtype({}, t1, Number) then
+  elseif types.consistent_subtype({}, t1, Number) then
     warning(env, msg, exp1.pos)
   else
     typeerror(env, msg, exp1.pos)
@@ -811,8 +811,8 @@ local function check_fornum (env, stm, top_level)
   check_exp(env, exp2, top_level)
   local t2 = exp2["type"]
   local msg = "'for' limit must be a number"
-  if types.subtype(env["variable"], t2, Number) then
-  elseif types.consistent_subtype(env["variable"], t2, Number) then
+  if types.subtype({}, t2, Number) then
+  elseif types.consistent_subtype({}, t2, Number) then
     warning(env, msg, exp2.pos)
   else
     typeerror(env, msg, exp2.pos)
@@ -821,8 +821,8 @@ local function check_fornum (env, stm, top_level)
     check_exp(env, exp3, top_level)
     local t3 = exp3["type"]
     local msg = "'for' step must be a number"
-    if types.subtype(env["variable"], t3, Number) then
-    elseif types.consistent_subtype(env["variable"], t3, Number) then
+    if types.subtype({}, t3, Number) then
+    elseif types.consistent_subtype({}, t3, Number) then
       warning(env, msg, exp3.pos)
     else
       typeerror(env, msg, exp3.pos)
@@ -849,8 +849,8 @@ local function check_var_assignment (env, var, inferred_type)
     local local_var = get_local(env, name)
     if local_var then
       local local_type = local_var["type"]
-      if types.subtype(env["variable"], inferred_type, local_type) then
-      elseif types.consistent_subtype(env["variable"], inferred_type, local_type) then
+      if types.subtype({}, inferred_type, local_type) then
+      elseif types.consistent_subtype({}, inferred_type, local_type) then
         local msg = "attempt to assign '%s' to '%s'"
         msg = string.format(msg, type2str(inferred_type), type2str(local_type))
         warning(env, msg, var.pos)
@@ -875,14 +875,14 @@ local function check_var_assignment (env, var, inferred_type)
     if types.isTable(t1) then
       local t
       for k, v in ipairs(t1) do
-        if types.subtype(env["variable"], t2, v[1]) then
+        if types.subtype({}, t2, v[1]) then
           t = v[2]
           break
         end
       end
       if t then
-        if types.subtype(env["variable"], inferred_type, t) then
-        elseif types.consistent_subtype(env["variable"], inferred_type, t) then
+        if types.subtype({}, inferred_type, t) then
+        elseif types.consistent_subtype({}, inferred_type, t) then
           local msg = "attempt to assign '%s' to '%s'"
           msg = string.format(msg, type2str(inferred_type), type2str(t))
           warning(env, msg, var.pos)
@@ -933,8 +933,8 @@ local function check_return (env, stm, top_level)
   infer_return_type(env, types.supertypeof(typelist))
   local t = get_return_type(env)
   local msg = "return type '%s' does not match '%s'"
-  if types.subtype(env["variable"], typelist, t) then
-  elseif types.consistent_subtype(env["variable"], typelist, t) then
+  if types.subtype({}, typelist, t) then
+  elseif types.consistent_subtype({}, typelist, t) then
     msg = string.format(msg, type2str(typelist), type2str(t))
     warning(env, msg, stm.pos)
   else
