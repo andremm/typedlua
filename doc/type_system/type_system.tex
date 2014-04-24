@@ -435,6 +435,44 @@ $$
 \mylabel{T-STMCALL2}
 \]
 
+\subsubsection{Expression lists}
+
+\[
+\frac{|\vec{e}| = 0}
+     {\env \vdash \vec{e} : \Nil{*}}
+\mylabel{T-EXPLIST1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      |\vec{e}| = 1}
+     {\env \vdash \vec{e} : T \times \Nil{*}}
+\mylabel{T-EXPLIST2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:S \;\;\;
+      |\vec{e}| = 1}
+     {\env \vdash \vec{e} : S}
+\mylabel{T-EXPLIST3}
+\]
+
+\[
+\frac{\env \vdash e_{k}:T_{k} \;\;\;
+      \env \vdash e_{n+1}:T_{n+1} \;\;\;
+      |\vec{e}| = n + 1}
+     {\env \vdash \vec{e} : T_{1} \times ... \times T_{n+1} \times \Nil{*}}
+\mylabel{T-EXPLIST4}
+\]
+
+\[
+\frac{\env \vdash e_{k}:T_{k} \;\;\;
+      \env \vdash e_{n+1}:S \;\;\;
+      |\vec{e}| = n + 1}
+     {\env \vdash \vec{e} : T_{1} \times ... \times S}
+\mylabel{T-EXPLIST5}
+\]
+
 \subsubsection{Expressions}
 
 \[
