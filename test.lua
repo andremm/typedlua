@@ -2590,10 +2590,10 @@ local function factorial(n:number):number
   end
 end
 local x = 5
-factorial(x)
+print(factorial(x))
 ]=]
 e = [=[
-{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Id "factorial", `Id "x" } }
+{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Id "print", `Call{ `Id "factorial", `Id "x" } } }
 ]=]
 
 r = typecheck(s)
@@ -2628,10 +2628,26 @@ local function sum(x:number, y:number)
   return x + y
 end
 local x, y, z = multiple(), multiple()
-sum(multiple(), multiple())
+print(sum(multiple(), multiple()))
 ]=]
 e = [=[
-{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }
+{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Id "print", `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function message (name:string, greeting:string?)
+  local greeting = greeting or "Hello "
+  return greeting .. name
+end
+
+print(message("Lua"))
+print(message("Lua", "Hi"))
+]=]
+e = [=[
+{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Local{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } }, `Call{ `Id "print", `Call{ `Id "message", `String "Lua" } }, `Call{ `Id "print", `Call{ `Id "message", `String "Lua", `String "Hi" } } }
 ]=]
 
 r = typecheck(s)
