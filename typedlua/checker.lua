@@ -138,9 +138,9 @@ local function set_vararg_type (env, t)
   env["function"][env.fscope]["vararg_type"] = t
 end
 
-local function check_explist (env, explist, top_level)
+local function check_explist (env, explist)
   for k, v in ipairs(explist) do
-    check_exp(env, v, top_level)
+    check_exp(env, v)
   end
 end
 
@@ -313,10 +313,10 @@ local function check_dots (env, exp)
   set_type(exp, types.Vararg(t))
 end
 
-local function check_arith (env, exp, top_level)
+local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to perform arithmetic on a '%s'"
   if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
@@ -341,10 +341,10 @@ local function check_arith (env, exp, top_level)
   end
 end
 
-local function check_concat (env, exp, top_level)
+local function check_concat (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to concatenate a '%s'"
   if types.subtype({}, t1, String) and types.subtype({}, t2, String) then
@@ -369,17 +369,17 @@ local function check_concat (env, exp, top_level)
   end
 end
 
-local function check_equal (env, exp, top_level)
+local function check_equal (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   set_type(exp, Boolean)
 end
 
-local function check_order (env, exp, top_level)
+local function check_order (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to compare '%s' with '%s'"
   if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
@@ -402,10 +402,10 @@ local function check_order (env, exp, top_level)
   end
 end
 
-local function check_and (env, exp, top_level)
+local function check_and (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t1)
@@ -414,10 +414,10 @@ local function check_and (env, exp, top_level)
   end
 end
 
-local function check_or (env, exp, top_level)
+local function check_or (env, exp)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t2)
@@ -470,46 +470,46 @@ local function check_len (env, exp)
   end
 end
 
-local function check_binary_op (env, exp, top_level)
+local function check_binary_op (env, exp)
   local op = exp[1]
   if op == "add" or op == "sub" or
      op == "mul" or op == "div" or op == "mod" or
      op == "pow" then
-    check_arith(env, exp, top_level)
+    check_arith(env, exp)
   elseif op == "concat" then
-    check_concat(env, exp, top_level)
+    check_concat(env, exp)
   elseif op == "eq" then
-    check_equal(env, exp, top_level)
+    check_equal(env, exp)
   elseif op == "lt" or op == "le" then
-    check_order(env, exp, top_level)
+    check_order(env, exp)
   elseif op == "and" then
-    check_and(env, exp, top_level)
+    check_and(env, exp)
   elseif op == "or" then
-    check_or(env, exp, top_level)
+    check_or(env, exp)
   else
     error("expecting binary operator, but got " .. op)
   end
 end
 
-local function check_unary_op (env, exp, top_level)
+local function check_unary_op (env, exp)
   local op = exp[1]
   if op == "not" then
-    check_not(env, exp, top_level)
+    check_not(env, exp)
   elseif op == "unm" then
-    check_minus(env, exp, top_level)
+    check_minus(env, exp)
   elseif op == "len" then
-    check_len(env, exp, top_level)
+    check_len(env, exp)
   else
     error("expecting unary operator, but got " .. op)
   end
 end
 
-local function check_paren (env, exp, top_level)
-  check_exp(env, exp[1], top_level)
+local function check_paren (env, exp)
+  check_exp(env, exp[1])
   set_type(exp, exp[1]["type"])
 end
 
-local function check_id_read (env, exp, top_level)
+local function check_id_read (env, exp)
   local name = exp[1]
   local local_var = get_local(env, name)
   if local_var then
@@ -520,15 +520,15 @@ local function check_id_read (env, exp, top_level)
     global.pos = exp.pos
     global[1] = { tag = "Id", [1] = "_ENV", pos = exp.pos }
     global[2] = { tag = "String", [1] = name, pos = exp.pos }
-    check_exp(env, global, top_level)
+    check_exp(env, global)
     set_type(exp, global["type"])
   end
 end
 
-local function check_index_read (env, exp, top_level)
+local function check_index_read (env, exp)
   local exp1, exp2 = exp[1], exp[2]
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
   if types.isTable(t1) then
@@ -558,7 +558,7 @@ local function check_index_read (env, exp, top_level)
   end
 end
 
-local function check_function (env, exp, top_level)
+local function check_function (env, exp)
   begin_function(env)
   begin_scope(env)
   local idlist = exp[1]
@@ -569,27 +569,25 @@ local function check_function (env, exp, top_level)
     t2 = types.Tuple(types.Vararg(Any))
   end
   set_type(exp, types.Function(t1, t2))
-  if not top_level then
-    set_return_type(env, t2)
-    check_block(env, block)
-  end
+  set_return_type(env, t2)
+  check_block(env, block)
   end_scope(env)
   end_function(env)
 end
 
-local function check_fieldlist (env, exp, top_level)
+local function check_fieldlist (env, exp)
   local t = { tag = "Table" }
   local i = 1
   for k, v in ipairs(exp) do
     local tag = v.tag
     t[k] = { tag = "Field" }
     if tag == "Pair" then
-      check_exp(env, v[1], top_level)
-      check_exp(env, v[2], top_level)
+      check_exp(env, v[1])
+      check_exp(env, v[2])
       t[k][1] = v[1]["type"]
       t[k][2] = types.supertypeof(v[2]["type"])
     else
-      check_exp(env, v, top_level)
+      check_exp(env, v)
       t[k][1] = types.Literal(i)
       t[k][2] = types.supertypeof(v["type"])
       i = i + 1
@@ -651,15 +649,15 @@ local function var2name (var)
   end
 end
 
-local function check_call (env, exp, top_level)
+local function check_call (env, exp)
   local exp1 = exp[1]
   local explist = {}
-  check_exp(env, exp1, top_level)
+  check_exp(env, exp1)
   local name = var2name(exp1)
   for i = 2, #exp do
     explist[i - 1] = exp[i]
   end
-  check_explist(env, explist, top_level)
+  check_explist(env, explist)
   local typelist = explist2typelist(explist)
   local t = exp1["type"]
   if types.isFunction(t) then
@@ -678,15 +676,15 @@ local function check_call (env, exp, top_level)
   end
 end
 
-local function check_invoke (env, exp, top_level)
+local function check_invoke (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   local explist = {}
-  check_exp(env, exp1, top_level)
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp1)
+  check_exp(env, exp2)
   for i = 3, #exp do
     explist[i - 2] = exp[i]
   end
-  check_explist(env, explist, top_level)
+  check_explist(env, explist)
   local typelist = explist2typelist(explist)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
@@ -732,7 +730,7 @@ local function check_invoke (env, exp, top_level)
   end
 end
 
-function check_exp (env, exp, top_level)
+function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
     set_type(exp, Nil)
@@ -747,59 +745,59 @@ function check_exp (env, exp, top_level)
   elseif tag == "String" then -- `String{ <string> }
     set_type(exp, types.Literal(exp[1]))
   elseif tag == "Function" then -- `Function{ { ident* { `Dots type? }? } type? block }
-    check_function(env, exp, top_level)
+    check_function(env, exp)
   elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
-    check_fieldlist(env, exp, top_level)
+    check_fieldlist(env, exp)
   elseif tag == "Op" then -- `Op{ opid expr expr? }
     if exp[3] then
-      check_binary_op(env, exp, top_level)
+      check_binary_op(env, exp)
     else
-      check_unary_op(env, exp, top_level)
+      check_unary_op(env, exp)
     end
   elseif tag == "Paren" then -- `Paren{ expr }
-    check_paren(env, exp, top_level)
+    check_paren(env, exp)
   elseif tag == "Call" then -- `Call{ expr expr* }
-    check_call(env, exp, top_level)
+    check_call(env, exp)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
-    check_invoke(env, exp, top_level)
+    check_invoke(env, exp)
   elseif tag == "Id" then -- `Id{ <string> }
-    check_id_read(env, exp, top_level)
+    check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
-    check_index_read(env, exp, top_level)
+    check_index_read(env, exp)
   else
     error("cannot type check expression " .. tag)
   end
 end
 
-local function check_while (env, stm, top_level)
-  check_exp(env, stm[1], top_level)
-  check_block(env, stm[2], top_level)
+local function check_while (env, stm)
+  check_exp(env, stm[1])
+  check_block(env, stm[2])
 end
 
-local function check_repeat (env, stm, top_level)
-  check_block(env, stm[1], top_level)
-  check_exp(env, stm[2], top_level)
+local function check_repeat (env, stm)
+  check_block(env, stm[1])
+  check_exp(env, stm[2])
 end
 
-local function check_if (env, stm, top_level)
+local function check_if (env, stm)
   for i = 1, #stm, 2 do
     local exp, block = stm[i], stm[i + 1]
     if block then
-      check_exp(env, exp, top_level)
-      check_block(env, block, top_level)
+      check_exp(env, exp)
+      check_block(env, block)
     else
       block = exp
-      check_block(env, block, top_level)
+      check_block(env, block)
     end
   end
 end
 
-local function check_fornum (env, stm, top_level)
+local function check_fornum (env, stm)
   local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
   id[2] = Number
   begin_scope(env)
   set_local(env, id, Number, env.scope)
-  check_exp(env, exp1, top_level)
+  check_exp(env, exp1)
   local t1 = exp1["type"]
   local msg = "'for' initial value must be a number"
   if types.subtype({}, t1, Number) then
@@ -808,7 +806,7 @@ local function check_fornum (env, stm, top_level)
   else
     typeerror(env, msg, exp1.pos)
   end
-  check_exp(env, exp2, top_level)
+  check_exp(env, exp2)
   local t2 = exp2["type"]
   local msg = "'for' limit must be a number"
   if types.subtype({}, t2, Number) then
@@ -818,7 +816,7 @@ local function check_fornum (env, stm, top_level)
     typeerror(env, msg, exp2.pos)
   end
   if block then
-    check_exp(env, exp3, top_level)
+    check_exp(env, exp3)
     local t3 = exp3["type"]
     local msg = "'for' step must be a number"
     if types.subtype({}, t3, Number) then
@@ -827,18 +825,18 @@ local function check_fornum (env, stm, top_level)
     else
       typeerror(env, msg, exp3.pos)
     end
-    check_exp(env, exp3, top_level)
+    check_exp(env, exp3)
   else
     block = exp3
   end
-  check_block(env, block, top_level)
+  check_block(env, block)
   end_scope(env)
 end
 
 local function check_forin (env, idlist, explist, block)
   begin_scope(env)
-  check_local(env, idlist, explist, top_level)
-  check_block(env, block, top_level)
+  check_local(env, idlist, explist)
+  check_block(env, block)
   end_scope(env)
 end
 
@@ -912,8 +910,8 @@ local function check_var_assignment (env, var, inferred_type)
   end
 end
 
-local function check_assignment (env, varlist, explist, top_level)
-  check_explist(env, explist, top_level)
+local function check_assignment (env, varlist, explist)
+  check_explist(env, explist)
   local typelist = explist2typelist(explist)
   local last_type = typelist[#typelist]
   local fill_type = Nil
@@ -927,8 +925,8 @@ local function check_assignment (env, varlist, explist, top_level)
   end
 end
 
-local function check_return (env, stm, top_level)
-  check_explist(env, stm, top_level)
+local function check_return (env, stm)
+  check_explist(env, stm)
   local typelist = explist2typelist(stm)
   infer_return_type(env, types.supertypeof(typelist))
   local t = get_return_type(env)
@@ -943,62 +941,58 @@ local function check_return (env, stm, top_level)
   end
 end
 
-local function check_interface (env, stm, top_level)
+local function check_interface (env, stm)
   local t = types.Table()
-  if not top_level then
-    for i = 2, #stm do
-      local f = { tag = "Field" }
-      f[1] = types.Literal(stm[i][1])
-      f[2] = stm[i][2]
-      t[#t + 1] = f
-    end
+  for i = 2, #stm do
+    local f = { tag = "Field" }
+    f[1] = types.Literal(stm[i][1])
+    f[2] = stm[i][2]
+    t[#t + 1] = f
   end
   local x = stm[1]
   env["variable"][x] = t
 end
 
-function check_stm (env, stm, top_level)
+function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then -- `Do{ stat* }
-    check_block(env, stm, top_level)
+    check_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
-    check_assignment(env, stm[1], stm[2], top_level)
+    check_assignment(env, stm[1], stm[2])
   elseif tag == "While" then -- `While{ expr block }
-    check_while(env, stm, top_level)
+    check_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }
-    check_repeat(env, stm, top_level)
+    check_repeat(env, stm)
   elseif tag == "If" then -- `If{ (expr block)+ block? }
-    check_if(env, stm, top_level)
+    check_if(env, stm)
   elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
-    check_fornum(env, stm, top_level)
+    check_fornum(env, stm)
   elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
-    check_forin(env, stm[1], stm[2], stm[3], top_level)
+    check_forin(env, stm[1], stm[2], stm[3])
   elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
-    check_local(env, stm[1], stm[2], top_level)
+    check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then -- `Localrec{ ident expr }
-    check_localrec(env, stm[1][1], stm[2][1], top_level)
+    check_localrec(env, stm[1][1], stm[2][1])
   elseif tag == "Goto" then -- `Goto{ <string> }
   elseif tag == "Label" then -- `Label{ <string> }
   elseif tag == "Return" then -- `Return{ <expr>* }
-    check_return(env, stm, top_level)
+    check_return(env, stm)
   elseif tag == "Break" then
   elseif tag == "Call" then -- `Call{ expr expr* }
-    check_call(env, stm, top_level)
+    check_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
-    check_invoke(env, stm, top_level)
+    check_invoke(env, stm)
   elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
-    check_interface(env, stm, top_level)
+    check_interface(env, stm)
   else
     error("cannot type check statement " .. tag)
   end
 end
 
-function check_block (env, block, top_level)
+function check_block (env, block)
   begin_scope(env)
-  if not top_level then
-    for k, v in ipairs(block) do
-      check_stm(env, v, top_level)
-    end
+  for k, v in ipairs(block) do
+    check_stm(env, v)
   end
   end_scope(env)
 end
@@ -1025,17 +1019,6 @@ function checker.typecheck (ast, subject, filename)
   set_vararg_type(env, String)
   set_return_type(env, types.Tuple(types.Vararg(Any)))
   set_local(env, ENV, ENV[2], env.scope)
---[[
-  for k, v in ipairs(ast) do
-    check_stm(env, v, true)
-  end
-  if #env.messages > 0 then
-    end_scope(env)
-    end_function(env)
-    return ast, table.concat(env.messages, "\n")
-  end
-  ENV[2].open = false
-]]
   for k, v in ipairs(ast) do
     check_stm(env, v, false)
   end
