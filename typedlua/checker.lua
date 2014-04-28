@@ -119,11 +119,19 @@ end
 
 local function infer_return_type (env, t)
   local fscope = env.fscope
-  if not env["function"][env.fscope]["inferred_return_type"] then
-    env["function"][env.fscope]["inferred_return_type"] = {}
+  if not env["function"][fscope]["inferred_return_type"] then
+    env["function"][fscope]["inferred_return_type"] = {}
   end
-  local a = env["function"][env.fscope]["inferred_return_type"]
-  a[#a + 1] = t
+  table.insert(env["function"][fscope]["inferred_return_type"], t)
+end
+
+local function inferred_return_type (env)
+  local t = env["function"][env.fscope]["inferred_return_type"]
+  if not t then
+    return types.NilStar
+  else
+    return types.Unionlist(table.unpack(t))
+  end
 end
 
 local function get_return_type (env)
@@ -144,71 +152,6 @@ local function check_explist (env, explist)
   end
 end
 
-local function resize_tuple (t, n)
-  local tuple = { tag = "Tuple" }
-  local vararg = t[#t][1]
-  for i = 1, #t - 1 do
-    tuple[i] = t[i]
-  end
-  for i = #t, n - 1 do
-    if types.isNil(vararg) then
-      tuple[i] = vararg
-    else
-      tuple[i] = types.Union(vararg, Nil)
-    end
-  end
-  tuple[n] = types.Vararg(vararg)
-  return tuple
-end
-
-local function unionlist2tuple (t)
-  local max = 1
-  for i = 1, #t do
-    if #t[i] > max then max = #t[i] end
-  end
-  local u = {}
-  for i = 1, #t do
-    if #t[i] < max then
-      u[i] = resize_tuple(t[i], max)
-    else
-      u[i] = t[i]
-    end
-  end
-  local l = {}
-  for i = 1, #u do
-    for j = 1, #u[i] do
-      if not l[j] then l[j] = {} end
-      table.insert(l[j], u[i][j])
-    end
-  end
-  local n = { tag = "Tuple" }
-  for i = 1, #l - 1 do
-    n[i] = types.Union(table.unpack(l[i]))
-  end
-  local vs = {}
-  for k, v in ipairs(l[#l]) do
-    table.insert(vs, v[1])
-  end
-  n[#l] = types.Vararg(types.Union(table.unpack(vs)))
-  return n
-end
-
-local function first_class (t)
-  if types.isUnionlist(t) then
-    return first_class(unionlist2tuple(t))
-  elseif types.isTuple(t) then
-    return first_class(t[1])
-  elseif types.isVararg(t) then
-    if types.isNil(t[1]) then
-      return t[1]
-    else
-      return types.Union(t[1], Nil)
-    end
-  else
-    return t
-  end
-end
-
 local function explist2typelist (explist)
   local len = #explist
   if len == 0 then
@@ -216,7 +159,7 @@ local function explist2typelist (explist)
   else
     local typelist = { tag = "Tuple" }
     for i = 1, len - 1 do
-      typelist[i] = first_class(explist[i]["type"])
+      typelist[i] = types.first_class(explist[i]["type"])
     end
     local last_type = explist[len]["type"]
     if types.isUnionlist(last_type) then
@@ -275,7 +218,7 @@ local function check_local (env, idlist, explist)
   end
   for k, v in ipairs(idlist) do
     local t = fill_type
-    if typelist[k] then t = first_class(typelist[k]) end
+    if typelist[k] then t = types.first_class(typelist[k]) end
     if v[2] and types.isVariable(v[2]) then
       v[2] = env["variable"][v[2][1]]
     end
@@ -287,14 +230,31 @@ local function check_local (env, idlist, explist)
   end
 end
 
+local function match_return_type (env, inferred_type, declared_type, pos)
+  local msg = "return type '%s' does not match '%s'"
+  if types.subtype({}, inferred_type, declared_type) then
+    return inferred_type
+  elseif types.consistent_subtype({}, inferred_type, declared_type) then
+    msg = string.format(msg, type2str(inferred_type), type2str(declared_type))
+    warning(env, msg, pos)
+    return inferred_type
+  else
+    msg = string.format(msg, type2str(inferred_type), type2str(declared_type))
+    typeerror(env, msg, pos)
+    return declared_type
+  end
+end
+
 local function check_localrec (env, id, exp)
   local scope = env.scope
   begin_function(env)
   begin_scope(env)
   local idlist, typelist, block = exp[1], exp[2], exp[3]
+  local infer_return = false
   if not block then
     block = typelist
     typelist = types.Tuple(types.Vararg(Any))
+    infer_return = true
   end
   local t1 = check_parameters(env, idlist)
   local t2 = typelist
@@ -302,8 +262,16 @@ local function check_localrec (env, id, exp)
   set_type(exp, t)
   id[2] = t
   set_local(env, id, t, scope)
-  set_return_type(env, t2)
   check_block(env, block)
+  local rettype = inferred_return_type(env)
+  if infer_return then
+    t2 = rettype
+    t = types.Function(t1, t2)
+    set_type(exp, t)
+    id[2] = t
+    set_local(env, id, t, scope)
+  end
+  match_return_type(env, rettype, t2, exp.pos)
   end_scope(env)
   end_function(env)
 end
@@ -317,7 +285,7 @@ local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
   local msg = "attempt to perform arithmetic on a '%s'"
   if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
     set_type(exp, Number)
@@ -345,7 +313,7 @@ local function check_concat (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
   local msg = "attempt to concatenate a '%s'"
   if types.subtype({}, t1, String) and types.subtype({}, t2, String) then
     set_type(exp, String)
@@ -380,7 +348,7 @@ local function check_order (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
   local msg = "attempt to compare '%s' with '%s'"
   if types.subtype({}, t1, Number) and types.subtype({}, t2, Number) then
     set_type(exp, Boolean)
@@ -406,7 +374,7 @@ local function check_and (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t1)
   else
@@ -418,7 +386,7 @@ local function check_or (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = exp1["type"], exp2["type"]
+  local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t2)
   elseif types.isUnionNil(t1) then
@@ -437,7 +405,7 @@ end
 local function check_minus (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = exp1["type"]
+  local t1 = types.first_class(exp1["type"])
   local msg = "attempt to perform arithmetic on a '%s'"
   if types.subtype({}, t1, Number) then
     set_type(exp, Number)
@@ -455,7 +423,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = exp1["type"]
+  local t1 = types.first_class(exp1["type"])
   local msg = "attempt to get length of a '%s' value"
   if types.subtype({}, t1, String) then
     set_type(exp, Number)
@@ -506,7 +474,7 @@ end
 
 local function check_paren (env, exp)
   check_exp(env, exp[1])
-  set_type(exp, exp[1]["type"])
+  set_type(exp, types.first_class(exp[1]["type"]))
 end
 
 local function check_id_read (env, exp)
@@ -564,13 +532,20 @@ local function check_function (env, exp)
   local idlist = exp[1]
   local t1 = check_parameters(env, idlist)
   local t2, block = exp[2], exp[3]
+  local infer_return = false
   if not block then
     block = t2
     t2 = types.Tuple(types.Vararg(Any))
+    infer_return = true
   end
   set_type(exp, types.Function(t1, t2))
-  set_return_type(env, t2)
   check_block(env, block)
+  local rettype = inferred_return_type(env)
+  if infer_return then
+    t2 = rettype
+    set_type(exp, types.Function(t1, t2))
+  end
+  match_return_type(env, rettype, t2, exp.pos)
   end_scope(env)
   end_function(env)
 end
@@ -920,25 +895,15 @@ local function check_assignment (env, varlist, explist)
   end
   for k, v in ipairs(varlist) do
     local t = fill_type
-    if typelist[k] then t = first_class(typelist[k]) end
+    if typelist[k] then t = types.first_class(typelist[k]) end
     check_var_assignment(env, v, t)
   end
 end
 
 local function check_return (env, stm)
   check_explist(env, stm)
-  local typelist = explist2typelist(stm)
-  infer_return_type(env, types.supertypeof(typelist))
-  local t = get_return_type(env)
-  local msg = "return type '%s' does not match '%s'"
-  if types.subtype({}, typelist, t) then
-  elseif types.consistent_subtype({}, typelist, t) then
-    msg = string.format(msg, type2str(typelist), type2str(t))
-    warning(env, msg, stm.pos)
-  else
-    msg = string.format(msg, type2str(typelist), type2str(t))
-    typeerror(env, msg, stm.pos)
-  end
+  local t = explist2typelist(stm)
+  infer_return_type(env, types.supertypeof(t))
 end
 
 local function check_interface (env, stm)
@@ -1017,7 +982,6 @@ function checker.typecheck (ast, subject, filename)
   begin_function(env)
   begin_scope(env)
   set_vararg_type(env, String)
-  set_return_type(env, types.Tuple(types.Vararg(Any)))
   set_local(env, ENV, ENV[2], env.scope)
   for k, v in ipairs(ast) do
     check_stm(env, v, false)

@@ -776,6 +776,73 @@ function types.supertypeof (t)
   end
 end
 
+-- first-class
+
+local function resize_tuple (t, n)
+  local tuple = { tag = "Tuple" }
+  local vararg = t[#t][1]
+  for i = 1, #t - 1 do
+    tuple[i] = t[i]
+  end
+  for i = #t, n - 1 do
+    if types.isNil(vararg) then
+      tuple[i] = vararg
+    else
+      tuple[i] = types.Union(vararg, Nil)
+    end
+  end
+  tuple[n] = types.Vararg(vararg)
+  return tuple
+end
+
+local function unionlist2tuple (t)
+  local max = 1
+  for i = 1, #t do
+    if #t[i] > max then max = #t[i] end
+  end
+  local u = {}
+  for i = 1, #t do
+    if #t[i] < max then
+      u[i] = resize_tuple(t[i], max)
+    else
+      u[i] = t[i]
+    end
+  end
+  local l = {}
+  for i = 1, #u do
+    for j = 1, #u[i] do
+      if not l[j] then l[j] = {} end
+      table.insert(l[j], u[i][j])
+    end
+  end
+  local n = { tag = "Tuple" }
+  for i = 1, #l - 1 do
+    n[i] = types.Union(table.unpack(l[i]))
+  end
+  local vs = {}
+  for k, v in ipairs(l[#l]) do
+    table.insert(vs, v[1])
+  end
+  n[#l] = types.Vararg(types.Union(table.unpack(vs)))
+  return n
+end
+
+function types.first_class (t)
+  if types.isUnionlist(t) then
+    return types.first_class(unionlist2tuple(t))
+  elseif types.isTuple(t) then
+    return types.first_class(t[1])
+  elseif types.isVararg(t) then
+    if types.isNil(t[1]) then
+      return t[1]
+    else
+      return types.Union(t[1], types.Nil)
+    end
+  else
+    return t
+  end
+end
+
 -- tostring
 
 local function type2str (t)

@@ -2579,6 +2579,64 @@ assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t4,t2)
 
 print("> testing type checker...")
 
+-- paper dyla
+
+s = [=[
+local function factorial(n:number):number
+  if n == 0 then
+    return 1
+  else
+    return n * factorial(n - 1)
+  end
+end
+local x = 5
+factorial(x)
+]=]
+e = [=[
+{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Id "factorial", `Id "x" } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function abs(n:number)
+  if n < 0 then
+    return -n
+  else
+    return n
+  end
+end
+
+local function distance(x, y)
+  return abs(x - y)
+end
+]=]
+e = [=[
+test.lua:10:14: warning, attempt to perform arithmetic on a 'any'
+test.lua:10:10: warning, parameter 1 of abs, attempt to assign 'any' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function multiple ()
+  return 2, "foo"
+end
+local function sum(x:number, y:number)
+  return x + y
+end
+local x, y, z = multiple(), multiple()
+sum(multiple(), multiple())
+]=]
+e = [=[
+{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- type check
 
 s = [=[
