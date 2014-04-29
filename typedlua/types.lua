@@ -150,28 +150,26 @@ function types.isUnionNil (t)
         return true
       end
     end
-    return false
+  end
+  return false
+end
+
+function types.filterUnion (u, t)
+  if types.isUnion(u) then
+    local l = {}
+    for i = 1, #u do
+      if not (types.subtype({}, u[i], t) and types.subtype({}, t, u[i])) then
+        l[#l + 1] = u[i]
+      end
+    end
+    return types.Union(table.unpack(l))
   else
-    return false
+    return u
   end
 end
 
 function types.UnionNoNil (t)
-  if types.isUnionNil(t) then
-    local n = { tag = "Union" }
-    for k, v in ipairs(t) do
-      if not types.isNil(v) then
-        n[#n + 1] = v
-      end
-    end
-    if #n == 1 then
-      return n[1]
-    else
-      return n
-    end
-  else
-    return t
-  end
+  return types.filterUnion(t, types.Nil)
 end
 
 -- function types
@@ -795,7 +793,7 @@ local function resize_tuple (t, n)
   return tuple
 end
 
-local function unionlist2tuple (t)
+function types.unionlist2tuple (t)
   local max = 1
   for i = 1, #t do
     if #t[i] > max then max = #t[i] end
@@ -829,7 +827,7 @@ end
 
 function types.first_class (t)
   if types.isUnionlist(t) then
-    return types.first_class(unionlist2tuple(t))
+    return types.first_class(types.unionlist2tuple(t))
   elseif types.isTuple(t) then
     return types.first_class(t[1])
   elseif types.isVararg(t) then

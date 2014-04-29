@@ -163,7 +163,7 @@ local function explist2typelist (explist)
     end
     local last_type = explist[len]["type"]
     if types.isUnionlist(last_type) then
-      last_type = unionlist2tuple(last_type)
+      last_type = types.unionlist2tuple(last_type)
     end
     if types.isTuple(last_type) then
       for k, v in ipairs(last_type) do
@@ -390,7 +390,7 @@ local function check_or (env, exp)
   if types.isNil(t1) or types.isFalse(t1) then
     set_type(exp, t2)
   elseif types.isUnionNil(t1) then
-    set_type(exp, types.Union(types.UnionNoNil(t1), t2))
+    set_type(exp, types.Union(types.filterUnion(t1, Nil), t2))
   else
     set_type(exp, types.Union(t1, t2))
   end
@@ -754,16 +754,77 @@ local function check_repeat (env, stm)
   check_exp(env, stm[2])
 end
 
+local function tag2type (t)
+  if types.isLiteral(t) then
+    if t[1] == "nil" then
+      return Nil
+    elseif t[1] == "boolean" then
+      return Boolean
+    elseif t[1] == "number" then
+      return Number
+    elseif t[1] == "string" then
+      return String
+    else
+      return t
+    end
+  else
+    return t
+  end
+end
+
 local function check_if (env, stm)
+  local l = {}
   for i = 1, #stm, 2 do
     local exp, block = stm[i], stm[i + 1]
     if block then
       check_exp(env, exp)
+      local name, filter
+      if exp.tag == "Id" then
+        name = exp[1]
+        l[name] = get_local(env, name)
+        if l[name] then
+          if not l[name].bkp then l[name].bkp = l[name]["type"] end
+          l[name]["type"] = types.filterUnion(l[name]["type"], Nil)
+          filter = Nil
+        end
+      elseif exp.tag == "Op" and exp[1] == "not" and exp[2].tag == "Id" then
+        name = exp[2][1]
+        l[name] = get_local(env, name)
+        if l[name] then
+          if not l[name].bkp then l[name].bkp = l[name]["type"] end
+          filter = types.filterUnion(l[name]["type"], Nil)
+          l[name]["type"] = Nil
+        end
+      elseif exp.tag == "Op" and exp[1] == "eq" and
+             exp[2].tag == "Call" and exp[2][1].tag == "Id" and exp[2][1][1] == "type" and exp[2][2].tag == "Id" then
+        name = exp[2][2][1]
+        l[name] = get_local(env, name)
+        if l[name] then
+          if not l[name].bkp then l[name].bkp = l[name]["type"] end
+          filter = types.filterUnion(l[name]["type"], tag2type(exp[3]["type"]))
+          l[name]["type"] = tag2type(exp[3]["type"])
+        end
+      elseif exp.tag == "Op" and exp[1] == "not" and
+             exp[2].tag == "Op" and exp[2][1] == "eq" and exp[2][2].tag == "Call" and exp[2][2][1].tag == "Id" and exp[2][2][1][1] == "type" and exp[2][2][2].tag == "Id" then
+        name = exp[2][2][2][1]
+        l[name] = get_local(env, name)
+        if l[name] then
+          if not l[name].bkp then l[name].bkp = l[name]["type"] end
+          l[name]["type"] = types.filterUnion(l[name]["type"], tag2type(exp[2][3]["type"]))
+          filter = tag2type(exp[2][3]["type"])
+        end
+      end
       check_block(env, block)
+      if filter then
+        l[name]["type"] = filter
+      end
     else
       block = exp
       check_block(env, block)
     end
+  end
+  for k, v in pairs(l) do
+    v["type"] = v["bkp"]
   end
 end
 
@@ -823,6 +884,7 @@ local function check_var_assignment (env, var, inferred_type)
     if local_var then
       local local_type = local_var["type"]
       if types.subtype({}, inferred_type, local_type) then
+        local_var["type"] = inferred_type
       elseif types.consistent_subtype({}, inferred_type, local_type) then
         local msg = "attempt to assign '%s' to '%s'"
         msg = string.format(msg, type2str(inferred_type), type2str(local_type))
@@ -979,7 +1041,7 @@ function checker.typecheck (ast, subject, filename)
   local env = new_env(subject, filename)
   local ENV = { tag = "Id", [1] = "_ENV", [2] = types.Table() }
   local _print = { tag = "Id", [1] = "print", [2] = types.Function(types.Tuple(types.ValueStar), types.Tuple(types.NilStar)) }
-  local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.NilStar)) }
+  local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.String, types.NilStar)) }
   ENV[2].open = true
   begin_function(env)
   begin_scope(env)

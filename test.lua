@@ -2653,6 +2653,44 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+local function message (name:string, greeting:string?)
+  greeting = greeting or "Hello "
+  return greeting .. name
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Set{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function rep (s:string, n:number, sep:string?):string
+  sep = sep or ""
+  local r = ""
+  for i = 1, n - 1 do
+    r = r .. s .. sep
+  end
+  return r .. s
+end
+
+local function overload (s1:string, s2:string|number)
+  if type(s2) == "string" then
+    return s1 .. s2
+  else
+    return rep(s1, s2)
+  end
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Id "type", `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- type check
 
 s = [=[
@@ -2891,6 +2929,113 @@ end
 ]=]
 e = [=[
 { `If{ `Number "1", { `Local{ { `Id "x" }, { `Number "1" } } }, `Number "2", { `Local{ { `Id "x" }, { `Number "2" } } }, `Number "3", { `Local{ { `Id "x" }, { `Number "3" } } }, `Number "4", { `Local{ { `Id "x" }, { `Number "4" } } }, { `Local{ { `Id "x" }, { `String "foo" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+if x then
+  x = x + 1
+else
+  print("x is nil")
+end
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Id "x", { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Id "print", `String "x is nil" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+if not x then
+  print("x is nil")
+else
+  x = x + 1
+end
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "not", `Id "x" }, { `Call{ `Id "print", `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+if type(x) == "number" then
+  x = x + 1
+else
+  print("x is nil")
+end
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Id "print", `String "x is nil" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+if type(x) ~= "number" then
+  print("x is nil")
+else
+  x = x + 1
+end
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "not", `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "number" } }, { `Call{ `Id "print", `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number|string?
+local y = x
+if type(x) == "number" then
+  x = x + 1
+elseif type(y) == "string" then
+  y = y .. "hello"
+elseif type(x) == "string" then
+  x = x .. "hello"
+elseif type(y) == "number" then
+  y = y + 1
+end
+x = y
+y = x
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, `Op{ "eq", `Call{ `Id "type", `Id "y" }, `String "string" }, { `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } }, `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Id "type", `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number|string?
+local y = x
+if type(x) == "nil" then
+  print("x is nil")
+elseif type(y) == "nil" then
+  print("y is nil")
+elseif type(x) == "string" then
+  x = x .. "hello"
+elseif type(y) == "number" then
+  y = y + 1
+else
+  x = x + 1
+  y = y .. "hello"
+end
+x = y
+y = x
+]=]
+e = [=[
+{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "nil" }, { `Call{ `Id "print", `String "x is nil" } }, `Op{ "eq", `Call{ `Id "type", `Id "y" }, `String "nil" }, { `Call{ `Id "print", `String "y is nil" } }, `Op{ "eq", `Call{ `Id "type", `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Id "type", `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } }, `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
 ]=]
 
 r = typecheck(s)
@@ -3152,6 +3297,73 @@ end
 e = [=[
 test.lua:6:9: type error, attempt to assign '3' to 'string'
 test.lua:8:9: type error, attempt to assign '4' to 'boolean'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+local y:string?
+
+if type(x) == "number" then
+  x = x + 1
+elseif type(y) == "string" then
+  y = y .. "hello"
+else
+  x = x + 1
+  y = y + 1
+end
+
+x = x + 1
+y = y .. "hello"
+]=]
+e = [=[
+test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:9:3: warning, attempt to assign 'any' to 'nil'
+test.lua:10:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:10:3: warning, attempt to assign 'any' to 'nil'
+test.lua:13:5: type error, attempt to perform arithmetic on a '(number | nil)'
+test.lua:13:1: warning, attempt to assign 'any' to '(number | nil)'
+test.lua:14:5: type error, attempt to concatenate a '(string | nil)'
+test.lua:14:1: warning, attempt to assign 'any' to '(string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:boolean|number|string?
+
+if type(x) == "number" then
+  x = x + 1
+elseif type(x) == "string" then
+  x = x .. "hello"
+elseif type(x) == "boolean" then
+  x = false
+end
+
+x = x + 1
+]=]
+e = [=[
+test.lua:11:5: type error, attempt to perform arithmetic on a '(boolean | number | string | nil)'
+test.lua:11:1: warning, attempt to assign 'any' to '(boolean | number | string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+
+if type(y) == "number" then
+  print("y is number")
+else
+  print("y is nil")
+end
+]=]
+e = [=[
+test.lua:3:9: type error, attempt to index '{}' with 'y'
 ]=]
 
 r = typecheck(s)
