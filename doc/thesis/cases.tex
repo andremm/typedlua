@@ -1,0 +1,410 @@
+
+\section{Lua standard libraries}
+
+\subsection{Basic functions}
+
+\begin{enumerate}
+\item assert (v [, message]) :
+$\Top \times
+(\String \cup \Nil) \times
+\TopStar \rightarrow
+\NilStar \cup
+(\Top \times
+(\String \cup \Nil) \times
+\TopStar)$ 
+\\
+When \textbf{v} is $\Nil$ or $\False$, \textbf{assert}
+shows the error \textbf{message}.
+Otherwise, \textbf{assert} returns \textbf{v} and all the extra
+parameters.
+\item collectgarbage ([opt [, arg]]) :
+$(\String \cup \Nil) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+(\Number \times \Nil \times \NilStar) \cup
+(\Number \times \Number \times \NilStar) \cup
+(\Boolean \times \Nil \times \NilStar)$
+\\
+The return type depends on the type of \textbf{opt}:
+\begin{itemize}
+\item $\Nil \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``collect" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``stop" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``restart" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``count" \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
+\item $``step" \times \TopStar \rightarrow \Boolean \times \NilStar$
+\item $``setpause" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``setstepmul" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``isrunning" \times \TopStar \rightarrow \Boolean \times \NilStar$
+\item $``generational" \times \TopStar \rightarrow \Number \times \NilStar$
+\item $``incremental" \times \TopStar \rightarrow \Number \times \NilStar$
+\end{itemize}
+\item dofile ([filename]) :
+$(\String \cup \Nil) \times
+\TopStar \rightarrow
+\AnyStar
+$
+\item error (message [, level]) :
+$\String \times
+(0 \cup 1 \cup 2 \cup \Nil) \times
+\TopStar \rightarrow
+\NilStar$
+\item \_G : $\{ \String:\Top \}$
+\item getmetatable (object) :
+$\mu X.\{ \_\_metatable:\Top \} \times
+\TopStar \rightarrow
+(\Nil \cup \{ \_\_metatable:\Top \}) \times
+\NilStar$
+\item ipairs (t) :
+$\{ \Number:\Any \} \times
+\TopStar \rightarrow
+\Number \times
+\Any \times
+\NilStar$
+\begin{itemize}
+\item What happens when \textbf{t} has a metamethod \textbf{\_\_ipairs}?
+\item Will $\{ ``tag":\String,\; \Number:\Any \}$ type check?
+\item In fact, \textbf{ipairs} and \textbf{pairs} return three values.
+Need to check this.
+\end{itemize}
+\item load (ld [, source [, mode [, env]]]) :
+$(\String \cup (\TopStar \rightarrow \TopStar)) \times
+(\String \cup \Nil) \times
+(``b" \cup ``t" \cup ``bt" \cup \Nil) \times
+(\Top \cup \Nil) \times
+\TopStar \rightarrow
+((\TopStar \rightarrow \TopStar) \times \NilStar) \cup
+(\Nil \times \String \times \NilStar)$
+\item loadfile ([filename [, mode [, env]]]) :
+$(\String \cup \Nil) \times
+(``b" \cup ``t" \cup ``bt" \cup \Nil) \times
+(\Top \cup \Nil) \times
+\TopStar \rightarrow
+((\TopStar \rightarrow \TopStar) \times \NilStar) \cup
+(\Nil \times \String \times \NilStar)$
+\item next (table [, index]) :
+$\{ \Any:\Any \} \times
+(\Any \cup \Nil) \times
+\TopStar \rightarrow
+(\Nil \times \NilStar) \cup
+(\Any \times \Any \times \NilStar)$
+\item pairs (t) :
+$\{ \Any:\Any \} \times
+\TopStar \rightarrow
+\Any \times 
+\Any \times
+\NilStar$
+\item pcall (f [, arg1, ···]) :
+$(\TopStar \rightarrow \TopStar) \times
+\TopStar \rightarrow
+(\Boolean \times \AnyStar) \cup
+(\Boolean \times \String \times \NilStar)$
+\item print (···) : $\TopStar \rightarrow \NilStar$
+\item rawequal (v1, v2) :
+$\Top \times
+\Top \times
+\TopStar \rightarrow
+\Boolean \times
+\NilStar$
+\item rawget (table, index) :
+$\{ \Top:\Top \} \times
+\Top \times
+\TopStar \rightarrow
+\Any \times
+\NilStar$
+\item rawlen (v) :
+$(\{ \Top:\Top \} \cup \String) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item rawset (table, index, value) :
+$\{ \Top:\Top \} \times
+\Top \times
+\Top \times
+\TopStar \rightarrow
+\{ \Any:\Any \} \times
+\NilStar$
+\\
+In fact, \textbf{index} cannot be $\Nil$ or \texttt{NaN}.
+\item select (index, ···) :
+$\Number \times
+\AnyStar \rightarrow
+\AnyStar$
+\\
+When \textbf{index} is the string ``\texttt{\#}", the typing is:
+$\String \times \AnyStar \rightarrow \Number \times \NilStar$
+\item setmetatable (table, metatable) :
+$\{ \Top:\Top \} \times
+(\Nil \cup \{ \_\_index:\mu X.\{ \Top:\Top \} \}) \times
+\TopStar \rightarrow
+\{ \_\_index:\mu X.\{ \Top:\Top \} \} \times
+\NilStar$
+\\
+Even though \textbf{metatable} can be $\Nil$, it is not optional.
+\item tonumber (e [, base]) :
+$\String \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item tostring (v) :
+$\Top \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item type (v) :
+$\Top \times
+\TopStar \rightarrow
+(``nil" \cup
+``number" \cup
+``string" \cup
+``boolean" \cup
+``table" \cup
+``function" \cup
+``thread" \cup
+``userdata") \times
+\NilStar$
+\item \_VERSION : $\String$
+\item xpcall (f, msgh [, arg1, ···]) :
+$(\TopStar \rightarrow \TopStar) \times
+\Top \times
+\TopStar \rightarrow
+(\Boolean \times \AnyStar) \cup
+(\Boolean \times \String \times \NilStar)$
+\end{enumerate}
+
+\subsection{Coroutine manipulation}
+
+\subsection{Modules}
+
+\subsection{String manipulation}
+
+\begin{enumerate}
+\item string.byte (s [, i [, j]]) :
+$\String \times
+(\Number \cup \Nil) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\Number{*}$
+\item string.char (···) :
+$\Number{*} \rightarrow
+\String \times
+\NilStar$
+\item string.dump (function) :
+$(\TopStar \rightarrow \TopStar) \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.find (s, pattern [, init [, plain]]) :
+$\String \times
+\String \times
+(\Number \cup \Nil) \times
+(\Boolean \cup \Nil) \times
+\TopStar \rightarrow
+(\Number \times \Number \times \NilStar) \cup
+(\Nil \times \NilStar)$
+\item string.format (formatstring, ···) :
+$\String \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.gmatch (s, pattern) :
+$\String \times
+\String \times
+\TopStar \rightarrow
+\String{*}$
+\\
+This function actually returns an iterator,
+so I still need to confirm its return type.
+\item string.gsub (s, pattern, repl [, n]) :
+$\String \times
+\String \times
+(\String \cup \{ \Top:\Top \} \cup (\TopStar \rightarrow \TopStar)) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\String \times
+\Number \times
+\NilStar$
+\item string.len (s) :
+$\String \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item string.lower (s) :
+$\String \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.match (s, pattern [, init]) :
+$\String \times
+\String \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+(\String \times \String{*}) \cup
+(\Nil \times \NilStar)$
+\item string.rep (s, n [, sep]) :
+$\String \times
+\Number \times
+(\String \cup \Nil) \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.reverse (s) :
+$\String \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.sub (s, i [, j]) :
+$\String \times
+\Number \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item string.upper (s) :
+$\String \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\end{enumerate}
+
+\subsection{Table manipulation}
+
+\begin{enumerate}
+\item table.concat (list [, sep [, i [, j]]]) :
+$\{ \Number:\String \cup \Number \} \times
+(\String \cup \Nil) \times
+(\Number \cup \Nil) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\String \times
+\NilStar$
+\item table.insert (list, [pos,] value) :
+$\{ \Number:\Top \} \times
+(\Number \times \Top) \cup
+(\Top \times \Nil) \times
+\TopStar \rightarrow
+\NilStar$
+\\
+This function does not accept/discard extra parameters.
+Perhaps due to the fact that the parameter \textbf{pos} is optional.
+If \textbf{value} is $\TopStar$, the function inserts \textbf{pos}
+in the \textbf{list}, that is, the input type is
+$\{ \Number:\Top \} \times \Top \times \TopStar$.
+If \textbf{value} is $\Nil$, the function does not insert \textbf{pos}
+in the \textbf{list}, that is, the input type is
+$\{ \Number:\Top \} \times \Number \times \Top \times \TopStar$,
+but the element is not inserted in the list because $\Top$ is actually $\Nil$.
+\item table.pack (···) :
+$\TopStar \rightarrow
+\{ \Number:\Top \} \times
+\NilStar$
+\\
+Even though \textbf{table.pack} gets any number of parameters of
+any type, the $\Nil$ type generates a hole in the returned table.
+\item table.remove (list [, pos]) :
+$\{ \Number:\Top \} \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Top \times
+\NilStar
+$
+\\
+The return type depends on the type of the element that is removed
+from the list.
+\item table.sort (list [, comp]) :
+$\{ \Number:\Top \} \times
+((\TopStar \rightarrow \TopStar) \cup \Nil) \times
+\TopStar \rightarrow
+\NilStar$
+\item table.unpack (list [, i [, j]]) :
+$\{ \Number:\Top \} \times
+(\Number \cup \Nil) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\TopStar$
+\\
+The return type depends on the type of the elements that are stored in
+the list.
+\end{enumerate}
+
+\subsection{Mathematical functions}
+
+\begin{enumerate}
+\item math.abs (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.acos (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.asin (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.atan (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.atan2 (y, x) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.ceil (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.cos (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.cosh (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$  
+\item math.deg (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.exp (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.floor (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.fmod (x, y) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.frexp (x) :
+$\Number \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
+\item math.huge : $\Number$
+\item math.ldexp (m, e) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.log (x [, base]) :
+$\Number \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item math.max (x, ···) :
+$\Number \times \Number{*} \rightarrow \Number \times \NilStar$
+\item math.min (x, ···) :
+$\Number \times \Number{*} \rightarrow \Number \times \NilStar$
+\item math.modf (x) :
+$\Number \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
+\item math.pi : $\Number$
+\item math.pow (x, y) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.rad (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.random ([m [, n]]) :
+$(\Number \cup \Nil) \times
+(\Number \cup \Nil) \rightarrow
+\Number \times
+\NilStar$
+\\
+This function does not accept $\Nil$ as its only parameter,
+although the parameter passing is optional.
+This function does not accept/discard extra parameters.
+\item math.randomseed (x) :
+$\Number \times \TopStar \rightarrow \NilStar$
+\item math.sin (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.sinh (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.sqrt (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.tan (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item math.tanh (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\end{enumerate}
+
+\subsection{Bitwise operations}
+
+\subsection{Input and Output facilities}
+
+\subsection{Operating System facilities}
+
+\subsection{The debug library}
