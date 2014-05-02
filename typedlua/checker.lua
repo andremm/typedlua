@@ -43,6 +43,56 @@ local function type2str (t)
   return types.tostring(t)
 end
 
+local function get_interface (env, name, pos)
+  local scope = env.scope
+  for s = scope, 0, -1 do
+    if env[s]["variable"][name] then
+      return env[s]["variable"][name]
+    end
+  end
+  local msg = "type alist '%s' is not defined"
+  msg = string.format(msg, name)
+  typeerror(env, msg, pos)
+  return Nil
+end
+
+local function set_interface (env, name, t, scope)
+  env[scope]["variable"][name] = t
+end
+
+local function replace_names (env, t, pos)
+  if types.isLiteral(t) or
+     types.isBase(t) or
+     types.isNil(t) or
+     types.isValue(t) or
+     types.isAny(t) or
+     types.isRecursive(t) then
+    return t
+  elseif types.isUnion(t) or
+         types.isUnionlist(t) or
+         types.isTuple(t) then
+    for k, v in ipairs(t) do
+      v = replace_names(env, v, pos)
+    end
+    return t
+  elseif types.isFunction(t) then
+    t[1] = replace_names(env, t[1], pos)
+    t[2] = replace_names(env, t[2], pos)
+    return t
+  elseif types.isTable(t) then
+    for k, v in ipairs(t) do
+      v[2] = replace_names(env, v[2], pos)
+    end
+    return t
+  elseif types.isVariable(t) then
+    return get_interface(env, t[1], pos)
+  elseif types.isVararg(t) then
+    t[1] = replace_names(env, t[1], pos)
+  else
+    return t
+  end
+end
+
 local function get_local (env, name)
   local scope = env.scope
   for s = scope, 0, -1 do
@@ -62,54 +112,47 @@ local function set_local (env, id, inferred_type, scope)
       local_type = types.supertypeof(inferred_type)
     end
   end
+  local_type = replace_names(env, local_type, pos)
+  inferred_type = replace_names(env, inferred_type, pos)
   if types.subtype({}, inferred_type, local_type) then
-    id["type"] = local_type
+  elseif types.isTable(local_type) and types.isTable(inferred_type) and inferred_type.open then
+    local valid_assignent = false
+    for i = 1, #local_type do
+      local subtype_key, subtype_value = false, false
+      for j = 1, #inferred_type do
+        if types.subtype({}, inferred_type[j][1], local_type[i][1]) then
+          subtype_key = true
+          if types.subtype({}, inferred_type[j][2], local_type[i][2]) then
+            subtype_value = true
+          else
+            subtype_value = false
+            break
+          end
+        end
+      end
+      if (subtype_key and subtype_value) or
+         (not subtype_key and types.isUnionNil(local_type[i][2])) then
+        valid_assignment = true
+      else
+        valid_assignment = false
+        break
+      end
+    end
+    if not valid_assignment then
+      local msg = "attempt to assign '%s' to '%s'"
+      msg = string.format(msg, type2str(inferred_type), type2str(local_type))
+      typeerror(env, msg, pos)
+    end
   elseif types.consistent_subtype({}, inferred_type, local_type) then
-    id["type"] = local_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     warning(env, msg, pos)
   else
-    id["type"] = inferred_type
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
     typeerror(env, msg, pos)
   end
-  env[scope]["local"][local_name] = id
-end
-
-local function set_local_table (env, id, inferred_type, scope)
-  local local_name, local_type, pos = id[1], id[2], id.pos
-  local valid_assignent = false
-  for i = 1, #local_type do
-    local subtype_key, subtype_value = false, false
-    for j = 1, #inferred_type do
-      if types.subtype({}, inferred_type[j][1], local_type[i][1]) then
-        subtype_key = true
-        if types.subtype({}, inferred_type[j][2], local_type[i][2]) then
-          subtype_value = true
-        else
-          subtype_value = false
-          break
-        end
-      end
-    end
-    if (subtype_key and subtype_value) or
-       (not subtype_key and types.isUnionNil(local_type[i][2])) then
-      valid_assignment = true
-    else
-      valid_assignment = false
-      break
-    end
-  end
-  if not valid_assignment then
-    id["type"] = inferred_type
-    local msg = "attempt to assign '%s' to '%s'"
-    msg = string.format(msg, type2str(inferred_type), type2str(local_type))
-    typeerror(env, msg, pos)
-  else
-    id["type"] = local_type
-  end
+  id["type"] = local_type
   env[scope]["local"][local_name] = id
 end
 
@@ -193,7 +236,7 @@ local function check_parameters (env, parlist)
     local id = parlist[i]
     if not id[2] then id[2] = Any end
     set_local(env, id, id[2], env.scope)
-    t[i] = id[2]
+    t[i] = id["type"]
     i = i + 1
   end
   if not is_vararg then
@@ -219,14 +262,7 @@ local function check_local (env, idlist, explist)
   for k, v in ipairs(idlist) do
     local t = fill_type
     if typelist[k] then t = types.first_class(typelist[k]) end
-    if v[2] and types.isVariable(v[2]) then
-      v[2] = env["variable"][v[2][1]]
-    end
-    if v[2] and types.isTable(v[2]) and types.isTable(t) and explist[k].tag == "Table" then
-      set_local_table(env, v, t, env.scope)
-    else
-      set_local(env, v, t, env.scope)
-    end
+    set_local(env, v, t, env.scope)
   end
 end
 
@@ -551,7 +587,7 @@ local function check_function (env, exp)
 end
 
 local function check_fieldlist (env, exp)
-  local t = { tag = "Table" }
+  local t = { tag = "Table", open = true }
   local i = 1
   for k, v in ipairs(exp) do
     local tag = v.tag
@@ -968,16 +1004,52 @@ local function check_return (env, stm)
   infer_return_type(env, types.supertypeof(t))
 end
 
-local function check_interface (env, stm)
-  local t = types.Table()
-  for i = 2, #stm do
-    local f = { tag = "Field" }
-    f[1] = types.Literal(stm[i][1])
-    f[2] = stm[i][2]
-    t[#t + 1] = f
+local function check_recursive (t, name)
+  if types.isLiteral(t) or
+     types.isBase(t) or
+     types.isNil(t) or
+     types.isValue(t) or
+     types.isAny(t) then
+    return false
+  elseif types.isUnion(t) or
+         types.isUnionlist(t) or
+         types.isTuple(t) then
+    for k, v in ipairs(t) do
+      if check_recursive(v, name) then
+        return true
+      end
+    end
+    return false
+  elseif types.isFunction(t) then
+    return check_recursive(t[1], name) or check_recursive(t[2], name)
+  elseif types.isTable(t) then
+    for k, v in ipairs(t) do
+      if check_recursive(v[2], name) then
+        return true
+      end
+    end
+    return false
+  elseif types.isVariable(t) then
+    return t[1] == name
+  elseif types.isRecursive(t) then
+    return check_recursive(t[2], name)
+  elseif types.isVararg(t) then
+    return check_recursive(t[1], name)
+  else
+    return false
   end
-  local x = stm[1]
-  env["variable"][x] = t
+end
+
+local function check_interface (env, stm, is_local, is_rec)
+  local scope = is_local and env.scope or 0
+  local name, l = stm[1], {}
+  for i = 2, #stm do
+    if check_recursive(stm[i][2], name) then is_rec = true end
+    table.insert(l, stm[i])
+  end
+  local t = types.Table(table.unpack(l))
+  if is_rec then t = types.Recursive(name, t) end
+  set_interface(env, name, t, scope)
 end
 
 function check_stm (env, stm)
@@ -1009,8 +1081,10 @@ function check_stm (env, stm)
     check_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     check_invoke(env, stm)
-  elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
+  elseif tag == "Interface" then -- `Interface{ <string> field+ }
     check_interface(env, stm)
+  elseif tag == "LocalInterface" then -- `LocalInterface{ <string> field+ } 
+    check_interface(env, stm, true)
   else
     error("cannot type check statement " .. tag)
   end
@@ -1029,7 +1103,6 @@ local function new_env (subject, filename)
   env.subject = subject -- stores the subject for error messages
   env.filename = filename -- stores the filename for error messages
   env["function"] = {} -- stores function attributes
-  env["variable"] = {} -- stores type variables
   env.messages = {} -- stores errors and warnings
   return env
 end

@@ -2691,6 +2691,143 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+local function idiv (d1:number, d2:number):(number, number) | (nil, string)
+  if d2 == 0 then
+    return nil, "division by zero"
+  else
+    local r = d1 % d2
+    local q = (d1 - r) / d2
+    return q, r
+  end
+end
+
+local n1, n2 = 4, 4
+local q, r = idiv(n1, n2)
+local x:number, msg:string = 0, ""
+if q then
+  x = q + r
+else
+  msg = r
+end
+]=]
+e = [=[
+test.lua:15:11: type error, attempt to perform arithmetic on a '(number | string)'
+test.lua:15:3: warning, attempt to assign 'any' to 'number'
+test.lua:17:3: type error, attempt to assign '(number | string)' to 'string'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number} = { foo = 1 }
+local x:number = t.foo
+local y:number = t["bar"]
+]=]
+e = [=[
+{ `Local{ { `Id "t":`Table{ `Base string:`Base number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`Base number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`Base number }, { `Index{ `Id "t", `String "bar" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number?} = { foo = 1 }
+local x:number = t.foo
+local y:number = t.bar or 0
+local z:number? = t["bar"]
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days:{string} = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
+local x = days[1]
+local y = days[8]
+]=]
+e = [=[
+{ `Local{ { `Id "days":`Table{ `Base number:`Base string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
+local t1:{string} = days
+local t2:{string?} = days
+t2 = t1
+]=]
+e = [=[
+test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:string}'
+test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
+test.lua:5:1: type error, attempt to assign '{number:string}' to '{number:(string | nil)}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person:{"firstname":string, "lastname":string} =
+  { firstname = "Lou", lastname = "Reed" }
+]=]
+e = [=[
+{ `Local{ { `Id "person":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  lastname:string
+end
+
+local function greet (person:Person)
+  return "Hello, " .. person.firstname .. " " .. person.lastname
+end
+local user1 = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
+local user2 = { firstname = "Lou" }
+local user3 = { lastname = "Reed", firstname = "Lou" }
+local user4 = { "Lou", "Reed" }
+print(greet(user1))
+print(greet(user2))
+print(greet(user3))
+print(greet(user4))
+]=]
+e = [=[
+test.lua:14:7: type error, parameter 1 of greet, attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
+test.lua:16:7: type error, parameter 1 of greet, attempt to assign '{1:string, 2:string}' to '{firstname:string, lastname:string}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user1:Person = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
+local user2:Person = { lastname = "Reed", firstname = "Lou" }
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `String "Allan" }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- type check
 
 s = [=[

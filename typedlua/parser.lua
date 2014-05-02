@@ -21,7 +21,8 @@ stat:
   | `Return{ <expr*> }                        -- return e1, e2...
   | `Break                                    -- break
   | apply
-  | `Interface{ <string> { <string> type }+ }
+  | `Interface{ <string> field+ }
+  | `LocalInterface{ <string> field+ }
 
 expr:
   `Nil
@@ -56,7 +57,7 @@ type:
   | `Any
   | `Union{ type type type* }
   | `Function{ typelist typelist }
-  | `Table{ { type type }* }
+  | `Table{ type type* }
   | `Variable{ <string> }
   | `Tuple{ type* }
   | `Vararg{ type }
@@ -64,6 +65,8 @@ type:
 literal: false | true | <number> | <string>
 
 base: 'boolean' | 'number' | 'string'
+
+field: `Field{ <string> type } | `Const{ <string> type }
 ]]
 local parser = {}
 
@@ -429,14 +432,27 @@ local G = { V"TypedLua",
                 return t
               end;
   LocalAssign = taggedCap("Local", V"NameList" * ((symb("=") * V"ExpList") + Ct(Cc())));
-  LocalStat = kw("local") * (V"LocalFunc" + V"LocalAssign");
+  LocalStat = kw("local") * (V"LocalInterface" + V"LocalFunc" + V"LocalAssign");
   LabelStat = taggedCap("Label", symb("::") * token(V"Name", "Name") * symb("::"));
   BreakStat = taggedCap("Break", kw("break"));
   GoToStat = taggedCap("Goto", kw("goto") * token(V"Name", "Name"));
   RetStat = taggedCap("Return", kw("return") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(";")^-1);
   InterfaceStat = taggedCap("Interface", kw("interface") * token(V"Name", "Name") *
                   V"InterfaceDec"^1 * kw("end"));
-  InterfaceDec = taggedCap("InterfaceDec", token(V"Name", "Name") * symb(":") * V"Type");
+  LocalInterface = taggedCap("LocalInterface", kw("interface") * token(V"Name", "Name") *
+                   V"InterfaceDec"^1 * kw("end"));
+  InterfaceDec = ((kw("const") * Cc("Const")) + Cc("Field")) * V"IdList" * symb(":") * V"Type" /
+                  function (tag, idlist, t)
+                    local l = {}
+                    for k, v in ipairs(idlist) do
+                      local f = { tag = tag, pos = v.pos }
+                      f[1] = { tag = "Literal", [1] = v[1] }
+                      f[2] = t
+                      table.insert(l, f)
+                    end
+                    return table.unpack(l)
+                  end;
+  IdList = sepby1(V"Id", symb(","), "IdList");
   ExprStat = Cmt(
              (V"SuffixedExp" *
                 (Cc(function (...)
@@ -875,7 +891,8 @@ function traverse_stm (env, stm)
     return traverse_call(env, stm)
   elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
     return traverse_invoke(env, stm)
-  elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
+  elseif tag == "Interface" or -- `Interface{ <string> { <string> type }+ }
+         tag == "LocalInterface" then -- `LocalInterface{ <string> { <string> type }+ }
     return true
   else
     error("expecting a statement, but got a " .. tag)

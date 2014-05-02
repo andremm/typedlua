@@ -27,6 +27,7 @@ function scope.begin_scope (env)
   env[scope]["label"] = {}
   env[scope]["local"] = {}
   env[scope]["goto"] = {}
+  env[scope]["variable"] = {}
 end
 
 function scope.end_scope (env)

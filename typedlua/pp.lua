@@ -340,12 +340,13 @@ function stm2str (stm)
       end
     end
     str = str .. " }"
-  elseif tag == "Interface" then -- `Interface{ <string> { <string> type }+ }
+  elseif tag == "Interface" or
+         tag == "LocalInterface" then -- `Interface{ <string> { <string> type }+ }
     str = str .. "{ "
     str = str .. stm[1] .. ", "
-    str = str .. stm[2][1] .. ":" .. type2str(stm[2][2])
+    str = str .. type2str(stm[2][1]) .. ":" .. type2str(stm[2][2])
     for i = 3, #stm do
-      str = str .. ", " .. stm[i][1] .. ":" .. type2str(stm[i][2])
+      str = str .. ", " .. type2str(stm[i][1]) .. ":" .. type2str(stm[i][2])
     end
     str = str .. " }"
   else
