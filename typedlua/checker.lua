@@ -71,10 +71,11 @@ local function replace_names (env, t, pos)
   elseif types.isUnion(t) or
          types.isUnionlist(t) or
          types.isTuple(t) then
+    local r = { tag = t.tag }
     for k, v in ipairs(t) do
-      t[k] = replace_names(env, t[k], pos)
+      r[k] = replace_names(env, t[k], pos)
     end
-    return t
+    return r
   elseif types.isFunction(t) then
     t[1] = replace_names(env, t[1], pos)
     t[2] = replace_names(env, t[2], pos)
@@ -309,6 +310,8 @@ end
 
 local function match_return_type (env, inferred_type, declared_type, pos)
   local msg = "return type '%s' does not match '%s'"
+  inferred_type = replace_names(env, inferred_type, pos)
+  declared_type = replace_names(env, declared_type, pos)
   if types.subtype({}, inferred_type, declared_type) then
     return inferred_type
   elseif types.consistent_subtype({}, inferred_type, declared_type) then
@@ -576,6 +579,7 @@ local function check_index_read (env, exp)
   check_exp(env, exp2)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
+  if types.isRecursive(t1) then t1 = t1[2] end
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
@@ -649,6 +653,7 @@ local function check_fieldlist (env, exp)
 end
 
 local function check_argument (env, name, t1, t2, i, pos)
+  t1 = replace_names(env, t1, pos)
   if types.subtype({}, t1, t2) then
   elseif types.consistent_subtype({}, t1, t2) then
     local msg = "parameter %d of %s, attempt to assign '%s' to '%s'"
@@ -740,6 +745,7 @@ local function check_invoke (env, exp)
   local typelist = explist2typelist(explist)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
+  if types.isRecursive(t1) then t1 = t1[2] end
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
@@ -984,6 +990,7 @@ local function check_var_assignment (env, var, inferred_type)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local t1, t2 = exp1["type"], exp2["type"]
+    if types.isRecursive(t1) then t1 = t1[2] end
     if types.isTable(t1) then
       local t
       for k, v in ipairs(t1) do
