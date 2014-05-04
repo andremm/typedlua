@@ -2761,6 +2761,17 @@ assert(r == e)
 s = [=[
 local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
   "Thursday", "Friday", "Saturday" }
+]=]
+e = [=[
+{ `Local{ { `Id "days" }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
 local t1:{string} = days
 local t2:{string?} = days
 t2 = t1
@@ -2772,7 +2783,7 @@ test.lua:5:1: type error, attempt to assign '{number:string}' to '{number:(strin
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+--assert(r == e)
 
 s = [=[
 local person:{"firstname":string, "lastname":string} =
@@ -2823,6 +2834,102 @@ local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
 { `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `String "Allan" }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Element
+  info:number
+  next:Elment?
+end
+]=]
+e = [=[
+{ `LocalInterface{ Element, `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+{ `Local{ { `Id "person" }, { `Table } }, `Set{ { `Index{ `Id "person", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "person", `String "lastname" } }, { `String "Reed" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local bogus = { firstname = 1 }
+local person:{} = bogus
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+test.lua:4:1: type error, attempt to use 'lastname' to index closed table
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
+local bogus = { firstname = 1 }
+do
+  person.firstname = 1
+  bogus = person
+end
+do
+  person.firstname = "Lou"
+end
+]=]
+e = [=[
+test.lua:8:3: type error, attempt to assign 'Lou' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user = {}
+user.firstname = "Lou"
+user.lastname = "Reed"
+local person:Person = user
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user = {}
+user.firstname = "Lewis"
+user.middlename = "Allan"
+user.lastname = "Reed"
+local person:Person = user
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `String "Allan" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)

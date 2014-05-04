@@ -407,6 +407,20 @@ local function subtype_recursive (env, t1, t2)
   if types.isRecursive(t1) and types.isRecursive(t2) then
     env[t1[1] .. t2[1]] = true
     return types.subtype(env, t1[2], t2[2])
+  elseif types.isRecursive(t1) and not types.isRecursive(t2) then
+    if not env[t1[1] .. t1[1]] then
+      env[t1[1] .. t1[1]] = true
+      return types.subtype(env, t1[2], t2)
+    else
+      return types.subtype(env, types.Variable(t1[1]), t2)
+    end
+  elseif not types.isRecursive(t1) and types.isRecursive(t2) then
+    if not env[t2[1] .. t2[1]] then
+      env[t2[1] .. t2[1]] = true
+      return types.subtype(env, t1, t2[2])
+    else
+      return types.subtype(env, t1, types.Variable(t2[1]))
+    end
   else
     return false
   end
@@ -746,7 +760,7 @@ function types.supertypeof (t)
     local t2 = types.supertypeof(t[2])
     return types.Function(t1,t2)
   elseif types.isTable(t) then
-    local n = { tag = "Table" }
+    local n = { tag = "Table", open = t.open, open_const = t.open_const }
     for k, v in ipairs(t) do
       n[k] = { tag = "Field" }
       n[k][1] = v[1]
