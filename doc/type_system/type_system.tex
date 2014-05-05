@@ -180,7 +180,35 @@ $$
 \[
 \frac{\senv, X_{1} \subtype X_{2} \vdash T_{1} \subtype T_{2}}
      {\senv \vdash \mu X_{1}.T_{1} \subtype \mu X_{2}.T_{2}}
-\mylabel{S-RECURSIVE}
+\mylabel{S-RECURSIVE1}
+\]
+
+\[
+\frac{X \subtype X \not\in \senv \;\;\;
+      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\mylabel{S-RECURSIVE2}
+\]
+
+\[
+\frac{X \subtype X \in \senv \;\;\;
+      \senv \vdash X \subtype T_{2}}
+     {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\mylabel{S-RECURSIVE3}
+\]
+
+\[
+\frac{X \subtype X \not\in \senv \;\;\;
+      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\mylabel{S-RECURSIVE4}
+\]
+
+\[
+\frac{X \subtype X \in \senv \;\;\;
+      \senv \vdash T_{1} \subtype X}
+     {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\mylabel{S-RECURSIVE5}
 \]
 
 \subsection{Field types}
