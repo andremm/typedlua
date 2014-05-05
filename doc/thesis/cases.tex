@@ -175,7 +175,58 @@ $(\TopStar \rightarrow \TopStar) \times
 
 \subsection{Coroutine manipulation}
 
+\begin{enumerate}
+\item coroutine.create (f) :
+$(\TopStar \rightarrow \TopStar) \times \TopStar \rightarrow Thread \times \NilStar$
+\item coroutine.resume (co [, val1, ···]) :
+$Thread \times
+\TopStar \rightarrow
+(\True \times \AnyStar) \cup
+(\False \times \String \times \NilStar)$
+\item coroutine.running () :
+$\TopStar \rightarrow Thread \times \Boolean \times \NilStar$
+\item coroutine.status (co) :
+$Thread \times \TopStar \rightarrow \String \times \NilStar$
+\item coroutine.wrap (f) :
+$(\TopStar \rightarrow \TopStar) \times
+\TopStar \rightarrow
+(\TopStar \rightarrow \TopStar) \times
+\NilStar$ 
+\item coroutine.yield (···) :
+$\TopStar \rightarrow \NilStar$
+\end{enumerate}
+
 \subsection{Modules}
+
+\begin{enumerate}
+\item require (modname) :
+$\String \times \TopStar \rightarrow \{\Any:\Any\} \times \NilStar$
+\\
+The function \textbf{require} returns exactly the same value that is
+returned by loading \textbf{modname}.
+However, if the returned value is $\Nil$, this value is
+converted to $\True$.
+\item package.config : $\String$
+\item package.cpath : $\String$
+\item package.loaded : $\{\String:\{\Any:\Any\}\}$
+\item package.loadlib (libname, funcname) :
+$\String \times
+\String \times
+\TopStar \rightarrow
+(\True \times \NilStar) \cup
+(\Nil \times \String \times \NilStar)$
+\item package.path : $\String$
+\item package.preload : $\{\String:\{\Any:\Any\}\}$
+\item package.searchers : $\{\Number:\TopStar \rightarrow \TopStar\}$
+\item package.searchpath (name, path [, sep [, rep]]) :
+$\String \times
+\String \times
+(\String \cup \Nil) \times
+(\String \cup \Nil) \times
+\TopStar \rightarrow
+(\String \times \NilStar) \cup
+(\Nil \times \String \times \NilStar)$
+\end{enumerate}
 
 \subsection{String manipulation}
 
@@ -403,8 +454,220 @@ $\Number \times \TopStar \rightarrow \Number \times \NilStar$
 
 \subsection{Bitwise operations}
 
+\begin{enumerate}
+\item bit32.arshift (x, disp) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item bit32.band (···) :
+$\Number{*} \rightarrow \Number \times \NilStar$
+\item bit32.bnot (x) :
+$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item bit32.bor (···) :
+$\Number{*} \rightarrow \Number \times \NilStar$
+\item bit32.btest (···) :
+$\Number{*} \rightarrow \Number \times \NilStar$
+\item bit32.bxor (···) :
+$\Number{*} \rightarrow \Number \times \NilStar$
+\item bit32.extract (n, field [, width]) :
+$\Number \times
+\Number \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item bit32.replace (n, v, field [, width]) :
+$\Number \times
+\Number \times
+\Number \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item bit32.lrotate (x, disp) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item bit32.lshift (x, disp) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item bit32.rrotate (x, disp) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\item bit32.rshift (x, disp) :
+$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\end{enumerate}
+
 \subsection{Input and Output facilities}
+
+\begin{enumerate}
+\item io.close ([file]) :
+$(Userdata \cup \Nil) \times
+\TopStar \rightarrow
+(\Boolean \times \NilStar) \cup
+(\Nil \times \String \times \NilStar) \cup
+((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
+\\
+Returns $((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
+when the file handle was created with \textbf{io.popen}.
+\item io.flush () :
+$\TopStar \rightarrow \Boolean \times \NilStar$
+\item io.input ([file]) :
+$(\String \cup Userdata \cup \Nil) \times
+\TopStar \rightarrow
+Userdata \times
+\NilStar$
+\item io.lines ([filename ···]) :
+$(\String \cup Userdata \cup \Nil) \times
+\TopStar \rightarrow
+(\String \times \NilStar) \cup
+(\Nil \times \NilStar)$
+\\
+In fact, this function returns an iterator. Need to check the return type.
+\item io.open (filename [, mode]) :
+$\String \times
+(``r" \cup ``w" \cup ``a" \cup
+``r+" \cup ``w+" \cup ``a+" \cup
+``rb" \cup ``wb" \cup ``ab" \cup
+``r+b" \cup ``w+b" \cup ``a+b" \cup
+\Nil) \times
+\TopStar \rightarrow
+(Userdata \times \NilStar) \cup
+(\Nil \times \String \times \Number \times \NilStar)$
+\item io.output ([file]) :
+$(\String \cup Userdata \cup \Nil) \times
+\TopStar \rightarrow
+Userdata \times
+\NilStar$
+\item io.popen (prog [, mode]) :
+$\String \times
+(``r" \cup ``w" \cup \Nil) \times
+\TopStar \rightarrow
+(Userdata \times \NilStar) \cup
+(\Nil \times \String \times \Number \times \NilStar)$
+\item io.read (···) :
+$(``*n" \cup ``*a" \cup ``*l" \cup ``*L" \cup \Number){*} \rightarrow
+(\String \cup \Number){*}
+$
+\item io.tmpfile () :
+$\TopStar \rightarrow Userdata \times \NilStar$
+\item io.type (obj) :
+$\Top \times \TopStar \rightarrow (``file" \cup ``closed\;file" \cup \Nil) \times \NilStar$
+\item io.write (···) :
+$(\String \cup \Number){*} \rightarrow
+(Userdata \times \NilStar) \cup
+(\Nil \times \String \times \Number \times \NilStar)$
+\item file:close () : ?
+\item file:flush () : ?
+\item file:lines (···) : ?
+\item file:read (···) : ?
+\item file:seek ([whence [, offset]]) : ?
+\item file:setvbuf (mode [, size]) : ?
+\item file:write (···) : ?
+\end{enumerate}
 
 \subsection{Operating System facilities}
 
+\begin{enumerate}
+\item os.clock () :
+$\TopStar \rightarrow \Number \times \NilStar$
+\item os.date ([format [, time]]) :
+$(\String \cup \Nil) \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+(\String \times \NilStar) \cup
+(\{``year":\Number,\;
+   ``month":\Number,\;
+   ``day":\Number,\;
+   ``hour":\Number,\;
+   ``min":\Number,\;
+   ``sec":\Number,\;
+   ``wday":\Number,\;
+   ``yday":\Number,\;
+   ``isdst":\Boolean \} \times \NilStar)$
+\\
+Returns a table when \textbf{format} contains ``\textbf{*t}''.
+\item os.difftime (t2, t1) :
+$\Number \times
+(\Number \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\\
+Returns \textbf{t2} when \textbf{t1} is $\Nil$.
+\item os.execute ([command]) :
+$(\String \cup \Nil) \times
+\TopStar \rightarrow
+(\Boolean \times \NilStar) \cup
+((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
+\\
+Returns just a Boolean when \textbf{command} is $\Nil$.
+This Boolean means whether there is a shell available.
+Returns $\True \times \String \times \Number \times \NilStar$ when
+\textbf{command} terminated successfully.
+Returns $\Nil \times \String \times \Number \times \NilStar$ when
+\textbf{command} did not terminate sucessfully.
+\item os.exit ([code [, close]]) :
+$(\Number \cup \Boolean \cup \Nil) \times
+\Top \times
+\TopStar \rightarrow
+\NilStar$
+\item os.getenv (varname) :
+$\String \times
+\TopStar \rightarrow
+(\String \times \NilStar) \cup
+(\Nil \times \NilStar)$
+\item os.remove (filename) :
+$\String \times
+\TopStar \rightarrow
+(\True \times \NilStar) \cup
+(\Nil \times \String \times \Number \NilStar)$
+\item os.rename (oldname, newname) :
+$\String \times
+\String \times
+\TopStar \rightarrow
+(\True \times \NilStar) \cup
+(\Nil \times \String \times \Number \NilStar)$
+\item os.setlocale (locale [, category]) :
+$(\String \cup \Nil) \times
+(``all" \cup
+``collate" \cup
+``ctype" \cup
+``monetary" \cup
+``numeric" \cup
+``time" \cup
+\Nil) \times
+\TopStar \rightarrow
+(\String \times \NilStar) \cup
+(\Nil \times \NilStar)$
+\item os.time ([table]) :
+$(\{``year":\Number,\;
+   ``month":\Number,\;
+   ``day":\Number,\;
+   ``hour":(\Number \cup \Nil),\;
+   ``min":(\Number \cup \Nil),\;
+   ``sec":(\Number \cup \Nil),\;
+   ``wday":(\Number \cup \Nil),\;
+   ``yday":(\Number \cup \Nil),\;
+   ``isdst":(\Boolean \cup \Nil) \} \cup \Nil) \times
+\TopStar \rightarrow
+\Number \times
+\NilStar$
+\item os.tmpname () :
+$\TopStar \rightarrow \String \times \NilStar$
+\end{enumerate}
+
 \subsection{The debug library}
+
+\begin{enumerate}
+\item debug.debug () : ?
+\item debug.gethook ([thread]) : ?
+\item debug.getinfo ([thread,] f [, what]) : ?
+\item debug.getlocal ([thread,] f, local) : ?
+\item debug.getmetatable (value) : ?
+\item debug.getregistry () : ?
+\item debug.getupvalue (f, up) : ?
+\item debug.getuservalue (u) : ?
+\item debug.sethook ([thread,] hook, mask [, count]) : ?
+\item debug.setlocal ([thread,] level, local, value) : ?
+\item debug.setmetatable (value, table) : ?
+\item debug.setupvalue (f, up, value) : ?
+\item debug.setuservalue (udata, value) : ?
+\item debug.traceback ([thread,] [message [, level]]) : ?
+\item debug.upvalueid (f, n) : ?
+\item debug.upvaluejoin (f1, n1, f2, n2) : ?
+\end{enumerate}
