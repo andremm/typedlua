@@ -40,10 +40,11 @@ end
 
 local function code_invoke (invoke, i)
   local l = {}
-  for i=3, #invoke do
-    l[i] = code_exp(invoke[i], i)
+  for k = 3, #invoke do
+    l[k - 2] = code_exp(invoke[k], i)
   end
-  local str = code_exp(invoke[1], i) .. ":" code_exp(invoke[2], i)
+  local str = code_exp(invoke[1], i)
+  str = str .. ":" .. invoke[2][1]
   str = str .. "(" .. table.concat(l, ",") .. ")"
   return str
 end
@@ -56,9 +57,9 @@ local function code_parlist (parlist, i)
     is_vararg = true
     len = len - 1
   end
-  local i = 1
-  for i=1, len do
-    l[i] = code_var(parlist[i])
+  local k = 1
+  for k=1, len do
+    l[k] = code_var(parlist[k])
   end
   if is_vararg then
     table.insert(l, "...")

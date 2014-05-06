@@ -121,7 +121,7 @@ local function table_assignment (env, inferred_type, local_type)
         end
       end
       if (subtype_key and subtype_value) or
-         (not subtype_key and types.isUnionNil(local_type[i][2])) then
+         (not subtype_key and types.subtype({}, Nil, local_type[i][2])) then
         valid_assignment = true
       else
         valid_assignment = false
@@ -989,7 +989,7 @@ local function check_var_assignment (env, var, inferred_type)
     local exp1, exp2 = var[1], var[2]
     check_exp(env, exp1)
     check_exp(env, exp2)
-    local t1, t2 = exp1["type"], exp2["type"]
+    local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
     if types.isRecursive(t1) then t1 = t1[2] end
     if types.isTable(t1) then
       local t
@@ -1000,6 +1000,7 @@ local function check_var_assignment (env, var, inferred_type)
         end
       end
       if t then
+        t = replace_names(env, t, exp1.pos)
         if types.subtype({}, inferred_type, t) then
         elseif types.consistent_subtype({}, inferred_type, t) then
           local msg = "attempt to assign '%s' to '%s'"

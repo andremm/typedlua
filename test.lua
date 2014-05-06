@@ -2746,6 +2746,17 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local t1:{"foo":number} = { foo = 1, bar = "foo" }
+local t2:{string:number} = t1
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local days:{string} = { "Sunday", "Monday", "Tuesday", "Wednesday",
   "Thursday", "Friday", "Saturday" }
 local x = days[1]
