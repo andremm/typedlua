@@ -105,44 +105,6 @@ local function get_local (env, name)
   return nil
 end
 
-local function table_assignment (env, inferred_type, local_type)
-    local valid_assignent = false
-    for i = 1, #local_type do
-      local subtype_key, subtype_value = false, false
-      for j = 1, #inferred_type do
-        if types.subtype({}, inferred_type[j][1], local_type[i][1]) then
-          subtype_key = true
-          if types.subtype({}, inferred_type[j][2], local_type[i][2]) then
-            subtype_value = true
-          else
-            subtype_value = false
-            break
-          end
-        end
-      end
-      if (subtype_key and subtype_value) or
-         (not subtype_key and types.subtype({}, Nil, local_type[i][2])) then
-        valid_assignment = true
-      else
-        valid_assignment = false
-        break
-      end
-    end
-    return valid_assignment
-end
-
-local function closed_table (t)
-  return not t.open_const and not t.open
-end
-
-local function open_table_const (t)
-  return t.open_const and not t.open
-end
-
-local function open_table_var (t)
-  return t.open and not t.open_const
-end
-
 local function set_local (env, id, inferred_type, scope)
   local local_name, local_type, pos = id[1], id[2], id.pos
   if not local_type then
@@ -154,37 +116,7 @@ local function set_local (env, id, inferred_type, scope)
   end
   local_type = replace_names(env, local_type, pos)
   inferred_type = replace_names(env, inferred_type, pos)
-  if types.isTable(local_type) and types.isTable(inferred_type) then
-    local valid_assignment = false
-    if open_table_const(inferred_type) then
-      if open_table_const(local_type) then
-        valid_assignment = types.subtype({}, inferred_type, local_type)
-        local_type.open_const = nil
-        local_type.open = true
-      elseif open_table_var(local_type) then
-      else
-        valid_assignment = table_assignment(env, inferred_type, local_type)
-      end
-    elseif open_table_var(inferred_type) then
-      if open_table_const(local_type) then
-      elseif open_table_var(local_type) then
-        valid_assignment = types.subtype({}, inferred_type, local_type)
-      else
-        valid_assignment = table_assignment(env, inferred_type, local_type)
-      end
-    else
-      if open_table_const(local_type) then
-      elseif open_table_var(local_type) then
-      else
-        valid_assignment = types.subtype({}, inferred_type, local_type)
-      end
-    end
-    if not valid_assignment then
-      local msg = "attempt to assign '%s' to '%s'"
-      msg = string.format(msg, type2str(inferred_type), type2str(local_type))
-      typeerror(env, msg, pos)
-    end
-  elseif types.subtype({}, inferred_type, local_type) then
+  if types.subtype({}, inferred_type, local_type) then
   elseif types.consistent_subtype({}, inferred_type, local_type) then
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, type2str(inferred_type), type2str(local_type))
@@ -632,7 +564,7 @@ local function check_function (env, exp)
 end
 
 local function check_fieldlist (env, exp)
-  local t = { tag = "Table", open_const = true }
+  local t = { tag = "Table", open = true }
   local i = 1
   for k, v in ipairs(exp) do
     local tag = v.tag

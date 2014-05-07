@@ -104,9 +104,19 @@ end
 -- union types
 
 function types.Union (...)
-  local l1, l2 = {...}, {}
-  local t = { tag = "Union" }
+  -- remove unions of unions
+  local l1 = {}
+  for k, v in ipairs({...}) do
+    if types.isUnion(v) then
+      for i = 1, #v do
+        l1[#l1 + 1] = v[i]
+      end
+    else
+      l1[#l1 + 1] = v
+    end
+  end
   -- remove duplicated types
+  local l2 = {}
   for i = 1, #l1 do
     local enter = true
     for j = i + 1, #l1 do
@@ -120,6 +130,7 @@ function types.Union (...)
     end
   end
   -- simplify union
+  local t = { tag = "Union" }
   for i = 1, #l2 do
     local enter = true
     for j = 1, #l2 do
@@ -374,22 +385,51 @@ end
 
 local function subtype_table (env, t1, t2)
   if types.isTable(t1) and types.isTable(t2) then
-  local m, n = #t1, #t2
-  for i = 1, n do
-    local subtype = false
-    for j = 1, m do
-      if types.subtype(env, t2[i][1], t1[j][1]) and
-         types.subtype(env, t1[j][2], t2[i][2]) and
-         types.subtype(env, t2[i][2], t1[j][2]) then
-        subtype = true
-        break
+    if not t1.open and not t2.open then
+      local m, n = #t1, #t2
+      for i = 1, n do
+        local subtype = false
+        for j = 1, m do
+          if types.subtype(env, t2[i][1], t1[j][1]) and
+             types.subtype(env, t1[j][2], t2[i][2]) and
+             types.subtype(env, t2[i][2], t1[j][2]) then
+            subtype = true
+            break
+          end
+        end
+        if not subtype then
+          return false
+        end
       end
-    end
-    if not subtype then
+      return true
+    elseif t1.open then
+      if #t2 == 0 then return true end
+      local subtype = false
+      for i = 1, #t2 do
+        local subtype_key, subtype_value = false, false
+        for j = 1, #t1 do
+          if types.subtype(env, t1[j][1], t2[i][1]) then
+            subtype_key = true
+            if types.subtype(env, t1[j][2], t2[i][2]) then
+              subtype_value = true
+            else
+              subtype_value = false
+              break
+            end
+          end
+        end
+        if (subtype_key and subtype_value) or
+           (not subtype_key and types.subtype(env, types.Nil, t2[i][2])) then
+          subtype = true
+        else
+          subtype = false
+          break
+        end
+      end
+      return subtype
+    else
       return false
     end
-  end
-  return true
   else
     return false
   end
@@ -760,7 +800,7 @@ function types.supertypeof (t)
     local t2 = types.supertypeof(t[2])
     return types.Function(t1,t2)
   elseif types.isTable(t) then
-    local n = { tag = "Table", open = t.open, open_const = t.open_const }
+    local n = { tag = "Table", open = t.open }
     for k, v in ipairs(t) do
       n[k] = { tag = "Field" }
       n[k][1] = v[1]
