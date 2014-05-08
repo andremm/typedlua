@@ -891,7 +891,7 @@ local function check_forin (env, idlist, explist, block)
   end_scope(env)
 end
 
-local function check_var_assignment (env, var, inferred_type)
+local function check_var_assignment (env, var, inferred_type, allow_type_change)
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
@@ -899,7 +899,7 @@ local function check_var_assignment (env, var, inferred_type)
     if local_var then
       local local_type = local_var["type"]
       if types.subtype({}, inferred_type, local_type) then
-        local_var["type"] = inferred_type
+        if allow_type_change then local_var["type"] = inferred_type end
       elseif types.consistent_subtype({}, inferred_type, local_type) then
         local msg = "attempt to assign '%s' to '%s'"
         msg = string.format(msg, type2str(inferred_type), type2str(local_type))
@@ -915,7 +915,7 @@ local function check_var_assignment (env, var, inferred_type)
       global.pos = var.pos
       global[1] = { tag = "Id", [1] = "_ENV", pos = var.pos }
       global[2] = { tag = "String", [1] = name, pos = var.pos }
-      check_var_assignment(env, global, inferred_type)
+      check_var_assignment(env, global, inferred_type, allow_type_change)
     end
   elseif tag == "Index" then
     local exp1, exp2 = var[1], var[2]
@@ -973,9 +973,16 @@ local function check_assignment (env, varlist, explist)
     fill_type = types.Union(last_type[1], Nil)
   end
   for k, v in ipairs(varlist) do
-    local t = fill_type
-    if typelist[k] then t = types.first_class(typelist[k]) end
-    check_var_assignment(env, v, t)
+    local t, allow_type_change = fill_type, false
+    if typelist[k] then
+      t = types.first_class(typelist[k])
+      if explist[k].tag == "Op" and explist[k][1] == "or" then
+        if explist[k][2].tag == "Id" and v.tag == "Id" then
+          allow_type_change = explist[k][2][1] == v[1]
+        end
+      end
+    end
+    check_var_assignment(env, v, t, allow_type_change)
   end
 end
 

@@ -44,7 +44,12 @@ local function generate (s)
     error(m)
     os.exit(1)
   end
-  return code.generate(t)
+  t,m = checker.typecheck(t,s,filename)
+  if m then
+    return m .. "\n"
+  else
+    return code.generate(t)
+  end
 end
 
 print("> testing lexer...")
@@ -4085,7 +4090,7 @@ assert(r == e)
 -- local
 
 s = [=[
-local a
+local a:any?
 ]=]
 e = [=[
 local a
@@ -4095,7 +4100,7 @@ r = generate(s)
 assert(r == e)
 
 s = [=[
-local a, b, c
+local a:any?, b:any?, c:any?
 ]=]
 e = [=[
 local a, b, c
@@ -4115,7 +4120,7 @@ r = generate(s)
 assert(r == e)
 
 s = [=[
-local a, b = 1
+local a, b:any? = 1
 ]=]
 e = [=[
 local a, b = 1
@@ -4149,6 +4154,141 @@ e = [=[
 while 1 do
   break
 end
+]=]
+
+r = generate(s)
+assert(r == e)
+
+-- complete examples
+
+s = [=[
+local interface Element
+  info:number
+  next:Element?
+end
+
+local function insert_s (e:Element?, v:number):Element
+  return { info = v, next = e }
+end
+
+local function insert_f (e:Element?, v:number):Element
+  if e then
+    e.next = insert_f(e.next, v)
+    return e
+  end
+  return { info = v, next = e }
+end
+
+local function print_l (e:Element?)
+  if e then
+    print(e.info)
+    print_l(e.next)
+  end
+end
+
+local e:Element?
+
+e = insert_s(e, 2)
+e = insert_s(e, 1)
+e = insert_s(e, 3)
+e = insert_s(e, 4)
+e = insert_s(e, 0)
+
+print_l(e)
+
+e = nil
+
+e = insert_f(e, 2)
+e = insert_f(e, 1)
+e = insert_f(e, 3)
+e = insert_f(e, 4)
+e = insert_f(e, 0)
+
+print_l(e)
+]=]
+e = [=[
+
+local function insert_s (e, v)
+  return {["info"] = v, ["next"] = e}
+end
+local function insert_f (e, v)
+  if e then
+e["next"] = insert_f(e["next"],v)
+    return e
+  end
+  return {["info"] = v, ["next"] = e}
+end
+local function print_l (e)
+  if e then
+print(e["info"])
+print_l(e["next"])
+  end
+end
+local e
+e = insert_s(e,2)
+e = insert_s(e,1)
+e = insert_s(e,3)
+e = insert_s(e,4)
+e = insert_s(e,0)
+print_l(e)
+e = nil
+e = insert_f(e,2)
+e = insert_f(e,1)
+e = insert_f(e,3)
+e = insert_f(e,4)
+e = insert_f(e,0)
+print_l(e)
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+local interface NoArv
+  info:string
+  left, right: NoArv?
+end
+
+local function create (v:string, l:NoArv?, r:NoArv?):NoArv
+  return { info = v, left = l, right = r }
+end
+
+local function print_tree (t:NoArv?)
+  if t then
+    print(t.info)
+    print_tree(t.left)
+    print_tree(t.right)
+  end
+end
+
+local a1 = create("d")
+local a2 = create("b", nil, a1)
+local a3 = create("e")
+local a4 = create("f")
+local a5 = create("c", a3, a4)
+local a = create("a", a2, a5)
+
+print_tree(a)
+]=]
+e = [=[
+
+local function create (v, l, r)
+  return {["info"] = v, ["left"] = l, ["right"] = r}
+end
+local function print_tree (t)
+  if t then
+print(t["info"])
+print_tree(t["left"])
+print_tree(t["right"])
+  end
+end
+local a1 = create("d")
+local a2 = create("b",nil,a1)
+local a3 = create("e")
+local a4 = create("f")
+local a5 = create("c",a3,a4)
+local a = create("a",a2,a5)
+print_tree(a)
 ]=]
 
 r = generate(s)
