@@ -105,7 +105,7 @@ local function get_local (env, name)
   return nil
 end
 
-local function set_local (env, id, inferred_type, scope)
+local function set_local (env, id, inferred_type, scope, close_local)
   local local_name, local_type, pos = id[1], id[2], id.pos
   if not local_type then
     if not inferred_type or types.isNil(inferred_type) then
@@ -116,6 +116,7 @@ local function set_local (env, id, inferred_type, scope)
   end
   local_type = replace_names(env, local_type, pos)
   inferred_type = replace_names(env, inferred_type, pos)
+  if close_local then local_type.open = nil end
   if types.subtype({}, inferred_type, local_type) then
   elseif types.consistent_subtype({}, inferred_type, local_type) then
     local msg = "attempt to assign '%s' to '%s'"
@@ -234,9 +235,14 @@ local function check_local (env, idlist, explist)
     fill_type = types.Union(last_type[1], Nil)
   end
   for k, v in ipairs(idlist) do
-    local t = fill_type
-    if typelist[k] then t = types.first_class(typelist[k]) end
-    set_local(env, v, t, env.scope)
+    local t, close_local = fill_type, false
+    if typelist[k] then
+      t = types.first_class(typelist[k])
+      if explist[k] and explist[k].tag == "Id" and types.isTable(t) then
+        close_local = true
+      end
+    end
+    set_local(env, v, t, env.scope, close_local)
   end
 end
 
@@ -898,6 +904,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
     local local_var = get_local(env, name)
     if local_var then
       local local_type = local_var["type"]
+      if local_type.open then local_type.open = nil end
       if types.subtype({}, inferred_type, local_type) then
         if allow_type_change then local_var["type"] = inferred_type end
       elseif types.consistent_subtype({}, inferred_type, local_type) then

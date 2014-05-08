@@ -2896,6 +2896,20 @@ assert(r == e)
 
 s = [=[
 local person = {}
+local bogus = person
+bogus.firstname = 1
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
 local bogus = { firstname = 1 }
 do
   person.firstname = 1
@@ -2906,7 +2920,9 @@ do
 end
 ]=]
 e = [=[
-test.lua:8:3: type error, attempt to assign 'Lou' to 'number'
+test.lua:4:3: type error, attempt to use 'firstname' to index closed table
+test.lua:5:3: type error, attempt to assign '{}' to '{firstname:number}'
+test.lua:8:3: type error, attempt to use 'firstname' to index closed table
 ]=]
 
 r = typecheck(s)

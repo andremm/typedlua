@@ -28,10 +28,27 @@ function scope.begin_scope (env)
   env[scope]["local"] = {}
   env[scope]["goto"] = {}
   env[scope]["variable"] = {}
+  env[scope]["open"] = {}
+  if scope > 0 then
+    last_scope = scope - 1
+    for k, v in pairs(env[last_scope]["local"]) do
+      if v["type"].open then
+        env[last_scope]["open"][k] = true
+        env[last_scope]["local"][k]["type"].open = nil
+      end
+    end
+  end
 end
 
 function scope.end_scope (env)
   env.scope = env.scope - 1
+  local scope = env.scope
+  if scope >= 0 then
+    for k, v in pairs(env[scope]["open"]) do
+      env[scope]["local"][k]["type"].open = true
+    end
+    env[scope]["open"] = {}
+  end
 end
 
 function scope.begin_function (env)
