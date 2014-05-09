@@ -55,6 +55,7 @@ type:
   | `Nil
   | `Value
   | `Any
+  | `Self
   | `Union{ type type type* }
   | `Function{ typelist typelist }
   | `Table{ type type* }
@@ -246,6 +247,7 @@ local G = { V"TypedLua",
                 V"NilType" +
                 V"TopType" +
                 V"DynamicType" +
+                V"SelfType" +
                 V"FunctionType" +
                 V"TableType" +
                 V"VariableType";
@@ -261,6 +263,7 @@ local G = { V"TypedLua",
   NilType = taggedCap("Nil", token("nil", "Type"));
   TopType = taggedCap("Value", token("value", "Type"));
   DynamicType = taggedCap("Any", token("any", "Type"));
+  SelfType = taggedCap("Self", token("self", "Type"));
   FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"NilableRetTypeList");
   ArgTypeList = symb("(") * (V"TypeList" + V"ValueStar") * symb(")") /
                 function (t)

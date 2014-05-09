@@ -7,6 +7,7 @@ type:
   | `Nil
   | `Value
   | `Any
+  | `Self
   | `Union{ type type type* }
   | `Function{ type type }
   | `Table{ { type type }* }
@@ -99,6 +100,14 @@ types.Any = { tag = "Any" }
 
 function types.isAny (t)
   return t.tag == "Any"
+end
+
+-- self type
+
+types.Self = { tag = "Self" }
+
+function types.isSelf (t)
+  return t.tag == "Self"
 end
 
 -- union types
@@ -355,6 +364,10 @@ local function subtype_any (env, t1, t2)
   return types.isAny(t1) and types.isAny(t2)
 end
 
+local function subtype_self (env, t1, t2)
+  return types.isSelf(t1) and types.isSelf(t2)
+end
+
 local function subtype_union (env, t1, t2)
   if types.isUnion(t1) then
     for k, v in ipairs(t1) do
@@ -555,6 +568,7 @@ function types.subtype (env, t1, t2)
            subtype_nil(env, t1, t2) or
            subtype_top(env, t1, t2) or
            subtype_any(env, t1, t2) or
+           subtype_self(env, t1, t2) or
            subtype_union(env, t1, t2) or
            subtype_function(env, t1, t2) or
            subtype_table(env, t1, t2) or
@@ -908,6 +922,8 @@ local function type2str (t)
     return "value"
   elseif types.isAny(t) then
     return "any"
+  elseif types.isSelf(t) then
+    return "self"
   elseif types.isUnion(t) or
          types.isUnionlist(t) then
     local l = {}

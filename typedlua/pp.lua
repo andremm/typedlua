@@ -60,7 +60,8 @@ function type2str (t)
     str = str .. " " .. t[1]
   elseif tag == "Nil" or -- `Nil
          tag == "Value" or -- `Value
-         tag == "Any" then -- `Any
+         tag == "Any" or -- `Any
+         tag == "Self" then
   elseif tag == "Union" or
          tag == "Unionlist" then -- `Union{ type type type* }
     local l = {}

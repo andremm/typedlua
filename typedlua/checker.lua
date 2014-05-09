@@ -12,6 +12,7 @@ local begin_function, end_function = scope.begin_function, scope.end_function
 local Value = types.Value
 local Any = types.Any
 local Nil = types.Nil
+local Self = types.Self
 local False = types.False
 local True = types.True
 local Boolean = types.Boolean
@@ -210,6 +211,7 @@ local function check_parameters (env, parlist)
   while i <= len do
     local id = parlist[i]
     if not id[2] then id[2] = Any end
+    if id[1] == "self" then id[2] = Self end
     set_local(env, id, id[2], env.scope)
     t[i] = id["type"]
     i = i + 1
@@ -518,6 +520,7 @@ local function check_index_read (env, exp)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
   if types.isRecursive(t1) then t1 = t1[2] end
+  if types.isSelf(t1) and env.self then t1 = env.self end
   if types.isTable(t1) then
     local t
     for k, v in ipairs(t1) do
@@ -647,27 +650,48 @@ end
 local function check_call (env, exp)
   local exp1 = exp[1]
   local explist = {}
-  check_exp(env, exp1)
-  local name = var2name(exp1)
   for i = 2, #exp do
     explist[i - 1] = exp[i]
   end
-  check_explist(env, explist)
-  local typelist = explist2typelist(explist)
-  local t = exp1["type"]
-  if types.isFunction(t) then
-    check_arguments(env, name, typelist, t[1], exp.pos)
-    set_type(exp, t[2])
-  elseif types.isAny(t) then
-    local msg = "attempt to call %s of type 'any'"
-    msg = string.format(msg, name)
-    warning(env, msg, exp.pos)
-    set_type(exp, Any)
+  check_exp(env, exp1)
+  local name = var2name(exp1)
+  if name == "setmetatable" then
+    if explist[1] and explist[2] then
+      check_exp(env, explist[1])
+      check_exp(env, explist[2])
+      if explist[2].tag == "Table" and
+         explist[2][1].tag == "Pair" and
+         explist[2][1][1].tag == "String" and
+         explist[2][1][1][1] == "__index" then
+         set_type(exp, explist[2][1][2].type)
+      else
+        local msg = "setmetatable's second second argument must be { __index = e }"
+        typeerror(env, msg, exp.pos)
+        set_type(exp, Any)
+      end
+    else
+      local msg = "setmetatable must have two arguments"
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Any)
+    end
   else
-    local msg = "attempt to call %s of type '%s'"
-    msg = string.format(msg, name, type2str(t))
-    typeerror(env, msg, exp.pos)
-    set_type(exp, Nil)
+    check_explist(env, explist)
+    local typelist = explist2typelist(explist)
+    local t = exp1["type"]
+    if types.isFunction(t) then
+      check_arguments(env, name, typelist, t[1], exp.pos)
+      set_type(exp, t[2])
+    elseif types.isAny(t) then
+      local msg = "attempt to call %s of type 'any'"
+      msg = string.format(msg, name)
+      warning(env, msg, exp.pos)
+      set_type(exp, Any)
+    else
+      local msg = "attempt to call %s of type '%s'"
+      msg = string.format(msg, name, type2str(t))
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Nil)
+    end
   end
 end
 
@@ -681,6 +705,7 @@ local function check_invoke (env, exp)
   end
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
+  table.insert(typelist, 1, Self)
   local t1, t2 = exp1["type"], exp2["type"]
   local msg = "attempt to index '%s'"
   if types.isRecursive(t1) then t1 = t1[2] end
@@ -930,6 +955,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
     check_exp(env, exp2)
     local t1, t2 = types.first_class(exp1["type"]), types.first_class(exp2["type"])
     if types.isRecursive(t1) then t1 = t1[2] end
+    if types.isSelf(t1) and env.self then t1 = env.self end
     if types.isTable(t1) then
       local t
       for k, v in ipairs(t1) do
@@ -971,7 +997,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
   end
 end
 
-local function check_assignment (env, varlist, explist)
+local function check_assignment1 (env, varlist, explist)
   check_explist(env, explist)
   local typelist = explist2typelist(explist)
   local last_type = typelist[#typelist]
@@ -987,6 +1013,35 @@ local function check_assignment (env, varlist, explist)
         if explist[k][2].tag == "Id" and v.tag == "Id" then
           allow_type_change = explist[k][2][1] == v[1]
         end
+      end
+    end
+    check_var_assignment(env, v, t, allow_type_change)
+  end
+end
+
+local function check_assignment (env, varlist, explist)
+  local t = Nil
+  for k, v in ipairs(varlist) do
+    if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
+      local l = get_local(env, v[1][1])
+      if l then
+        if not env.self then
+          env.self = l.type
+        else
+          if types.subtype({}, l.type, env.self) then
+            env.self = l.type
+          end
+        end
+      end
+    end
+    local allow_type_change = false
+    if explist[k] then
+      check_exp(env, explist[k])
+      t = types.first_class(explist[k].type)
+      if explist[k].tag == "Op" and
+         explist[k][1] == "or" and
+         explist[k][2].tag == "Id" then
+        allow_type_change = explist[k][2][1] == v[1]
       end
     end
     check_var_assignment(env, v, t, allow_type_change)
@@ -1108,9 +1163,13 @@ function checker.typecheck (ast, subject, filename)
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
   local ENV = { tag = "Id", [1] = "_ENV", [2] = types.Table() }
+  ENV[2].open = true
   local _print = { tag = "Id", [1] = "print", [2] = types.Function(types.Tuple(types.ValueStar), types.Tuple(types.NilStar)) }
   local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.String, types.NilStar)) }
-  ENV[2].open = true
+  local _setmetatable = { tag = "Id", [1] = "setmetatable",
+    [2] = types.Function(types.Tuple(types.Table(), types.Table(), types.ValueStar), types.Tuple(types.Table(), types.NilStar)) }
+  local _tonumber = { tag = "Id", [1] = "tonumber",
+    [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.Union(Number, Nil), types.NilStar)) }
   begin_function(env)
   begin_scope(env)
   set_vararg_type(env, String)
@@ -1118,6 +1177,8 @@ function checker.typecheck (ast, subject, filename)
   -- setting print and type as local for now, just for passing on tests
   set_local(env, _print, _print[2], env.scope)
   set_local(env, _type, _type[2], env.scope)
+  set_local(env, _setmetatable, _setmetatable[2], env.scope)
+  set_local(env, _tonumber, _tonumber[2], env.scope)
   for k, v in ipairs(ast) do
     check_stm(env, v, false)
   end
