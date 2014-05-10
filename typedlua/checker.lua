@@ -228,23 +228,52 @@ local function check_parameters (env, parlist)
   return t
 end
 
+local function unannotated_idlist (idlist)
+  for k, v in ipairs(idlist) do
+    if v[2] then return false end
+  end
+  return true
+end
+
+local function sized_unionlist (t)
+  for i = 1, #t - 1 do
+    if #t[i] ~= #t[i + 1] then return false end
+  end
+  return true
+end
+
 local function check_local (env, idlist, explist)
   check_explist(env, explist)
-  local typelist = explist2typelist(explist)
-  local last_type = typelist[#typelist]
-  local fill_type = Nil
-  if types.isVararg(last_type) and not types.isNil(last_type[1]) then
-    fill_type = types.Union(last_type[1], Nil)
-  end
-  for k, v in ipairs(idlist) do
-    local t, close_local = fill_type, false
-    if typelist[k] then
-      t = types.first_class(typelist[k])
-      if explist[k] and explist[k].tag == "Id" and types.isTable(t) then
-        close_local = true
-      end
+  if unannotated_idlist(idlist) and
+     #explist == 1 and
+     types.isUnionlist(explist[1].type) and
+     sized_unionlist(explist[1].type) and
+     #idlist == #explist[1].type[1] - 1 then
+    local t = explist[1].type
+    local scope = env.scope
+    for k, v in ipairs(idlist) do
+      local name = v[1]
+      v["type"] = t
+      v.i = k
+      env[scope]["local"][name] = v
     end
-    set_local(env, v, t, env.scope, close_local)
+  else
+    local typelist = explist2typelist(explist)
+    local last_type = typelist[#typelist]
+    local fill_type = Nil
+    if types.isVararg(last_type) and not types.isNil(last_type[1]) then
+      fill_type = types.Union(last_type[1], Nil)
+    end
+    for k, v in ipairs(idlist) do
+      local t, close_local = fill_type, false
+      if typelist[k] then
+        t = types.first_class(typelist[k])
+        if explist[k] and explist[k].tag == "Id" and types.isTable(t) then
+          close_local = true
+        end
+      end
+      set_local(env, v, t, env.scope, close_local)
+    end
   end
 end
 
@@ -501,7 +530,12 @@ local function check_id_read (env, exp)
   local name = exp[1]
   local local_var = get_local(env, name)
   if local_var then
-    exp["type"] = local_var["type"]
+    local t = local_var["type"]
+    if types.isUnionlist(t) and local_var.i then
+      exp["type"] = types.unionlist2union(t, local_var.i)
+    else
+      exp["type"] = local_var["type"]
+    end
   else
     local global = {}
     global.tag = "Index"
@@ -818,6 +852,16 @@ local function tag2type (t)
   end
 end
 
+local function get_index (u, t, i)
+  if types.isUnionlist(u) then
+    for k, v in ipairs(u) do
+      if types.subtype({}, v[i], t) and types.subtype({}, t, v[i]) then
+        return k
+      end
+    end
+  end
+end
+
 local function check_if (env, stm)
   local l = {}
   for i = 1, #stm, 2 do
@@ -829,40 +873,82 @@ local function check_if (env, stm)
         name = exp[1]
         l[name] = get_local(env, name)
         if l[name] then
-          if not l[name].bkp then l[name].bkp = l[name]["type"] end
-          l[name]["type"] = types.filterUnion(l[name]["type"], Nil)
-          filter = Nil
+          if not types.isUnionlist(l[name]["type"]) then
+            if not l[name].bkp then l[name].bkp = l[name]["type"] end
+            l[name]["type"] = types.filterUnion(l[name]["type"], Nil)
+            filter = Nil
+          else
+            local i = get_index(l[name]["type"], Nil, l[name].i)
+            if i then
+              filter = table.remove(l[name]["type"], i)
+              l[name].bkp = filter
+            end
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "not" and exp[2].tag == "Id" then
         name = exp[2][1]
         l[name] = get_local(env, name)
         if l[name] then
-          if not l[name].bkp then l[name].bkp = l[name]["type"] end
-          filter = types.filterUnion(l[name]["type"], Nil)
-          l[name]["type"] = Nil
+          if not types.isUnionlist(l[name]["type"]) then
+            if not l[name].bkp then l[name].bkp = l[name]["type"] end
+            filter = types.filterUnion(l[name]["type"], Nil)
+            l[name]["type"] = Nil
+          else
+            local i = get_index(l[name]["type"], Nil, l[name].i)
+            if i then
+              filter = table.remove(l[name]["type"], i)
+              l[name].bkp = table.remove(l[name]["type"])
+              table.insert(l[name]["type"], filter)
+              filter = l[name].bkp
+            end
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "eq" and
              exp[2].tag == "Call" and exp[2][1].tag == "Id" and exp[2][1][1] == "type" and exp[2][2].tag == "Id" then
         name = exp[2][2][1]
         l[name] = get_local(env, name)
         if l[name] then
-          if not l[name].bkp then l[name].bkp = l[name]["type"] end
-          filter = types.filterUnion(l[name]["type"], tag2type(exp[3]["type"]))
-          l[name]["type"] = tag2type(exp[3]["type"])
+          if not types.isUnionlist(l[name]["type"]) then
+            if not l[name].bkp then l[name].bkp = l[name]["type"] end
+            filter = types.filterUnion(l[name]["type"], tag2type(exp[3]["type"]))
+            l[name]["type"] = tag2type(exp[3]["type"])
+          else
+            local i = get_index(l[name]["type"], tag2type(exp[3]["type"]), l[name].i)
+            if i then
+              filter = table.remove(l[name]["type"], i)
+              l[name].bkp = table.remove(l[name]["type"])
+              table.insert(l[name]["type"], filter)
+              filter = l[name].bkp
+            end
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "not" and
              exp[2].tag == "Op" and exp[2][1] == "eq" and exp[2][2].tag == "Call" and exp[2][2][1].tag == "Id" and exp[2][2][1][1] == "type" and exp[2][2][2].tag == "Id" then
         name = exp[2][2][2][1]
         l[name] = get_local(env, name)
         if l[name] then
-          if not l[name].bkp then l[name].bkp = l[name]["type"] end
-          l[name]["type"] = types.filterUnion(l[name]["type"], tag2type(exp[2][3]["type"]))
-          filter = tag2type(exp[2][3]["type"])
+          if not types.isUnionlist(l[name]["type"]) then
+            if not l[name].bkp then l[name].bkp = l[name]["type"] end
+            l[name]["type"] = types.filterUnion(l[name]["type"], tag2type(exp[2][3]["type"]))
+            filter = tag2type(exp[2][3]["type"])
+          else
+            local i = get_index(l[name]["type"], tag2type(exp[3]["type"]), l[name].i)
+            if i then
+              filter = table.remove(l[name]["type"], i)
+              l[name].bkp = filter
+            end
+          end
         end
       end
       check_block(env, block)
       if filter then
-        l[name]["type"] = filter
+        if not types.isTuple(filter) then
+          l[name]["type"] = filter
+        else
+          filter = table.remove(l[name]["type"])
+          table.insert(l[name]["type"], l[name].bkp)
+          l[name].bkp = filter
+        end
       end
     else
       block = exp
@@ -870,7 +956,11 @@ local function check_if (env, stm)
     end
   end
   for k, v in pairs(l) do
-    v["type"] = v["bkp"]
+    if not types.isUnionlist(v["type"]) then
+      v["type"] = v["bkp"]
+    else
+      table.insert(v["type"], v["bkp"])
+    end
   end
 end
 

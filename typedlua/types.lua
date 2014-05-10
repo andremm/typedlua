@@ -828,6 +828,7 @@ function types.supertypeof (t)
     for i = 3, #t do
       n[i] = types.supertypeof(t[i])
     end
+    return n
   elseif types.isTuple(t) then
     local n = types.Tuple()
     for k, v in ipairs(t) do
@@ -891,6 +892,14 @@ function types.unionlist2tuple (t)
   end
   n[#l] = types.Vararg(types.Union(table.unpack(vs)))
   return n
+end
+
+function types.unionlist2union (t, i)
+  local l = {}
+  for k, v in ipairs(t) do
+    l[#l + 1] = v[i]
+  end
+  return types.Union(table.unpack(l))
 end
 
 function types.first_class (t)

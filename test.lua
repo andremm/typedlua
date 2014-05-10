@@ -2717,9 +2717,7 @@ else
 end
 ]=]
 e = [=[
-test.lua:15:11: type error, attempt to perform arithmetic on a '(number | string)'
-test.lua:15:3: warning, attempt to assign 'any' to 'number'
-test.lua:17:3: type error, attempt to assign '(number | string)' to 'string'
+{ `Localrec{ { `Id "idiv":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Unionlist{ `Tuple{ `Nil, `Base string, `Vararg{ `Nil } }, `Tuple{ `Base number, `Base number, `Vararg{ `Nil } } } } }, { `Function{ { `Id "d1":`Base number, `Id "d2":`Base number }:`Unionlist{ `Tuple{ `Base number, `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`Base number, `Id "msg":`Base string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
 ]=]
 
 r = typecheck(s)
