@@ -5,9 +5,22 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
+%\setlength{\topmargin}{-5mm}
+%\setlength{\headheight}{0mm}
+%\setlength{\headsep}{2mm}
+%\setlength{\textheight}{245mm}
+%\setlength{\footskip}{5mm}
+
+%\setlength{\oddsidemargin}{1mm}
+%\setlength{\evensidemargin}{1mm}
+%\setlength{\textwidth}{170mm}
+%\setlength{\marginparsep}{0mm}
+%\setlength{\marginparwidth}{0mm}
+
 \newcommand{\Top}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
 \newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\Self}{\mathbf{self}}
 \newcommand{\False}{\mathbf{false}}
 \newcommand{\True}{\mathbf{true}}
 \newcommand{\Boolean}{\mathbf{boolean}}
@@ -36,7 +49,7 @@
 
 \section{Type Language}
 
-\textbf{Type Language}\\
+%\textbf{Type Language}\\
 \dstart
 $$
 \begin{array}{rlr}
@@ -46,12 +59,14 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Nil & \textit{nil type}\\
 & | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
+& | \; \Self & \textit{self type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow R & \textit{function types}\\
 & | \; \{ \} & \textit{empty table type}\\
-& | \; \{F, ..., F\} & \textit{table types}\\
+& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
+& | \; X_{i} & \textit{projection types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
 F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
@@ -128,6 +143,13 @@ $$
 \mylabel{S-ANY}
 \]
 
+\subsection{Self type}
+
+\[
+\senv \vdash \Self \subtype \Self
+\mylabel{S-SELF}
+\]
+
 \subsection{Disjoint union types}
 
 \[
@@ -162,7 +184,7 @@ $$
 
 \[
 \frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-      \senv \vdash F_{i} \subtype F_{j}}
+      \senv \vdash F_{j} \subtype F_{i}}
      {\senv \vdash \{F_{1}, ..., F_{m}\} \subtype \{F_{1}', ..., F_{n}'\}}
 \mylabel{S-TABLE}
 \]
@@ -301,14 +323,15 @@ s_{1} \; ; \; s_{2} \; | \;
 \kw{repeat} \; s \; \kw{until} \; e\\
 & | \; \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} \; | \;
 \kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s \; | \;
-\kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s\\
-& | \; \kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s \; | \;
-\kw{rec} \; i{:}t = f \; \kw{in} \; s \; | \;
+\kw{for} \; \vec{i}{:}\vec{T} \; \kw{in} \; \vec{e} \; \kw{do} \; s\\
+& | \; \kw{local} \; \vec{i}{:}\vec{T} = \vec{e} \; \kw{in} \; s \; | \;
+\kw{rec} \; i{:}T = f \; \kw{in} \; s \; | \;
 \kw{goto} \; i \; | \;
 {::} \; i \; {::} \; | \;
 \kw{return} \; \vec{e}\\
 & | \; \kw{break} \; | \;
-e_{1}(\vec{e_{2}})\\
+e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}i(\vec{e_{2}})\\
 e ::= & \;\; \kw{nil} \; | \;
 \kw{false} \; | \;
 \kw{true} \; | \;
@@ -327,20 +350,19 @@ e_{1} \; \kw{or} \; e_{2} \\
 - e \; | \;
 \# \; e \; | \;
 e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}i(\vec{e_{2}}) \; | \;
 l \\
 l ::= & \; i \; | \;
 e_{1}[e_{2}]\\
-f ::= & \; \kw{fun} \; (){:}t \; b \; | \;
-\kw{fun} \; ({...}{:}t_{1}){:}t_{2} \; b \; | \;
-\kw{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b \; | \;
-\kw{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b\\
+f ::= & \; \kw{fun} \; (){:}R \; b \; | \;
+\kw{fun} \; ({...}{:}T){:}R \; b \; | \;
+\kw{fun} \; (\vec{i}{:}\vec{T}){:}R \; b \; | \;
+\kw{fun} \; (\vec{i}{:}\vec{T},{...}{:}T){:}R \; b\\
 c ::= & \; e_{1} = e_{2}\\
 b ::= & \; s \; ; \; \kw{return} \; \vec{e}
 \end{array}
 $$
 \dend
-
-\subsection{Typing rules}
 
 \subsection{Statements}
 
@@ -463,7 +485,7 @@ $$
 \mylabel{T-STMCALL2}
 \]
 
-\subsubsection{Expression lists}
+\subsection{Expression lists}
 
 \[
 \frac{|\vec{e}| = 0}
@@ -501,7 +523,7 @@ $$
 \mylabel{T-EXPLIST5}
 \]
 
-\subsubsection{Expressions}
+\subsection{Expressions}
 
 \[
 \env \vdash \kw{nil} : \Nil
@@ -762,15 +784,22 @@ $$
 
 \[
 \frac{\env \vdash e:T \;\;\;
-      T \subtype \String}
+      T \subtype \{\}}
      {\env \vdash \# e : \Number}
 \mylabel{T-LEN1}
 \]
 
 \[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \String}
+     {\env \vdash \# e : \Number}
+\mylabel{T-LEN2}
+\]
+
+\[
 \frac{\env \vdash e:\Any}
      {\env \vdash \# e : \Any}
-\mylabel{T-LEN2}
+\mylabel{T-LEN3}
 \]
 
 \[
