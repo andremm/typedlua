@@ -178,7 +178,7 @@ systems, so each language ends up implementing its optional type
 system on its own way.
 Strongtalk, Dart, and TypeScript provide an informal description of
 their optional type systems rather than a formal one.
-In the next section we shall see that we can use some aspects
+In the next section we shall see that we can use some features
 of gradual typing \citep{siek2006gradual,siek2007objects} to
 formalize optional type systems.
 
@@ -195,6 +195,28 @@ the dynamic type $?$.
 Under these circumstances, we view gradual typing as a way to add
 a dynamic type to statically typed languages.
 
+\begin{figure}[!ht]
+\textbf{Syntax of the gradually-typed lambda calculus}\\
+\dstart
+$$
+\begin{array}{rlr}
+T ::= & & \emph{types}\\
+& \;\; \Number & \emph{base type number}\\
+& | \; \String & \emph{base type string}\\
+& | \; ? & \emph{dynamic type}\\
+& | \; T \rightarrow T & \emph{function types}\\
+e ::= & & \emph{expressions}\\
+& \;\; c & \emph{constants}\\
+& | \; x & \emph{variables}\\
+& | \; \lambda x{:}T{.}e & \emph{abstractions}\\
+& | \; e_{1} e_{2} & \emph{application}
+\end{array}
+$$
+\dend
+\caption{Syntax of the gradually-typed lambda calculus}
+\label{fig:gtlc}
+\end{figure}
+
 The central idea of gradual typing is the \emph{consistency}
 relation, written $\tau_{1} \sim \tau_{2}$, that allows implicit
 conversions to and from the dynamic type, and disallows conversions
@@ -204,6 +226,25 @@ $\mathbf{string} \sim \;?$, and $? \sim \mathbf{string}$,
 but $\mathbf{int} \not\sim \mathbf{string}$, and
 $\mathbf{string} \not\sim \mathbf{int}$.
 The consistency relation is neither commutative nor transitive.
+
+\begin{figure}[!ht]
+\textbf{Type consistency}\\
+\dstart
+$$
+\begin{matrix}
+\Number \sim \Number \mylabel{C-NUM} \;\;\; \String \sim \String \mylabel{C-STR}
+\\ \\
+T \sim \;? \mylabel{C-ANY1} \;\;\; ? \sim T \mylabel{C-ANY2}
+\\ \\
+\dfrac{T_{3} \sim T_{1} \;\;\; T_{2} \sim T_{4}}
+      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUN}
+\end{matrix}
+$$
+\dend
+\caption{The consistency relation}
+\label{fig:consistency}
+\end{figure}
+
 
 Gradual typing is similar to the approaches proposed by
 \citet{abadi1989dts} and \citet{thatte1990qst} by including a
@@ -219,6 +260,35 @@ the subtyping relation.
 Therefore, downcasts combined with the transitivity of subtyping
 accepts programs that should be rejected.
 
+\begin{figure}[!ht]
+\textbf{Gradual Type System}\\
+\dstart
+$$
+\begin{matrix}
+\dfrac{\env(x) = T}
+      {\env \vdash x:T} \mylabel{T-VAR}
+\;\;\;
+\dfrac{type(c) = T}
+      {\env \vdash c:T} \mylabel{T-CONST}
+\\ \\
+\dfrac{\env, x:T_{1} \vdash e:T_{2}}
+      {\env \vdash \lambda x:T_{1}.e:T_{1} \rightarrow T_{2}} \mylabel{T-ABS}
+\;\;\;
+\dfrac{\env \vdash e_{1}:\;? \;\;\;
+       \env \vdash e_{2}:T}
+      {\env \vdash e_{1} e_{2}:\;?} \mylabel{T-APP1}
+\\ \\
+\dfrac{\env \vdash e_{1}:T_{1} \rightarrow T_{2} \;\;\;
+       \env \vdash e_{2}:T_{3} \;\;\;
+       T_{3} \sim T_{1}}
+      {\env \vdash e_{1} e_{2}:T_{2}} \mylabel{T-APP2}
+\end{matrix}
+$$
+\dend
+\caption{Typing rules of gradually-typed lambda calculus}
+\label{fig:gts}
+\end{figure}
+
 Later, \citet{siek2007objects} discovered that the consistency relation
 is orthogonal to subtyping, so we can combine the two relations to
 achieve both consistency and subtyping.
@@ -228,6 +298,28 @@ is essential to design object-oriented languages that have a
 gradual type system.
 Like the consistency relation, and unlike the subtyping relation,
 the consistent-subtyping relation is not transitive.
+
+\begin{figure}[!ht]
+\textbf{Consistent-Subtyping}\\
+\dstart
+$$
+\begin{matrix}
+\Number \lesssim \Number \mylabel{C-NUM} \;\;\; \String \lesssim \String \mylabel{C-STR}
+\\ \\
+T \lesssim \;? \mylabel{C-ANY1} \;\;\; ? \lesssim T \mylabel{C-ANY2}
+\\ \\
+\dfrac{T_{3} \lesssim T_{1} \;\;\; T_{2} \lesssim T_{4}}
+      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUN}
+\;\;\;
+\dfrac{\forall i \in 1..n \;\;\; T_{i} \lesssim T_{i}'}
+      {[l_{i}:T_{i}^{\;i\in1..n+m}] \lesssim [l_{i}:T_{i}'^{\;i\in1..n}]} \mylabel{C-OBJ}
+\end{matrix}
+$$
+\dend
+\caption{The consistent-subtyping relation}
+\label{fig:consistent-subtyping}
+\end{figure}
+
 
 Another important feature of gradual typing is the theoretic
 foundation that it provides for inserting run-time checks that
