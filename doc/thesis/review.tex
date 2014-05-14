@@ -154,7 +154,7 @@ semantics.
 Although these systems can be unsound on their interaction with the
 dynamically typed part of the language or even by design, their
 unsoundness does not affect run-time safety, as the language run-time
-semantics still cathes any run-time errors caused by an unsound
+semantics still catches any run-time errors caused by an unsound
 type system.
 
 Dart \citep{dart} and TypeScript \citep{typescript} are new
@@ -188,15 +188,15 @@ The main goal of gradual typing \citep{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
 language.
 To do that, \citet{siek2006gradual} extended the simply typed
-lambda calculus with the dynamic type $?$.
+lambda calculus with the dynamic type $?$, as we shall see in
+Figure \ref{fig:gtlc}.
 In gradual typing, type annotations are optional, so an untyped
 variable is syntactic sugar for a variable whose declared type is
-the dynamic type $?$.
+the dynamic type $?$, that is, $\lambda x.e \equiv \lambda x{:}?.e$.
 Under these circumstances, we view gradual typing as a way to add
 a dynamic type to statically typed languages.
 
 \begin{figure}[!ht]
-\textbf{Syntax of the gradually-typed lambda calculus}\\
 \dstart
 $$
 \begin{array}{rlr}
@@ -218,17 +218,18 @@ $$
 \end{figure}
 
 The central idea of gradual typing is the \emph{consistency}
-relation, written $\tau_{1} \sim \tau_{2}$, that allows implicit
-conversions to and from the dynamic type, and disallows conversions
-between inconsistent types \citep{siek2006gradual}.
-For instance, $\mathbf{int} \sim \;?$, $? \sim \mathbf{int}$,
-$\mathbf{string} \sim \;?$, and $? \sim \mathbf{string}$,
-but $\mathbf{int} \not\sim \mathbf{string}$, and
-$\mathbf{string} \not\sim \mathbf{int}$.
-The consistency relation is neither commutative nor transitive.
+relation, written $T_{1} \sim T_{2}$.
+The consistency relation allows implicit conversions to and from the
+dynamic type, and disallows conversions between inconsistent types
+\citep{siek2006gradual}.
+For instance, $\Number \sim \;?$, $? \sim \Number$,
+$\String \sim \;?$, and $? \sim \String$,
+but $\Number \not\sim \String$, and
+$\String \not\sim \Number$.
+The consistency relation is both reflexive and symmetric, but
+it is neither commutative nor transitive.
 
 \begin{figure}[!ht]
-\textbf{Type consistency}\\
 \dstart
 $$
 \begin{matrix}
@@ -245,23 +246,34 @@ $$
 \label{fig:consistency}
 \end{figure}
 
+Figure \ref{fig:consistency} defines the consistency relation.
+Rules \textsc{C-NUM} and \textsc{C-STR} are reflexive. 
+Rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that allow
+conversions to and from the dynamic type $?$.
+The rule \textsc{C-FUN} resembles the subtyping of functions
+because it is contravariant on the argument type and covariant on the
+return type.
 
-Gradual typing is similar to the approaches proposed by
-\citet{abadi1989dts} and \citet{thatte1990qst} by including a
-dynamic type to a statically typed language.
-However, these three approaches differ in the way they handle the
-dynamic type.
-While \citet{siek2006gradual} rely on the consistency relation,
-\citet{abadi1989dts} rely on type equality with explicit projections
-and injections, and \citet{thatte1990qst} relies on subtyping.
-The subtyping relation actually is a pitfall on Thatte's quasi-static
-typing, because the dynamic type is put as the top and the bottom of
-the subtyping relation.
-Therefore, downcasts combined with the transitivity of subtyping
-accepts programs that should be rejected.
+Figure \ref{fig:gts} uses the consistency relation in the typing rules
+of the gradual type system of the simply typed lambda calculus extended
+with the dynamic type $?$.
+The environment $\env$ is a function from variables to types, and
+the directive $type$ is a function from constants to types.
+The rule \textsc{T-VAR} uses the environment function $\env$ to get the
+type of a variable $x$.
+The rule \textsc{T-CONST} uses the directive $type$ to get the type of
+a constant $c$.
+The rule \textsc{T-ABS} evaluates the expression $e$ with an environment
+$\env$ that binds the variable $x$ to the type $T_{1}$, and the resulting
+type is the the function type $T_{1} \rightarrow T_{2}$.
+The rule \textsc{T-APP1} handles function calls where the type of the
+function is dynamically typed; in this case, the argument type may have
+any type and the resulting type has the dynamic type.
+The rule \textsc{T-APP2} handles function calls where the type of the
+function is statically typed; in this case, the argument type should
+be consistent to the argument type of the function's signature.
 
 \begin{figure}[!ht]
-\textbf{Gradual Type System}\\
 \dstart
 $$
 \begin{matrix}
@@ -285,50 +297,60 @@ $$
 \end{matrix}
 $$
 \dend
-\caption{Typing rules of gradually-typed lambda calculus}
+\caption{Gradual type system gradually-typed lambda calculus}
 \label{fig:gts}
 \end{figure}
 
-Later, \citet{siek2007objects} discovered that the consistency relation
+Gradual typing is similar to the approaches proposed by
+\citet{abadi1989dts} and \citet{thatte1990qst} by including a
+dynamic type to a statically typed language.
+However, these three approaches differ in the way they handle the
+dynamic type.
+While \citet{siek2006gradual} rely on the consistency relation,
+\citet{abadi1989dts} rely on type equality with explicit projections
+and injections, and \citet{thatte1990qst} relies on subtyping.
+
+The subtyping relation $\subtype$ actually is a pitfall on Thatte's
+quasi-static typing, because quasi-static typing sets the dynamic type
+as the top and the bottom of the subtying relation:
+$T \subtype \;?$ and $? \subtype T$.
+Subtyping is transitive, so we have that
+\[
+\frac{\Number \subtype \;? \;\;\;
+      ? \subtype \String}
+     {\Number \subtype \String}
+\]
+Therefore, downcasts combined with the transitivity of subtyping
+accepts programs that should be rejected.
+
+Later, \citet{siek2007objects} reported that the consistency relation
 is orthogonal to subtyping, so we can combine the two relations to
 achieve both consistency and subtyping.
 The \emph{consistent-subtyping} relation,
-written $\tau_{1} \lesssim \tau_{2}$,
-is essential to design object-oriented languages that have a
+written $T_{1} \lesssim T_{2}$,
+is the foundation to design object-oriented languages that have a
 gradual type system.
 Like the consistency relation, and unlike the subtyping relation,
 the consistent-subtyping relation is not transitive.
+Therefore, $\Number \lesssim \;?$, $? \lesssim \Number$,
+$\String \lesssim \;?$, and $? \lesssim \String$,
+but $\Number \not\lesssim \String$, and
+$\String \not\lesssim \Number$.
 
-\begin{figure}[!ht]
-\textbf{Consistent-Subtyping}\\
-\dstart
-$$
-\begin{matrix}
-\Number \lesssim \Number \mylabel{C-NUM} \;\;\; \String \lesssim \String \mylabel{C-STR}
-\\ \\
-T \lesssim \;? \mylabel{C-ANY1} \;\;\; ? \lesssim T \mylabel{C-ANY2}
-\\ \\
-\dfrac{T_{3} \lesssim T_{1} \;\;\; T_{2} \lesssim T_{4}}
-      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUN}
-\;\;\;
-\dfrac{\forall i \in 1..n \;\;\; T_{i} \lesssim T_{i}'}
-      {[l_{i}:T_{i}^{\;i\in1..n+m}] \lesssim [l_{i}:T_{i}'^{\;i\in1..n}]} \mylabel{C-OBJ}
-\end{matrix}
-$$
-\dend
-\caption{The consistent-subtyping relation}
-\label{fig:consistent-subtyping}
-\end{figure}
+So far, gradual typing looks like a mere formalization to optional
+type systems, as a gradual type system uses the consistency or
+consistent-subtyping relation to statically check the interaction
+between statically and dynamically typed code, and not influencing
+the run-time semantics.
 
-
-Another important feature of gradual typing is the theoretic
-foundation that it provides for inserting run-time checks that
+However, another important feature of gradual typing is the theoretic
+foundation that is provides for inserting run-time checks that
 prove dynamically typed code does not violate the invariants of
 statically typed code, thus preserving type safety.
-To do that, \citet{siek2006gradual} defined the run-time semantics
-of gradual typing as a translation to an intermediate language with
-explicit casts at the frontiers between statically and dynamically
-typed code.
+To do that, \citet{siek2006gradual,siek2007objects} defined the
+run-time semantics of gradual typing as a translation to an
+intermediate language with explicit casts at the frontiers between
+statically and dynamically typed code.
 The semantics of these casts is based on the higher-order contracts
 proposed by \citet{findler2002chf}.
 
@@ -416,9 +438,9 @@ relation while Alore combines  subtyping along with the consistency
 relation to define a \emph{consistent-or-subtype} relation.
 The consistent-or-subtype relation is different from the
 consistent-subtyping relation of \citet{siek2007objects}, but it is
-also written $\tau_{1} \lesssim \tau_{2}$.
-The consistent-or-subtype relation holds when $\tau_{1} \sim \tau_{2}$
-or $\tau_{1} <: \tau_{2}$, where $<:$ is transitive and $\sim$ is not.
+also written $T_{1} \lesssim T_{2}$.
+The consistent-or-subtype relation holds when $T_{1} \sim T_{2}$
+or $T_{1} <: T_{2}$, where $<:$ is transitive and $\sim$ is not.
 Alore also extends its optional type system to include optional
 monitoring of run-time type errors in the gradual typing style.
 
