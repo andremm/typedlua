@@ -5,11 +5,11 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
-%\setlength{\topmargin}{-5mm}
-%\setlength{\headheight}{0mm}
-%\setlength{\headsep}{2mm}
-%\setlength{\textheight}{245mm}
-%\setlength{\footskip}{5mm}
+\setlength{\topmargin}{-5mm}
+\setlength{\headheight}{0mm}
+\setlength{\headsep}{2mm}
+\setlength{\textheight}{245mm}
+\setlength{\footskip}{5mm}
 
 %\setlength{\oddsidemargin}{1mm}
 %\setlength{\evensidemargin}{1mm}
@@ -61,7 +61,7 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; \Self & \textit{self type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
-& | \; S \rightarrow R & \textit{function types}\\
+& | \; P \rightarrow R & \textit{function types}\\
 & | \; \{ \} & \textit{empty table type}\\
 & | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
@@ -73,9 +73,11 @@ F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\
 K ::= & L \; | \; B \; | \; \Top \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
-S ::= & \;\; T* & \textit{vararg types}\\
+S ::= & \;\; T &\\
+& | \; T* & \textit{vararg types}\\
 & | \; T \times S & \textit{tuple types}\\
-R ::= & S \; | \; S \cup R & \textit{return types}\\
+P ::= & \Void \; | \; S & \textit{parameters list type}\\
+R ::= & \Void \; | \; S \; | \; S \cup R & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -295,6 +297,13 @@ $$
 \mylabel{S-TUPLE3}
 \]
 
+\subsection{Void type}
+
+\[
+\senv \vdash \Void \subtype \Void
+\mylabel{S-VOID}
+\]
+
 \section{Consistent-Subtyping}
 
 Similar to the subtyping rules, except those that handle the dynamic type:
@@ -320,18 +329,11 @@ s ::= & \;\; \kw{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = \vec{e}  \; | \;
 \kw{while} \; e \; \kw{do} \; s \; | \;
-\kw{repeat} \; s \; \kw{until} \; e\\
-& | \; \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} \; | \;
-\kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s \; | \;
-\kw{for} \; \vec{i}{:}\vec{T} \; \kw{in} \; \vec{e} \; \kw{do} \; s\\
-& | \; \kw{local} \; \vec{i}{:}\vec{T} = \vec{e} \; \kw{in} \; s \; | \;
-\kw{rec} \; i{:}T = f \; \kw{in} \; s \; | \;
-\kw{goto} \; i \; | \;
-{::} \; i \; {::} \; | \;
-\kw{return} \; \vec{e}\\
-& | \; \kw{break} \; | \;
-e_{1}(\vec{e_{2}}) \; | \;
-e_{1}{:}i(\vec{e_{2}})\\
+\kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}\\
+& | \; \kw{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \kw{in} \; s \; | \;
+\kw{rec} \; n{:}T = f \; \kw{in} \; s \; | \;
+\kw{return} \; \vec{e} \; | \;
+a\\
 e ::= & \;\; \kw{nil} \; | \;
 \kw{false} \; | \;
 \kw{true} \; | \;
@@ -349,17 +351,18 @@ e_{1} \; \kw{or} \; e_{2} \\
 & | \; \kw{not} \; e \; | \;
 - e \; | \;
 \# \; e \; | \;
-e_{1}(\vec{e_{2}}) \; | \;
-e_{1}{:}i(\vec{e_{2}}) \; | \;
+a \; | \;
 l \\
-l ::= & \; i \; | \;
+l ::= & \; n \; | \;
 e_{1}[e_{2}]\\
-f ::= & \; \kw{fun} \; (){:}R \; b \; | \;
-\kw{fun} \; ({...}{:}T){:}R \; b \; | \;
-\kw{fun} \; (\vec{i}{:}\vec{T}){:}R \; b \; | \;
-\kw{fun} \; (\vec{i}{:}\vec{T},{...}{:}T){:}R \; b\\
-c ::= & \; e_{1} = e_{2}\\
-b ::= & \; s \; ; \; \kw{return} \; \vec{e}
+a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}n(\vec{e_{2}})\\
+f ::= & \; \kw{fun} \; (){:}R \; s \; | \;
+\kw{fun} \; ({...}{:}T){:}R \; s \; | \;
+\kw{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
+\kw{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
+c ::= & \; [e_{1}] = e_{2}\\
+n ::= & \; {<}{\it name}{>}\\
 \end{array}
 $$
 \dend
@@ -394,41 +397,11 @@ $$
 \]
 
 \[
-\frac{\env \vdash s \;\;\;
-      \env \vdash e:T}
-     {\env \vdash \kw{repeat} \; s \; \kw{until} \; e}
-\mylabel{T-REPEAT}
-\]
-
-\[
 \frac{\env \vdash e:T \;\;\;
       \env \vdash s_{1} \;\;\;
       \env \vdash s_{2}}
      {\env \vdash \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}}
 \mylabel{T-IF-ELSE}
-\]
-
-\[
-\frac{\begin{aligned}
-      & \env \vdash e_{1}:T_{1} \;\;\;
-        \env \vdash e_{2}:T_{2} \;\;\;
-        \env \vdash e_{3}:T_{3} & \\
-      & T_{1} \lesssim \Number \;\;\;
-        T_{2} \lesssim \Number \;\;\;
-        T_{3} \lesssim \Number & \\
-      & \env, i:T_{1} \vdash s &
-      \end{aligned}}
-     {\env \vdash \kw{for} \; i = e_{1},e_{2},e_{3} \; \kw{do} \; s}
-\mylabel{T-FORNUM}
-\]
-
-\[
-\frac{\env \vdash \vec{i}{:}\vec{t}:S_{1} \;\;\;
-      \env \vdash \vec{e}:S_{2} \;\;\;
-      S_{2} \lesssim S_{1} \;\;\;
-      \env, \vec{i}{:}\vec{t} \vdash s}
-     {\env \vdash \kw{for} \; \vec{i}{:}\vec{t} \; \kw{in} \; \vec{e} \; \kw{do} \; s}
-\mylabel{T-FORIN}
 \]
 
 \[
@@ -448,26 +421,11 @@ $$
 \]
 
 \[
-\env \vdash \kw{goto} \; i
-\mylabel{T-GOTO}
-\]
-
-\[
-\env \vdash {::} \; i \; {::}
-\mylabel{T-LABEL}
-\]
-
-\[
 \frac{\env \vdash \vec{e}:S_{1} \;\;\;
       \env(\ret) = S_{2} \;\;\;
       S_{1} \lesssim S_{2}}
      {\env \vdash \kw{return} \; \vec{e}}
 \mylabel{T-RETURN}
-\]
-
-\[
-\env \vdash \kw{break}
-\mylabel{T-BREAK}
 \]
 
 \[
