@@ -129,6 +129,7 @@ local function set_local (env, id, inferred_type, scope, close_local)
     typeerror(env, msg, pos)
   end
   id["type"] = local_type
+  id["scope"] = scope
   env[scope]["local"][local_name] = id
 end
 
@@ -311,7 +312,9 @@ local function check_localrec (env, id, exp)
   set_type(exp, t)
   id[2] = t
   set_local(env, id, t, scope)
-  check_block(env, block)
+  for k, v in ipairs(block) do
+    check_stm(env, v)
+  end
   local rettype = inferred_return_type(env)
   if infer_return then
     t2 = rettype
@@ -595,7 +598,9 @@ local function check_function (env, exp)
     infer_return = true
   end
   set_type(exp, types.Function(t1, t2))
-  check_block(env, block)
+  for k, v in ipairs(block) do
+    check_stm(env, v)
+  end
   local rettype = inferred_return_type(env)
   if infer_return then
     t2 = rettype
@@ -932,7 +937,7 @@ local function check_if (env, stm)
             l[name]["type"] = types.filterUnion(l[name]["type"], tag2type(exp[2][3]["type"]))
             filter = tag2type(exp[2][3]["type"])
           else
-            local i = get_index(l[name]["type"], tag2type(exp[3]["type"]), l[name].i)
+            local i = get_index(l[name]["type"], tag2type(exp[2][3]["type"]), l[name].i)
             if i then
               filter = table.remove(l[name]["type"], i)
               l[name].bkp = filter
@@ -1021,7 +1026,11 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
       local local_type = local_var["type"]
       if local_type.open then local_type.open = nil end
       if types.subtype({}, inferred_type, local_type) then
-        if allow_type_change then local_var["type"] = inferred_type end
+        if allow_type_change and
+           local_var["scope"] == env.scope and
+           not local_var["assigned"] then
+          local_var["type"] = inferred_type
+        end
       elseif types.consistent_subtype({}, inferred_type, local_type) then
         local msg = "attempt to assign '%s' to '%s'"
         msg = string.format(msg, type2str(inferred_type), type2str(local_type))
@@ -1031,6 +1040,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
         msg = string.format(msg, type2str(inferred_type), type2str(local_type))
         typeerror(env, msg, var.pos)
       end
+      if not local_var["assigned"] then local_var["assigned"] = true end
     else
       local global = {}
       global.tag = "Index"
@@ -1084,28 +1094,6 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
       msg = string.format(msg, type2str(t1))
       typeerror(env, msg, var.pos)
     end
-  end
-end
-
-local function check_assignment1 (env, varlist, explist)
-  check_explist(env, explist)
-  local typelist = explist2typelist(explist)
-  local last_type = typelist[#typelist]
-  local fill_type = Nil
-  if types.isVararg(last_type) and not types.isNil(last_type[1]) then
-    fill_type = types.Union(last_type[1], Nil)
-  end
-  for k, v in ipairs(varlist) do
-    local t, allow_type_change = fill_type, false
-    if typelist[k] then
-      t = types.first_class(typelist[k])
-      if explist[k].tag == "Op" and explist[k][1] == "or" then
-        if explist[k][2].tag == "Id" and v.tag == "Id" then
-          allow_type_change = explist[k][2][1] == v[1]
-        end
-      end
-    end
-    check_var_assignment(env, v, t, allow_type_change)
   end
 end
 

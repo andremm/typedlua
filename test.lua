@@ -2672,6 +2672,40 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local function f (s:string?)
+  local function f ()
+    s = nil
+  end
+  s = s or "hi"
+  s = s .. "hello"
+end
+]=]
+e = [=[
+test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
+test.lua:6:3: warning, attempt to assign 'any' to '(string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local s:string?
+
+while true do
+  s = s or "foo"
+end
+
+s = s .. "bar"
+]=]
+e = [=[
+test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
+test.lua:7:1: warning, attempt to assign 'any' to '(string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local function rep (s:string, n:number, sep:string?):string
   sep = sep or ""
   local r = ""
