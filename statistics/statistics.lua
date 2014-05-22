@@ -65,6 +65,9 @@ local function new_func_def (func_type, is_vararg)
   result[n].varindex_write_number = 0
   result[n].varindex_write_string = 0
   result[n].varindex_write_non_literal = 0
+  result[n].assignments = 0
+  result[n].simple_assignments = 0
+  result[n].multiple_assignments = 0
   if func_type == "anonymous" then
     result[n].func_type = "A"
   elseif func_type == "global" then
@@ -401,6 +404,12 @@ function check_stm (stm, func_name, func_id)
          stm.tag == "StmGoTo" or -- StmGoTo Name
          stm.tag == "StmBreak" then
   elseif stm.tag == "StmAssign" then -- StmAssign [Var] [Exp]
+    result[func_id].assignments = result[func_id].assignments + 1
+    if #stm[1] == 1 then
+      result[func_id].simple_assignments = result[func_id].simple_assignments + 1
+    else
+      result[func_id].multiple_assignments = result[func_id].multiple_assignments + 1
+    end
     check_varlist(stm[1], func_name, func_id)
     check_explist(stm[2], func_name, func_id)
   elseif stm.tag == "StmLocalVar" then -- StmLocalVar [Name] [Exp]
@@ -491,6 +500,9 @@ local function result_recon ()
   result.varindex_write_string = 0
   result.varindex_write_non_literal = 0
   result.number_of_constructs = 0
+  result.assignments = 0
+  result.simple_assignments = 0
+  result.multiple_assignments = 0
   for i=0,result.number_of_functions do
     if result[i].func_type == "A" then
       result.anonymousf = result.anonymousf + 1
@@ -555,6 +567,9 @@ local function result_recon ()
     result.varindex_write_number = result.varindex_write_number + result[i].varindex_write_number
     result.varindex_write_string = result.varindex_write_string + result[i].varindex_write_string
     result.varindex_write_non_literal = result.varindex_write_non_literal + result[i].varindex_write_non_literal
+    result.assignments = result.assignments + result[i].assignments
+    result.simple_assignments = result.simple_assignments + result[i].simple_assignments
+    result.multiple_assignments = result.multiple_assignments + result[i].multiple_assignments
   end
   local sum = result.anonymousf + result.globalf + result.localf
   if result.number_of_functions ~= sum then
@@ -571,6 +586,10 @@ local function result_recon ()
   sum = result.varindex_read + result.varindex_write
   if result.varindex ~= sum then
     error("number of varindex usage does not match")
+  end
+  sum = result.simple_assignments + result.multiple_assignments
+  if result.assignments ~= sum then
+    error("number of assignments does not match")
   end
 end
 
@@ -674,6 +693,9 @@ function statistics.log_result (filename, result)
   print("varindex_write_non_literal", result.varindex_write_non_literal)
   print("returning_module", result.returning_module)
   print("calling_module", result.calling_module)
+  print("assignments", result.assignments)
+  print("simple_assignments", result.simple_assignments)
+  print("multiple_assignments", result.multiple_assignments)
 end
 
 function statistics.init_merge ()
@@ -744,6 +766,9 @@ function statistics.init_merge ()
   merge.calling_module = 0
   merge.module_and_return = 0
   merge.plain_script = 0
+  merge.assignments = 0
+  merge.simple_assignments = 0
+  merge.multiple_assignments = 0
   return merge
 end
 
@@ -862,6 +887,9 @@ function statistics.merge (result, merge, project)
   merge.varindex_write_number = merge.varindex_write_number + result.varindex_write_number
   merge.varindex_write_string = merge.varindex_write_string + result.varindex_write_string
   merge.varindex_write_non_literal = merge.varindex_write_non_literal + result.varindex_write_non_literal
+  merge.assignments = merge.assignments + result.assignments
+  merge.simple_assignments = merge.simple_assignments + result.simple_assignments
+  merge.multiple_assignments = merge.multiple_assignments + result.multiple_assignments
   if result.returning_module and result.calling_module then
     merge.module_and_return = merge.module_and_return + 1
   elseif result.returning_module then
@@ -942,6 +970,9 @@ function statistics.log_merge (merge)
   print("calling_module", merge.calling_module)
   print("module_and_return", merge.module_and_return)
   print("plain_script", merge.plain_script)
+  print("assignments", merge.assignments)
+  print("simple_assignments", merge.simple_assignments)
+  print("multiple_assignments", merge.multiple_assignments)
 end
 
 return statistics
