@@ -31,6 +31,7 @@
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\subtype}{<:}
 \newcommand{\env}{\Gamma}
+\newcommand{\names}{N}
 \newcommand{\senv}{\Sigma}
 \newcommand{\ret}{\string_RET}
 
@@ -340,7 +341,7 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \kw{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = \vec{e}  \; | \;
+l = e  \; | \;
 \kw{while} \; e \; \kw{do} \; s \; | \;
 \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}\\
 & | \; \kw{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \kw{in} \; s \; | \;
@@ -383,53 +384,93 @@ $$
 \subsection{Statements}
 
 \[
-\env \vdash \kw{skip}
+\env, N \vdash \kw{skip} : \env, N
 \mylabel{T-SKIP}
 \]
 
 \[
-\frac{\env \vdash s_{1} \;\;\;
-      \env \vdash s_{2}}
-     {\env \vdash s_{1} \;;\; s_{2}}
+\frac{\env_{1}, N_{1} \vdash s_{1} : \env_{2}, N_{2} \;\;\;
+      \env_{2}, N_{2} \vdash s_{2} : \env_{3}, N_{3}}
+     {\env_{1}, N_{1} \vdash s_{1} \;;\; s_{2} : \env_{3}, N_{3} }
 \mylabel{T-SEQ}
 \]
 
 \[
-\frac{\env \vdash \vec{l}:S_{1} \;\;\;
-      \env \vdash \vec{e}:S_{2} \;\;\;
-      \env \vdash S_{2} \lesssim S_{1}}
-     {\env \vdash \vec{l} = \vec{e}}
+\frac{\env \vdash l:T_{1} \;\;\;
+      \env \vdash e:T_{2} \;\;\;
+      \env \vdash T_{2} \lesssim T_{1}}
+     {\env \vdash l = e}
 \mylabel{T-ASSIGNMENT}
 \]
 
 \[
 \frac{\env \vdash e:T \;\;\;
-      \env \vdash s}
-     {\env \vdash \kw{while} \; e \; \kw{do} \; s}
+      close(\env, N), \varnothing \vdash s}
+     {\env, N \vdash \kw{while} \; e \; \kw{do} \; s : \env, N}
 \mylabel{T-WHILE}
 \]
 
 \[
-\frac{\env \vdash e:T \;\;\;
-      \env \vdash s_{1} \;\;\;
-      \env \vdash s_{2}}
-     {\env \vdash \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}}
+\frac{\begin{array}{c}
+      \env \vdash e:T\\
+      close(\env, N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env, N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} : \env, N}
 \mylabel{T-IF-ELSE}
 \]
 
 \[
-\frac{\env \vdash \vec{i}{:}\vec{t}:S_{1} \;\;\;
-      \env \vdash \vec{e}:S_{2} \;\;\;
-      S_{2} \lesssim S_{1} \;\;\;
-      \env, \vec{i}{:}\vec{t} \vdash s}
-     {\env \vdash \kw{local} \; \vec{i}{:}\vec{t} = \vec{e} \; \kw{in} \; s}
+\frac{\begin{array}{c}
+      \env(n) = T\\
+      close(\env(n{:}filter(T, \Nil)), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}\Nil), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \kw{if} \; n \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE1}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env(n) = T\\
+      close(\env(n{:}\Nil), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}filter(T, \Nil)), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \kw{if} \; \kw{not} \; n \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE2}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env \vdash(n) = T_{1} \;\;\; \env \vdash e:T_{2}\\
+      close(\env(n{:}T_{2}), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}filter(T_{1}, T_{2})), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \kw{if} \; \kw{type}(n) == e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE3}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env \vdash(n) = T_{1} \;\;\; \env \vdash e:T_{2}\\
+      close(\env(n{:}filter(T_{1}, T_{2})), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}T_{2}), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \kw{if} \; \kw{not} \; \kw{type}(n) == e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE4}
+\]
+
+\[
+\frac{\env \vdash \vec{e}:S \;\;\; S \lesssim \vec{T} \;\;\;
+      \env(\vec{n}{:}\vec{T}), N \vdash s : \env_{1}, N_{1}}
+     {\env, N \vdash \kw{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \kw{in} \; s : \env_{1}, N_{1}}
 \mylabel{T-LOCAL}
 \]
 
 \[
-\frac{\env, i:S_{1} \rightarrow S_{2}, \ret:S_{2} \vdash f:S_{1} \rightarrow S_{2} \;\;\;
-      \env, i:S_{1} \rightarrow S_{2}, \ret:S_{2} \vdash s}
-     {\env \vdash \kw{rec} \; i{:}t = f \; \kw{in} \; s}
+\frac{\env(n{:}T) \vdash f:P \rightarrow R \;\;\; P \rightarrow R \lesssim T \;\;\;
+      \env(n{:}T) \vdash s}
+     {\env \vdash \kw{rec} \; n{:}T = f \; \kw{in} \; s}
 \mylabel{T-LOCALREC}
 \]
 
