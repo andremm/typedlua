@@ -1713,7 +1713,7 @@ s = [=[
 concat2 = 2^3..1
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', '?', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2069,7 +2069,7 @@ while (i < 10)
 end
 ]=]
 e = [=[
-test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^', 'String', '{', '(', ':', '[', '.'
+test.lua:3:3: syntax error, unexpected 'i', expecting 'do', '?', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -2111,7 +2111,7 @@ s = [=[
 x = ...:any
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', '?', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2131,7 +2131,7 @@ s = [=[
 f(...:any)
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', '?', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2770,7 +2770,7 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
-local t:{string:number?} = { foo = 1 }
+local t:{string:number?} = { foo = 1? }
 local x:number = t.foo
 local y:number = t.bar or 0
 local z:number? = t["bar"]
@@ -2877,11 +2877,11 @@ local interface Person
   lastname:string
 end
 
-local user1:Person = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
+local user1:Person = { firstname = "Lewis", middlename = "Allan"?, lastname = "Reed" }
 local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `String "Allan" }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Opt{ `String "Allan" } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -2988,12 +2988,12 @@ end
 
 local user = {}
 user.firstname = "Lewis"
-user.middlename = "Allan"
+user.middlename = "Allan"?
 user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `String "Allan" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Opt{ `String "Allan" } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)

@@ -423,7 +423,8 @@ local function subtype_table (env, t1, t2)
         for j = 1, #t1 do
           if types.subtype(env, t1[j][1], t2[i][1]) then
             subtype_key = true
-            if types.subtype(env, t1[j][2], t2[i][2]) then
+            if types.subtype(env, t1[j][2], t2[i][2]) and
+               types.subtype(env, t2[i][2], t1[j][2]) then
               subtype_value = true
             else
               subtype_value = false

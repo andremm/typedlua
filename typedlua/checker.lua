@@ -529,6 +529,11 @@ local function check_paren (env, exp)
   set_type(exp, types.first_class(exp[1]["type"]))
 end
 
+local function check_opt (env, exp)
+  check_exp(env, exp[1])
+  set_type(exp, types.Union(types.first_class(exp[1]["type"]), Nil))
+end
+
 local function check_id_read (env, exp)
   local name = exp[1]
   local local_var = get_local(env, name)
@@ -824,6 +829,8 @@ function check_exp (env, exp)
     check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
     check_index_read(env, exp)
+  elseif tag == "Opt" then -- `Opt{ exp }
+    check_opt(env, exp)
   else
     error("cannot type check expression " .. tag)
   end

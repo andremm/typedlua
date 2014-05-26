@@ -224,6 +224,10 @@ function exp2str (exp)
   elseif tag == "Id" or -- `Id{ <string> }
          tag == "Index" then -- `Index{ expr expr }
     str = var2str(exp)
+  elseif tag == "Opt" then -- `Opt{ exp }
+    str = str .. "{ "
+    str = str .. exp2str(exp[1])
+    str = str .. " }"
   else
     error("expecting an expression, but got a " .. tag)
   end
