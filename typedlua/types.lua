@@ -212,6 +212,22 @@ function types.Field (t1, t2)
   end
 end
 
+function types.ConstField (t1, t2)
+  if not t2 then
+    return { tag = "Const", [1] = types.Number, [2] = t1 }
+  else
+    return { tag = "Const", [1] = t1, [2] = t2 }
+  end
+end
+
+function types.isField (f)
+  return f.tag == "Field"
+end
+
+function types.isConstField (f)
+  return f.tag == "Const"
+end
+
 function types.Table (...)
   return { tag = "Table", ... }
 end
@@ -396,53 +412,61 @@ local function subtype_function (env, t1, t2)
   end
 end
 
+local function subtype_field (env, f1, f2)
+  if types.isField(f1) and types.isField(f2) then
+    return types.subtype(env, f2[1], f1[1]) and
+           types.subtype(env, f1[2], f2[2]) and
+           types.subtype(env, f2[2], f1[2])
+  elseif types.isConstField(f1) and types.isField(f2) then
+    return types.subtype(env, f2[1], f1[1]) and
+           types.subtype(env, f1[2], f2[2]) and
+           types.subtype(env, f2[2], f1[2])
+  elseif types.isField(f1) and types.isConstField(f2) then
+    return types.subtype(env, f2[1], f1[1]) and
+           types.subtype(env, f1[2], f2[2])
+  elseif types.isConstField(f1) and types.isConstField(f2) then
+    return types.subtype(env, f2[1], f1[1]) and
+           types.subtype(env, f1[2], f2[2])
+  else
+    return false
+  end
+end
+
 local function subtype_table (env, t1, t2)
   if types.isTable(t1) and types.isTable(t2) then
-    if not t1.open and not t2.open then
+    if not t1.open then
       local m, n = #t1, #t2
       for i = 1, n do
         local subtype = false
         for j = 1, m do
-          if types.subtype(env, t2[i][1], t1[j][1]) and
-             types.subtype(env, t1[j][2], t2[i][2]) and
-             types.subtype(env, t2[i][2], t1[j][2]) then
+          if subtype_field(env, t1[j], t2[i]) then
             subtype = true
             break
           end
         end
-        if not subtype then
-          return false
-        end
+        if not subtype then return false end
       end
       return true
-    elseif t1.open then
-      if #t2 == 0 then return true end
-      local subtype = false
-      for i = 1, #t2 do
+    else
+      local m, n = #t2, #t1
+      for i = 1, m do
         local subtype_key, subtype_value = false, false
-        for j = 1, #t1 do
+        for j = 1, n do
           if types.subtype(env, t1[j][1], t2[i][1]) then
             subtype_key = true
-            if types.subtype(env, t1[j][2], t2[i][2]) and
-               types.subtype(env, t2[i][2], t1[j][2]) then
+            if subtype_field(env, t2[i], t1[j]) then
               subtype_value = true
-            else
-              subtype_value = false
               break
             end
           end
         end
-        if (subtype_key and subtype_value) or
-           (not subtype_key and types.subtype(env, types.Nil, t2[i][2])) then
-          subtype = true
+        if subtype_key then
+          if not subtype_value then return false end
         else
-          subtype = false
-          break
+          if not types.subtype(env, types.Nil, t2[i][2]) then return false end
         end
       end
-      return subtype
-    else
-      return false
+      return true
     end
   else
     return false
@@ -817,7 +841,7 @@ function types.supertypeof (t)
   elseif types.isTable(t) then
     local n = { tag = "Table", open = t.open }
     for k, v in ipairs(t) do
-      n[k] = { tag = "Field" }
+      n[k] = { tag = v.tag }
       n[k][1] = v[1]
       n[k][2] = types.supertypeof(v[2])
     end
@@ -947,6 +971,9 @@ local function type2str (t)
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
+      if types.isConstField(v) then
+        l[k] = "const " .. l[k]
+      end
     end
     return "{" .. table.concat(l, ", ") .. "}"
   elseif types.isVariable(t) then

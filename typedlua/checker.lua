@@ -627,6 +627,12 @@ local function check_fieldlist (env, exp)
       check_exp(env, v[2])
       t[k][1] = v[1]["type"]
       t[k][2] = types.supertypeof(v[2]["type"])
+    elseif tag == "Const" then
+      t[k].tag = "Const"
+      check_exp(env, v[1])
+      check_exp(env, v[2])
+      t[k][1] = v[1]["type"]
+      t[k][2] = types.supertypeof(v[2]["type"])
     else
       check_exp(env, v)
       t[k][1] = types.Literal(i)
@@ -739,6 +745,23 @@ local function check_call (env, exp)
   end
 end
 
+local function replace_self (env, t)
+  local s = env.self or Nil
+  if types.isTuple(t) then
+    local r = { tag = "Tuple" }
+    for k, v in ipairs(t) do
+      if types.isSelf(v) then
+        r[k] = s
+      else
+        r[k] = t[k]
+      end
+    end
+    return r
+  else
+    return t
+  end
+end
+
 local function check_invoke (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   local explist = {}
@@ -764,7 +787,8 @@ local function check_invoke (env, exp)
     if t then
       if types.isFunction(t) then
         check_arguments(env, exp2[1], typelist, t[1], exp.pos)
-        set_type(exp, t[2])
+        local r = replace_self(env, t[2])
+        set_type(exp, r)
       elseif types.isAny(t) then
         local msg = "attempt to call %s of type 'any'"
         msg = string.format(msg, exp2[1])
@@ -1024,7 +1048,7 @@ local function check_forin (env, idlist, explist, block)
   end_scope(env)
 end
 
-local function check_var_assignment (env, var, inferred_type, allow_type_change)
+local function check_var_assignment (env, var, inferred_type, allow_type_change, const)
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
@@ -1054,7 +1078,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
       global.pos = var.pos
       global[1] = { tag = "Id", [1] = "_ENV", pos = var.pos }
       global[2] = { tag = "String", [1] = name, pos = var.pos }
-      check_var_assignment(env, global, inferred_type, allow_type_change)
+      check_var_assignment(env, global, inferred_type, allow_type_change, const)
     end
   elseif tag == "Index" then
     local exp1, exp2 = var[1], var[2]
@@ -1086,6 +1110,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change)
       else
         if t1.open then
           local f = { tag = "Field", [1] = t2, [2] = types.supertypeof(inferred_type) }
+          if const then f.tag = "Const" end
           t1[#t1 + 1] = f
         else
           local msg = "attempt to use '%s' to index closed table"
@@ -1129,8 +1154,26 @@ local function check_assignment (env, varlist, explist)
         allow_type_change = explist[k][2][1] == v[1]
       end
     end
-    check_var_assignment(env, v, t, allow_type_change)
+    check_var_assignment(env, v, t, allow_type_change, false)
   end
+end
+
+local function check_const_assignment (env, var, exp)
+  if var.tag == "Index" and var[1].tag == "Id" and var[2].tag == "String" then
+    local l = get_local(env, var[1][1])
+    if l then
+      if not env.self then
+        env.self = l.type
+      else
+        if types.subtype({}, l.type, env.self) then
+          env.self = l.type
+        end
+      end
+    end
+  end
+  check_exp(env, exp)
+  local t = types.first_class(exp.type)
+  check_var_assignment(env, var, t, false, true)
 end
 
 local function check_return (env, stm)
@@ -1193,6 +1236,8 @@ function check_stm (env, stm)
     check_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
     check_assignment(env, stm[1], stm[2])
+  elseif tag == "ConstSet" then
+    check_const_assignment(env, stm[1], stm[2])
   elseif tag == "While" then -- `While{ expr block }
     check_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }

@@ -154,7 +154,8 @@ function fieldlist2str (fieldlist)
   local l = {}
   for k, v in ipairs(fieldlist) do
     local tag = v.tag
-    if tag == "Pair" then -- `Pair{ expr expr }
+    if tag == "Pair" or -- `Pair{ expr expr }
+       tag == "Const" then -- `Const{ expr expr }
       l[k] = "`" .. tag .. "{ "
       l[k] = l[k] .. exp2str(v[1]) .. ", " .. exp2str(v[2])
       l[k] = l[k] .. " }"
@@ -259,6 +260,11 @@ function stm2str (stm)
     str = str .. "{ "
     str = str .. varlist2str(stm[1]) .. ", "
     str = str .. explist2str(stm[2])
+    str = str .. " }"
+  elseif tag == "ConstSet" then
+    str = str .. "{ "
+    str = str .. var2str(stm[1]) .. ", "
+    str = str .. exp2str(stm[2])
     str = str .. " }"
   elseif tag == "While" then -- `While{ expr block }
     str = str .. "{ "

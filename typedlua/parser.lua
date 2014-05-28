@@ -265,6 +265,11 @@ local G = { V"TypedLua",
   DynamicType = taggedCap("Any", token("any", "Type"));
   SelfType = taggedCap("Self", token("self", "Type"));
   FunctionType = taggedCap("Function", V"ArgTypeList" * symb("->") * V"NilableRetTypeList");
+  MethodType = taggedCap("Function", V"ArgTypeList" * symb("=>") * V"NilableRetTypeList") /
+               function (t)
+                 table.insert(t[1], 1, { tag = "Self" })
+                 return t
+               end;
   ArgTypeList = symb("(") * (V"TypeList" + V"ValueStar") * symb(")") /
                 function (t)
                   if t[#t].tag ~= "Vararg" then
@@ -306,7 +311,8 @@ local G = { V"TypedLua",
   TableTypeBody = V"FieldTypeList" +
                   taggedCap("Field", taggedCap("Base", Cc("number")) * V"Type");
   FieldTypeList = V"FieldType" * (symb(",") * V"FieldType")^0;
-  FieldType = taggedCap("Field", V"KeyType" * symb(":") * V"Type");
+  FieldType = taggedCap("Const", kw("const") * V"KeyType" * symb(":") * V"Type") +
+              taggedCap("Field", V"KeyType" * symb(":") * V"Type");
   KeyType = V"LiteralType" +
 	    V"BaseType" +
             V"TopType" +
@@ -322,7 +328,9 @@ local G = { V"TypedLua",
   TypedId = taggedCap("Id", token(V"Name", "Name") * (symb(":") * V"Type")^-1);
   FunctionDef = kw("function") * V"FuncBody";
   FieldSep = symb(",") + symb(";");
-  Field = taggedCap("Pair", (symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
+  Field = taggedCap("Const", kw("const") * ((symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
+                    (taggedCap("String", token(V"Name", "Name")) * symb("=") * V"Expr"))) +
+          taggedCap("Pair", (symb("[") * V"Expr" * symb("]") * symb("=") * V"Expr") +
                     (taggedCap("String", token(V"Name", "Name")) * symb("=") * V"Expr")) +
           V"Expr";
   FieldList = (V"Field" * (V"FieldSep" * V"Field")^0 * V"FieldSep"^-1)^-1;
@@ -451,7 +459,7 @@ local G = { V"TypedLua",
                   V"InterfaceDec"^1 * kw("end"));
   LocalInterface = taggedCap("LocalInterface", kw("interface") * token(V"Name", "Name") *
                    V"InterfaceDec"^1 * kw("end"));
-  InterfaceDec = ((kw("const") * Cc("Const")) + Cc("Field")) * V"IdList" * symb(":") * V"Type" /
+  InterfaceDec = ((kw("const") * Cc("Const")) + Cc("Field")) * V"IdList" * symb(":") * (V"Type" + V"MethodType") /
                   function (tag, idlist, t)
                     local l = {}
                     for k, v in ipairs(idlist) do
@@ -493,9 +501,24 @@ local G = { V"TypedLua",
                          end)))
              , function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
+  ConstStat = kw("const") * V"ConstFunc" + V"ConstAssignment";
+  ConstFunc = taggedCap("ConstSet", kw("function") * V"FuncName" * V"FuncBody") /
+              function (t)
+                if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end
+                return t
+              end;
+  ConstAssignment = Cmt(V"SuffixedExp" * symb("=") * V"Expr",
+                    function (s, e)
+                      if s.tag == "Id" or s.tag == "Index" then
+                        return true, { tag = "Set", pos = s.pos, [1] = s, [2] = e }
+                      else
+                        -- invalid assignment
+                        return false
+                      end
+                    end);
   Stat = V"IfStat" + V"WhileStat" + V"DoStat" + V"ForStat" +
          V"RepeatStat" + V"FuncStat" + V"LocalStat" + V"LabelStat" +
-         V"BreakStat" + V"GoToStat" + V"InterfaceStat" + V"ExprStat";
+         V"BreakStat" + V"GoToStat" + V"InterfaceStat" + V"ExprStat" + V"ConstStat";
   -- lexer
   Space = space^1;
   Equals = P"="^0;
@@ -645,7 +668,7 @@ end
 local function traverse_table (env, fieldlist)
   for k, v in ipairs(fieldlist) do
     local tag = v.tag
-    if tag == "Pair" then
+    if tag == "Pair" or tag == "Const" then
       local status, msg = traverse_exp(env, v[1])
       if not status then return status, msg end
       status, msg = traverse_exp(env, v[2])
@@ -690,6 +713,14 @@ local function traverse_assignment (env, stm)
   local status, msg = traverse_varlist(env, stm[1])
   if not status then return status, msg end
   status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
+  return true
+end
+
+local function traverse_const_assignment (env, stm)
+  local status, msg = traverse_var(env, stm[1])
+  if not status then return status, msg end
+  status, msg = traverse_exp(env, stm[2])
   if not status then return status, msg end
   return true
 end
@@ -877,6 +908,8 @@ function traverse_stm (env, stm)
     return traverse_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
     return traverse_assignment(env, stm)
+  elseif tag == "ConstSet" then
+    return traverse_const_assignment(env, stm)
   elseif tag == "While" then -- `While{ expr block }
     return traverse_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }

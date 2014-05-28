@@ -70,7 +70,7 @@ end
 local function code_fieldlist (fieldlist, i)
   local l = {}
   for k, v in ipairs(fieldlist) do
-    if v.tag == "Pair" then
+    if v.tag == "Pair" or v.tag == "Const" then
       l[k] = "[" .. code_exp(v[1], i) .. "] = " .. code_exp(v[2], i)
     else
       l[k] = code_exp(v, i)
@@ -165,6 +165,10 @@ function code_stm (stm, i)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
     local str = spaces(i)
     str = code_varlist(stm[1], i) .. " = " .. code_explist(stm[2], i)
+    return str
+  elseif tag == "ConstSet" then
+    local str = spaces(i)
+    str = code_var(stm[1], i) .. " = " .. code_exp(stm[2], i)
     return str
   elseif tag == "While" then -- `While{ expr block }
     local str = ident("while ", i) .. code_exp(stm[1], 0) .. " do\n"
