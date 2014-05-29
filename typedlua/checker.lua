@@ -269,6 +269,9 @@ local function check_local (env, idlist, explist)
       local t, close_local = fill_type, false
       if typelist[k] then
         t = types.first_class(typelist[k])
+        if explist[k] and explist[k].tag == "Table" then
+          t.open = true
+        end
         if explist[k] and explist[k].tag == "Id" and types.isTable(t) then
           close_local = true
         end
@@ -617,7 +620,7 @@ local function check_function (env, exp)
 end
 
 local function check_fieldlist (env, exp)
-  local t = { tag = "Table", open = true }
+  local t = { tag = "Table" }
   local i = 1
   for k, v in ipairs(exp) do
     local tag = v.tag

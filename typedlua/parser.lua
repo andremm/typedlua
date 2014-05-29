@@ -501,16 +501,16 @@ local G = { V"TypedLua",
                          end)))
              , function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * V"SuffixedExp")^1)^-1 * symb("=") * V"ExpList";
-  ConstStat = kw("const") * V"ConstFunc" + V"ConstAssignment";
+  ConstStat = kw("const") * (V"ConstFunc" + V"ConstAssignment");
   ConstFunc = taggedCap("ConstSet", kw("function") * V"FuncName" * V"FuncBody") /
               function (t)
                 if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end
                 return t
               end;
   ConstAssignment = Cmt(V"SuffixedExp" * symb("=") * V"Expr",
-                    function (s, e)
-                      if s.tag == "Id" or s.tag == "Index" then
-                        return true, { tag = "Set", pos = s.pos, [1] = s, [2] = e }
+                    function (s, i, se, e)
+                      if se.tag == "Id" or se.tag == "Index" then
+                        return true, { tag = "ConstSet", pos = se.pos, [1] = se, [2] = e }
                       else
                         -- invalid assignment
                         return false
