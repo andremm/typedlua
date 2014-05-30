@@ -11,6 +11,12 @@
 \setlength{\textheight}{245mm}
 \setlength{\footskip}{5mm}
 
+%\setlength{\oddsidemargin}{1mm}
+%\setlength{\evensidemargin}{1mm}
+%\setlength{\textwidth}{170mm}
+%\setlength{\marginparsep}{0mm}
+%\setlength{\marginparwidth}{0mm}
+
 \newcommand{\Top}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
 \newcommand{\Nil}{\mathbf{nil}}
@@ -61,15 +67,15 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Self & \textit{self type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; P \rightarrow R & \textit{function types}\\
-& | \; \{ \} & \textit{empty table type}\\
-& | \; \{K{:}V, ..., K{:}V\}_{o|c} & \textit{table types}\\
+& | \; \{ \}_{o|c} & \textit{empty table type}\\
+& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 & | \; X_{i} & \textit{projection types}\\
 L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
 K ::= & L \; | \; B \; | \; \Top \; | \; \Any & \textit{key types}\\
-V ::= & T \; | \; \Const \; T & \textit{value types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-class types}}\\
 S ::= & \;\; T &\\
@@ -185,55 +191,53 @@ $$
 
 \[
 \frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-      \senv \vdash K_{i} \subtype K_{j} \;\;\;
-      \senv \vdash V_{j} \subtype V_{i}}
-     {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{c} \subtype \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}}
+      \senv \vdash F_{j} \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \subtype \{F_{1}, ..., F_{n}\}}
 \mylabel{S-TABLE1}
 \]
 
 \[
-\frac{\begin{aligned}
-      & \senv \vdash K_{1} \subtype K_{1}', ..., K_{m} \subtype K_{m}' \;\;\;
-      \senv \vdash K_{1}' \subtype K_{1}, ..., K_{m}' \subtype K_{m}\\
-      & \senv \vdash V_{1} \subtype V_{1}', ..., V_{m} \subtype V_{m}'\;\;\;
-      \senv \vdash \Nil \subtype V_{m+1}', ..., \Nil \subtype V_{n}'
-      \end{aligned}}
-     {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{o} \subtype \{K_{1}'{:}V_{1}', ..., K_{m}'{:}V_{m}', ..., K_{n}'{:}V_{n}'\}}
+\frac{\forall i \in 1..m \; \senv \vdash F_{i}' \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
 \mylabel{S-TABLE2}
 \]
 
 \[
-\frac{\senv \vdash K_{1} \subtype K, ..., K_{m} \subtype K \;\;\;
-      \senv \vdash V_{1} \subtype V, ..., V_{m} \subtype V}
-     {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{o} \subtype \{K{:}V\}} 
+\frac{\forall i \in 1..m \; \senv \vdash F \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F\}} 
 \mylabel{S-TABLE3}
 \]
 
-\subsection{Value types}
+\subsection{Field types}
 
 \[
-\frac{\senv \vdash V_{1} \subtype V_{2} \;\;\;
-      \senv \vdash V_{2} \subtype V_{1}}
-     {\senv \vdash V_{1} \subtype V_{2}}
-\mylabel{S-VALUE1}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash T_{2} \subtype T_{1}}
+     {\senv \vdash K_{1}:T_{1} \subtype K_{2}:T_{2}}
+\mylabel{S-FIELD1}
 \]
 
 \[
-\frac{\senv \vdash V_{1} \subtype V_{2}}
-     {\senv \vdash \Const \; V_{1} \subtype V_{2}}
-\mylabel{S-VALUE2}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash T_{2} \subtype T_{1}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype K_{2}:T_{2}}
+\mylabel{S-FIELD2}
 \]
 
 \[
-\frac{\senv \vdash V_{1} \subtype V_{2}}
-     {\senv \vdash V_{1} \subtype \Const \; V_{2}}
-\mylabel{S-VALUE3}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\mylabel{S-FIELD3}
 \]
 
 \[
-\frac{\senv \vdash V_{1} \subtype V_{2}}
-     {\senv \vdash \Const \; V_{1} \subtype \Const \; V_{2}}
-\mylabel{S-VALUE4}
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\mylabel{S-FIELD4}
 \]
 
 \subsection{Type variables}
@@ -341,7 +345,7 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \kw{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-l = e  \; | \;
+\vec{l} = \vec{e}  \; | \;
 \kw{while} \; e \; \kw{do} \; s \; | \;
 \kw{if} \; e \; \kw{then} \; s_{1} \; \kw{else} \; s_{2}\\
 & | \; \kw{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \kw{in} \; s \; | \;
@@ -396,10 +400,10 @@ $$
 \]
 
 \[
-\frac{\env \vdash l:T_{1} \;\;\;
-      \env \vdash e:T_{2} \;\;\;
-      \env \vdash T_{2} \lesssim T_{1}}
-     {\env \vdash l = e}
+\frac{\env \vdash \vec{l}:S_{1} \;\;\;
+      \env \vdash \vec{e}:S_{2} \;\;\;
+      \env \vdash S_{2} \lesssim S_{1}}
+     {\env \vdash \vec{l} = \vec{e}}
 \mylabel{T-ASSIGNMENT}
 \]
 
@@ -860,316 +864,5 @@ $$
      {\env \vdash e_{1} = e_{2} : K:T}
 \mylabel{T-PAIR}
 \]
-
-\newpage
-
-\setlength{\oddsidemargin}{1mm}
-\setlength{\evensidemargin}{1mm}
-\setlength{\textwidth}{170mm}
-\setlength{\marginparsep}{0mm}
-\setlength{\marginparwidth}{0mm}
-
-Is $\Const$ really necessary?
-
-\[
-\begin{aligned}
-& \Const ``new":\Self \times \Number \times \Number \times \Top \times \TopStar \rightarrow \Self \times \NilStar \subtype \\
-& \Const ``new":\Self \times \Number \times \Number \times \TopStar \rightarrow \Self \times \NilStar
-\end{aligned}
-\]
-
-because contravariance on the key type is ok
-
-\[
-``new" \subtype ``new"
-\]
-
-and covariance on the value type is ok
-
-\begin{scriptsize}
-\[
-\dfrac
-{
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\dfrac
-{
-\begin{aligned}
-& \Top \subtype \Top \\
-& \Nil \subtype \Top
-\end{aligned}
-}
-{\Top \cup \Nil \subtype \Top} \;\;\;
-\TopStar \subtype \TopStar
-}
-{
-\begin{aligned}
-& \TopStar \subtype \\
-& \Top \times \TopStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Number \times \TopStar \subtype \\
-& \Number \times \Top \times \TopStar
-\end{aligned}
-}
-}
-{
-{
-\begin{aligned}
-& \Number \times \Number \times \TopStar \subtype \\
-& \Number \times \Number \times \Top \times \TopStar
-\end{aligned}
-}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \TopStar \subtype \\
-& \Self \times \Number \times \Number \times \Top \times \TopStar
-\end{aligned}
-}
-\;\;\;
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\NilStar \subtype \NilStar
-}
-{
-\begin{aligned}
-& \Self \times \NilStar \subtype \\
-& \Self \times \NilStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \Top \times \TopStar \rightarrow \Self \times \NilStar \subtype \\
-& \Self \times \Number \times \Number \times \TopStar \rightarrow \Self \times \NilStar
-\end{aligned}
-}
-\]
-\end{scriptsize}
-
-but...
-
-\[
-\begin{aligned}
-& ``new":\Self \times \Number \times \Number \times \Top \times \TopStar \rightarrow \Self \times \NilStar \subtype \\
-& `new":\Self \times \Number \times \Number \times \TopStar \rightarrow \Self \times \NilStar
-\end{aligned}
-\]
-
-because contravariance on the key type is ok
-
-\[
-``new" \subtype ``new"
-\]
-
-and covariance on the value type is ok
-
-\begin{scriptsize}
-\[
-\dfrac
-{
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\dfrac
-{
-\begin{aligned}
-& \Top \subtype \Top \\
-& \Nil \subtype \Top
-\end{aligned}
-}
-{\Top \cup \Nil \subtype \Top} \;\;\;
-\TopStar \subtype \TopStar
-}
-{
-\begin{aligned}
-& \TopStar \subtype \\
-& \Top \times \TopStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Number \times \TopStar \subtype \\
-& \Number \times \Top \times \TopStar
-\end{aligned}
-}
-}
-{
-{
-\begin{aligned}
-& \Number \times \Number \times \TopStar \subtype \\
-& \Number \times \Number \times \Top \times \TopStar
-\end{aligned}
-}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \TopStar \subtype \\
-& \Self \times \Number \times \Number \times \Top \times \TopStar
-\end{aligned}
-}
-\;\;\;
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\NilStar \subtype \NilStar
-}
-{
-\begin{aligned}
-& \Self \times \NilStar \subtype \\
-& \Self \times \NilStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \Top \times \TopStar \rightarrow \Self \times \NilStar \subtype \\
-& \Self \times \Number \times \Number \times \TopStar \rightarrow \Self \times \NilStar
-\end{aligned}
-}
-\]
-\end{scriptsize}
-
-and contravariance on the value type is also ok
-
-\begin{scriptsize}
-\[
-\dfrac
-{
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\Number \subtype \Number \;\;\;
-\dfrac
-{
-\dfrac
-{
-\Top \subtype \Top
-}
-{\Top \subtype \Top \cup \Nil} \;\;\;
-\TopStar \subtype \TopStar
-}
-{
-\begin{aligned}
-& \Top \times \TopStar \subtype \\
-& \TopStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Number \times \Top \times \TopStar \subtype \\
-& \Number \times \TopStar
-\end{aligned}
-}
-}
-{
-{
-\begin{aligned}
-& \Number \times \Number \times \Top \times \TopStar \subtype \\
-& \Number \times \Number \times \TopStar
-\end{aligned}
-}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \Top \times \TopStar \subtype \\
-& \Self \times \Number \times \Number \times \TopStar
-\end{aligned}
-}
-\;\;\;
-\dfrac
-{
-\Self \subtype \Self \;\;\;
-\NilStar \subtype \NilStar
-}
-{
-\begin{aligned}
-& \Self \times \NilStar \subtype \\
-& \Self \times \NilStar
-\end{aligned}
-}
-}
-{
-\begin{aligned}
-& \Self \times \Number \times \Number \times \TopStar \rightarrow \Self \times \NilStar \subtype \\
-& \Self \times \Number \times \Number \times \Top \times \TopStar \rightarrow \Self \times \NilStar
-\end{aligned}
-}
-\]
-\end{scriptsize}
-
-this makes $\texttt{Circle} \subtype \texttt{Shape}$ when
-
-\begin{verbatim}
-interface Shape
-  x, y: number
-  new: (number, number) => (self)
-  move: (number, number) => ()
-end
-\end{verbatim}
-
-and
-
-\begin{verbatim}
-interface Circle
-  x, y, radius: number
-  new: (number, number, value) => (self)
-  move: (number, number) => ()
-end
-\end{verbatim}
-
-or even when
-
-\begin{verbatim}
-interface Shape
-  x, y: number
-  const new: (number, number) => (self)
-  const move: (number, number) => ()
-end
-\end{verbatim}
-
-and
-
-\begin{verbatim}
-interface Circle
-  x, y, radius: number
-  const new: (number, number, value) => (self)
-  const move: (number, number) => ()
-end
-\end{verbatim}
-
-did I miss something?
 
 \end{document}
