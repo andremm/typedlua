@@ -142,8 +142,6 @@ function code_exp (exp, i)
   elseif tag == "Id" or -- `Id{ <string> }
          tag == "Index" then -- `Index{ expr expr }
     return code_var(exp, i)
-  elseif tag == "Opt" then -- `Opt{ exp }
-    return code_exp(exp[1], i)
   else
     error("trying to generate code for a expression, but got a " .. tag)
   end

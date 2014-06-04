@@ -340,14 +340,7 @@ local G = { V"TypedLua",
   FuncArgs = symb("(") * (V"Expr" * (symb(",") * V"Expr")^0)^-1 * symb(")") +
              V"Constructor" +
              taggedCap("String", token(V"String", "String"));
-  Expr = V"SubExpr_1" * (symb("?") * Cc(true))^-1 /
-         function (exp, opt)
-           if opt then
-             return { tag = "Opt", [1] = exp }
-           else
-             return exp
-           end
-         end;
+  Expr = V"SubExpr_1";
   SubExpr_1 = chainl1(V"SubExpr_2", V"OrOp");
   SubExpr_2 = chainl1(V"SubExpr_3", V"AndOp");
   SubExpr_3 = chainl1(V"SubExpr_4", V"RelOp");
@@ -887,8 +880,6 @@ function traverse_exp (env, exp)
   elseif tag == "Id" or -- `Id{ <string> }
          tag == "Index" then -- `Index{ expr expr }
     return traverse_var(env, exp)
-  elseif tag == "Opt" then -- `Opt{ exp }
-    return traverse_exp(env, exp[1])
   else
     error("expecting an expression, but got a " .. tag)
   end

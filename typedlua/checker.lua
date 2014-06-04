@@ -326,6 +326,7 @@ local function check_localrec (env, id, exp)
     id[2] = t
     set_local(env, id, t, scope)
   end
+  t2 = replace_names(env, t2, exp.pos)
   match_return_type(env, rettype, t2, exp.pos)
   end_scope(env)
   end_function(env)
@@ -532,11 +533,6 @@ local function check_paren (env, exp)
   set_type(exp, types.first_class(exp[1]["type"]))
 end
 
-local function check_opt (env, exp)
-  check_exp(env, exp[1])
-  set_type(exp, types.Union(types.first_class(exp[1]["type"]), Nil))
-end
-
 local function check_id_read (env, exp)
   local name = exp[1]
   local local_var = get_local(env, name)
@@ -614,6 +610,7 @@ local function check_function (env, exp)
     t2 = rettype
     set_type(exp, types.Function(t1, t2))
   end
+  t2 = replace_names(env, t2, exp.pos)
   match_return_type(env, rettype, t2, exp.pos)
   end_scope(env)
   end_function(env)
@@ -856,8 +853,6 @@ function check_exp (env, exp)
     check_id_read(env, exp)
   elseif tag == "Index" then -- `Index{ expr expr }
     check_index_read(env, exp)
-  elseif tag == "Opt" then -- `Opt{ exp }
-    check_opt(env, exp)
   else
     error("cannot type check expression " .. tag)
   end
