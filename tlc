@@ -13,6 +13,8 @@ local DUMPAST = false
 local PRINTAST = false
 
 local TYPECHECK = true
+local STRICT = false
+local WARNINGS = false
 
 local progname = PROGNAME
 
@@ -24,7 +26,9 @@ Available options are:
 -h	print this help
 -o name	output to file 'name' (default is '%s')
 -p	print the AST
+-s	strict mode on
 -v	print current version
+-w	consistent-subtyping warnings on
 ]]
 
 local function usage (msg)
@@ -55,9 +59,13 @@ local function doargs ()
       end
     elseif arg[i] == "-p" then
       PRINTAST = true
+    elseif arg[i] == "-s" then
+      STRICT = true
     elseif arg[i] == "-v" then
       io.write(string.format("Typed Lua %s\n", VERSION))
       os.exit(0)
+    elseif arg[i] == "-w" then
+      WARNINGS = true
     else
       usage(string.format("'%s' unknown option", arg[i]))
     end
