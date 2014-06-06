@@ -220,24 +220,16 @@ $$
 
 \[
 \frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
-      \senv \vdash T_{1} \subtype T_{2} \;\;\;
-      \senv \vdash T_{2} \subtype T_{1}}
-     {\senv \vdash \Const \; K_{1}:T_{1} \subtype K_{2}:T_{2}}
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
 \mylabel{S-FIELD2}
 \]
 
 \[
 \frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
       \senv \vdash T_{1} \subtype T_{2}}
-     {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
-\mylabel{S-FIELD3}
-\]
-
-\[
-\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
-      \senv \vdash T_{1} \subtype T_{2}}
      {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
-\mylabel{S-FIELD4}
+\mylabel{S-FIELD3}
 \]
 
 \subsection{Type variables}

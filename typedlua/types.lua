@@ -417,10 +417,6 @@ local function subtype_field (env, f1, f2)
     return types.subtype(env, f2[1], f1[1]) and
            types.subtype(env, f1[2], f2[2]) and
            types.subtype(env, f2[2], f1[2])
-  elseif types.isConstField(f1) and types.isField(f2) then
-    return types.subtype(env, f2[1], f1[1]) and
-           types.subtype(env, f1[2], f2[2]) and
-           types.subtype(env, f2[2], f1[2])
   elseif types.isField(f1) and types.isConstField(f2) then
     return types.subtype(env, f2[1], f1[1]) and
            types.subtype(env, f1[2], f2[2])
@@ -642,6 +638,10 @@ local function consistent_subtype_any (env, t1, t2)
   return types.isAny(t1) or types.isAny(t2)
 end
 
+local function consistent_subtype_self (env, t1, t2)
+  return types.isSelf(t1) and types.isSelf(t2)
+end
+
 local function consistent_subtype_union (env, t1, t2)
   if types.isUnion(t1) then
     for k, v in ipairs(t1) do
@@ -670,24 +670,58 @@ local function consistent_subtype_function (env, t1, t2)
   end
 end
 
+local function consistent_subtype_field (env, f1, f2)
+  if types.isField(f1) and types.isField(f2) then
+    return types.consistent_subtype(env, f2[1], f1[1]) and
+           types.consistent_subtype(env, f1[2], f2[2]) and
+           types.consistent_subtype(env, f2[2], f1[2])
+  elseif types.isField(f1) and types.isConstField(f2) then
+    return types.consistent_subtype(env, f2[1], f1[1]) and
+           types.consistent_subtype(env, f1[2], f2[2])
+  elseif types.isConstField(f1) and types.isConstField(f2) then
+    return types.cosistent_subtype(env, f2[1], f1[1]) and
+           types.consisten_subtype(env, f1[2], f2[2])
+  else
+    return false
+  end
+end
+
 local function consistent_subtype_table (env, t1, t2)
   if types.isTable(t1) and types.isTable(t2) then
-  local m, n = #t1, #t2
-  for i = 1, n do
-    local subtype = false
-    for j = 1, m do
-      if types.consistent_subtype(env, t2[i][1], t1[j][1]) and
-         types.consistent_subtype(env, t1[j][2], t2[i][2]) and
-         types.consistent_subtype(env, t2[i][2], t1[j][2]) then
-        subtype = true
-        break
+    if not t1.open then
+      local m, n = #t1, #t2
+      for i = 1, n do
+        local subtype = false
+        for j = 1, m do
+          if consistent_subtype_field(env, t1[j], t2[i]) then
+            subtype = true
+            break
+          end
+        end
+        if not subtype then return false end
       end
+      return true
+    else
+      local m, n = #t2, #t1
+      for i = 1, m do
+        local subtype_key, subtype_value = false, false
+        for j = 1, n do
+          if types.consistent_subtype(env, t1[j][1], t2[i][1]) then
+            subtype_key = true
+            if consistent_subtype_field(env, t2[i], t1[j]) then
+              subtype_value = true
+              break
+            end
+          end
+        end
+        if subtype_key then
+          if not subtype_value then return false end
+        else
+          if not types.consistent_subtype(env, types.Nil, t2[i][2]) then return false end
+        end
+      end
+      return true
     end
-    if not subtype then
-      return false
-    end
-  end
-  return true
   else
     return false
   end
@@ -705,6 +739,20 @@ local function consistent_subtype_recursive (env, t1, t2)
   if types.isRecursive(t1) and types.isRecursive(t2) then
     env[t1[1] .. t2[1]] = true
     return types.consistent_subtype(env, t1[2], t2[2])
+  elseif types.isRecursive(t1) and not types.isRecursive(t2) then
+    if not env[t1[1] .. t1[1]] then
+      env[t1[1] .. t1[1]] = true
+      return types.consistent_subtype(env, t1[2], t2)
+    else
+      return types.consistent_subtype(env, types.Variable(t1[1]), t2)
+    end
+  elseif not types.isRecursive(t1) and types.isRecursive(t2) then
+    if not env[t2[1] .. t2[1]] then
+      env[t2[1] .. t2[1]] = true
+      return types.consistent_subtype(env, t1, t2[2])
+    else
+      return types.consistent_subtype(env, t1, types.Variable(t2[1]))
+    end
   else
     return false
   end
@@ -799,6 +847,7 @@ function types.consistent_subtype (env, t1, t2)
            consistent_subtype_nil(env, t1, t2) or
            consistent_subtype_top(env, t1, t2) or
            consistent_subtype_any(env, t1, t2) or
+           consistent_subtype_self(env, t1, t2) or
            consistent_subtype_union(env, t1, t2) or
            consistent_subtype_function(env, t1, t2) or
            consistent_subtype_table(env, t1, t2) or

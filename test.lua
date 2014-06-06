@@ -2833,6 +2833,22 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local t:{const "foo":string?} = { const foo = "foo" or nil }
+local s:{const "foo":string} = { const foo = "foo" }
+local r:{"foo":string?} = { foo = "foo" or nil }
+
+t = s
+r = t
+r.foo = nil
+]=]
+e = [=[
+test.lua:6:1: type error, attempt to assign '{const foo:(string | nil)}' to '{foo:(string | nil)}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local person:{"firstname":string, "lastname":string} =
   { firstname = "Lou", lastname = "Reed" }
 ]=]
