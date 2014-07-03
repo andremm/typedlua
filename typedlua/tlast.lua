@@ -72,36 +72,49 @@ field: `Field{ <string> type } | `Const{ <string> type }
 
 local tlast = {}
 
+-- namelist : (number, ident, ident*) -> (namelist)
+function tlast.namelist (pos, id, ...)
+  local t = { tag = "NameList", pos = pos, ... }
+  table.insert(t, 1, id)
+  return t
+end
+
+-- explist : (number, expr, expr*) -> (explist)
+function tlast.explist (pos, expr, ...)
+  local t = { tag = "ExpList", pos = pos, ... }
+  table.insert(t, 1, expr)
+  return t
+end
+
 -- stat
 
+-- block : (number, stat*) -> (block)
 function tlast.block (pos, ...)
   return { tag = "Block", pos = pos, ... }
 end
 
+-- statDo : (block) -> (stat)
 function tlast.statDo (block)
   block.tag = "Do"
   return block
 end
 
-function tlast.statFuncSet (pos, lhs, expr)
-  if lhs.is_method then
-    table.insert(expr[1], 1, { tag = "Id", [1] = "self" })
-  end
-  return { tag = "Set", pos = pos, [1] = { lhs }, [2] = { expr } }
-end
-
+-- statWhile : (number, expr, block) -> (stat)
 function tlast.statWhile (pos, expr, block)
   return { tag = "While", pos = pos, [1] = expr, [2] = block }
 end
 
+-- statRepeat : (number, block, expr) -> (stat)
 function tlast.statRepeat (pos, block, expr)
   return { tag = "Repeat", pos = pos, [1] = block, [2] = expr }
 end
 
+-- statIf : (number, any*) -> (stat)
 function tlast.statIf (pos, ...)
   return { tag = "If", pos = pos, ... }
 end
 
+-- statFornum : (number, ident, expr, expr, expr|block, block?) -> (stat)
 function tlast.statFornum (pos, ident, e1, e2, e3, block)
   local s = { tag = "Fornum", pos = pos }
   s[1] = ident
@@ -112,6 +125,7 @@ function tlast.statFornum (pos, ident, e1, e2, e3, block)
   return s
 end
 
+-- statForin : (number, namelist, explist, block) -> (stat)
 function tlast.statForin (pos, namelist, explist, block)
   local s = { tag = "Forin", pos = pos }
   s[1] = namelist
@@ -120,28 +134,102 @@ function tlast.statForin (pos, namelist, explist, block)
   return s
 end
 
+-- statLocal : (number, namelist, explist) -> (stat)
 function tlast.statLocal (pos, namelist, explist)
   return { tag = "Local", pos = pos, [1] = namelist, [2] = explist }
 end
 
+-- statLocalrec : (number, ident, expr) -> (stat)
 function tlast.statLocalrec (pos, ident, expr)
   return { tag = "Localrec", pos = pos, [1] = { ident }, [2] = { expr } }
 end
 
+-- statGoto : (number, string) -> (stat)
 function tlast.statGoto (pos, str)
   return { tag = "Goto", pos = pos, [1] = str }
 end
 
+-- statLabel : (number, string) -> (stat)
 function tlast.statLabel (pos, str)
   return { tag = "Label", pos = pos, [1] = str }
 end
 
+-- statReturn : (number, expr*) -> (stat)
 function tlast.statReturn (pos, ...)
   return { tag = "Return", pos = pos, ... }
 end
 
+-- statBreak : (number) -> (stat)
 function tlast.statBreak (pos)
   return { tag = "Break", pos = pos }
+end
+
+-- statFuncSet : (number, lhs, expr) -> (stat)
+function tlast.statFuncSet (pos, lhs, expr)
+  if lhs.is_method then
+    table.insert(expr[1], 1, { tag = "Id", [1] = "self" })
+  end
+  return { tag = "Set", pos = pos, [1] = { lhs }, [2] = { expr } }
+end
+
+-- statConstFuncSet : (number, lhs, expr) -> (stat)
+function tlast.statConstFuncSet (pos, lhs, expr)
+  if lhs.is_method then
+    table.insert(expr[1], 1, { tag = "Id", [1] = "self" })
+  end
+  return { tag = "ConstSet", pos = pos, [1] = lhs, [2] = expr }
+end
+
+-- statSet : (expr*) -> (boolean, stat?)
+function tlast.statSet (...)
+  local vl = { ... }
+  local el = vl[#vl]
+  table.remove(vl)
+  for k, v in ipairs(vl) do
+    if v.tag == "Id" or v.tag == "Index" then
+      vl[k] = v
+    else
+      -- invalid assignment
+      return false
+    end
+  end
+  vl.tag = "Varlist"
+  vl.pos = vl[1].pos
+  return true, { tag = "Set", pos = vl.pos, [1] = vl, [2] = el }
+end
+
+-- statConstSet : (expr, expr) -> (boolean, stat?)
+function tlast.statConstSet (e1, e2)
+  if e1.tag == "Id" or e1.tag == "Index" then
+    return true, { tag = "Set", pos = e1.pos, [1] = e1, [2] = e2 }
+  else
+    -- invalid assignment
+    return false
+  end
+end
+
+-- statApply : (expr) -> (boolean, stat?)
+function tlast.statApply (expr)
+  if expr.tag == "Call" or expr.tag == "Invoke" then
+    return true, expr
+  else
+    -- invalid statement
+    return false
+  end
+end
+
+-- statInterface : (number, string, any*) -> (stat)
+function tlast.statInterface (pos, name, ...)
+  local stat = { tag = "Interface", pos = pos, ... }
+  table.insert(stat, 1, name)
+  return stat
+end
+
+-- statLocalInterface : (number, string, any*) -> (stat)
+function tlast.statLocalInterface (pos, name, ...)
+  local stat = { tag = "LocalInterface", pos = pos, ... }
+  table.insert(stat, 1, name)
+  return stat
 end
 
 -- parlist
@@ -269,10 +357,22 @@ function tlast.exprSuffixed (e1, e2)
   end
 end
 
+-- exprIndex : (number, expr) -> (lhs)
 function tlast.exprIndex (pos, e)
   return { tag = "Index", pos = pos, [1] = e }
 end
 
+-- ident : (number, string, type?) -> (ident)
+function tlast.ident (pos, str, t)
+  return { tag = "Id", pos = pos, [1] = str, [2] = t }
+end
+
+-- identDots : (number, type?) -> (expr)
+function tlast.identDots (pos, t)
+  return { tag = "Dots", pos = pos, [1] = t }
+end
+
+-- funcName : (ident, ident, boolean?) -> (lhs)
 function tlast.funcName (ident1, ident2, is_method)
   if ident2 then
     local t = { tag = "Index", pos = ident1.pos }
@@ -287,6 +387,7 @@ end
 
 -- apply
 
+-- call : (number, expr, expr*) -> (apply)
 function tlast.call (pos, e1, ...)
   local a = { tag = "Call", pos = pos, [1] = e1 }
   local list = { ... }
@@ -296,6 +397,7 @@ function tlast.call (pos, e1, ...)
   return a
 end
 
+-- invoke : (number, expr, expr, expr*) -> (apply)
 function tlast.invoke (pos, e1, e2, ...)
   local a = { tag = "Invoke", pos = pos, [1] = e1, [2] = e2 }
   local list = { ... }

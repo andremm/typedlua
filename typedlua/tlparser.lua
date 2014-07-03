@@ -291,8 +291,8 @@ local G = { lpeg.V("TypedLua"),
   Chunk = lpeg.V("Block");
   StatList = (symb(";") + lpeg.V("Stat"))^0;
   Var = lpeg.V("Id");
-  Id = taggedCap("Id", token(Name, "Name"));
-  TypedId = taggedCap("Id", token(Name, "Name") * (symb(":") * lpeg.V("Type"))^-1);
+  Id = lpeg.Cp() * token(Name, "Name") / ast.ident;
+  TypedId = lpeg.Cp() * token(Name, "Name") * (symb(":") * lpeg.V("Type"))^-1 / ast.ident;
   FunctionDef = kw("function") * lpeg.V("FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = lpeg.Cp() * kw("const") *
@@ -307,11 +307,15 @@ local G = { lpeg.V("TypedLua"),
   FieldList = (lpeg.V("Field") * (lpeg.V("FieldSep") * lpeg.V("Field"))^0 *
               lpeg.V("FieldSep")^-1)^-1;
   Constructor = lpeg.Cp() * symb("{") * lpeg.V("FieldList") * symb("}") / ast.exprTable;
-  NameList = sepby1(lpeg.V("TypedId"), symb(","), "NameList");
-  ExpList = sepby1(lpeg.V("Expr"), symb(","), "ExpList");
-  FuncArgs = symb("(") * (lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0)^-1 * symb(")") +
+  NameList = lpeg.Cp() * lpeg.V("TypedId") * (symb(",") * lpeg.V("TypedId"))^0 /
+             ast.namelist;
+  ExpList = lpeg.Cp() * lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0 /
+            ast.explist;
+  FuncArgs = symb("(") *
+             (lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0)^-1 *
+             symb(")") +
              lpeg.V("Constructor") +
-             taggedCap("String", token(String, "String"));
+             lpeg.Cp() * token(String, "String") / ast.exprString;
   Expr = lpeg.V("SubExpr_1");
   SubExpr_1 = chainl1(lpeg.V("SubExpr_2"), OrOp);
   SubExpr_2 = chainl1(lpeg.V("SubExpr_3"), AndOp);
@@ -369,7 +373,8 @@ local G = { lpeg.V("TypedLua"),
             ast.parList2 +
             lpeg.Cp() * lpeg.V("TypedVarArg") / ast.parList1 +
             lpeg.Cp() / ast.parList0;
-  TypedVarArg = taggedCap("Dots", symb("...") * (symb(":") * lpeg.V("Type"))^-1);
+  TypedVarArg = lpeg.Cp() * symb("...") * (symb(":") * lpeg.V("Type"))^-1 /
+                ast.identDots;
   FuncBody = lpeg.Cp() * symb("(") * lpeg.V("ParList") * symb(")") *
              (symb(":") * lpeg.V("RetType"))^-1 *
              lpeg.V("Block") * kw("end") / ast.exprFunction;
@@ -387,10 +392,10 @@ local G = { lpeg.V("TypedLua"),
   RetStat = lpeg.Cp() * kw("return") *
             (lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0)^-1 *
             symb(";")^-1 / ast.statReturn;
-  InterfaceStat = taggedCap("Interface", kw("interface") * token(Name, "Name") *
-                  lpeg.V("InterfaceDec")^1 * kw("end"));
-  LocalInterface = taggedCap("LocalInterface", kw("interface") * token(Name, "Name") *
-                   lpeg.V("InterfaceDec")^1 * kw("end"));
+  InterfaceStat = lpeg.Cp() * kw("interface") * token(Name, "Name") *
+                  lpeg.V("InterfaceDec")^1 * kw("end") / ast.statInterface;
+  LocalInterface = lpeg.Cp() * kw("interface") * token(Name, "Name") *
+                   lpeg.V("InterfaceDec")^1 * kw("end") / ast.statLocalInterface;
   InterfaceDec = ((kw("const") * lpeg.Cc("Const")) + lpeg.Cc("Field")) * lpeg.V("IdList") * symb(":") * (lpeg.V("Type") + lpeg.V("MethodType")) /
                   function (tag, idlist, t)
                     local l = {}
@@ -402,52 +407,18 @@ local G = { lpeg.V("TypedLua"),
                     end
                     return table.unpack(l)
                   end;
-  IdList = sepby1(lpeg.V("Id"), symb(","), "IdList");
+  IdList = lpeg.Cp() * lpeg.V("Id") * (symb(",") * lpeg.V("Id"))^0 / ast.namelist;
   ExprStat = lpeg.Cmt(
-             (lpeg.V("SuffixedExp") *
-                (lpeg.Cc(function (...)
-                           local vl = {...}
-                           local el = vl[#vl]
-                           table.remove(vl)
-                           for k, v in ipairs(vl) do
-                             if v.tag == "Id" or v.tag == "Index" then
-                               vl[k] = v
-                             else
-                               -- invalid assignment
-                               return false
-                             end
-                           end
-                           vl.tag = "VarList"
-                           vl.pos = vl[1].pos
-                           return true, {tag = "Set", pos = vl.pos, [1] = vl, [2] = el}
-                         end) * lpeg.V("Assignment")))
-             +
-             (lpeg.V("SuffixedExp") *
-                (lpeg.Cc(function (s)
-                           if s.tag == "Call" or
-                              s.tag == "Invoke" then
-                             return true, s
-                           end
-                           -- invalid statement
-                           return false
-                         end)))
-             , function (s, i, s1, f, ...) return f(s1, ...) end);
+             (lpeg.V("SuffixedExp") * (lpeg.Cc(ast.statSet) * lpeg.V("Assignment"))) +
+             (lpeg.V("SuffixedExp") * (lpeg.Cc(ast.statApply))),
+             function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * lpeg.V("SuffixedExp"))^1)^-1 * symb("=") * lpeg.V("ExpList");
   ConstStat = kw("const") * (lpeg.V("ConstFunc") + lpeg.V("ConstAssignment"));
-  ConstFunc = taggedCap("ConstSet", kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody")) /
-              function (t)
-                if t[1].is_method then table.insert(t[2][1], 1, {tag = "Id", [1] = "self"}) end
-                return t
-              end;
-  ConstAssignment = lpeg.Cmt(lpeg.V("SuffixedExp") * symb("=") * lpeg.V("Expr"),
-                    function (s, i, se, e)
-                      if se.tag == "Id" or se.tag == "Index" then
-                        return true, { tag = "ConstSet", pos = se.pos, [1] = se, [2] = e }
-                      else
-                        -- invalid assignment
-                        return false
-                      end
-                    end);
+  ConstFunc = lpeg.Cp() * kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
+              ast.statConstFuncSet;
+  ConstAssignment = lpeg.Cmt(lpeg.V("SuffixedExp") * lpeg.Cc(ast.statConstSet) *
+                    symb("=") * lpeg.V("Expr"),
+                    function (s, i, s1, f, e1) return f(s1, e1) end);
   Stat = lpeg.V("IfStat") + lpeg.V("WhileStat") + lpeg.V("DoStat") + lpeg.V("ForStat") +
          lpeg.V("RepeatStat") + lpeg.V("FuncStat") + lpeg.V("LocalStat") +
          lpeg.V("LabelStat") + lpeg.V("BreakStat") + lpeg.V("GoToStat") +
