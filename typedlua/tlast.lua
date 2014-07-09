@@ -372,7 +372,7 @@ function tlast.identDots (pos, t)
   return { tag = "Dots", pos = pos, [1] = t }
 end
 
--- funcName : (ident, ident, boolean?) -> (lhs)
+-- funcName : (ident, ident, true?) -> (lhs)
 function tlast.funcName (ident1, ident2, is_method)
   if ident2 then
     local t = { tag = "Index", pos = ident1.pos }
@@ -405,6 +405,187 @@ function tlast.invoke (pos, e1, e2, ...)
     a[i + 2] = list[i]
   end
   return a
+end
+
+-- type
+
+-- typeUnion : (number, type, type*) -> (type)
+function tlast.typeUnion (pos, t1, ...)
+  local t = { tag = "Union", pos = pos, ... }
+  table.insert(t, 1, t1)
+  return t
+end
+
+-- typeUnionlist : (number, type, type*) -> (type)
+function tlast.typeUnionlist (pos, t1, ...)
+  local t = { tag = "Unionlist", pos = pos, ... }
+  table.insert(t, 1, t1)
+  return t
+end
+
+-- typeUnionNil : (type, true?) -> (type)
+function tlast.typeUnionNil (t, is_union_nil)
+  if is_union_nil then
+    table.insert(t, { tag = "Nil", pos = t.pos })
+  end
+  if #t > 1 then
+    return t
+  else
+    return t[1]
+  end
+end
+
+-- typeUnionlistNil : (type, true?) -> (type)
+function tlast.typeUnionlistNil (t, is_union_nil)
+  local ret_error = { tag = "Tuple", pos = t.pos }
+  ret_error[1] = { tag = "Nil", pos = t.pos }
+  ret_error[2] = { tag = "Base", pos = t.pos, [1] = "string" }
+  ret_error[3] = { tag = "Vararg", pos = t.pos, [1] = { tag = "Nil", pos = t.pos } }
+  if is_union_nil then
+    table.insert(t, ret_error)
+  end
+  if #t > 1 then
+    return t
+  else
+    return t[1]
+  end
+end
+
+-- literal
+
+-- typeFalse : (number) -> (type)
+function tlast.typeFalse (pos)
+  return { tag = "Literal", pos = pos, [1] = false }
+end
+
+-- typeTrue : (number) -> (type)
+function tlast.typeTrue (pos)
+  return { tag = "Literal", pos = pos, [1] = true }
+end
+
+-- typeNum : (number, number) -> (type)
+function tlast.typeNum (pos, n)
+  return { tag = "Literal", pos = pos, [1] = n }
+end
+
+-- typeStr : (number, string) -> (type)
+function tlast.typeStr (pos, s)
+  return { tag = "Literal", pos = pos, [1] = s }
+end
+
+-- base
+
+-- typeBoolean : (number) -> (type)
+function tlast.typeBoolean (pos)
+  return { tag = "Base", pos = pos, [1] = "boolean" }
+end
+
+-- typeNumber : (number) -> (type)
+function tlast.typeNumber (pos)
+  return { tag = "Base", pos = pos, [1] = "number" }
+end
+
+-- typeString : (number) -> (type)
+function tlast.typeString (pos)
+  return { tag = "Base", pos = pos, [1] = "string" }
+end
+
+-- typeNil : (number) -> (type)
+function tlast.typeNil (pos)
+  return { tag = "Nil", pos = pos }
+end
+
+-- typeValue : (number) -> (type)
+function tlast.typeValue (pos)
+  return { tag = "Value", pos = pos }
+end
+
+-- typeAny : (number) -> (type)
+function tlast.typeAny (pos)
+  return { tag = "Any", pos = pos }
+end
+
+-- typeSelf : (number) -> (type)
+function tlast.typeSelf (pos)
+  return { tag = "Self", pos = pos }
+end
+
+-- typelist : (number, {}, true?) -> (type)
+function tlast.typelist (pos, t, is_vararg)
+  if is_vararg then
+    local v = { tag = "Vararg", pos = t[#t].pos, [1] = t[#t] }
+    t[#t] = v
+  end
+  t.tag = "Tuple"
+  t.pos = pos
+  return t
+end
+
+-- typeArgList : (number, {}?) -> (type)
+function tlast.typeArgList (pos, t)
+  local v = { tag = "Vararg", pos = pos, [1] = { tag = "Value", pos = pos } }
+  if not t then
+    return { tag = "Tuple", pos = pos, [1] = v }
+  else
+    if t[#t].tag ~= "Vararg" then
+      table.insert(t, v)
+    end
+    return t
+  end
+end
+
+-- typeRetList : (number, {}?) -> (type)
+function tlast.typeRetList (pos, t)
+  local v = { tag = "Vararg", pos = pos, [1] = { tag = "Nil", pos = pos } }
+  if not t then
+    return { tag = "Tuple", pos = pos, [1] = v }
+  else
+    if t[#t].tag ~= "Vararg" then
+      table.insert(t, v)
+    end
+    return t
+  end
+end
+
+-- typeRetType : (type) -> (type)
+function tlast.typeRetType (t)
+  local v = { tag = "Vararg", pos = t.pos, [1] = { tag = "Nil", pos = t.pos } }
+  return { tag = "Tuple", pos = t.pos, [1] = t, [2] = v }
+end
+
+-- typeFunction : (number, type, type, true?) -> (type)
+function tlast.typeFunction (pos, t1, t2, is_method)
+  if is_method then
+    local s = { tag = "Self", pos = pos }
+    table.insert(t1, 1, s)
+  end
+  return { tag = "Function", pos = pos, [1] = t1, [2] = t2 }
+end
+
+-- typeVariable : (number, string) -> (type)
+function tlast.typeVariable (pos, x)
+  return { tag = "Variable", pos = pos, [1] = x }
+end
+
+-- typeConstField : (number, type, type) -> (type)
+function tlast.typeConstField (pos, t1, t2)
+  return { tag = "Const", pos = pos, [1] = t1, [2] = t2 }
+end
+
+-- typeField : (number, type, type) -> (type)
+function tlast.typeField (pos, t1, t2)
+  return { tag = "Field", pos = pos, [1] = t1, [2] = t2 }
+end
+
+-- typeArrayField : (number, type) -> (type)
+function tlast.typeArrayField (pos, t)
+  local n = { tag = "Base", pos = pos, [1] = "number" }
+  return { tag = "Field", pos = pos, [1] = n, [2] = t }
+end
+
+-- typeTable : (number, type*) -> (type)
+function tlast.typeTable (pos, ...)
+  return { tag = "Table", pos = pos, ... }
 end
 
 return tlast

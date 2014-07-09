@@ -174,14 +174,6 @@ local function report_error ()
   return errormsg()
 end
 
-local function taggedCap (tag, pat)
-  return lpeg.Ct(lpeg.Cg(lpeg.Cp(), "pos") * lpeg.Cg(lpeg.Cc(tag), "tag") * pat)
-end
-
-local function sepby1 (pat, sep, tag)
-  return taggedCap(tag, pat * (sep * pat)^0)
-end
-
 local function chainl1 (pat, sep)
   return lpeg.Cf(pat * lpeg.Cg(sep * pat)^0, ast.exprBinaryOp)
 end
@@ -190,103 +182,60 @@ local G = { lpeg.V("TypedLua"),
   TypedLua = Shebang^-1 * Skip * lpeg.V("Chunk") * -1 + report_error();
   -- type language
   Type = lpeg.V("NilableType");
-  NilableType = lpeg.V("UnionType") * (symb("?") * taggedCap("Nil", lpeg.P(true)))^-1 /
-                function (t, n)
-                  if n then t[#t + 1] = n end
-                  if #t > 1 then
-                    return t
-                  else
-                    return t[1]
-                  end
-                end;
-  UnionType = taggedCap("Union",
-              lpeg.V("PrimaryType") * lpeg.Cg(symb("|") * lpeg.V("PrimaryType"))^0);
+  NilableType = lpeg.V("UnionType") * (symb("?") * lpeg.Cc(true))^-1 / ast.typeUnionNil;
+  UnionType = lpeg.Cp() * lpeg.V("PrimaryType") *
+              (lpeg.Cg(symb("|") * lpeg.V("PrimaryType"))^0) / ast.typeUnion;
   PrimaryType = lpeg.V("LiteralType") +
                 lpeg.V("BaseType") +
                 lpeg.V("NilType") +
-                lpeg.V("TopType") +
-                lpeg.V("DynamicType") +
+                lpeg.V("ValueType") +
+                lpeg.V("AnyType") +
                 lpeg.V("SelfType") +
                 lpeg.V("FunctionType") +
                 lpeg.V("TableType") +
                 lpeg.V("VariableType");
-  LiteralType = taggedCap("Literal",
-                lpeg.V("LiteralFalse") +
-                lpeg.V("LiteralTrue") +
-                lpeg.V("LiteralNumber") +
-                lpeg.V("LiteralString"));
-  LiteralFalse = token("false", "Type") * lpeg.Cc(false);
-  LiteralTrue = token("true", "Type") * lpeg.Cc(true);
-  LiteralNumber = token(Number, "Type");
-  LiteralString = token(String, "Type");
-  BaseType = taggedCap("Base",
-             lpeg.V("BaseBoolean") + lpeg.V("BaseNumber") + lpeg.V("BaseString"));
-  BaseBoolean = token("boolean", "Type") * lpeg.Cc("boolean");
-  BaseNumber = token("number", "Type") * lpeg.Cc("number");
-  BaseString = token("string", "Type") * lpeg.Cc("string");
-  NilType = taggedCap("Nil", token("nil", "Type"));
-  TopType = taggedCap("Value", token("value", "Type"));
-  DynamicType = taggedCap("Any", token("any", "Type"));
-  SelfType = taggedCap("Self", token("self", "Type"));
-  FunctionType = taggedCap("Function",
-                 lpeg.V("ArgTypeList") * symb("->") * lpeg.V("NilableRetTypeList"));
-  MethodType = taggedCap("Function",
-               lpeg.V("ArgTypeList") * symb("=>") * lpeg.V("NilableRetTypeList")) /
-               function (t)
-                 table.insert(t[1], 1, { tag = "Self" })
-                 return t
-               end;
-  ArgTypeList = symb("(") * (lpeg.V("TypeList") + lpeg.V("ValueStar")) * symb(")") /
-                function (t)
-                  if t[#t].tag ~= "Vararg" then
-                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Value" } }
-                  end
-                  return t
-                end;
-  NilableRetTypeList = lpeg.V("UnionRetTypeList") * (symb("?") * lpeg.V("RetError"))^-1 /
-                       function (t, n)
-                         if n then t[#t + 1] = n end
-                         if #t > 1 then
-                           return t
-                         else
-                           return t[1]
-                         end
-                       end;
-  UnionRetTypeList = taggedCap("Unionlist",
-                     lpeg.V("RetTypeList") * lpeg.Cg(symb("|") * lpeg.V("RetTypeList"))^0);
-  RetTypeList = symb("(") * (lpeg.V("TypeList") + lpeg.V("NilStar")) * symb(")") /
-                function (t)
-                  if t[#t].tag ~= "Vararg" then
-                    t[#t + 1] = { tag = "Vararg", [1] = { tag = "Nil" } }
-                  end
-                  return t
-                end;
-  TypeList = sepby1(lpeg.V("Type"), symb(","), "Tuple") * taggedCap("Vararg", symb("*"))^-1 /
-             function (t, v)
-               if v then
-                 v[1] = t[#t]
-                 t[#t] = v
-               end
-               return t
-             end;
-  ValueStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Value", lpeg.P(true))));
-  NilStar = taggedCap("Tuple", taggedCap("Vararg", taggedCap("Nil", lpeg.P(true))));
-  RetError = taggedCap("Tuple", taggedCap("Nil", lpeg.P(true)) *
-                                taggedCap("Base", lpeg.Cc("string")) *
-                                taggedCap("Vararg", taggedCap("Nil", lpeg.P(true))));
-  TableType = taggedCap("Table", symb("{") * (lpeg.V("TableTypeBody") + lpeg.Cc(nil)) * symb("}"));
+  LiteralType = lpeg.Cp() * token("false", "Type") / ast.typeFalse +
+                lpeg.Cp() * token("true", "Type") / ast.typeTrue +
+                lpeg.Cp() * token(Number, "Type") / ast.typeNum +
+                lpeg.Cp() * token(String, "Type") / ast.typeStr;
+  BaseType = lpeg.Cp() * token("boolean", "Type") / ast.typeBoolean +
+             lpeg.Cp() * token("number", "Type") / ast.typeNumber +
+             lpeg.Cp() * token("string", "Type") / ast.typeString;
+  NilType = lpeg.Cp() * token("nil", "Type") / ast.typeNil;
+  ValueType = lpeg.Cp() * token("value", "Type") / ast.typeValue;
+  AnyType = lpeg.Cp() * token("any", "Type") / ast.typeAny;
+  SelfType = lpeg.Cp() * token("self", "Type") / ast.typeSelf;
+  FunctionType = lpeg.Cp() * lpeg.V("ArgTypeList") * symb("->") *
+                 lpeg.V("NilableRetTypeList") / ast.typeFunction;
+  MethodType = lpeg.Cp() * lpeg.V("ArgTypeList") * symb("=>") *
+               lpeg.V("NilableRetTypeList") * lpeg.Cc(true) / ast.typeFunction;
+  ArgTypeList = lpeg.Cp() * symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") /
+                ast.typeArgList;
+  NilableRetTypeList = lpeg.V("UnionRetTypeList") * (symb("?") * lpeg.Cc(true))^-1 /
+                       ast.typeUnionlistNil;
+  UnionRetTypeList = lpeg.Cp() * lpeg.V("RetTypeList") *
+                     (lpeg.Cg(symb("|") * lpeg.V("RetTypeList"))^0) / ast.typeUnionlist;
+  RetTypeList = lpeg.Cp() * symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") /
+                ast.typeRetList;
+  TypeList = lpeg.Cp() * lpeg.Ct(lpeg.V("Type") * (symb(",") * lpeg.V("Type"))^0) *
+             (symb("*") * lpeg.Cc(true))^-1 / ast.typelist;
+  TableType = lpeg.Cp() *
+              symb("{") * (lpeg.V("TableTypeBody") + lpeg.Cc(nil)) * symb("}") /
+              ast.typeTable;
   TableTypeBody = lpeg.V("FieldTypeList") +
-                  taggedCap("Field", taggedCap("Base", lpeg.Cc("number")) * lpeg.V("Type"));
+                  lpeg.Cp() * lpeg.V("Type") / ast.typeArrayField;
   FieldTypeList = lpeg.V("FieldType") * (symb(",") * lpeg.V("FieldType"))^0;
-  FieldType = taggedCap("Const", kw("const") * lpeg.V("KeyType") * symb(":") * lpeg.V("Type")) +
-              taggedCap("Field", lpeg.V("KeyType") * symb(":") * lpeg.V("Type"));
+  FieldType = lpeg.Cp() * kw("const") *
+              lpeg.V("KeyType") * symb(":") * lpeg.V("Type") / ast.typeConstField +
+              lpeg.Cp() *
+              lpeg.V("KeyType") * symb(":") * lpeg.V("Type") / ast.typeField;
   KeyType = lpeg.V("LiteralType") +
 	    lpeg.V("BaseType") +
-            lpeg.V("TopType") +
-            lpeg.V("DynamicType");
-  VariableType = taggedCap("Variable", token(Name, "Type"));
+            lpeg.V("ValueType") +
+            lpeg.V("AnyType");
+  VariableType = lpeg.Cp() * token(Name, "Type") / ast.typeVariable;
   RetType = lpeg.V("NilableRetTypeList") +
-            taggedCap("Tuple", lpeg.V("Type") * taggedCap("Vararg", taggedCap("Nil", lpeg.P(true))));
+            lpeg.V("Type") / ast.typeRetType;
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (symb(";") + lpeg.V("Stat"))^0;
