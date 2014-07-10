@@ -209,13 +209,17 @@ local G = { lpeg.V("TypedLua"),
                  lpeg.V("NilableRetTypeList") / ast.typeFunction;
   MethodType = lpeg.Cp() * lpeg.V("ArgTypeList") * symb("=>") *
                lpeg.V("NilableRetTypeList") * lpeg.Cc(true) / ast.typeFunction;
-  ArgTypeList = lpeg.Cp() * symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") /
+  ArgTypeList = lpeg.Cp() *
+                symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") *
+                lpeg.Carg(2) /
                 ast.typeArgList;
   NilableRetTypeList = lpeg.V("UnionRetTypeList") * (symb("?") * lpeg.Cc(true))^-1 /
                        ast.typeUnionlistNil;
   UnionRetTypeList = lpeg.Cp() * lpeg.V("RetTypeList") *
                      (lpeg.Cg(symb("|") * lpeg.V("RetTypeList"))^0) / ast.typeUnionlist;
-  RetTypeList = lpeg.Cp() * symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") /
+  RetTypeList = lpeg.Cp() *
+                symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") *
+                lpeg.Carg(2) /
                 ast.typeRetList;
   TypeList = lpeg.Cp() * lpeg.Ct(lpeg.V("Type") * (symb(",") * lpeg.V("Type"))^0) *
              (symb("*") * lpeg.Cc(true))^-1 / ast.typelist;
@@ -374,10 +378,10 @@ local G = { lpeg.V("TypedLua"),
          lpeg.V("InterfaceStat") + lpeg.V("ExprStat") + lpeg.V("ConstStat");
 }
 
-function tlparser.parse (subject, filename)
+function tlparser.parse (subject, filename, strict)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo)
+  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict)
   if not ast then return ast, error_msg end
   return ast
 end
