@@ -679,8 +679,8 @@ local function consistent_subtype_field (env, f1, f2)
     return types.consistent_subtype(env, f2[1], f1[1]) and
            types.consistent_subtype(env, f1[2], f2[2])
   elseif types.isConstField(f1) and types.isConstField(f2) then
-    return types.cosistent_subtype(env, f2[1], f1[1]) and
-           types.consisten_subtype(env, f1[2], f2[2])
+    return types.consistent_subtype(env, f2[1], f1[1]) and
+           types.consistent_subtype(env, f1[2], f2[2])
   else
     return false
   end

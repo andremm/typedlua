@@ -7,7 +7,8 @@ local tlparser = {}
 local lpeg = require "lpeg"
 lpeg.locale(lpeg)
 
-local ast = require "typedlua.tlast"
+local tlast = require "typedlua.tlast"
+local tltype = require "typedlua.tltype"
 
 local function setffp (s, i, t, n)
   if not t.ffp or i > t.ffp then
@@ -175,16 +176,17 @@ local function report_error ()
 end
 
 local function chainl1 (pat, sep)
-  return lpeg.Cf(pat * lpeg.Cg(sep * pat)^0, ast.exprBinaryOp)
+  return lpeg.Cf(pat * lpeg.Cg(sep * pat)^0, tlast.exprBinaryOp)
 end
 
 local G = { lpeg.V("TypedLua"),
   TypedLua = Shebang^-1 * Skip * lpeg.V("Chunk") * -1 + report_error();
   -- type language
   Type = lpeg.V("NilableType");
-  NilableType = lpeg.V("UnionType") * (symb("?") * lpeg.Cc(true))^-1 / ast.typeUnionNil;
-  UnionType = lpeg.Cp() * lpeg.V("PrimaryType") *
-              (lpeg.Cg(symb("|") * lpeg.V("PrimaryType"))^0) / ast.typeUnion;
+  NilableType = lpeg.V("UnionType") * (symb("?") * lpeg.Cc(true))^-1 /
+                tltype.UnionNil;
+  UnionType = lpeg.V("PrimaryType") * (lpeg.Cg(symb("|") * lpeg.V("PrimaryType"))^0) /
+              tltype.Union;
   PrimaryType = lpeg.V("LiteralType") +
                 lpeg.V("BaseType") +
                 lpeg.V("NilType") +
@@ -194,161 +196,159 @@ local G = { lpeg.V("TypedLua"),
                 lpeg.V("FunctionType") +
                 lpeg.V("TableType") +
                 lpeg.V("VariableType");
-  LiteralType = lpeg.Cp() * token("false", "Type") / ast.typeFalse +
-                lpeg.Cp() * token("true", "Type") / ast.typeTrue +
-                lpeg.Cp() * token(Number, "Type") / ast.typeNum +
-                lpeg.Cp() * token(String, "Type") / ast.typeStr;
-  BaseType = lpeg.Cp() * token("boolean", "Type") / ast.typeBoolean +
-             lpeg.Cp() * token("number", "Type") / ast.typeNumber +
-             lpeg.Cp() * token("string", "Type") / ast.typeString;
-  NilType = lpeg.Cp() * token("nil", "Type") / ast.typeNil;
-  ValueType = lpeg.Cp() * token("value", "Type") / ast.typeValue;
-  AnyType = lpeg.Cp() * token("any", "Type") / ast.typeAny;
-  SelfType = lpeg.Cp() * token("self", "Type") / ast.typeSelf;
-  FunctionType = lpeg.Cp() * lpeg.V("ArgTypeList") * symb("->") *
-                 lpeg.V("NilableRetTypeList") / ast.typeFunction;
-  MethodType = lpeg.Cp() * lpeg.V("ArgTypeList") * symb("=>") *
-               lpeg.V("NilableRetTypeList") * lpeg.Cc(true) / ast.typeFunction;
-  ArgTypeList = lpeg.Cp() *
-                symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") *
-                lpeg.Carg(2) /
-                ast.typeArgList;
-  NilableRetTypeList = lpeg.V("UnionRetTypeList") * (symb("?") * lpeg.Cc(true))^-1 /
-                       ast.typeUnionlistNil;
-  UnionRetTypeList = lpeg.Cp() * lpeg.V("RetTypeList") *
-                     (lpeg.Cg(symb("|") * lpeg.V("RetTypeList"))^0) / ast.typeUnionlist;
-  RetTypeList = lpeg.Cp() *
-                symb("(") * (lpeg.V("TypeList") + lpeg.Cc(nil)) * symb(")") *
-                lpeg.Carg(2) /
-                ast.typeRetList;
-  TypeList = lpeg.Cp() * lpeg.Ct(lpeg.V("Type") * (symb(",") * lpeg.V("Type"))^0) *
-             (symb("*") * lpeg.Cc(true))^-1 / ast.typelist;
-  TableType = lpeg.Cp() *
-              symb("{") * (lpeg.V("TableTypeBody") + lpeg.Cc(nil)) * symb("}") /
-              ast.typeTable;
-  TableTypeBody = lpeg.V("FieldTypeList") +
-                  lpeg.Cp() * lpeg.V("Type") / ast.typeArrayField;
-  FieldTypeList = lpeg.V("FieldType") * (symb(",") * lpeg.V("FieldType"))^0;
-  FieldType = lpeg.Cp() * kw("const") *
-              lpeg.V("KeyType") * symb(":") * lpeg.V("Type") / ast.typeConstField +
-              lpeg.Cp() *
-              lpeg.V("KeyType") * symb(":") * lpeg.V("Type") / ast.typeField;
+  LiteralType = ((token("false", "Type") * lpeg.Cc(false)) +
+                (token("true", "Type") * lpeg.Cc(true)) +
+                token(Number, "Type") +
+                token(String, "Type")) /
+                tltype.Literal;
+  BaseType = token("boolean", "Type") / tltype.Boolean +
+             token("number", "Type") / tltype.Number +
+             token("string", "Type") / tltype.String;
+  NilType = token("nil", "Type") / tltype.Nil;
+  ValueType = token("value", "Type") / tltype.Value;
+  AnyType = token("any", "Type") / tltype.Any;
+  SelfType = token("self", "Type") / tltype.Self;
+  FunctionType = lpeg.V("InputType") * symb("->") * lpeg.V("NilableTuple") /
+                 tltype.Function;
+  MethodType = lpeg.V("InputType") * symb("=>") * lpeg.V("NilableTuple") *
+               lpeg.Cc(true) / tltype.Function;
+  InputType = symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * symb(")") *
+              lpeg.Carg(2) /
+              tltype.inputTuple;
+  NilableTuple = lpeg.V("UnionlistType") * (symb("?") * lpeg.Carg(2))^-1 /
+                 tltype.UnionlistNil;
+  UnionlistType = lpeg.V("OutputType") * (lpeg.Cg(symb("|") * lpeg.V("OutputType"))^0) /
+                  tltype.Unionlist;
+  OutputType = symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * symb(")") *
+               lpeg.Carg(2) /
+               tltype.outputTuple;
+  TupleType = lpeg.Ct(lpeg.V("Type") * (symb(",") * lpeg.V("Type"))^0) *
+              (symb("*") * lpeg.Cc(true))^-1 /
+              tltype.Tuple;
+  TableType = symb("{") *
+              ((lpeg.V("FieldType") * (symb(",") * lpeg.V("FieldType"))^0) +
+              (lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type")) / tltype.Field +
+              lpeg.Cc(nil)) *
+              symb("}") /
+              tltype.Table;
+  FieldType = ((kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
+              lpeg.V("KeyType") * symb(":") * lpeg.V("Type") / tltype.Field;
   KeyType = lpeg.V("LiteralType") +
 	    lpeg.V("BaseType") +
             lpeg.V("ValueType") +
             lpeg.V("AnyType");
-  VariableType = lpeg.Cp() * token(Name, "Type") / ast.typeVariable;
-  RetType = lpeg.V("NilableRetTypeList") +
-            lpeg.V("Type") / ast.typeRetType;
+  VariableType = token(Name, "Type") / tltype.Variable;
+  RetType = lpeg.V("NilableTuple") +
+            lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (symb(";") + lpeg.V("Stat"))^0;
   Var = lpeg.V("Id");
-  Id = lpeg.Cp() * token(Name, "Name") / ast.ident;
-  TypedId = lpeg.Cp() * token(Name, "Name") * (symb(":") * lpeg.V("Type"))^-1 / ast.ident;
+  Id = lpeg.Cp() * token(Name, "Name") / tlast.ident;
+  TypedId = lpeg.Cp() * token(Name, "Name") * (symb(":") * lpeg.V("Type"))^-1 / tlast.ident;
   FunctionDef = kw("function") * lpeg.V("FuncBody");
   FieldSep = symb(",") + symb(";");
   Field = lpeg.Cp() * kw("const") *
           ((symb("[") * lpeg.V("Expr") * symb("]")) +
-           (lpeg.Cp() * token(Name, "Name") / ast.exprString)) *
-          symb("=") * lpeg.V("Expr") / ast.fieldConst +
+           (lpeg.Cp() * token(Name, "Name") / tlast.exprString)) *
+          symb("=") * lpeg.V("Expr") / tlast.fieldConst +
           lpeg.Cp() *
           ((symb("[") * lpeg.V("Expr") * symb("]")) +
-           (lpeg.Cp() * token(Name, "Name") / ast.exprString)) *
-          symb("=") * lpeg.V("Expr") / ast.fieldPair +
+           (lpeg.Cp() * token(Name, "Name") / tlast.exprString)) *
+          symb("=") * lpeg.V("Expr") / tlast.fieldPair +
           lpeg.V("Expr");
   FieldList = (lpeg.V("Field") * (lpeg.V("FieldSep") * lpeg.V("Field"))^0 *
               lpeg.V("FieldSep")^-1)^-1;
-  Constructor = lpeg.Cp() * symb("{") * lpeg.V("FieldList") * symb("}") / ast.exprTable;
+  Constructor = lpeg.Cp() * symb("{") * lpeg.V("FieldList") * symb("}") / tlast.exprTable;
   NameList = lpeg.Cp() * lpeg.V("TypedId") * (symb(",") * lpeg.V("TypedId"))^0 /
-             ast.namelist;
+             tlast.namelist;
   ExpList = lpeg.Cp() * lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0 /
-            ast.explist;
+            tlast.explist;
   FuncArgs = symb("(") *
              (lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0)^-1 *
              symb(")") +
              lpeg.V("Constructor") +
-             lpeg.Cp() * token(String, "String") / ast.exprString;
+             lpeg.Cp() * token(String, "String") / tlast.exprString;
   Expr = lpeg.V("SubExpr_1");
   SubExpr_1 = chainl1(lpeg.V("SubExpr_2"), OrOp);
   SubExpr_2 = chainl1(lpeg.V("SubExpr_3"), AndOp);
   SubExpr_3 = chainl1(lpeg.V("SubExpr_4"), RelOp);
-  SubExpr_4 = lpeg.V("SubExpr_5") * ConOp * lpeg.V("SubExpr_4") / ast.exprBinaryOp +
+  SubExpr_4 = lpeg.V("SubExpr_5") * ConOp * lpeg.V("SubExpr_4") / tlast.exprBinaryOp +
               lpeg.V("SubExpr_5");
   SubExpr_5 = chainl1(lpeg.V("SubExpr_6"), AddOp);
   SubExpr_6 = chainl1(lpeg.V("SubExpr_7"), MulOp);
-  SubExpr_7 = UnOp * lpeg.V("SubExpr_7") / ast.exprUnaryOp +
+  SubExpr_7 = UnOp * lpeg.V("SubExpr_7") / tlast.exprUnaryOp +
               lpeg.V("SubExpr_8");
-  SubExpr_8 = lpeg.V("SimpleExp") * (PowOp * lpeg.V("SubExpr_7"))^-1 / ast.exprBinaryOp;
-  SimpleExp = lpeg.Cp() * token(Number, "Number") / ast.exprNumber +
-              lpeg.Cp() * token(String, "String") / ast.exprString +
-              lpeg.Cp() * kw("nil") / ast.exprNil +
-              lpeg.Cp() * kw("false") / ast.exprFalse +
-              lpeg.Cp() * kw("true") / ast.exprTrue +
-              lpeg.Cp() * symb("...") / ast.exprDots +
+  SubExpr_8 = lpeg.V("SimpleExp") * (PowOp * lpeg.V("SubExpr_7"))^-1 / tlast.exprBinaryOp;
+  SimpleExp = lpeg.Cp() * token(Number, "Number") / tlast.exprNumber +
+              lpeg.Cp() * token(String, "String") / tlast.exprString +
+              lpeg.Cp() * kw("nil") / tlast.exprNil +
+              lpeg.Cp() * kw("false") / tlast.exprFalse +
+              lpeg.Cp() * kw("true") / tlast.exprTrue +
+              lpeg.Cp() * symb("...") / tlast.exprDots +
               lpeg.V("FunctionDef") +
               lpeg.V("Constructor") +
               lpeg.V("SuffixedExp");
   SuffixedExp = lpeg.Cf(lpeg.V("PrimaryExp") * (
                 (lpeg.Cp() * symb(".") *
-                  (lpeg.Cp() * token(Name, "Name") / ast.exprString)) / ast.exprIndex +
-                (lpeg.Cp() * symb("[") * lpeg.V("Expr") * symb("]")) / ast.exprIndex +
+                  (lpeg.Cp() * token(Name, "Name") / tlast.exprString)) / tlast.exprIndex +
+                (lpeg.Cp() * symb("[") * lpeg.V("Expr") * symb("]")) / tlast.exprIndex +
                 (lpeg.Cp() * lpeg.Cg(symb(":") *
-                   (lpeg.Cp() * token(Name, "Name") / ast.exprString) *
-                   lpeg.V("FuncArgs"))) / ast.invoke +
-                (lpeg.Cp() * lpeg.V("FuncArgs")) / ast.call)^0, ast.exprSuffixed);
+                   (lpeg.Cp() * token(Name, "Name") / tlast.exprString) *
+                   lpeg.V("FuncArgs"))) / tlast.invoke +
+                (lpeg.Cp() * lpeg.V("FuncArgs")) / tlast.call)^0, tlast.exprSuffixed);
   PrimaryExp = lpeg.V("Var") +
-               lpeg.Cp() * symb("(") * lpeg.V("Expr") * symb(")") / ast.exprParen;
-  Block = lpeg.Cp() * lpeg.V("StatList") * lpeg.V("RetStat")^-1 / ast.block;
+               lpeg.Cp() * symb("(") * lpeg.V("Expr") * symb(")") / tlast.exprParen;
+  Block = lpeg.Cp() * lpeg.V("StatList") * lpeg.V("RetStat")^-1 / tlast.block;
   IfStat = lpeg.Cp() * kw("if") * lpeg.V("Expr") * kw("then") * lpeg.V("Block") *
            (kw("elseif") * lpeg.V("Expr") * kw("then") * lpeg.V("Block"))^0 *
            (kw("else") * lpeg.V("Block"))^-1 *
-           kw("end") / ast.statIf;
+           kw("end") / tlast.statIf;
   WhileStat = lpeg.Cp() * kw("while") * lpeg.V("Expr") *
-              kw("do") * lpeg.V("Block") * kw("end") / ast.statWhile;
-  DoStat = kw("do") * lpeg.V("Block") * kw("end") / ast.statDo;
+              kw("do") * lpeg.V("Block") * kw("end") / tlast.statWhile;
+  DoStat = kw("do") * lpeg.V("Block") * kw("end") / tlast.statDo;
   ForBody = kw("do") * lpeg.V("Block");
   ForNum = lpeg.Cp() *
            lpeg.V("Id") * symb("=") * lpeg.V("Expr") * symb(",") *
            lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^-1 *
-           lpeg.V("ForBody") / ast.statFornum;
+           lpeg.V("ForBody") / tlast.statFornum;
   ForGen = lpeg.Cp() * lpeg.V("NameList") * kw("in") *
-           lpeg.V("ExpList") * lpeg.V("ForBody") / ast.statForin;
+           lpeg.V("ExpList") * lpeg.V("ForBody") / tlast.statForin;
   ForStat = kw("for") * (lpeg.V("ForNum") + lpeg.V("ForGen")) * kw("end");
   RepeatStat = lpeg.Cp() * kw("repeat") * lpeg.V("Block") *
-               kw("until") * lpeg.V("Expr") / ast.statRepeat;
+               kw("until") * lpeg.V("Expr") / tlast.statRepeat;
   FuncName = lpeg.Cf(lpeg.V("Id") * (symb(".") *
-             (lpeg.Cp() * token(Name, "Name") / ast.exprString))^0, ast.funcName) *
-             (symb(":") * (lpeg.Cp() * token(Name, "Name") / ast.exprString) *
+             (lpeg.Cp() * token(Name, "Name") / tlast.exprString))^0, tlast.funcName) *
+             (symb(":") * (lpeg.Cp() * token(Name, "Name") / tlast.exprString) *
                lpeg.Cc(true))^-1 /
-             ast.funcName;
+             tlast.funcName;
   ParList = lpeg.Cp() * lpeg.V("NameList") * (symb(",") * lpeg.V("TypedVarArg"))^-1 /
-            ast.parList2 +
-            lpeg.Cp() * lpeg.V("TypedVarArg") / ast.parList1 +
-            lpeg.Cp() / ast.parList0;
+            tlast.parList2 +
+            lpeg.Cp() * lpeg.V("TypedVarArg") / tlast.parList1 +
+            lpeg.Cp() / tlast.parList0;
   TypedVarArg = lpeg.Cp() * symb("...") * (symb(":") * lpeg.V("Type"))^-1 /
-                ast.identDots;
+                tlast.identDots;
   FuncBody = lpeg.Cp() * symb("(") * lpeg.V("ParList") * symb(")") *
              (symb(":") * lpeg.V("RetType"))^-1 *
-             lpeg.V("Block") * kw("end") / ast.exprFunction;
+             lpeg.V("Block") * kw("end") / tlast.exprFunction;
   FuncStat = lpeg.Cp() * kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
-             ast.statFuncSet;
+             tlast.statFuncSet;
   LocalFunc = lpeg.Cp() * kw("function") *
-              lpeg.V("Id") * lpeg.V("FuncBody") / ast.statLocalrec;
+              lpeg.V("Id") * lpeg.V("FuncBody") / tlast.statLocalrec;
   LocalAssign = lpeg.Cp() * lpeg.V("NameList") *
-                ((symb("=") * lpeg.V("ExpList")) + lpeg.Ct(lpeg.Cc())) / ast.statLocal;
+                ((symb("=") * lpeg.V("ExpList")) + lpeg.Ct(lpeg.Cc())) / tlast.statLocal;
   LocalStat = kw("local") *
               (lpeg.V("LocalInterface") + lpeg.V("LocalFunc") + lpeg.V("LocalAssign"));
-  LabelStat = lpeg.Cp() * symb("::") * token(Name, "Name") * symb("::") / ast.statLabel;
-  BreakStat = lpeg.Cp() * kw("break") / ast.statBreak;
-  GoToStat = lpeg.Cp() * kw("goto") * token(Name, "Name") / ast.statGoto;
+  LabelStat = lpeg.Cp() * symb("::") * token(Name, "Name") * symb("::") / tlast.statLabel;
+  BreakStat = lpeg.Cp() * kw("break") / tlast.statBreak;
+  GoToStat = lpeg.Cp() * kw("goto") * token(Name, "Name") / tlast.statGoto;
   RetStat = lpeg.Cp() * kw("return") *
             (lpeg.V("Expr") * (symb(",") * lpeg.V("Expr"))^0)^-1 *
-            symb(";")^-1 / ast.statReturn;
+            symb(";")^-1 / tlast.statReturn;
   InterfaceStat = lpeg.Cp() * kw("interface") * token(Name, "Name") *
-                  lpeg.V("InterfaceDec")^1 * kw("end") / ast.statInterface;
+                  lpeg.V("InterfaceDec")^1 * kw("end") / tlast.statInterface;
   LocalInterface = lpeg.Cp() * kw("interface") * token(Name, "Name") *
-                   lpeg.V("InterfaceDec")^1 * kw("end") / ast.statLocalInterface;
+                   lpeg.V("InterfaceDec")^1 * kw("end") / tlast.statLocalInterface;
   InterfaceDec = ((kw("const") * lpeg.Cc("Const")) + lpeg.Cc("Field")) * lpeg.V("IdList") * symb(":") * (lpeg.V("Type") + lpeg.V("MethodType")) /
                   function (tag, idlist, t)
                     local l = {}
@@ -360,16 +360,16 @@ local G = { lpeg.V("TypedLua"),
                     end
                     return table.unpack(l)
                   end;
-  IdList = lpeg.Cp() * lpeg.V("Id") * (symb(",") * lpeg.V("Id"))^0 / ast.namelist;
+  IdList = lpeg.Cp() * lpeg.V("Id") * (symb(",") * lpeg.V("Id"))^0 / tlast.namelist;
   ExprStat = lpeg.Cmt(
-             (lpeg.V("SuffixedExp") * (lpeg.Cc(ast.statSet) * lpeg.V("Assignment"))) +
-             (lpeg.V("SuffixedExp") * (lpeg.Cc(ast.statApply))),
+             (lpeg.V("SuffixedExp") * (lpeg.Cc(tlast.statSet) * lpeg.V("Assignment"))) +
+             (lpeg.V("SuffixedExp") * (lpeg.Cc(tlast.statApply))),
              function (s, i, s1, f, ...) return f(s1, ...) end);
   Assignment = ((symb(",") * lpeg.V("SuffixedExp"))^1)^-1 * symb("=") * lpeg.V("ExpList");
   ConstStat = kw("const") * (lpeg.V("ConstFunc") + lpeg.V("ConstAssignment"));
   ConstFunc = lpeg.Cp() * kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
-              ast.statConstFuncSet;
-  ConstAssignment = lpeg.Cmt(lpeg.V("SuffixedExp") * lpeg.Cc(ast.statConstSet) *
+              tlast.statConstFuncSet;
+  ConstAssignment = lpeg.Cmt(lpeg.V("SuffixedExp") * lpeg.Cc(tlast.statConstSet) *
                     symb("=") * lpeg.V("Expr"),
                     function (s, i, s1, f, e1) return f(s1, e1) end);
   Stat = lpeg.V("IfStat") + lpeg.V("WhileStat") + lpeg.V("DoStat") + lpeg.V("ForStat") +
