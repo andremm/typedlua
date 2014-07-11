@@ -21,7 +21,8 @@ end
 local function new_scope ()
   local senv = {}
   senv["goto"] = {}
-  senv.label = {}
+  senv["label"] = {}
+  senv["local"] = {}
   return senv
 end
 
@@ -70,6 +71,23 @@ function tlst.exist_label (env, scope, name)
     if env[s]["label"][name] then return true end
   end
   return false
+end
+
+-- set_local : (env, id) -> ()
+function tlst.set_local (env, id)
+  local scope = env.scope
+  local local_name = id[1]
+  env[scope]["local"][local_name] = id
+end
+
+-- get_local : (env, string) -> (id)
+function tlst.get_local (env, local_name)
+  local scope = env.scope
+  for s = scope, 1, -1 do
+    local l = env[s]["local"][local_name]
+    if l then return l end
+  end
+  return nil
 end
 
 -- new_fenv : () -> (fenv)

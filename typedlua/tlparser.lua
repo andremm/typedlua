@@ -384,9 +384,12 @@ local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
 
 function traverse_parlist (env, parlist)
   local len = #parlist
-  local is_vararg = false
   if len > 0 and parlist[len].tag == "Dots" then
     tlst.set_vararg(env)
+    len = len - 1
+  end
+  for i = 1, len do
+    tlst.set_local(env, parlist[i])
   end
   return true
 end
@@ -508,6 +511,7 @@ local function traverse_fornum (env, stm)
   local status, msg
   tlst.begin_loop(env)
   tlst.begin_scope(env)
+  tlst.set_local(env, stm[1])
   status, msg = traverse_exp(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_exp(env, stm[3])
@@ -563,12 +567,16 @@ local function traverse_label (env, stm)
 end
 
 local function traverse_local (env, stm)
+  for k, v in ipairs(stm[1]) do
+    tlst.set_local(env, v)
+  end
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
   return true
 end
 
 local function traverse_localrec (env, stm)
+  tlst.set_local(env, stm[1][1])
   local status, msg = traverse_exp(env, stm[2][1])
   if not status then return status, msg end
   return true
@@ -603,6 +611,13 @@ end
 function traverse_var (env, var)
   local tag = var.tag
   if tag == "Id" then
+    if not tlst.get_local(env, var[1]) then
+      local e1 = tlast.ident(var.pos, "_ENV")
+      local e2 = tlast.exprString(var.pos, var[1])
+      var.tag = "Index"
+      var[1] = e1
+      var[2] = e2
+    end
     return true
   elseif tag == "Index" then
     local status, msg = traverse_exp(env, var[1])
@@ -617,6 +632,14 @@ end
 
 function traverse_varlist (env, varlist)
   for k, v in ipairs(varlist) do
+--[[
+    local traversed_var, msg = traverse_var(env, v)
+    if not traversed_var then
+      return traversed_var, msg
+    else
+      varlist[k] = traversed_var
+    end
+]]
     local status, msg = traverse_var(env, v)
     if not status then return status, msg end
   end
@@ -732,10 +755,24 @@ local function traverse (ast, errorinfo, strict)
   assert(type(errorinfo) == "table")
   assert(type(strict) == "boolean")
   local env = tlst.new_env(errorinfo.subject, errorinfo.filename)
+  local ENV = tlast.ident(0, "_ENV")
+  local _print = tlast.ident(0, "print")
+  local _type = tlast.ident(0, "type")
+  local _setmetatable = tlast.ident(0, "setmetatable")
+  local _tonumber = tlast.ident(0, "tonumber")
   tlst.begin_function(env)
   tlst.set_vararg(env)
-  local status, msg = traverse_block(env, ast)
-  if not status then return status, msg end
+  tlst.begin_scope(env)
+  tlst.set_local(env, ENV)
+  tlst.set_local(env, _print)
+  tlst.set_local(env, _type)
+  tlst.set_local(env, _setmetatable)
+  tlst.set_local(env, _tonumber)
+  for k, v in ipairs(ast) do
+    local status, msg = traverse_stm(env, v)
+    if not status then return status, msg end
+  end
+  tlst.end_scope(env)
   tlst.end_function(env)
   status, msg = verify_pending_gotos(env)
   if not status then return status, msg end

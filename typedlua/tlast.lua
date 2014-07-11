@@ -367,6 +367,11 @@ function tlast.ident (pos, str, t)
   return { tag = "Id", pos = pos, [1] = str, [2] = t }
 end
 
+-- index : (number, expr, expr) -> (lhs)
+function tlast.index (pos, e1, e2)
+  return { tag = "Index", pos = pos, [1] = e1, [2] = e2 }
+end
+
 -- identDots : (number, type?) -> (expr)
 function tlast.identDots (pos, t)
   return { tag = "Dots", pos = pos, [1] = t }
