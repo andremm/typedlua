@@ -1,5 +1,5 @@
 --[[
-This module implements Typed Lua types.
+This module implements Typed Lua tltype.
 ]]
 
 local tltype = {}
@@ -321,16 +321,22 @@ end
 
 -- isField : (field) -> (boolean)
 function tltype.isField (f)
-  return t.tag == "Field"
+  return f.tag == "Field"
 end
 
 -- isConstField : (field) -> (boolean)
 function tltype.isConstField (f)
-  return t.tag == "Const"
+  return f.tag == "Const"
 end
 
+-- Table : (field*) -> (type)
 function tltype.Table (...)
   return { tag = "Table", ... }
+end
+
+-- isTable : (type) -> (boolean)
+function tltype.isTable (t)
+  return t.tag == "Table"
 end
 
 -- type variables
@@ -343,6 +349,59 @@ end
 -- isVariable : (type) -> (boolean)
 function tltype.isVariable (t)
   return t.tag == "Variable"
+end
+
+-- tostring
+
+-- type2str (type) -> (string)
+local function type2str (t)
+  print(t.tag)
+  if tltype.isLiteral(t) then
+    return tostring(t[1])
+  elseif tltype.isBase(t) then
+    return t[1]
+  elseif tltype.isNil(t) then
+    return "nil"
+  elseif tltype.isValue(t) then
+    return "value"
+  elseif tltype.isAny(t) then
+    return "any"
+  elseif tltype.isSelf(t) then
+    return "self"
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v)
+    end
+    return "(" .. table.concat(l, " | ") .. ")"
+  elseif tltype.isFunction(t) then
+    return type2str(t[1]) .. " -> " .. type2str(t[2])
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
+      if tltype.isConstField(v) then
+        l[k] = "const " .. l[k]
+      end
+    end
+    return "{" .. table.concat(l, ", ") .. "}"
+  elseif tltype.isTuple(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      l[k] = type2str(v)
+    end
+    return "(" .. table.concat(l, ", ") .. ")"
+  elseif tltype.isVararg(t) then
+    return type2str(t[1]) .. "*"
+  else
+    error("trying to convert type to string but got " .. t.tag)
+  end
+end
+
+-- tostring : (type) -> (string)
+function tltype.tostring (t)
+  return type2str(t)
 end
 
 return tltype

@@ -632,14 +632,6 @@ end
 
 function traverse_varlist (env, varlist)
   for k, v in ipairs(varlist) do
---[[
-    local traversed_var, msg = traverse_var(env, v)
-    if not traversed_var then
-      return traversed_var, msg
-    else
-      varlist[k] = traversed_var
-    end
-]]
     local status, msg = traverse_var(env, v)
     if not status then return status, msg end
   end
