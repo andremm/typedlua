@@ -58,7 +58,7 @@
 \dstart
 $$
 \begin{array}{rlr}
-\multicolumn{3}{c}{\textbf{First-class types}}\\
+\multicolumn{3}{c}{\textbf{First-level types}}\\
 T ::= & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
 & | \; \Nil & \textit{nil type}\\
@@ -77,7 +77,7 @@ B ::= & \Boolean \; | \; \Number \; | \; \String & \\
 F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
 K ::= & L \; | \; B \; | \; \Top \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
-\multicolumn{3}{c}{\textbf{Second-class types}}\\
+\multicolumn{3}{c}{\textbf{Second-level types}}\\
 S ::= & \;\; T &\\
 & | \; T* & \textit{vararg types}\\
 & | \; T \times S & \textit{tuple types}\\
