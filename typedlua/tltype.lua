@@ -355,7 +355,6 @@ end
 
 -- type2str (type) -> (string)
 local function type2str (t)
-  print(t.tag)
   if tltype.isLiteral(t) then
     return tostring(t[1])
   elseif tltype.isBase(t) then
