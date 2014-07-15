@@ -4,6 +4,7 @@ This file implements the type checker for Typed Lua
 
 local scope = require "typedlua.scope"
 local types = require "typedlua.types"
+local tldparser = require "typedlua.tldparser"
 
 local lineno = scope.lineno
 local begin_scope, end_scope = scope.begin_scope, scope.end_scope
@@ -1290,23 +1291,18 @@ function checker.typecheck (ast, subject, filename)
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
-  local ENV = { tag = "Id", [1] = "_ENV", [2] = types.Table() }
-  ENV[2].open = true
-  local _print = { tag = "Id", [1] = "print", [2] = types.Function(types.Tuple(types.ValueStar), types.Tuple(types.NilStar)) }
   local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.String, types.NilStar)) }
   local _setmetatable = { tag = "Id", [1] = "setmetatable",
     [2] = types.Function(types.Tuple(types.Table(), types.Table(), types.ValueStar), types.Tuple(types.Table(), types.NilStar)) }
-  local _tonumber = { tag = "Id", [1] = "tonumber",
-    [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.Union(Number, Nil), types.NilStar)) }
+  local ENV = { tag = "Id", [1] = "_ENV", [2] = tldparser.parse("typedlua/lsl.tld", false) }
+  ENV[2].open = true
   begin_function(env)
   begin_scope(env)
   set_vararg_type(env, String)
   set_local(env, ENV, ENV[2], env.scope)
   -- setting print and type as local for now, just for passing on tests
-  set_local(env, _print, _print[2], env.scope)
   set_local(env, _type, _type[2], env.scope)
   set_local(env, _setmetatable, _setmetatable[2], env.scope)
-  set_local(env, _tonumber, _tonumber[2], env.scope)
   for k, v in ipairs(ast) do
     check_stm(env, v, false)
   end

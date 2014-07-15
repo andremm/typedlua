@@ -80,7 +80,10 @@ local G = lpeg.P { "TypedLuaDescription";
   DescriptionList = lpeg.Cc(false) * lpeg.V("Id") * tllexer.symb(":") * lpeg.V("Type") / tltype.Field;
 }
 
-function tldparser.parse (subject, filename, strict)
+function tldparser.parse (filename, strict)
+  local file = assert(io.open(filename, "r"))
+  local subject = file:read("*a")
+  file:close()
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
   local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict)

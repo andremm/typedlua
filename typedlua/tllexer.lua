@@ -45,38 +45,38 @@ local function fix_str (str)
   return str
 end
 
-tllexer.Shebang = lpeg.P("#") * (lpeg.P(1) - lpeg.P("\n"))^0 * lpeg.P("\n");
+tllexer.Shebang = lpeg.P("#") * (lpeg.P(1) - lpeg.P("\n"))^0 * lpeg.P("\n")
 
-local Space = lpeg.space^1;
+local Space = lpeg.space^1
 
-local Equals = lpeg.P("=")^0;
-local Open = "[" * lpeg.Cg(Equals, "init") * "[" * lpeg.P("\n")^-1;
-local Close = "]" * lpeg.C(Equals) * "]";
+local Equals = lpeg.P("=")^0
+local Open = "[" * lpeg.Cg(Equals, "init") * "[" * lpeg.P("\n")^-1
+local Close = "]" * lpeg.C(Equals) * "]"
 local CloseEQ = lpeg.Cmt(Close * lpeg.Cb("init"),
-                         function (s, i, a, b) return a == b end);
+                         function (s, i, a, b) return a == b end)
 
 local LongString = Open * lpeg.C((lpeg.P(1) - CloseEQ)^0) * Close /
-                   function (s, o) return s end;
+                   function (s, o) return s end
 
 local Comment = lpeg.P("--") * LongString /
                 function () return end +
-                lpeg.P("--") * (lpeg.P(1) - lpeg.P("\n"))^0;
+                lpeg.P("--") * (lpeg.P(1) - lpeg.P("\n"))^0
 
-tllexer.Skip = (Space + Comment)^0;
+tllexer.Skip = (Space + Comment)^0
 
-local idStart = lpeg.alpha + lpeg.P("_");
-local idRest = lpeg.alnum + lpeg.P("_");
+local idStart = lpeg.alpha + lpeg.P("_")
+local idRest = lpeg.alnum + lpeg.P("_")
 
 local Keywords = lpeg.P("and") + "break" + "do" + "elseif" + "else" + "end" +
                  "false" + "for" + "function" + "goto" + "if" + "in" +
                  "local" + "nil" + "not" + "or" + "repeat" + "return" +
-                 "then" + "true" + "until" + "while";
+                 "then" + "true" + "until" + "while"
 
-tllexer.Reserved = Keywords * -idRest;
+tllexer.Reserved = Keywords * -idRest
 
-local Identifier = idStart * idRest^0;
+local Identifier = idStart * idRest^0
 
-tllexer.Name = -tllexer.Reserved * lpeg.C(Identifier) * -idRest;
+tllexer.Name = -tllexer.Reserved * lpeg.C(Identifier) * -idRest
 
 function tllexer.token (pat, name)
   return pat * tllexer.Skip + updateffp(name) * lpeg.P(false)
@@ -90,27 +90,26 @@ function tllexer.kw (str)
   return tllexer.token(lpeg.P(str) * -idRest, str)
 end
 
-local Hex = (lpeg.P("0x") + lpeg.P("0X")) * lpeg.xdigit^1;
-local Expo = lpeg.S("eE") * lpeg.S("+-")^-1 * lpeg.digit^1;
+local Hex = (lpeg.P("0x") + lpeg.P("0X")) * lpeg.xdigit^1
+local Expo = lpeg.S("eE") * lpeg.S("+-")^-1 * lpeg.digit^1
 local Float = (((lpeg.digit^1 * lpeg.P(".") * lpeg.digit^0) +
               (lpeg.P(".") * lpeg.digit^1)) * Expo^-1) +
-              (lpeg.digit^1 * Expo);
-local Int = lpeg.digit^1;
+              (lpeg.digit^1 * Expo)
+local Int = lpeg.digit^1
 
-tllexer.Number = lpeg.C(Hex + Float + Int) /
-                 function (n) return tonumber(n) end;
+tllexer.Number = lpeg.C(Hex + Float + Int) / tonumber
 
 local ShortString = lpeg.P('"') *
                     lpeg.C(((lpeg.P('\\') * lpeg.P(1)) + (lpeg.P(1) - lpeg.P('"')))^0) *
                     lpeg.P('"') +
                     lpeg.P("'") *
                     lpeg.C(((lpeg.P("\\") * lpeg.P(1)) + (lpeg.P(1) - lpeg.P("'")))^0) *
-                    lpeg.P("'");
+                    lpeg.P("'")
 
-tllexer.String = LongString + (ShortString / function (s) return fix_str(s) end);
+tllexer.String = LongString + (ShortString / fix_str)
 
 -- for error reporting
-local OneWord = tllexer.Name + tllexer.Number + tllexer.String + tllexer.Reserved + lpeg.P("...") + lpeg.P(1);
+local OneWord = tllexer.Name + tllexer.Number + tllexer.String + tllexer.Reserved + lpeg.P("...") + lpeg.P(1)
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end

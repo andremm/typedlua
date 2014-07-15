@@ -1,0 +1,30 @@
+--[[
+Lua Standard Libraries Typed Lua description file
+]]
+
+-- Basic Functions
+
+assert : () -> ()
+collectgarbage : () -> ()
+dofile : () -> ()
+error : () -> ()
+_G : { string:value }
+getmetatable : () -> ()
+ipairs : () -> ()
+load : () -> ()
+loadfile : () -> ()
+next : () -> ()
+pairs : () -> ()
+pcall : () -> ()
+print : (value*) -> ()
+rawequal : () -> ()
+rawget : () -> ()
+rawlen : () -> ()
+rawset : () -> ()
+select : () -> ()
+-- setmetatable is a primitive in Typed Lua
+tonumber : (value, string?) -> (number)
+tostring : (value) -> (string)
+-- type is a primitive in Typed Lua
+_VERSION : string
+xpcall : () -> ()

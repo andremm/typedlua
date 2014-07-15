@@ -367,6 +367,8 @@ local function type2str (t)
     return "any"
   elseif tltype.isSelf(t) then
     return "self"
+  elseif tltype.isVoid(t) then
+    return "(void)"
   elseif tltype.isUnion(t) or
          tltype.isUnionlist(t) then
     local l = {}
