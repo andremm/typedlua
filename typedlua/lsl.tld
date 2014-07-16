@@ -4,27 +4,108 @@ Lua Standard Libraries Typed Lua description file
 
 -- Basic Functions
 
-assert : () -> ()
-collectgarbage : () -> ()
-dofile : () -> ()
-error : () -> ()
-_G : { string:value }
-getmetatable : () -> ()
-ipairs : () -> ()
-load : () -> ()
-loadfile : () -> ()
-next : () -> ()
-pairs : () -> ()
-pcall : () -> ()
+assert : (any, string?) -> (any, string?) | (nil)
+collectgarbage : (string?, number?) -> (number) | (number, number) | (boolean)
+dofile : (string?) -> (any*)
+error : (string, number?) -> ()
+_G : { string:any }
+getmetatable : (any) -> (any?)
+ipairs : ({any}) -> ((any*) -> (any*))
+load : (string|(any*) -> (any*), string?, string?, any?) -> ((any*) -> (any*))?
+loadfile : (string?, string?, any?) -> ((any*) -> (any*))?
+next : ({any:any}, any?) -> (any, any) | (nil)
+pairs : ({any}) -> ((any*) -> (any*))
+pcall : ((any*) -> (any*), any*) -> (true, any*) | (false, string)
 print : (value*) -> ()
-rawequal : () -> ()
-rawget : () -> ()
-rawlen : () -> ()
-rawset : () -> ()
-select : () -> ()
+rawequal : (value, value) -> (boolean)
+rawget : ({}, any) -> (any)
+rawlen : ({}|string) -> (number)
+rawset : ({any:any}, any, any) -> ({any:any})
+select : (number, any*) -> (any*)
 -- setmetatable is a primitive in Typed Lua
-tonumber : (value, string?) -> (number)
+tonumber : (value, number|string?) -> (number) | (nil)
 tostring : (value) -> (string)
 -- type is a primitive in Typed Lua
 _VERSION : string
-xpcall : () -> ()
+xpcall : ((any*) -> (any*), any, any*) -> (true, any*) | (false, string)
+
+-- String Manipulation
+
+string : {
+  "byte" : (string, number?, number?) -> (number*),
+  "char" : (number*) -> (string),
+  "dump" : ((value*) -> (value*)) -> (string),
+  "find" : (string, string, number?, true?) -> (number, number) | (nil),
+  "format" : (string, any*) -> (string),
+  "gmatch" : (string, string) -> ((any*) -> (any*)),
+  "gsub" : (string, string, string|{}|(any*) -> (any*), number?) -> (string, number),
+  "len" : (string) -> (number),
+  "lower" : (string) -> (string),
+  "match" : (string, string, number?) -> (string, string*) | (nil),
+  "rep" : (string, number, string?) -> (string),
+  "reverse" : (string) -> (string),
+  "sub" : (string, number, number?) -> (string),
+  "upper" : (string) -> (string)
+}
+
+-- Table Manipulation
+
+table : {
+  "concat" : ({string|number}, string?, number?, number?) -> (string),
+  "insert" : ({any}, any) -> (),
+  "pack" : (any*) -> ({number:any, "n":number}),
+  "remove" : ({any}, number?) -> (any),
+  "sort" : ({any}, any) -> (),
+  "unpack" : ({any}, number?, number?) -> (any*)
+}
+
+-- Mathematical Functions
+
+math : {
+  "abs" : (number) -> (number),
+  "acos" : (number) -> (number),
+  "asin" : (number) -> (number),
+  "atan" : (number) -> (number),
+  "atan2" : (number, number) -> (number),
+  "ceil" : (number) -> (number),
+  "cos" : (number) -> (number),
+  "cosh" : (number) -> (number),
+  "deg" : (number) -> (number),
+  "exp" : (number) -> (number),
+  "floor" : (number) -> (number),
+  "fmod" : (number, number) -> (number),
+  "frexp" : (number) -> (number, number),
+  "huge" : number,
+  "ldexp" : (number, number) -> (number),
+  "log" : (number, number?) -> (number),
+  "max" : (number, number*) -> (number),
+  "min" : (number, number*) -> (number),
+  "modf" : (number) -> (number, number),
+  "pi" : number,
+  "pow" : (number, number) -> (number),
+  "rad" : (number) -> (number),
+  "random" : (number?, number?) -> (number),
+  "randomseed" : (number) -> (),
+  "sin" : (number) -> (number),
+  "sinh" : (number) -> (number),
+  "sqrt" : (number) -> (number),
+  "tan" : (number) -> (number),
+  "tanh" : (number) -> (number)
+}
+
+-- Bitwise Operations
+
+bit32 : {
+  "arshift" : (number, number) -> (number),
+  "band" : (number*) -> (number),
+  "bnot" : (number) -> (number),
+  "bor" : (number*) -> (number),
+  "btest" : (number*) -> (number),
+  "bxor" : (number*) -> (number),
+  "extract" : (number, number, number?) -> (number),
+  "replace" : (number, number, number, number?) -> (number),
+  "lrotate" : (number, number) -> (number),
+  "lshift" : (number, number) -> (number),
+  "rrotate" : (number, number) -> (number),
+  "rshift" : (number, number) -> (number)
+}

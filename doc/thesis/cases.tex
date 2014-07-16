@@ -1,176 +1,198 @@
 
+Categories:
+\begin{enumerate}
+\item Easy to type, because the current type system is enough.
+\item Not easy to type, because it requires polymorphism.
+\item Hard to type, because neither the current type system nor
+      polymorphism are enough.
+\end{enumerate}
+
 \section{Lua standard libraries}
 
 \subsection{Basic functions}
 
 \begin{enumerate}
 \item assert (v [, message]) :
-$\Top \times
-(\String \cup \Nil) \times
-\TopStar \rightarrow
-\NilStar \cup
-(\Top \times
-(\String \cup \Nil) \times
-\TopStar)$ 
+\begin{verbatim}
+(any, string?) -> (any, string?) | (nil)
+\end{verbatim}
+Category 2?
 \\
 When \textbf{v} is $\Nil$ or $\False$, \textbf{assert}
 shows the error \textbf{message}.
 Otherwise, \textbf{assert} returns \textbf{v} and all the extra
 parameters.
 \item collectgarbage ([opt [, arg]]) :
-$(\String \cup \Nil) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-(\Number \times \Nil \times \NilStar) \cup
-(\Number \times \Number \times \NilStar) \cup
-(\Boolean \times \Nil \times \NilStar)$
+\begin{verbatim}
+(string?, number?) -> (number) | (number, number) | (boolean)
+\end{verbatim}
+Category 3.
 \\
 The return type depends on the type of \textbf{opt}:
-\begin{itemize}
-\item $\Nil \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``collect" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``stop" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``restart" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``count" \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
-\item $``step" \times \TopStar \rightarrow \Boolean \times \NilStar$
-\item $``setpause" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``setstepmul" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``isrunning" \times \TopStar \rightarrow \Boolean \times \NilStar$
-\item $``generational" \times \TopStar \rightarrow \Number \times \NilStar$
-\item $``incremental" \times \TopStar \rightarrow \Number \times \NilStar$
-\end{itemize}
+\begin{verbatim}
+() -> (number)
+("collect") -> (number)
+("stop") -> (number)
+("restart") -> (number)
+("count") -> (number, number)
+("step") -> (boolean)
+("setpause") -> (number)
+("setstepmul") -> (number)
+("isrunning") -> (boolean)
+("generational") -> (number)
+("incremental") -> (number)
+\end{verbatim}
 \item dofile ([filename]) :
-$(\String \cup \Nil) \times
-\TopStar \rightarrow
-\AnyStar
-$
+\begin{verbatim}
+(string?) -> (any*)
+\end{verbatim}
+Category 3?
 \item error (message [, level]) :
-$\String \times
-(0 \cup 1 \cup 2 \cup \Nil) \times
-\TopStar \rightarrow
-\NilStar$
-\item \_G : $\{ \String:\Top \}$
+\begin{verbatim}
+(string, number?) -> ()
+\end{verbatim}
+Category 1.
+\item \_G :
+\begin{verbatim}
+{string:any}
+\end{verbatim}
+Category 3?
 \item getmetatable (object) :
-$\mu X.\{ \_\_metatable:\Top \} \times
-\TopStar \rightarrow
-(\Nil \cup \{ \_\_metatable:\Top \}) \times
-\NilStar$
+\begin{verbatim}
+(any) -> (any?)
+\end{verbatim}
+Category 3.
 \item ipairs (t) :
-$\{ \Number:\Any \} \times
-\TopStar \rightarrow
-\Number \times
-\Any \times
-\NilStar$
+\begin{verbatim}
+({any}) -> ((any*) -> (any*)
+\end{verbatim}
+Category 3.
+\\
 \begin{itemize}
 \item What happens when \textbf{t} has a metamethod \textbf{\_\_ipairs}?
-\item Will $\{ ``tag":\String,\; \Number:\Any \}$ type check?
+\item Will \texttt{\{"tag":string, number:any\}} type check?
 \item In fact, \textbf{ipairs} and \textbf{pairs} return three values.
 Need to check this.
 \end{itemize}
 \item load (ld [, source [, mode [, env]]]) :
-$(\String \cup (\TopStar \rightarrow \TopStar)) \times
-(\String \cup \Nil) \times
-(``b" \cup ``t" \cup ``bt" \cup \Nil) \times
-(\Top \cup \Nil) \times
-\TopStar \rightarrow
-((\TopStar \rightarrow \TopStar) \times \NilStar) \cup
-(\Nil \times \String \times \NilStar)$
+\begin{verbatim}
+(string|(any*) -> (any*), string?, string?, any?) ->
+((any*) -> (any*))?
+\end{verbatim}
+Category 3?
+\\
+I guess the proper type should be:
+\begin{verbatim}
+(string|(any*) -> (any*)) |
+(string|(any*) -> (any*), string) |
+(string|(any*) -> (any*), string, string, any?) ->
+((any*) -> (any*))?
+\end{verbatim}
 \item loadfile ([filename [, mode [, env]]]) :
-$(\String \cup \Nil) \times
-(``b" \cup ``t" \cup ``bt" \cup \Nil) \times
-(\Top \cup \Nil) \times
-\TopStar \rightarrow
-((\TopStar \rightarrow \TopStar) \times \NilStar) \cup
-(\Nil \times \String \times \NilStar)$
+\begin{verbatim}
+(string?, string?, any?) -> ((any*) -> (any*))?
+\end{verbatim}
+Category 3?
+\\
+I guess the proper type should be:
+\begin{verbatim}
+() | (string) | (string, string) | (string, string, any?) ->
+((any*) -> (any*))?
+\end{verbatim}
 \item next (table [, index]) :
-$\{ \Any:\Any \} \times
-(\Any \cup \Nil) \times
-\TopStar \rightarrow
-(\Nil \times \NilStar) \cup
-(\Any \times \Any \times \NilStar)$
+\begin{verbatim}
+({any:any}, any?) -> (any, any) | (nil)
+\end{verbatim}
+Category 2.
 \item pairs (t) :
-$\{ \Any:\Any \} \times
-\TopStar \rightarrow
-\Any \times 
-\Any \times
-\NilStar$
+\begin{verbatim}
+({any}) -> ((any*) -> (any*)
+\end{verbatim}
+Category 3.
 \item pcall (f [, arg1, ···]) :
-$(\TopStar \rightarrow \TopStar) \times
-\TopStar \rightarrow
-(\Boolean \times \AnyStar) \cup
-(\Boolean \times \String \times \NilStar)$
-\item print (···) : $\TopStar \rightarrow \NilStar$
+\begin{verbatim}
+((any*) -> (any*), any*) -> (true, any*) | (false, string)
+\end{verbatim}
+Category 3?
+\item print (···) :
+\begin{verbatim}
+(value*) -> ()
+\end{verbatim}
+Category 1.
 \item rawequal (v1, v2) :
-$\Top \times
-\Top \times
-\TopStar \rightarrow
-\Boolean \times
-\NilStar$
+\begin{verbatim}
+(value, value) -> (boolean)
+\end{verbatim}
+Category 2.
 \item rawget (table, index) :
-$\{ \Top:\Top \} \times
-\Top \times
-\TopStar \rightarrow
-\Any \times
-\NilStar$
+\begin{verbatim}
+({}, any) -> (any)
+\end{verbatim}
+Category 2.
 \item rawlen (v) :
-$(\{ \Top:\Top \} \cup \String) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+({}|string) -> (number)
+\end{verbatim}
+Category 1.
 \item rawset (table, index, value) :
-$\{ \Top:\Top \} \times
-\Top \times
-\Top \times
-\TopStar \rightarrow
-\{ \Any:\Any \} \times
-\NilStar$
+\begin{verbatim}
+({any:any}, any, any) -> ({any:any})
+\end{verbatim}
+Category 3.
 \\
 In fact, \textbf{index} cannot be $\Nil$ or \texttt{NaN}.
 \item select (index, ···) :
-$\Number \times
-\AnyStar \rightarrow
-\AnyStar$
+\begin{verbatim}
+(number, any*) -> (any*)
+\end{verbatim}
+Category 3.
 \\
 When \textbf{index} is the string ``\texttt{\#}", the typing is:
-$\String \times \AnyStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(string, any*) -> (number)
+\end{verbatim}
 \item setmetatable (table, metatable) :
-$\{ \Top:\Top \} \times
-(\Nil \cup \{ \_\_index:\mu X.\{ \Top:\Top \} \}) \times
-\TopStar \rightarrow
-\{ \_\_index:\mu X.\{ \Top:\Top \} \} \times
-\NilStar$
+\begin{verbatim}
+({any:any}, {any:any}|nil) -> ({any:any}) 
+\end{verbatim}
+Category 3.
 \\
 Even though \textbf{metatable} can be $\Nil$, it is not optional.
+This function is a primitive in the type system.
 \item tonumber (e [, base]) :
-$\String \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(value, number|string?) -> (number) | (nil)
+\end{verbatim}
+Category 3.
+\\
+The type of \textbf{base} depends on the type of \textbf{e}:
+\begin{verbatim}
+(value) -> (number) | (nil)
+(string, number|string) -> (number) | (nil)
+\end{verbatim}
 \item tostring (v) :
-$\Top \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(value) -> (string)
+\end{verbatim}
+Category 1.
 \item type (v) :
-$\Top \times
-\TopStar \rightarrow
-(``nil" \cup
-``number" \cup
-``string" \cup
-``boolean" \cup
-``table" \cup
-``function" \cup
-``thread" \cup
-``userdata") \times
-\NilStar$
-\item \_VERSION : $\String$
+\begin{verbatim}
+(value) ->
+("nil"|"number"|"string"|"boolean"|"table"|"function"|"thread"|"userdata")
+\end{verbatim}
+Category 1.
+\\
+This function is a primitive in the type system.
+\item \_VERSION :
+\begin{verbatim}
+string
+\end{verbatim}
+Category 1.
 \item xpcall (f, msgh [, arg1, ···]) :
-$(\TopStar \rightarrow \TopStar) \times
-\Top \times
-\TopStar \rightarrow
-(\Boolean \times \AnyStar) \cup
-(\Boolean \times \String \times \NilStar)$
+\begin{verbatim}
+((any*) -> (any*), any, any*) -> (true, any*) | (false, string)
+\end{verbatim}
+Category 3?
 \end{enumerate}
 
 \subsection{Coroutine manipulation}
@@ -228,268 +250,405 @@ $\String \times
 (\Nil \times \String \times \NilStar)$
 \end{enumerate}
 
-\subsection{String manipulation}
+\subsection{String Manipulation}
 
 \begin{enumerate}
 \item string.byte (s [, i [, j]]) :
-$\String \times
-(\Number \cup \Nil) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\Number{*}$
+\begin{verbatim}
+(string, number?, number?) -> (number*)
+\end{verbatim}
+Category 1.
+\\
+I guess the proper type should be:
+\begin{verbatim}
+(string) |
+(string, number, number?) -> (number*)
+\end{verbatim}
 \item string.char (···) :
-$\Number{*} \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(number*) -> (string)
+\end{verbatim}
+Category 1.
 \item string.dump (function) :
-$(\TopStar \rightarrow \TopStar) \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+((value*) -> (value*)) -> (string)
+\end{verbatim}
+Category 3?
 \item string.find (s, pattern [, init [, plain]]) :
-$\String \times
-\String \times
-(\Number \cup \Nil) \times
-(\Boolean \cup \Nil) \times
-\TopStar \rightarrow
-(\Number \times \Number \times \NilStar) \cup
-(\Nil \times \NilStar)$
+\begin{verbatim}
+(string, string, number?, true?) -> (number, number) | (nil)
+\end{verbatim}
+Category 1.
+\\
+I guess the proper type should be:
+\begin{verbatim}
+(string, string) |
+(string, string, number, true?) -> (number, number) | (nil)
+\end{verbatim}
 \item string.format (formatstring, ···) :
-$\String \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string, any*) -> (string)
+\end{verbatim}
+Category 1.
 \item string.gmatch (s, pattern) :
-$\String \times
-\String \times
-\TopStar \rightarrow
-\String{*}$
+\begin{verbatim}
+(string, string) -> ((any*) -> (any*))
+\end{verbatim}
+Category 3.
 \\
 This function actually returns an iterator,
 so I still need to confirm its return type.
 \item string.gsub (s, pattern, repl [, n]) :
-$\String \times
-\String \times
-(\String \cup \{ \Top:\Top \} \cup (\TopStar \rightarrow \TopStar)) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\String \times
-\Number \times
-\NilStar$
+\begin{verbatim}
+(string, string, string|{}|(any*) -> (any*), number?) ->
+(string, number)
+\end{verbatim}
+Category 1.
 \item string.len (s) :
-$\String \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(string) -> (number)
+\end{verbatim}
+Category 1.
 \item string.lower (s) :
-$\String \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string) -> (string)
+\end{verbatim}
+Category 1.
 \item string.match (s, pattern [, init]) :
-$\String \times
-\String \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-(\String \times \String{*}) \cup
-(\Nil \times \NilStar)$
+\begin{verbatim}
+(string, string, number?) -> (string, string*) | (nil)
+\end{verbatim}
+Category 1.
 \item string.rep (s, n [, sep]) :
-$\String \times
-\Number \times
-(\String \cup \Nil) \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string, number, string?) -> (string)
+\end{verbatim}
+Category 1.
 \item string.reverse (s) :
-$\String \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string) -> (string)
+\end{verbatim}
+Category 1.
 \item string.sub (s, i [, j]) :
-$\String \times
-\Number \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string, number, number?) -> (string)
+\end{verbatim}
+Category 1.
 \item string.upper (s) :
-$\String \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+(string) -> (string)
+\end{verbatim}
+Category 1.
 \end{enumerate}
 
-\subsection{Table manipulation}
+\subsection{Table Manipulation}
 
 \begin{enumerate}
 \item table.concat (list [, sep [, i [, j]]]) :
-$\{ \Number:\String \cup \Number \} \times
-(\String \cup \Nil) \times
-(\Number \cup \Nil) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\String \times
-\NilStar$
+\begin{verbatim}
+({string|number}, string?, number?, number?) -> (string)
+\end{verbatim}
+Category 1.
+\\
+I guess the proper type should be:
+\begin{verbatim}
+({string|number}) |
+({string|number}, string) |
+({string|number}, string, number?) -> (string)
+\end{verbatim}
 \item table.insert (list, [pos,] value) :
-$\{ \Number:\Top \} \times
-(\Number \times \Top) \cup
-(\Top \times \Nil) \times
-\TopStar \rightarrow
-\NilStar$
+\begin{verbatim}
+({any}, any) -> ()
+\end{verbatim}
+Category 2.
 \\
 This function does not accept/discard extra parameters.
 Perhaps due to the fact that the parameter \textbf{pos} is optional.
 If \textbf{value} is $\TopStar$, the function inserts \textbf{pos}
 in the \textbf{list}, that is, the input type is
-$\{ \Number:\Top \} \times \Top \times \TopStar$.
+\texttt{(\{any\}, any) -> ()}.
 If \textbf{value} is $\Nil$, the function does not insert \textbf{pos}
 in the \textbf{list}, that is, the input type is
-$\{ \Number:\Top \} \times \Number \times \Top \times \TopStar$,
-but the element is not inserted in the list because $\Top$ is actually $\Nil$.
+\texttt{(\{any\}, number, any) -> ()},
+but the element is not inserted in the list because \textbf{value}
+is actually $\Nil$.
+I guess the proper type should be:
+\begin{verbatim}
+({any}, any) | ({any}, number, any) -> ()
+\end{verbatim}
 \item table.pack (···) :
-$\TopStar \rightarrow
-\{ \Number:\Top \} \times
-\NilStar$
+\begin{verbatim}
+(any*) -> ({number:any, "n":number})
+\end{verbatim}
+Category 2.
 \\
 Even though \textbf{table.pack} gets any number of parameters of
 any type, the $\Nil$ type generates a hole in the returned table.
 \item table.remove (list [, pos]) :
-$\{ \Number:\Top \} \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Top \times
-\NilStar
-$
+\begin{verbatim}
+({any}, number?) -> (any)
+\end{verbatim}
+Category 2.
 \\
 The return type depends on the type of the element that is removed
 from the list.
 \item table.sort (list [, comp]) :
-$\{ \Number:\Top \} \times
-((\TopStar \rightarrow \TopStar) \cup \Nil) \times
-\TopStar \rightarrow
-\NilStar$
+\begin{verbatim}
+({any}, any?) -> ()
+\end{verbatim}
+Category 2.
+\\
+The proper type should be:
+\begin{verbatim}
+({any}, (any, any) -> (boolean)?) -> ()
+\end{verbatim}
+But there is a syntactic conflict for defining optional function types
+that should be fixed in the parser.
 \item table.unpack (list [, i [, j]]) :
-$\{ \Number:\Top \} \times
-(\Number \cup \Nil) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\TopStar$
+\begin{verbatim}
+({any}, number?, number?) -> (any*)
+\end{verbatim}
+Category 2.
 \\
 The return type depends on the type of the elements that are stored in
 the list.
+I guess the proper type should be:
+\begin{verbatim}
+({any}) | ({any}, number, number?) -> (any*)
+\end{verbatim}
 \end{enumerate}
 
-\subsection{Mathematical functions}
+\subsection{Mathematical Functions}
 
 \begin{enumerate}
 \item math.abs (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.acos (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.asin (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.atan (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.atan2 (y, x) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.ceil (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.cos (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.cosh (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$  
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.deg (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.exp (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.floor (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.fmod (x, y) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.frexp (x) :
-$\Number \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
-\item math.huge : $\Number$
+\begin{verbatim}
+(number) -> (number, number)
+\end{verbatim}
+Category 1.
+\item math.huge :
+\begin{verbatim}
+number
+\end{verbatim}
+Category 1.
 \item math.ldexp (m, e) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.log (x [, base]) :
-$\Number \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(number, number?) -> (number)
+\end{verbatim}
+Category 1.
 \item math.max (x, ···) :
-$\Number \times \Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number*) -> (number)
+\end{verbatim}
+Category 1.
 \item math.min (x, ···) :
-$\Number \times \Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number*) -> (number)
+\end{verbatim}
+Category 1.
 \item math.modf (x) :
-$\Number \times \TopStar \rightarrow \Number \times \Number \times \NilStar$
-\item math.pi : $\Number$
+\begin{verbatim}
+(number) -> (number, number)
+\end{verbatim}
+Category 1.
+\item math.pi :
+\begin{verbatim}
+number
+\end{verbatim}
+Category 1.
 \item math.pow (x, y) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.rad (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.random ([m [, n]]) :
-$(\Number \cup \Nil) \times
-(\Number \cup \Nil) \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(number?, number?) -> (number)
+\end{verbatim}
+Category 1.
 \\
 This function does not accept $\Nil$ as its only parameter,
 although the parameter passing is optional.
 This function does not accept/discard extra parameters.
+I guess the proper type should be:
+\begin{verbatim}
+() | (number, number?) -> (number)
+\end{verbatim}
 \item math.randomseed (x) :
-$\Number \times \TopStar \rightarrow \NilStar$
+\begin{verbatim}
+(number) -> ()
+\end{verbatim}
+Category 1.
 \item math.sin (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.sinh (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.sqrt (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.tan (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item math.tanh (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \end{enumerate}
 
-\subsection{Bitwise operations}
+\subsection{Bitwise Operations}
 
 \begin{enumerate}
 \item bit32.arshift (x, disp) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.band (···) :
-$\Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number*) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.bnot (x) :
-$\Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.bor (···) :
-$\Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number*) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.btest (···) :
-$\Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number*) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.bxor (···) :
-$\Number{*} \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number*) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.extract (n, field [, width]) :
-$\Number \times
-\Number \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(number, number, number?) -> (number)
+\end{verbatim}
+Category 1.
+\\
+Should it be?
+\begin{verbatim}
+(number, 0|...|31, 1|...|32|nil) -> (number)
+\end{verbatim}
 \item bit32.replace (n, v, field [, width]) :
-$\Number \times
-\Number \times
-\Number \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(number, number, number, number?) -> (number)
+\end{verbatim}
+Category 1.
+\\
+Should it be?
+\begin{verbatim}
+(number, number, 0|...|31, 1|...|32|nil) -> (number)
+\end{verbatim}
 \item bit32.lrotate (x, disp) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.lshift (x, disp) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.rrotate (x, disp) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \item bit32.rshift (x, disp) :
-$\Number \times \Number \times \TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+(number, number) -> (number)
+\end{verbatim}
+Category 1.
 \end{enumerate}
 
 \subsection{Input and Output facilities}

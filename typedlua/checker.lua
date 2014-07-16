@@ -577,6 +577,9 @@ local function check_index_read (env, exp)
       set_type(exp, Nil)
       msg = msg .. " with '%s'"
       msg = string.format(msg, type2str(t1), type2str(t2))
+      if exp1[1] == "_ENV" then
+        msg = string.format("attempt to access undeclared global '%s'", exp[2][1])
+      end
       typeerror(env, msg, exp.pos)
     end
   elseif types.isAny(t1) then
