@@ -29,6 +29,32 @@ tostring : (value) -> (string)
 _VERSION : string
 xpcall : ((any*) -> (any*), any, any*) -> (true, any*) | (false, string)
 
+-- Coroutine Manipulation
+
+coroutine : {
+  "create" : ((any*) -> (any*)) -> (any),
+  "resume" : (any, any*) -> (true, any*) | (false, string),
+  "running" : () -> (any, boolean),
+  "status" : (any) -> ("running"|"suspended"|"normal"|"dead"),
+  "wrap" : ((any*) -> (true, any*) | (false, string)) -> ((any*) -> (true, any*) | (false, string)),
+  "yield" : (any*) -> ()
+}
+
+-- Modules
+
+-- require is a primitive in Typed Lua
+
+package : {
+  "config" : string,
+  "cpath" : string,
+  "loaded" : {string:{any:any}},
+  "loadlib" : (string, string) -> (true)?,
+  "path" : string,
+  "preload" : {string:{any:any}},
+  "searchers" : {(any*) -> (any*)},
+  "searchpath" : (string, string, string?, string?) -> (string)?
+}
+
 -- String Manipulation
 
 string : {
@@ -108,4 +134,63 @@ bit32 : {
   "lshift" : (number, number) -> (number),
   "rrotate" : (number, number) -> (number),
   "rshift" : (number, number) -> (number)
+}
+
+-- Input and Output Facilities
+
+io : {
+  "close" : (any?) -> (boolean) | (nil, string) | (true?, string, number),
+  "flush" : () -> (boolean),
+  "input" : (string|any|nil) -> (any),
+  "lines" : (string|any|nil) -> ((any*) -> (any*)),
+  "open" : (string, "r"|"w"|"a"|"r+"|"w+"|"a+"|"rb"|"wb"|"ab"|"r+b"|"w+b"|"w+b"|nil) -> (any) | (nil, string, number),
+  "output" : (string|any|nil) -> (any),
+  "popen" : (string, "r"|"w"|nil) -> (any) | (nil, string, number),
+  "read" : ("*n"|"*a"|"*l"|"*L"|number*) -> (string|number*),
+  "tmpfile" : () -> (any),
+  "type" : (value) -> ("file"|"closed file"|nil),
+  "write" : (string|number*) -> (any) | (nil, string, number)
+}
+
+-- Operating System Facilities
+
+os : {
+  "clock" : () -> (number),
+  "date" : (string?, number?) -> (string) | ({"year":number, "month":number, "day":number,
+                                              "hour":number, "min":number, "sec":number,
+                                              "wday":number, "yday":number, "isdst":boolean}),
+  "difftime" : (number, number?) -> (number),
+  "execute" : (string?) -> (boolean) | (true?, string, number),
+  "exit" : (boolean|number?, value?) -> (),
+  "getenv" : (string) -> (string),
+  "remove" : (string) -> (true) | (nil, string, number),
+  "rename" : (string, string) -> (true) | (nil, string, number),
+  "setlocale" : (string?, "all"|"collate"|"ctype"|"monetary"|"numeric"|"time"|nil) -> (string) | (nil),
+  "time" : ({"year":number, "month":number, "day":number,
+             "hour":number?, "min":number?, "sec":number?,
+             "wday":number?, "yday":number?, "isdst":boolean?}?) -> (number),
+  "tmpname" : () -> (string)
+}
+
+-- The Debug Library
+
+-- TODO
+
+debug : {
+  "debug" : any,
+  "gethook" : any,
+  "getinfo" : any,
+  "getlocal" : any,
+  "getmetatable" : any,
+  "getregistry" : any,
+  "getupvalue" : any,
+  "getuservalue" : any,
+  "sethook" : any,
+  "setlocal" : any,
+  "setmetatable" : any,
+  "setupvalue" : any,
+  "setuservalue" : any,
+  "traceback" : any,
+  "upvalueid" : any,
+  "upvaluejoin" : any
 }

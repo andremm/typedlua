@@ -195,59 +195,103 @@ Category 1.
 Category 3?
 \end{enumerate}
 
-\subsection{Coroutine manipulation}
+\subsection{Coroutine Manipulation}
 
 \begin{enumerate}
 \item coroutine.create (f) :
-$(\TopStar \rightarrow \TopStar) \times \TopStar \rightarrow Thread \times \NilStar$
+\begin{verbatim}
+((any*) -> (any*)) -> (any)
+\end{verbatim}
+Category 3.
 \item coroutine.resume (co [, val1, ···]) :
-$Thread \times
-\TopStar \rightarrow
-(\True \times \AnyStar) \cup
-(\False \times \String \times \NilStar)$
+\begin{verbatim}
+(any, any*) -> (true, any*) | (false, string)
+\end{verbatim}
+Category 3.
 \item coroutine.running () :
-$\TopStar \rightarrow Thread \times \Boolean \times \NilStar$
+\begin{verbatim}
+() -> (any, boolean)
+\end{verbatim}
+Category 3.
 \item coroutine.status (co) :
-$Thread \times \TopStar \rightarrow \String \times \NilStar$
+\begin{verbatim}
+(any) -> ("running"|"suspended"|"normal"|"dead")
+\end{verbatim}
+Category 3.
 \item coroutine.wrap (f) :
-$(\TopStar \rightarrow \TopStar) \times
-\TopStar \rightarrow
-(\TopStar \rightarrow \TopStar) \times
-\NilStar$ 
+\begin{verbatim}
+((any*) -> (true, any*) | (false, string)) ->
+((any*) -> (true, any*) | (false, string))
+\end{verbatim}
+Category 3.
 \item coroutine.yield (···) :
-$\TopStar \rightarrow \NilStar$
+\begin{verbatim}
+(any*) -> ()
+\end{verbatim}
+Category 1?
 \end{enumerate}
 
 \subsection{Modules}
 
 \begin{enumerate}
 \item require (modname) :
-$\String \times \TopStar \rightarrow \{\Any:\Any\} \times \NilStar$
+\begin{verbatim}
+(string) -> ({any:any})
+\end{verbatim}
+Category 1.
 \\
 The function \textbf{require} returns exactly the same value that is
 returned by loading \textbf{modname}.
 However, if the returned value is $\Nil$, this value is
 converted to $\True$.
-\item package.config : $\String$
-\item package.cpath : $\String$
-\item package.loaded : $\{\String:\{\Any:\Any\}\}$
+This function is a primitive in the type system.
+\item package.config :
+\begin{verbatim}
+string
+\end{verbatim}
+Category 1.
+\item package.cpath :
+\begin{verbatim}
+string
+\end{verbatim}
+Category 1.
+\item package.loaded :
+\begin{verbatim}
+{string:{any:any}}
+\end{verbatim}
+Category 2?
 \item package.loadlib (libname, funcname) :
-$\String \times
-\String \times
-\TopStar \rightarrow
-(\True \times \NilStar) \cup
-(\Nil \times \String \times \NilStar)$
-\item package.path : $\String$
-\item package.preload : $\{\String:\{\Any:\Any\}\}$
-\item package.searchers : $\{\Number:\TopStar \rightarrow \TopStar\}$
+\begin{verbatim}
+(string, string) -> (true)?
+\end{verbatim}
+Category 1?
+\item package.path :
+\begin{verbatim}
+string
+\end{verbatim}
+Category 1.
+\item package.preload :
+\begin{verbatim}
+{string:{any:any}}
+\end{verbatim}
+Category 2?
+\item package.searchers :
+\begin{verbatim}
+{(any*) -> (any*)}
+\end{verbatim}
+Category 2?
 \item package.searchpath (name, path [, sep [, rep]]) :
-$\String \times
-\String \times
-(\String \cup \Nil) \times
-(\String \cup \Nil) \times
-\TopStar \rightarrow
-(\String \times \NilStar) \cup
-(\Nil \times \String \times \NilStar)$
+\begin{verbatim}
+(string, string, string?, string?) -> (string)?
+\end{verbatim}
+Category 1.
+\\
+I guess the proper type should be:
+\begin{verbatim}
+(string, string) |
+(string, string, string) |
+(string, string, string, string?) -> (string)?
+\end{verbatim}
 \end{enumerate}
 
 \subsection{String Manipulation}
@@ -651,65 +695,92 @@ Category 1.
 Category 1.
 \end{enumerate}
 
-\subsection{Input and Output facilities}
+\subsection{Input and Output Facilities}
 
 \begin{enumerate}
 \item io.close ([file]) :
-$(Userdata \cup \Nil) \times
-\TopStar \rightarrow
-(\Boolean \times \NilStar) \cup
-(\Nil \times \String \times \NilStar) \cup
-((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
+\begin{verbatim}
+(any?) -> (boolean) | (nil, string) | (true?, string, number)
+\end{verbatim}
+Category 1?
 \\
-Returns $((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
-when the file handle was created with \textbf{io.popen}.
+Returns \texttt{(true?, string, number)} when the file handle
+was created with \textbf{io.popen}.
+The parameter \textbf{file} is a \textit{userdata} and I need
+to fix that on the type system.
 \item io.flush () :
-$\TopStar \rightarrow \Boolean \times \NilStar$
+\begin{verbatim}
+() -> (boolean)
+\end{verbatim}
+Category 1.
 \item io.input ([file]) :
-$(\String \cup Userdata \cup \Nil) \times
-\TopStar \rightarrow
-Userdata \times
-\NilStar$
+\begin{verbatim}
+(string|any|nil) -> (any)
+\end{verbatim}
+Category 1?
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.lines ([filename ···]) :
-$(\String \cup Userdata \cup \Nil) \times
-\TopStar \rightarrow
-(\String \times \NilStar) \cup
-(\Nil \times \NilStar)$
+\begin{verbatim}
+(string|any|nil) -> ((any*) -> (any*))
+\end{verbatim}
+Category 1?
 \\
 In fact, this function returns an iterator. Need to check the return type.
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.open (filename [, mode]) :
-$\String \times
-(``r" \cup ``w" \cup ``a" \cup
-``r+" \cup ``w+" \cup ``a+" \cup
-``rb" \cup ``wb" \cup ``ab" \cup
-``r+b" \cup ``w+b" \cup ``a+b" \cup
-\Nil) \times
-\TopStar \rightarrow
-(Userdata \times \NilStar) \cup
-(\Nil \times \String \times \Number \times \NilStar)$
+\begin{verbatim}
+(string,
+"r"|"w"|"a"|"r+"|"w+"|"a+"|"rb"|"wb"|"ab"|"r+b"|"w+b"|"w+b"|nil) ->
+(any) | (nil, string, number)
+\end{verbatim}
+Category 1?
+\\
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.output ([file]) :
-$(\String \cup Userdata \cup \Nil) \times
-\TopStar \rightarrow
-Userdata \times
-\NilStar$
+\begin{verbatim}
+(string|any|nil) -> (any)
+\end{verbatim}
+Category 1?
+\\
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.popen (prog [, mode]) :
-$\String \times
-(``r" \cup ``w" \cup \Nil) \times
-\TopStar \rightarrow
-(Userdata \times \NilStar) \cup
-(\Nil \times \String \times \Number \times \NilStar)$
+\begin{verbatim}
+(string, "r"|"w"|nil) -> (any) | (nil, string, number)
+\end{verbatim}
+Category 1?
+\\
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.read (···) :
-$(``*n" \cup ``*a" \cup ``*l" \cup ``*L" \cup \Number){*} \rightarrow
-(\String \cup \Number){*}
-$
+\begin{verbatim}
+("*n"|"*a"|"*l"|"*L"|number*) -> (string|number*)
+\end{verbatim}
+Category 1.
 \item io.tmpfile () :
-$\TopStar \rightarrow Userdata \times \NilStar$
+\begin{verbatim}
+() -> (any)
+\end{verbatim}
+Category 1?
+\\
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item io.type (obj) :
-$\Top \times \TopStar \rightarrow (``file" \cup ``closed\;file" \cup \Nil) \times \NilStar$
+\begin{verbatim}
+(value) -> ("file"|"closed file"|nil)
+\end{verbatim}
+Category 1.
 \item io.write (···) :
-$(\String \cup \Number){*} \rightarrow
-(Userdata \times \NilStar) \cup
-(\Nil \times \String \times \Number \times \NilStar)$
+\begin{verbatim}
+(string|number*) -> (any) | (nil, string, number)
+\end{verbatim}
+Category 1?
+\\
+Here the type \texttt{any} refers to a \textit{userdata} and
+I need to fix that on the type system.
 \item file:close () : ?
 \item file:flush () : ?
 \item file:lines (···) : ?
@@ -719,98 +790,103 @@ $(\String \cup \Number){*} \rightarrow
 \item file:write (···) : ?
 \end{enumerate}
 
-\subsection{Operating System facilities}
+\subsection{Operating System Facilities}
 
 \begin{enumerate}
 \item os.clock () :
-$\TopStar \rightarrow \Number \times \NilStar$
+\begin{verbatim}
+() -> (number)
+\end{verbatim}
+Category 1.
 \item os.date ([format [, time]]) :
-$(\String \cup \Nil) \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-(\String \times \NilStar) \cup
-(\{``year":\Number,\;
-   ``month":\Number,\;
-   ``day":\Number,\;
-   ``hour":\Number,\;
-   ``min":\Number,\;
-   ``sec":\Number,\;
-   ``wday":\Number,\;
-   ``yday":\Number,\;
-   ``isdst":\Boolean \} \times \NilStar)$
+\begin{verbatim}
+(string?, number?) -> (string) |
+                      ({"year":number, "month":number, "day":number,
+                        "hour":number, "min":number, "sec":number,
+                        "wday":number, "yday":number, "isdst":boolean})
+\end{verbatim}
+Category 1.
 \\
 Returns a table when \textbf{format} contains ``\textbf{*t}''.
+I guess the proper type should be:
+\begin{verbatim}
+() | (string) | (string, number?) -> (string) |
+                      ({"year":number, "month":number, "day":number,
+                        "hour":number, "min":number, "sec":number,
+                        "wday":number, "yday":number, "isdst":boolean})
+\end{verbatim}
 \item os.difftime (t2, t1) :
-$\Number \times
-(\Number \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+(number, number?) -> (number)
+\end{verbatim}
+Category 1.
 \\
 Returns \textbf{t2} when \textbf{t1} is $\Nil$.
 \item os.execute ([command]) :
-$(\String \cup \Nil) \times
-\TopStar \rightarrow
-(\Boolean \times \NilStar) \cup
-((\True \cup \Nil) \times \String \times \Number \times \NilStar)$
+\begin{verbatim}
+(string?) -> (boolean) | (true?, string, number)
+\end{verbatim}
+Category 3.
 \\
 Returns just a Boolean when \textbf{command} is $\Nil$.
 This Boolean means whether there is a shell available.
-Returns $\True \times \String \times \Number \times \NilStar$ when
+Returns \texttt{(true, string, number)} when
 \textbf{command} terminated successfully.
-Returns $\Nil \times \String \times \Number \times \NilStar$ when
-\textbf{command} did not terminate sucessfully.
+Returns \texttt{(nil, string, number)} when
+\textbf{command} did not terminate successfully.
 \item os.exit ([code [, close]]) :
-$(\Number \cup \Boolean \cup \Nil) \times
-\Top \times
-\TopStar \rightarrow
-\NilStar$
+\begin{verbatim}
+(boolean|number?, value?) -> ()
+\end{verbatim}
+Category 1.
+\\
+I guess the proper type should be:
+\begin{verbatim}
+() | (boolean|number) | (boolean|number, value?) -> ()
+\end{verbatim}
 \item os.getenv (varname) :
-$\String \times
-\TopStar \rightarrow
-(\String \times \NilStar) \cup
-(\Nil \times \NilStar)$
+\begin{verbatim}
+(string) -> (string)
+\end{verbatim}
+Category 1.
 \item os.remove (filename) :
-$\String \times
-\TopStar \rightarrow
-(\True \times \NilStar) \cup
-(\Nil \times \String \times \Number \NilStar)$
+\begin{verbatim}
+(string) -> (true) | (nil, string, number)
+\end{verbatim}
+Category 1.
 \item os.rename (oldname, newname) :
-$\String \times
-\String \times
-\TopStar \rightarrow
-(\True \times \NilStar) \cup
-(\Nil \times \String \times \Number \NilStar)$
+\begin{verbatim}
+(string) -> (true) | (nil, string, number)
+\end{verbatim}
+Category 1.
 \item os.setlocale (locale [, category]) :
-$(\String \cup \Nil) \times
-(``all" \cup
-``collate" \cup
-``ctype" \cup
-``monetary" \cup
-``numeric" \cup
-``time" \cup
-\Nil) \times
-\TopStar \rightarrow
-(\String \times \NilStar) \cup
-(\Nil \times \NilStar)$
+\begin{verbatim}
+(string?, "all"|"collate"|"ctype"|"monetary"|"numeric"|"time"|nil) ->
+(string) | (nil)
+\end{verbatim}
+Category 3?
+\\
+The return type depends on the input type:
+\begin{verbatim}
+() -> (string)
+(string, "all"|"collate"|"ctype"|"monetary"|"numeric"|"time"|nil) ->
+(string) | (nil)
+\end{verbatim}
 \item os.time ([table]) :
-$(\{``year":\Number,\;
-   ``month":\Number,\;
-   ``day":\Number,\;
-   ``hour":(\Number \cup \Nil),\;
-   ``min":(\Number \cup \Nil),\;
-   ``sec":(\Number \cup \Nil),\;
-   ``wday":(\Number \cup \Nil),\;
-   ``yday":(\Number \cup \Nil),\;
-   ``isdst":(\Boolean \cup \Nil) \} \cup \Nil) \times
-\TopStar \rightarrow
-\Number \times
-\NilStar$
+\begin{verbatim}
+({"year":number, "month":number, "day":number,
+  "hour":number?, "min":number?, "sec":number?,
+  "wday":number?, "yday":number?, "isdst":boolean?}?) -> (number)
+\end{verbatim}
+Category 1.
 \item os.tmpname () :
-$\TopStar \rightarrow \String \times \NilStar$
+\begin{verbatim}
+() -> (string)
+\end{verbatim}
+Category 1.
 \end{enumerate}
 
-\subsection{The debug library}
+\subsection{The Debug Library}
 
 \begin{enumerate}
 \item debug.debug () : ?
