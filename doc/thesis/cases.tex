@@ -846,7 +846,7 @@ I guess the proper type should be:
 \end{verbatim}
 \item os.getenv (varname) :
 \begin{verbatim}
-(string) -> (string)
+(string) -> (string?)
 \end{verbatim}
 Category 1.
 \item os.remove (filename) :
@@ -856,7 +856,7 @@ Category 1.
 Category 1.
 \item os.rename (oldname, newname) :
 \begin{verbatim}
-(string) -> (true) | (nil, string, number)
+(string, string) -> (true) | (nil, string, number)
 \end{verbatim}
 Category 1.
 \item os.setlocale (locale [, category]) :
@@ -888,21 +888,4 @@ Category 1.
 
 \subsection{The Debug Library}
 
-\begin{enumerate}
-\item debug.debug () : ?
-\item debug.gethook ([thread]) : ?
-\item debug.getinfo ([thread,] f [, what]) : ?
-\item debug.getlocal ([thread,] f, local) : ?
-\item debug.getmetatable (value) : ?
-\item debug.getregistry () : ?
-\item debug.getupvalue (f, up) : ?
-\item debug.getuservalue (u) : ?
-\item debug.sethook ([thread,] hook, mask [, count]) : ?
-\item debug.setlocal ([thread,] level, local, value) : ?
-\item debug.setmetatable (value, table) : ?
-\item debug.setupvalue (f, up, value) : ?
-\item debug.setuservalue (udata, value) : ?
-\item debug.traceback ([thread,] [message [, level]]) : ?
-\item debug.upvalueid (f, n) : ?
-\item debug.upvaluejoin (f1, n1, f2, n2) : ?
-\end{enumerate}
+We will not type the debug libraty.

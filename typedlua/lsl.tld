@@ -162,7 +162,7 @@ os : {
   "difftime" : (number, number?) -> (number),
   "execute" : (string?) -> (boolean) | (true?, string, number),
   "exit" : (boolean|number?, value?) -> (),
-  "getenv" : (string) -> (string),
+  "getenv" : (string) -> (string?),
   "remove" : (string) -> (true) | (nil, string, number),
   "rename" : (string, string) -> (true) | (nil, string, number),
   "setlocale" : (string?, "all"|"collate"|"ctype"|"monetary"|"numeric"|"time"|nil) -> (string) | (nil),
@@ -174,23 +174,21 @@ os : {
 
 -- The Debug Library
 
--- TODO
-
 debug : {
-  "debug" : any,
-  "gethook" : any,
-  "getinfo" : any,
-  "getlocal" : any,
-  "getmetatable" : any,
-  "getregistry" : any,
-  "getupvalue" : any,
-  "getuservalue" : any,
-  "sethook" : any,
-  "setlocal" : any,
-  "setmetatable" : any,
-  "setupvalue" : any,
-  "setuservalue" : any,
-  "traceback" : any,
-  "upvalueid" : any,
-  "upvaluejoin" : any
+  "debug" : () -> (),
+  "gethook" : (any*) -> (any*),
+  "getinfo" : (any*) -> (any*),
+  "getlocal" : (any*) -> (any*),
+  "getmetatable" : (value) -> (any),
+  "getregistry" : () -> (any),
+  "getupvalue" : (any, any) -> (any*),
+  "getuservalue" : (value) -> (any),
+  "sethook" : (any*) -> (),
+  "setlocal" : (any*) -> (string?),
+  "setmetatable" : (any, any) -> (any),
+  "setupvalue" : (any, any, any) -> (string?),
+  "setuservalue" : (any, any) -> (any),
+  "traceback" : (any*) -> (any*),
+  "upvalueid" : (any, any) -> (any),
+  "upvaluejoin" : (value, value, value, value) -> ()
 }
