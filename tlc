@@ -2,8 +2,8 @@
 
 local checker = require "typedlua.checker"
 local code = require "typedlua.code"
-local parser = require "typedlua.parser"
-local pp = require "typedlua.pp"
+local tlast = require "typedlua.tlast"
+local tlparser = require "typedlua.tlparser"
 
 local VERSION = "0.1-alpha1"
 local PROGNAME = "tlc"
@@ -96,25 +96,25 @@ local i = doargs()
 local filename = arg[i]
 local subject = getcontents(filename)
 
-local ast, error_msg = parser.parse(subject, filename)
+local ast, error_msg = tlparser.parse(subject, filename, STRICT)
 if not ast then
   print(error_msg)
   os.exit(1)
 end
 
 if DUMPAST and PRINTAST then
-  pp.dump(ast)
-  pp.print(ast)
+  tlast.dump(ast)
+  print(tlast.tostring(ast))
   os.exit(0)
 end
 
 if DUMPAST then
-  pp.dump(ast)
+  tlast.dump(ast)
   os.exit(0)
 end
 
 if PRINTAST then
-  pp.print(ast)
+  print(tlast.tostring(ast))
   os.exit(0)
 end
 
