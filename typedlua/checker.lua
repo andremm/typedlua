@@ -1289,7 +1289,7 @@ function checker.typecheck (ast, subject, filename)
   local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.String, types.NilStar)) }
   local _setmetatable = { tag = "Id", [1] = "setmetatable",
     [2] = types.Function(types.Tuple(types.Table(), types.Table(), types.ValueStar), types.Tuple(types.Table(), types.NilStar)) }
-  local ENV = { tag = "Id", [1] = "_ENV", [2] = tldparser.parse("typedlua/lsl.tld", false) }
+  local ENV = { tag = "Id", [1] = "_ENV", [2] = assert(tldparser.parse("typedlua/lsl.tld", false)) }
   ENV[2].open = true
   begin_function(env)
   begin_scope(env)

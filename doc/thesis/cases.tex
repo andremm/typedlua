@@ -438,16 +438,19 @@ The return type depends on the type of the element that is removed
 from the list.
 \item table.sort (list [, comp]) :
 \begin{verbatim}
-({any}, any?) -> ()
+({any}, nil|(any, any) -> (boolean)) -> ()
 \end{verbatim}
 Category 2.
 \\
-The proper type should be:
+Do we really need grouping?
 \begin{verbatim}
-({any}, (any, any) -> (boolean)?) -> ()
+({any}, [(any, any) -> (boolean)]?) -> ()
 \end{verbatim}
-But there is a syntactic conflict for defining optional function types
-that should be fixed in the parser.
+Grouping would be useful for defining types like this:
+\begin{verbatim}
+([(number) -> (number)] | (string) -> (string)) -> ({string})
+\end{verbatim}
+But we do not have intersection types anyway.
 \item table.unpack (list [, i [, j]]) :
 \begin{verbatim}
 ({any}, number?, number?) -> (any*)

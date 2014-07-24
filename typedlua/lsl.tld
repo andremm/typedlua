@@ -81,7 +81,7 @@ table : {
   "insert" : ({any}, any) -> (),
   "pack" : (any*) -> ({number:any, "n":number}),
   "remove" : ({any}, number?) -> (any),
-  "sort" : ({any}, any) -> (),
+  "sort" : ({any}, nil|(any, any) -> (boolean)) -> (),
   "unpack" : ({any}, number?, number?) -> (any*)
 }
 
