@@ -87,16 +87,14 @@ local G = lpeg.P { "TypedLua";
             lpeg.V("Type"))^-1 / tlast.ident;
   FunctionDef = tllexer.kw("function") * lpeg.V("FuncBody");
   FieldSep = tllexer.symb(",") + tllexer.symb(";");
-  Field = lpeg.Cp() * tllexer.kw("const") *
+  Field = lpeg.Cp() *
           ((tllexer.symb("[") * lpeg.V("Expr") * tllexer.symb("]")) +
-           (lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.exprString)) *
-          tllexer.symb("=") * lpeg.V("Expr") / tlast.fieldConst +
-          lpeg.Cp() *
-          ((tllexer.symb("[") * lpeg.V("Expr") * tllexer.symb("]")) +
-           (lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.exprString)) *
+          (lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.exprString)) *
           tllexer.symb("=") * lpeg.V("Expr") / tlast.fieldPair +
           lpeg.V("Expr");
-  FieldList = (lpeg.V("Field") * (lpeg.V("FieldSep") * lpeg.V("Field"))^0 *
+  TField = (tllexer.kw("const") * lpeg.V("Field") / tlast.setConst) +
+           lpeg.V("Field");
+  FieldList = (lpeg.V("TField") * (lpeg.V("FieldSep") * lpeg.V("TField"))^0 *
               lpeg.V("FieldSep")^-1)^-1;
   Constructor = lpeg.Cp() * tllexer.symb("{") * lpeg.V("FieldList") * tllexer.symb("}") / tlast.exprTable;
   NameList = lpeg.Cp() * lpeg.V("TypedId") * (tllexer.symb(",") * lpeg.V("TypedId"))^0 /
@@ -193,7 +191,8 @@ local G = lpeg.P { "TypedLua";
   FuncBody = lpeg.Cp() * tllexer.symb("(") * lpeg.V("ParList") * tllexer.symb(")") *
              (tllexer.symb(":") * lpeg.V("RetType"))^-1 *
              lpeg.V("Block") * tllexer.kw("end") / tlast.exprFunction;
-  FuncStat = lpeg.Cp() * tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
+  FuncStat = lpeg.Cp() * (tllexer.kw("const") * lpeg.Cc(true) + lpeg.Cc(false)) *
+             tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
              tlast.statFuncSet;
   LocalFunc = lpeg.Cp() * tllexer.kw("function") *
               lpeg.V("Id") * lpeg.V("FuncBody") / tlast.statLocalrec;
@@ -211,33 +210,31 @@ local G = lpeg.P { "TypedLua";
                   lpeg.V("InterfaceDec")^1 * tllexer.kw("end") / tlast.statInterface;
   LocalInterface = lpeg.Cp() * tllexer.kw("interface") * tllexer.token(tllexer.Name, "Name") *
                    lpeg.V("InterfaceDec")^1 * tllexer.kw("end") / tlast.statLocalInterface;
-  InterfaceDec = ((tllexer.kw("const") * lpeg.Cc("Const")) + lpeg.Cc("Field")) * lpeg.V("IdList") * tllexer.symb(":") * (lpeg.V("Type") + lpeg.V("MethodType")) /
-                  function (tag, idlist, t)
-                    local l = {}
-                    for k, v in ipairs(idlist) do
-                      local f = { tag = tag, pos = v.pos }
-                      f[1] = { tag = "Literal", [1] = v[1] }
-                      f[2] = t
-                      table.insert(l, f)
-                    end
-                    return table.unpack(l)
-                  end;
-  IdList = lpeg.Cp() * lpeg.V("Id") * (tllexer.symb(",") * lpeg.V("Id"))^0 / tlast.namelist;
+  TId = (tllexer.kw("const") * lpeg.V("Id") / tlast.setConst) +
+        lpeg.V("Id");
+  IdList = lpeg.Cp() * lpeg.V("TId") * (tllexer.symb(",") * lpeg.V("TId"))^0 /
+           tlast.namelist;
+  InterfaceDec = lpeg.V("IdList") * tllexer.symb(":") *
+                 (lpeg.V("Type") + lpeg.V("MethodType")) /
+  function (idlist, t)
+    local l = {}
+    for k, v in ipairs(idlist) do
+      local f = tltype.Field(v.const, tltype.Literal(v[1]), t)
+      table.insert(l, f)
+    end
+    return table.unpack(l)
+  end;
+  LVar = (tllexer.kw("const") * lpeg.V("SuffixedExp") / tlast.setConst) +
+         lpeg.V("SuffixedExp");
   ExprStat = lpeg.Cmt(
-             (lpeg.V("SuffixedExp") * (lpeg.Cc(tlast.statSet) * lpeg.V("Assignment"))) +
+             (lpeg.V("LVar") * (lpeg.Cc(tlast.statSet) * lpeg.V("Assignment"))) +
              (lpeg.V("SuffixedExp") * (lpeg.Cc(tlast.statApply))),
              function (s, i, s1, f, ...) return f(s1, ...) end);
-  Assignment = ((tllexer.symb(",") * lpeg.V("SuffixedExp"))^1)^-1 * tllexer.symb("=") * lpeg.V("ExpList");
-  ConstStat = tllexer.kw("const") * (lpeg.V("ConstFunc") + lpeg.V("ConstAssignment"));
-  ConstFunc = lpeg.Cp() * tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
-              tlast.statConstFuncSet;
-  ConstAssignment = lpeg.Cmt(lpeg.V("SuffixedExp") * lpeg.Cc(tlast.statConstSet) *
-                    tllexer.symb("=") * lpeg.V("Expr"),
-                    function (s, i, s1, f, e1) return f(s1, e1) end);
+  Assignment = ((tllexer.symb(",") * lpeg.V("LVar"))^1)^-1 * tllexer.symb("=") * lpeg.V("ExpList");
   Stat = lpeg.V("IfStat") + lpeg.V("WhileStat") + lpeg.V("DoStat") + lpeg.V("ForStat") +
          lpeg.V("RepeatStat") + lpeg.V("FuncStat") + lpeg.V("LocalStat") +
          lpeg.V("LabelStat") + lpeg.V("BreakStat") + lpeg.V("GoToStat") +
-         lpeg.V("InterfaceStat") + lpeg.V("ExprStat") + lpeg.V("ConstStat");
+         lpeg.V("InterfaceStat") + lpeg.V("ExprStat");
 }
 
 local traverse_stm, traverse_exp, traverse_var

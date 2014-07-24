@@ -212,20 +212,12 @@ function types.Field (t1, t2)
   end
 end
 
-function types.ConstField (t1, t2)
-  if not t2 then
-    return { tag = "Const", [1] = types.Number, [2] = t1 }
-  else
-    return { tag = "Const", [1] = t1, [2] = t2 }
-  end
-end
-
 function types.isField (f)
-  return f.tag == "Field"
+  return f.tag == "Field" and not f.const
 end
 
 function types.isConstField (f)
-  return f.tag == "Const"
+  return f.tag == "Field" and f.const
 end
 
 function types.Table (...)
@@ -890,7 +882,7 @@ function types.supertypeof (t)
   elseif types.isTable(t) then
     local n = { tag = "Table", open = t.open }
     for k, v in ipairs(t) do
-      n[k] = { tag = v.tag }
+      n[k] = { tag = v.tag, const = v.const }
       n[k][1] = v[1]
       n[k][2] = types.supertypeof(v[2])
     end

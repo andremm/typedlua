@@ -631,18 +631,13 @@ local function check_fieldlist (env, exp)
       check_exp(env, v[2])
       t[k][1] = v[1]["type"]
       t[k][2] = types.supertypeof(v[2]["type"])
-    elseif tag == "Const" then
-      t[k].tag = "Const"
-      check_exp(env, v[1])
-      check_exp(env, v[2])
-      t[k][1] = v[1]["type"]
-      t[k][2] = types.supertypeof(v[2]["type"])
     else
       check_exp(env, v)
       t[k][1] = types.Literal(i)
       t[k][2] = types.supertypeof(v["type"])
       i = i + 1
     end
+    t[k].const = v.const
   end
   set_type(exp, t)
 end
@@ -1111,8 +1106,7 @@ local function check_var_assignment (env, var, inferred_type, allow_type_change,
         end
       else
         if t1.open then
-          local f = { tag = "Field", [1] = t2, [2] = types.supertypeof(inferred_type) }
-          if const then f.tag = "Const" end
+          local f = { tag = "Field", const = var.const, [1] = t2, [2] = types.supertypeof(inferred_type) }
           t1[#t1 + 1] = f
         else
           local msg = "attempt to use '%s' to index closed table"
@@ -1238,8 +1232,6 @@ function check_stm (env, stm)
     check_block(env, stm)
   elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
     check_assignment(env, stm[1], stm[2])
-  elseif tag == "ConstSet" then
-    check_const_assignment(env, stm[1], stm[2])
   elseif tag == "While" then -- `While{ expr block }
     check_while(env, stm)
   elseif tag == "Repeat" then -- `Repeat{ block expr }

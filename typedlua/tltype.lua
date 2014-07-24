@@ -312,11 +312,7 @@ end
 
 -- Field : (boolean, type, type) -> (field)
 function tltype.Field (is_const, t1, t2)
-  if is_const then
-    return { tag = "Const", [1] = t1, [2] = t2 }
-  else
-    return { tag = "Field", [1] = t1, [2] = t2 }
-  end
+  return { tag = "Field", const = is_const, [1] = t1, [2] = t2 }
 end
 
 -- isField : (field) -> (boolean)

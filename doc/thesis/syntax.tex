@@ -4,7 +4,6 @@
 \textit{block} & ::= \; \{\textit{stat}\} \; [\textit{retstat}]\\
 \textit{stat} & ::= \; \texttt{`;'}\\
 & | \; \textit{varlist} \; \texttt{`='} \; \textit{explist}\\
-& | \; \textcolor{blue}{\textbf{const} \; \textit{var} \; \texttt{`='} \; \textit{exp}}\\
 & | \; \textit{functioncall}\\
 & | \; \textit{label}\\
 & | \; \textbf{break}\\ 
@@ -20,25 +19,23 @@
   \textbf{do} \; \textit{block} \; \textbf{end}\\
 & | \; \textbf{for} \; \textit{namelist} \; \textbf{in} \; \textit{explist} \;
   \textbf{do} \; \textit{block} \; \textbf{end}\\
-& | \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}\\
-& | \; \textcolor{blue}{\textbf{const} \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}}\\
+& | \; \textcolor{blue}{[\textbf{const}]} \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textbf{function} \; \textit{Name} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textit{namelist} \; [\texttt{`='} \; \textit{explist}]\\
-& | \; \textcolor{blue}{\textbf{interface} \; \textit{Name} \; \textit{interfacedec} \;
-  \{\textit{interfacedec}\} \; \textbf{end}}\\
-& | \; \textcolor{blue}{\textbf{local} \; \textbf{interface} \; \textit{Name} \; \textit{interfacedec} \;
+& | \; \textcolor{blue}{[\textbf{local}] \; \textbf{interface} \; \textit{Name} \; \textit{interfacedec} \;
   \{\textit{interfacedec}\} \; \textbf{end}}\\
 \textit{retstat} & ::= \; \textbf{return} \; [\textit{explist}] \; [\texttt{`;'}]\\
 \textit{label} & ::= \; \texttt{`::'} \; \textit{Name} \; \texttt{`::'}\\
-\textit{funcname} & ::= \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
-\textit{varlist} & ::= \textit{var} \; \{\texttt{`,'} \; \textit{var}\}\\
-\textit{var} & ::= \textit{Name} \; | \;
+\textit{funcname} & ::= \; \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
+\textit{varlist} & ::= \; \textcolor{blue}{[\textbf{const}]} \; \textit{var} \;
+  \{\texttt{`,'} \; \textcolor{blue}{[\textbf{const}]} \; \textit{var}\}\\
+\textit{var} & ::= \; \textit{Name} \; | \;
   \textit{prefixexp} \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; | \;
   \textit{prefixexp} \; \texttt{`.'} \; \textit{Name}\\
 \textit{namelist} & ::= \; \textit{Name} \; \textcolor{blue}{[\texttt{`:'} \; \textit{type}]} \;
   \{\texttt{`,'} \; \textit{Name} \; \textcolor{blue}{[\texttt{`:'} \; \textit{type}]}\}\\
 \textit{explist} & ::= \; \textit{exp} \; \{\texttt{`,'} \; \textit{exp}\}\\
-\textit{exp} & ::= \textbf{nil} \; | \;
+\textit{exp} & ::= \; \textbf{nil} \; | \;
   \textbf{false} \; | \;
   \textbf{true} \; | \;
   \textit{Number} \; | \;
@@ -49,7 +46,7 @@
   \textit{tableconstructor} \; | \;
   \textit{exp} \; \textit{binop} \; \textit{exp} \; | \;
   \textit{unop} \; \textit{exp}\\
-\textit{prefixexp} & ::= \textit{var} \; | \;
+\textit{prefixexp} & ::= \; \textit{var} \; | \;
   \textit{functioncall} \; | \;
   \texttt{`('} \; \textit{exp} \; \texttt{`)'}\\
 \textit{functioncall} & ::= \; \textit{prefixexp} \; \textit{args} \; | \;
@@ -64,9 +61,10 @@
   \textcolor{blue}{[\texttt{`:'} \; \textit{type}]}] \; | \;
   \texttt{`...'} \; \textcolor{blue}{[\texttt{`:'} \; \textit{type}]}\\
 \textit{tableconstructor} & ::= \; \texttt{`\{'} \; [\textit{fieldlist}] \; \texttt{`\}'}\\
-\textit{fieldlist} & ::= \; \textit{field} \; \{\textit{fieldsep} \; \textit{field}\} \; [\textit{fieldsep}]\\
-\textit{field} & ::= \textcolor{blue}{[\textbf{const}]} \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
-  \textcolor{blue}{[\textbf{const}]} \; \textit{Name} \; \texttt{`='} \; \textit{exp} \; | \;
+\textit{fieldlist} & ::= \; \textcolor{blue}{[\textbf{const}]} \; \textit{field} \;
+  \{\textit{fieldsep} \; \textcolor{blue}{[\textbf{const}]} \; \textit{field}\} \; [\textit{fieldsep}]\\
+\textit{field} & ::= \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
+  \textit{Name} \; \texttt{`='} \; \textit{exp} \; | \;
   \textit{exp}\\
 \textit{fieldsep} & ::= \; \texttt{`,'} \; | \; \texttt{`;'}\\
 \textit{binop} & ::= \; \texttt{`+'} \; | \; \texttt{`-'} \; | \; \texttt{`*'} \; | \; \texttt{`/'} \; | \;
@@ -75,7 +73,8 @@
   \texttt{`=='} \; | \; \texttt{`\textasciitilde='}\\
 & | \; \textbf{and} \; | \; \textbf{or}\\
 \textit{unop} & ::= \; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'}\\
-\textcolor{blue}{\textit{interfacedec}} & ::= \; [\textbf{const}] \; \textit{Name} \; \{\texttt{`,'} \; \textit{Name}\} \; \texttt{`:'} \; \textit{dectype}\\
+\textcolor{blue}{\textit{interfacedec}} & ::= \; [\textbf{const}] \; \textit{Name} \;
+  \{\texttt{`,'} \; [\textbf{const}] \; \textit{Name}\} \; \texttt{`:'} \; \textit{dectype}\\
 \textcolor{blue}{\textit{dectype}} & ::= \; \textit{type} \; | \; \textit{methodtype}\\
 \textcolor{blue}{\textit{type}} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
 \textcolor{blue}{\textit{primarytype}} & ::= \; \textit{literaltype} \; | \;
@@ -104,8 +103,8 @@
 \textcolor{blue}{\textit{unionlist}} & ::= \; \textit{tupletype} \; | \;
   \textit{unionlist} \; \texttt{`|'} \; \textit{unionlist}\\
 \textcolor{blue}{\textit{tabletypebody}} & ::= \; \textit{type} \; | \; \textit{fieldtypelist}\\
-\textcolor{blue}{\textit{fieldtypelist}} & ::= \; \textit{fieldtype} \; \{\texttt{`,'} \; \textit{fieldtype}\}\\ 
-\textcolor{blue}{\textit{fieldtype}} & ::= \; [\textbf{const}] \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
+\textcolor{blue}{\textit{fieldtypelist}} & ::= \; [\textbf{const}] \; \textit{fieldtype} \; \{\texttt{`,'} \; [\textbf{const}] \; \textit{fieldtype}\}\\ 
+\textcolor{blue}{\textit{fieldtype}} & ::= \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
 \textcolor{blue}{\textit{keytype}} & ::= \; \textit{literaltype} \; | \;
   \textit{basetype} \; | \;
   \textbf{value} \; | \;

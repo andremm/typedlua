@@ -1665,7 +1665,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)
@@ -1713,7 +1713,7 @@ s = [=[
 concat2 = 2^3..1
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -1846,7 +1846,7 @@ s = [=[
 if a then
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -1856,7 +1856,7 @@ s = [=[
 if a then else
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -1973,7 +1973,7 @@ repeat
   break
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2111,7 +2111,7 @@ s = [=[
 x = ...:any
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected ':', expecting 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2141,7 +2141,7 @@ s = [=[
 local x:number*
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '*', expecting 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
+test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
 ]=]
 
 r = parse(s)
@@ -2161,7 +2161,7 @@ s = [=[
 local x:number?|string?
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected '|', expecting 'return', 'const', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
+test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
 ]=]
 
 r = parse(s)
@@ -3079,7 +3079,7 @@ local circle1 = Circle:new(0, 5, 10)
 local circle2:Circle = Circle:new(10, 10, 15)
 ]=]
 e = [=[
-{ `Interface{ Shape, `Literal x:`Base number, `Literal y:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `ConstSet{ `Index{ `Id "Shape", `String "new" }, `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number }, { `Local{ { `Id "s" }, { `Call{ `Id "setmetatable", `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } }, `ConstSet{ `Index{ `Id "Shape", `String "move" }, `Function{ { `Id "self":`Self, `Id "dx":`Base number, `Id "dy":`Base number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`Variable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `Literal x:`Base number, `Literal y:`Base number, `Literal radius:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Value, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } }, `Literal area:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, `Local{ { `Id "Circle" }, { `Call{ `Id "setmetatable", `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `ConstSet{ `Index{ `Id "Circle", `String "new" }, `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number, `Id "radius":`Value }, { `Local{ { `Id "c" }, { `Call{ `Id "setmetatable", `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } }, `ConstSet{ `Index{ `Id "Circle", `String "area" }, `Function{ { `Id "self":`Self }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`Variable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
+{ `Interface{ Shape, `Literal x:`Base number, `Literal y:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `Set{ { `Index{ `Id "Shape", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number }, { `Local{ { `Id "s" }, { `Call{ `Id "setmetatable", `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } } }, `Set{ { `Index{ `Id "Shape", `String "move" } }, { `Function{ { `Id "self":`Self, `Id "dx":`Base number, `Id "dy":`Base number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`Variable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `Literal x:`Base number, `Literal y:`Base number, `Literal radius:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Value, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } }, `Literal area:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, `Local{ { `Id "Circle" }, { `Call{ `Id "setmetatable", `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `Set{ { `Index{ `Id "Circle", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number, `Id "radius":`Value }, { `Local{ { `Id "c" }, { `Call{ `Id "setmetatable", `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } } }, `Set{ { `Index{ `Id "Circle", `String "area" } }, { `Function{ { `Id "self":`Self }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`Variable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
 ]=]
 
 r = typecheck(s)

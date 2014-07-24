@@ -67,7 +67,7 @@ literal: false | true | <number> | <string>
 
 base: 'boolean' | 'number' | 'string'
 
-field: `Field{ <string> type } | `Const{ <string> type }
+field: `Field{ <string> type }
 ]]
 
 local tlast = {}
@@ -165,19 +165,12 @@ function tlast.statBreak (pos)
 end
 
 -- statFuncSet : (number, lhs, expr) -> (stat)
-function tlast.statFuncSet (pos, lhs, expr)
+function tlast.statFuncSet (pos, is_const, lhs, expr)
+  lhs.const = is_const
   if lhs.is_method then
     table.insert(expr[1], 1, { tag = "Id", [1] = "self" })
   end
   return { tag = "Set", pos = pos, [1] = { lhs }, [2] = { expr } }
-end
-
--- statConstFuncSet : (number, lhs, expr) -> (stat)
-function tlast.statConstFuncSet (pos, lhs, expr)
-  if lhs.is_method then
-    table.insert(expr[1], 1, { tag = "Id", [1] = "self" })
-  end
-  return { tag = "ConstSet", pos = pos, [1] = lhs, [2] = expr }
 end
 
 -- statSet : (expr*) -> (boolean, stat?)
@@ -196,16 +189,6 @@ function tlast.statSet (...)
   vl.tag = "Varlist"
   vl.pos = vl[1].pos
   return true, { tag = "Set", pos = vl.pos, [1] = vl, [2] = el }
-end
-
--- statConstSet : (expr, expr) -> (boolean, stat?)
-function tlast.statConstSet (e1, e2)
-  if e1.tag == "Id" or e1.tag == "Index" then
-    return true, { tag = "Set", pos = e1.pos, [1] = e1, [2] = e2 }
-  else
-    -- invalid assignment
-    return false
-  end
 end
 
 -- statApply : (expr) -> (boolean, stat?)
@@ -251,11 +234,6 @@ function tlast.parList2 (pos, namelist, vararg)
 end
 
 -- fieldlist
-
--- fieldConst : (number, expr, expr) -> (field)
-function tlast.fieldConst (pos, e1, e2)
-  return { tag = "Const", pos = pos, [1] = e1, [2] = e2 }
-end
 
 -- fieldPair : (number, expr, expr) -> (field)
 function tlast.fieldPair (pos, e1, e2)
@@ -412,6 +390,12 @@ function tlast.invoke (pos, e1, e2, ...)
   return a
 end
 
+-- setConst : (expr|field|id) -> (expr|field|id)
+function tlast.setConst (t)
+  t.const = true
+  return t
+end
+
 -- tostring
 
 local block2str, stm2str, exp2str, var2str, type2str
@@ -566,8 +550,7 @@ function fieldlist2str (fieldlist)
   local l = {}
   for k, v in ipairs(fieldlist) do
     local tag = v.tag
-    if tag == "Pair" or
-       tag == "Const" then
+    if tag == "Pair" then
       l[k] = "`" .. tag .. "{ "
       l[k] = l[k] .. exp2str(v[1]) .. ", " .. exp2str(v[2])
       l[k] = l[k] .. " }"
@@ -668,11 +651,6 @@ function stm2str (stm)
     str = str .. "{ "
     str = str .. varlist2str(stm[1]) .. ", "
     str = str .. explist2str(stm[2])
-    str = str .. " }"
-  elseif tag == "ConstSet" then
-    str = str .. "{ "
-    str = str .. var2str(stm[1]) .. ", "
-    str = str .. exp2str(stm[2])
     str = str .. " }"
   elseif tag == "While" then
     str = str .. "{ "
