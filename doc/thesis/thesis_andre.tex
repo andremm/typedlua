@@ -7,9 +7,10 @@
 \usepackage{url}
 \usepackage{color}
 
-\newcommand{\Top}{\mathbf{value}}
+\newcommand{\Value}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
 \newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\Self}{\mathbf{self}}
 \newcommand{\False}{\mathbf{false}}
 \newcommand{\True}{\mathbf{true}}
 \newcommand{\Boolean}{\mathbf{boolean}}
@@ -17,10 +18,6 @@
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
 \newcommand{\Const}{\mathbf{const}}
-
-\newcommand{\TopStar}{\Top{*}}
-\newcommand{\AnyStar}{\Any{*}}
-\newcommand{\NilStar}{\Nil{*}}
 
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
 \newcommand{\env}{\Gamma}
@@ -87,15 +84,15 @@ Fabio Mascarenhas
 \label{chap:intro}
 \input{introduction.tex}
 
-\chapter{Blending static and dynamic typing}
+\chapter{Blending Static and Dynamic Typing}
 \label{chap:review}
 \input{review.tex}
 
-\chapter{The design \& implementation of Typed Lua}
+\chapter{The Design \& Implementation of Typed Lua}
 \label{chap:typedlua}
 \input{typedlua.tex}
 
-\chapter{Case studies}
+\chapter{Case Studies}
 \label{chap:cases}
 \input{cases.tex}
 
@@ -104,7 +101,7 @@ Fabio Mascarenhas
 \input{conclusions.tex}
 
 \appendix
-\chapter{The syntax of Typed Lua}
+\chapter{The Syntax of Typed Lua}
 \label{app:syntax}
 \input{syntax.tex}
 

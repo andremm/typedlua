@@ -196,66 +196,76 @@ vararg expression.
 Typed Lua should include a \emph{vararg type} to handle variadic
 functions and vararg expressions.
 
-\section{Typed Lua through examples}
+\section{Typed Lua}
 
-Our main goal is to allow programmers to combine static and dynamic
-typing in Lua, so we propose Typed Lua as an extension to Lua 5.2
+The main goal of Typed Lua is to allow programmers to combine static
+and dynamic typing in Lua, so Typed Lua is an extension to Lua 5.2
 syntax that introduces optional type annotations, and class-based
 object-oriented programming through the definition of classes,
 interfaces, and modules.
-An important requirement of Typed Lua is that it should be backwards
-compatible with Lua, that is, it should allow programmers to run any
-Lua code without modifications.
-For this reason, these syntactic extensions include new keywords
-that are not reserved words.
+An important feature of Typed Lua is its backwards compatibility with
+Lua, that is, unannotated Typed Lua code is valid Lua code.
+For this reason, the syntactic extensions introduced by Typed Lua
+include new keywords that are not reserved words.
+Appendix \ref{app:syntax} presents the complete syntax of Typed Lua. 
 
-Figure \ref{fig:typelang} shows that Typed Lua includes first-class
-and second-class types.
-Typed Lua uses first-class types for representing Lua values and
-second-class types for defining the signatures of functions.
-First-class types include literal types, base types, the type $\Any$,
-union types, function types, table types, and recursive types.
-Second-class types include the type $\Void$, first-class types,
-vararg types, and tuple types.
-Literal types are types that represent a single value
-(e.g., $\Nil$, $\False$, $\True$, literal numbers, and
-literal strings).
-Literal types are subtypes of their respective base types.
-More precisely, the literals $\False$ and $\True$ are subtypes of
-$\Boolean$, any literal number $n$ is subtype of $\Number$, and any
-literal string $s$ is subtype of $\String$.
-The type $\Any$ is the dynamic type that allows dynamic code coexist
-with static code.
-We will discuss union types, function types, table types, recursive
-types, and second-class types along this section.
+\subsection{Type Language}
+
+Lua values can have one of eight tags:
+\emph{nil}, \emph{boolean}, \emph{number}, \emph{string},
+\emph{function}, \emph{table}, \emph{userdata}, and \emph{thread}.
+In this section we present the types that Typed Lua introduces
+to represent these tags.
 
 \begin{figure}[!ht]
 \textbf{Type Language}\\
 \dstart
 $$
 \begin{array}{rlr}
-T ::= & & \emph{first-class types}\\
-& \;\; L & \emph{literal types}\\
-& | \; B & \emph{base types}\\
-& | \; \Any & \emph{dynamic type}\\
-& | \; T \cup T & \emph{union type}\\
-& | \; S \rightarrow S & \emph{function type}\\
-& | \; \{T:T, ..., T:T\} & \emph{table type}\\
-& | \; X & \emph{type variable}\\
-& | \; \mu X.T & \emph{recursive type}\\
-L ::= & \Nil \; | \; \False \; | \; \True \; | \;
-  {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
+\multicolumn{3}{c}{\textbf{First-level types}}\\
+T ::= & \;\; L & \textit{literal types}\\
+& | \; B & \textit{base types}\\
+& | \; \Nil & \textit{nil type}\\
+& | \; \Value & \textit{top type}\\
+& | \; \Any & \textit{dynamic type}\\
+& | \; \Self & \textit{self type}\\
+& | \; T \cup T & \textit{disjoint union types}\\
+& | \; P \rightarrow R & \textit{function types}\\
+& | \; \{ \}_{o|c} & \textit{empty table type}\\
+& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
+& | \; X & \textit{type variables}\\
+& | \; \mu X.T & \textit{recursive types}\\
+& | \; X_{i} & \textit{projection types}\\
+L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
-S ::= & \Void \; | \; V & \emph{second-class types}\\
-V ::= & \;\; T & \\
-& | \; T* & \emph{vararg type}\\
-& | \; T \times V & \emph{tuple type}
+F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
+K ::= & L \; | \; B \; | \; \Value \; | \; \Any & \textit{key types}\\
+\multicolumn{3}{c}{}\\
+\multicolumn{3}{c}{\textbf{Second-level types}}\\
+S ::= & \;\; T &\\
+& | \; T* & \textit{vararg types}\\
+& | \; T \times S & \textit{tuple types}\\
+P ::= & \Void \; | \; S & \textit{parameters list type}\\
+R ::= & \Void \; | \; S \; | \; S \cup R & \textit{return types}\\
 \end{array}
 $$
 \dend
 \caption{Typed Lua types}
 \label{fig:typelang}
 \end{figure}
+
+Figure \ref{fig:typelang} presents the abstract syntax of the
+Typed Lua types.
+We split Typed Lua types into two categories:
+\emph{first-level types} and \emph{second-level types}.
+We use first-level types to represent Lua values, and
+second-level types to type expression lists, multiple assignments,
+and function applications.
+We will all Typed Lua types along this section.
+
+\subsection{Subtyping and Consistent-Subtyping}
+
+\subsection{Atomic types and Functions}
 
 Typed Lua allows optional type annotations in variable and function
 declarations.
@@ -346,6 +356,8 @@ using the consistent-subtyping relation of gradual typing to
 formalize our optional type system, and the type system is being
 designed to be sound.
 
+\subsection{Unions}
+
 Typed Lua includes union types as a way to discriminate data
 structures that can hold values of several different, but fixed types.
 Next, we show an example:
@@ -373,6 +385,8 @@ the annotation:
 
 Typed Lua has a typing rule for checking that
 $t\;\cup\;\Nil\;\mathbf{or}\;t$ always has the type $t$.
+
+\subsection{Tables and Interfaces}
 
 Typed Lua includes table types to represent Lua's tables.
 Although Typed Lua has just one table type constructor, it has three
@@ -546,6 +560,10 @@ implementation of Typed Lua, and there is still several design
 decisions to be taken on this subject.
 For instance, our type system should handle the subtleties that
 come with metatables.
+
+\subsection{Modules}
+
+\subsection{Objects and Classes}
 
 \section{Related Lua projects}
 
