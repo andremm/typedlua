@@ -4,7 +4,7 @@ local code = require "typedlua.code"
 local checker = require "typedlua.checker"
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
-local types = require "typedlua.types"
+local tltype = require "typedlua.tltype"
 
 -- expected result, result, subject
 local e, r, s
@@ -2221,366 +2221,369 @@ print("> testing types...")
 
 -- literal types
 
-local False = types.False
-local True = types.True
-local Double = types.Literal(1.1)
-local Integer = types.Literal(1)
-local Word = types.Literal("w")
+local False = tltype.False()
+local True = tltype.True()
+local Double = tltype.Literal(1.1)
+local Integer = tltype.Literal(1)
+local Word = tltype.Literal("w")
 
 -- base types
 
-local Nil = types.Nil
-local Boolean = types.Boolean
-local Number = types.Number
-local String = types.String
+local Boolean = tltype.Boolean()
+local Number = tltype.Number()
+local String = tltype.String()
+
+-- nil type
+
+local Nil = tltype.Nil()
 
 -- top type
 
-local Value = types.Value
+local Value = tltype.Value()
 
 -- dynamic type
 
-local Any = types.Any
+local Any = tltype.Any()
 
 -- test types
 local t, t1, t2, t3, t4
 
 -- type equality
 
-assert(types.isLiteral(False))
-assert(types.isFalse(False))
+assert(tltype.isLiteral(False))
+assert(tltype.isFalse(False))
 
-assert(types.isLiteral(True))
-assert(types.isTrue(True))
+assert(tltype.isLiteral(True))
+assert(tltype.isTrue(True))
 
-assert(types.isLiteral(Double))
-assert(types.isLiteralNumber(Double))
+assert(tltype.isLiteral(Double))
+assert(tltype.isNum(Double))
 
-assert(types.isLiteral(Integer))
-assert(types.isLiteralNumber(Integer))
+assert(tltype.isLiteral(Integer))
+assert(tltype.isNum(Integer))
 
-assert(types.isLiteral(Word))
-assert(types.isLiteralString(Word))
+assert(tltype.isLiteral(Word))
+assert(tltype.isStr(Word))
 
-assert(types.isBase(Boolean))
-assert(types.isBoolean(Boolean))
+assert(tltype.isBase(Boolean))
+assert(tltype.isBoolean(Boolean))
 
-assert(types.isBase(Number))
-assert(types.isNumber(Number))
+assert(tltype.isBase(Number))
+assert(tltype.isNumber(Number))
 
-assert(types.isBase(String))
-assert(types.isString(String))
+assert(tltype.isBase(String))
+assert(tltype.isString(String))
 
-assert(types.isNil(Nil))
+assert(tltype.isNil(Nil))
 
-assert(types.isValue(Value))
+assert(tltype.isValue(Value))
 
-assert(types.isAny(Any))
+assert(tltype.isAny(Any))
 
-assert(types.isUnion(types.Union(Number,Nil)))
-assert(types.isUnion(types.Union(types.Union(Number,String),Nil)))
-assert(types.isUnion(types.Union(types.Union(Number,Nil),String)))
-assert(types.isUnion(types.Union(types.Union(Nil,Number),String)))
+assert(tltype.isUnion(tltype.Union(Number,Nil)))
+assert(tltype.isUnion(tltype.Union(tltype.Union(Number,String),Nil)))
+assert(tltype.isUnion(tltype.Union(tltype.Union(Number,Nil),String)))
+assert(tltype.isUnion(tltype.Union(tltype.Union(Nil,Number),String)))
 
-assert(types.isUnionNil(types.Union(Number,Nil)))
-assert(types.isUnionNil(types.Union(Number,String,Nil)))
-assert(types.isUnionNil(types.Union(Number,Nil,String)))
-assert(types.isUnionNil(types.Union(Nil,Number),String))
+assert(tltype.isUnionNil(tltype.Union(Number,Nil)))
+assert(tltype.isUnionNil(tltype.Union(Number,String,Nil)))
+assert(tltype.isUnionNil(tltype.Union(Number,Nil,String)))
+assert(tltype.isUnionNil(tltype.Union(Nil,Number),String))
 
-assert(not types.isUnionNil(types.Union(Number,Boolean)))
-assert(not types.isUnionNil(types.Union(types.Union(Number,String),Boolean)))
-assert(not types.isUnionNil(types.Union(types.Union(Number,Boolean),String)))
-assert(not types.isUnionNil(types.Union(types.Union(Boolean,Number),String)))
+assert(not tltype.isUnionNil(tltype.Union(Number,Boolean)))
+assert(not tltype.isUnionNil(tltype.Union(tltype.Union(Number,String),Boolean)))
+assert(not tltype.isUnionNil(tltype.Union(tltype.Union(Number,Boolean),String)))
+assert(not tltype.isUnionNil(tltype.Union(tltype.Union(Boolean,Number),String)))
 
-t1 = types.Vararg(Value)
-t2 = types.Vararg(Nil)
+t1 = tltype.Vararg(Value)
+t2 = tltype.Vararg(Nil)
 
-assert(types.isFunction(types.Function(types.Tuple(t1), types.Tuple(t2))))
-assert(types.isTuple(types.Tuple(t1)))
-assert(types.isTuple(types.Tuple(t2)))
-assert(types.isVararg(t1))
-assert(types.isVararg(t2))
+assert(tltype.isFunction(tltype.Function(tltype.Tuple(t1), tltype.Tuple(t2))))
+assert(tltype.isTuple(tltype.Tuple(t1)))
+assert(tltype.isTuple(tltype.Tuple(t2)))
+assert(tltype.isVararg(t1))
+assert(tltype.isVararg(t2))
 
-assert(not types.isFunction(Nil))
-assert(not types.isTuple(t1))
-assert(not types.isTuple(t2))
-assert(not types.isVararg(types.Tuple(t1)))
-assert(not types.isVararg(types.Tuple(t2)))
+assert(not tltype.isFunction(Nil))
+assert(not tltype.isTuple(t1))
+assert(not tltype.isTuple(t2))
+assert(not tltype.isVararg(tltype.Tuple(t1)))
+assert(not tltype.isVararg(tltype.Tuple(t2)))
 
 -- subtyping
 
-assert(types.subtype({}, False,False))
-assert(types.subtype({}, True,True))
-assert(types.subtype({}, Double,Double))
-assert(types.subtype({}, Integer,Integer))
-assert(types.subtype({}, Word,Word))
+assert(tltype.subtype({}, False,False))
+assert(tltype.subtype({}, True,True))
+assert(tltype.subtype({}, Double,Double))
+assert(tltype.subtype({}, Integer,Integer))
+assert(tltype.subtype({}, Word,Word))
 
-assert(types.subtype({}, False,Boolean))
-assert(types.subtype({}, True,Boolean))
-assert(types.subtype({}, Double,Number))
-assert(types.subtype({}, Integer,Number))
-assert(types.subtype({}, Word,String))
+assert(tltype.subtype({}, False,Boolean))
+assert(tltype.subtype({}, True,Boolean))
+assert(tltype.subtype({}, Double,Number))
+assert(tltype.subtype({}, Integer,Number))
+assert(tltype.subtype({}, Word,String))
 
-assert(not types.subtype({}, Nil,False))
-assert(not types.subtype({}, False,True))
-assert(not types.subtype({}, True,Double))
-assert(not types.subtype({}, Double,Integer))
-assert(not types.subtype({}, Integer,Word))
-assert(not types.subtype({}, Word,Nil))
+assert(not tltype.subtype({}, Nil,False))
+assert(not tltype.subtype({}, False,True))
+assert(not tltype.subtype({}, True,Double))
+assert(not tltype.subtype({}, Double,Integer))
+assert(not tltype.subtype({}, Integer,Word))
+assert(not tltype.subtype({}, Word,Nil))
 
-assert(types.subtype({}, Nil,Nil))
-assert(types.subtype({}, Boolean,Boolean))
-assert(types.subtype({}, Number,Number))
-assert(types.subtype({}, String,String))
+assert(tltype.subtype({}, Nil,Nil))
+assert(tltype.subtype({}, Boolean,Boolean))
+assert(tltype.subtype({}, Number,Number))
+assert(tltype.subtype({}, String,String))
 
-assert(not types.subtype({}, Boolean,False))
-assert(not types.subtype({}, Boolean,True))
-assert(not types.subtype({}, Number,Double))
-assert(not types.subtype({}, Number,Integer))
-assert(not types.subtype({}, String,Word))
+assert(not tltype.subtype({}, Boolean,False))
+assert(not tltype.subtype({}, Boolean,True))
+assert(not tltype.subtype({}, Number,Double))
+assert(not tltype.subtype({}, Number,Integer))
+assert(not tltype.subtype({}, String,Word))
 
-assert(types.subtype({}, False,Value))
-assert(types.subtype({}, True,Value))
-assert(types.subtype({}, Double,Value))
-assert(types.subtype({}, Integer,Value))
-assert(types.subtype({}, Word,Value))
-assert(types.subtype({}, Nil,Value))
-assert(types.subtype({}, Boolean,Value))
-assert(types.subtype({}, Number,Value))
-assert(types.subtype({}, String,Value))
-assert(types.subtype({}, Value,Value))
-assert(types.subtype({}, Any,Value))
-assert(types.subtype({}, types.Union(Number,Nil),Value))
+assert(tltype.subtype({}, False,Value))
+assert(tltype.subtype({}, True,Value))
+assert(tltype.subtype({}, Double,Value))
+assert(tltype.subtype({}, Integer,Value))
+assert(tltype.subtype({}, Word,Value))
+assert(tltype.subtype({}, Nil,Value))
+assert(tltype.subtype({}, Boolean,Value))
+assert(tltype.subtype({}, Number,Value))
+assert(tltype.subtype({}, String,Value))
+assert(tltype.subtype({}, Value,Value))
+assert(tltype.subtype({}, Any,Value))
+assert(tltype.subtype({}, tltype.Union(Number,Nil),Value))
 
-assert(not types.subtype({}, Value,False))
-assert(not types.subtype({}, Value,True))
-assert(not types.subtype({}, Value,Double))
-assert(not types.subtype({}, Value,Integer))
-assert(not types.subtype({}, Value,Word))
-assert(not types.subtype({}, Value,Nil))
-assert(not types.subtype({}, Value,Boolean))
-assert(not types.subtype({}, Value,Number))
-assert(not types.subtype({}, Value,String))
-assert(not types.subtype({}, Value,Any))
-assert(not types.subtype({}, Value,types.Union(Number,Nil)))
+assert(not tltype.subtype({}, Value,False))
+assert(not tltype.subtype({}, Value,True))
+assert(not tltype.subtype({}, Value,Double))
+assert(not tltype.subtype({}, Value,Integer))
+assert(not tltype.subtype({}, Value,Word))
+assert(not tltype.subtype({}, Value,Nil))
+assert(not tltype.subtype({}, Value,Boolean))
+assert(not tltype.subtype({}, Value,Number))
+assert(not tltype.subtype({}, Value,String))
+assert(not tltype.subtype({}, Value,Any))
+assert(not tltype.subtype({}, Value,tltype.Union(Number,Nil)))
 
-assert(types.subtype({}, Any,Any))
+assert(tltype.subtype({}, Any,Any))
 
-assert(not types.subtype({}, Nil,Any))
-assert(not types.subtype({}, False,Any))
-assert(not types.subtype({}, True,Any))
-assert(not types.subtype({}, Double,Any))
-assert(not types.subtype({}, Integer,Any))
-assert(not types.subtype({}, Word,Any))
+assert(not tltype.subtype({}, Nil,Any))
+assert(not tltype.subtype({}, False,Any))
+assert(not tltype.subtype({}, True,Any))
+assert(not tltype.subtype({}, Double,Any))
+assert(not tltype.subtype({}, Integer,Any))
+assert(not tltype.subtype({}, Word,Any))
 
-assert(not types.subtype({}, Boolean,Any))
-assert(not types.subtype({}, Number,Any))
-assert(not types.subtype({}, String,Any))
+assert(not tltype.subtype({}, Boolean,Any))
+assert(not tltype.subtype({}, Number,Any))
+assert(not tltype.subtype({}, String,Any))
 
-assert(not types.subtype({}, Any,Nil))
-assert(not types.subtype({}, Any,False))
-assert(not types.subtype({}, Any,True))
-assert(not types.subtype({}, Any,Double))
-assert(not types.subtype({}, Any,Integer))
-assert(not types.subtype({}, Any,Word))
+assert(not tltype.subtype({}, Any,Nil))
+assert(not tltype.subtype({}, Any,False))
+assert(not tltype.subtype({}, Any,True))
+assert(not tltype.subtype({}, Any,Double))
+assert(not tltype.subtype({}, Any,Integer))
+assert(not tltype.subtype({}, Any,Word))
 
-assert(not types.subtype({}, Any,Boolean))
-assert(not types.subtype({}, Any,Number))
-assert(not types.subtype({}, Any,String))
+assert(not tltype.subtype({}, Any,Boolean))
+assert(not tltype.subtype({}, Any,Number))
+assert(not tltype.subtype({}, Any,String))
 
-t = types.Union(Number,Nil)
+t = tltype.Union(Number,Nil)
 
-assert(types.subtype({}, Number,t))
-assert(types.subtype({}, Nil,t))
-assert(types.subtype({}, t,t))
+assert(tltype.subtype({}, Number,t))
+assert(tltype.subtype({}, Nil,t))
+assert(tltype.subtype({}, t,t))
 
-assert(not types.subtype({}, t,Number))
-assert(not types.subtype({}, t,Nil))
+assert(not tltype.subtype({}, t,Number))
+assert(not tltype.subtype({}, t,Nil))
 
-t = types.Union(Number,Any)
+t = tltype.Union(Number,Any)
 
-assert(types.subtype({}, Number,t))
-assert(types.subtype({}, Any,t))
-assert(types.subtype({}, t,t))
+assert(tltype.subtype({}, Number,t))
+assert(tltype.subtype({}, Any,t))
+assert(tltype.subtype({}, t,t))
 
-assert(not types.subtype({}, String,t))
-assert(not types.subtype({}, t,Any))
-assert(not types.subtype({}, t,Any))
+assert(not tltype.subtype({}, String,t))
+assert(not tltype.subtype({}, t,Any))
+assert(not tltype.subtype({}, t,Any))
 
-t1 = types.Recursive("Element",
-  types.Table(types.Field(types.Literal("info"), types.Number),
-              types.Field(types.Literal("next"), types.Union(types.Variable("Element", types.Nil)))))
-t2 = types.Recursive("List",
-  types.Table(types.Field(types.Literal("info"), types.Number),
-              types.Field(types.Literal("next"), types.Union(types.Variable("List", types.Nil)))))
-t3 = types.Recursive("Node",
-  types.Table(types.Field(types.Literal("info"), types.Number),
-              types.Field(types.Literal("left"), types.Union(types.Variable("Node", types.Nil))),
-              types.Field(types.Literal("right"), types.Union(types.Variable("Node", types.Nil)))))
-t4 = types.Recursive("Tree",
-  types.Table(types.Field(types.Literal("info"), types.Number),
-              types.Field(types.Literal("left"), types.Union(types.Variable("Tree", types.Nil))),
-              types.Field(types.Literal("right"), types.Union(types.Variable("Tree", types.Nil)))))
+t1 = tltype.Recursive("Element",
+  tltype.Table(tltype.Field(false, tltype.Literal("info"), tltype.Number()),
+               tltype.Field(false, tltype.Literal("next"), tltype.Union(tltype.Variable("Element", tltype.Nil())))))
+t2 = tltype.Recursive("List",
+  tltype.Table(tltype.Field(false, tltype.Literal("info"), tltype.Number()),
+               tltype.Field(false, tltype.Literal("next"), tltype.Union(tltype.Variable("List", tltype.Nil())))))
+t3 = tltype.Recursive("Node",
+  tltype.Table(tltype.Field(false, tltype.Literal("info"), tltype.Number()),
+               tltype.Field(false, tltype.Literal("left"), tltype.Union(tltype.Variable("Node", tltype.Nil()))),
+               tltype.Field(false, tltype.Literal("right"), tltype.Union(tltype.Variable("Node", tltype.Nil())))))
+t4 = tltype.Recursive("Tree",
+  tltype.Table(tltype.Field(false, tltype.Literal("info"), tltype.Number()),
+               tltype.Field(false, tltype.Literal("left"), tltype.Union(tltype.Variable("Tree", tltype.Nil()))),
+               tltype.Field(false, tltype.Literal("right"), tltype.Union(tltype.Variable("Tree", tltype.Nil())))))
 
-assert(types.subtype({}, t1, t1))
-assert(types.subtype({}, t2, t2))
-assert(types.subtype({}, t3, t3))
-assert(types.subtype({}, t4, t4))
+assert(tltype.subtype({}, t1, t1))
+assert(tltype.subtype({}, t2, t2))
+assert(tltype.subtype({}, t3, t3))
+assert(tltype.subtype({}, t4, t4))
 
-assert(not types.subtype({}, t1, t3))
-assert(not types.subtype({}, t1, t4))
-assert(not types.subtype({}, t2, t3))
-assert(not types.subtype({}, t2, t4))
+assert(not tltype.subtype({}, t1, t3))
+assert(not tltype.subtype({}, t1, t4))
+assert(not tltype.subtype({}, t2, t3))
+assert(not tltype.subtype({}, t2, t4))
 
-t1 = types.Tuple(types.Vararg(Value))
-t2 = types.Tuple(types.Vararg(Nil))
+t1 = tltype.Tuple({ Value }, true)
+t2 = tltype.Tuple({ Nil }, true)
 
-assert(types.subtype({}, types.Function(t1,t2), types.Function(t1,t2)))
-assert(types.subtype({}, types.Function(t1,t2), types.Function(t2,t1)))
-assert(types.subtype({}, types.Function(t2,t1), types.Function(t2,t1)))
-assert(not types.subtype({}, types.Function(t2,t1), types.Function(t1,t2)))
+assert(tltype.subtype({}, tltype.Function(t1,t2), tltype.Function(t1,t2)))
+assert(tltype.subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t1)))
+assert(tltype.subtype({}, tltype.Function(t2,t1), tltype.Function(t2,t1)))
+assert(not tltype.subtype({}, tltype.Function(t2,t1), tltype.Function(t1,t2)))
 
-t1 = types.Tuple(types.Vararg(Number))
+t1 = tltype.Tuple({ Number }, true)
 
-assert(types.subtype({}, types.Function(t1,t2), types.Function(t1,t2)))
-assert(types.subtype({}, types.Function(t1,t2), types.Function(t2,t1)))
-assert(types.subtype({}, types.Function(t2,t1), types.Function(t2,t1)))
-assert(not types.subtype({}, types.Function(t2,t1), types.Function(t1,t2)))
+assert(tltype.subtype({}, tltype.Function(t1,t2), tltype.Function(t1,t2)))
+assert(tltype.subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t1)))
+assert(tltype.subtype({}, tltype.Function(t2,t1), tltype.Function(t2,t1)))
+assert(not tltype.subtype({}, tltype.Function(t2,t1), tltype.Function(t1,t2)))
 
-t3 = types.Vararg(Nil)
-t4 = types.Tuple(Number,Number,t3)
+t3 = tltype.Vararg(Nil)
+t4 = tltype.Tuple({ Number, Number, t3 })
 
-assert(types.subtype({}, types.Function(t1,t2), types.Function(t2,t2)))
-assert(not types.subtype({}, types.Function(t3,t2), types.Function(t1,t2)))
+assert(tltype.subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t2)))
+assert(not tltype.subtype({}, tltype.Function(t3,t2), tltype.Function(t1,t2)))
 
-t3 = types.Vararg(Number)
-t4 = types.Tuple(Number,Number,Number,t3)
+t3 = tltype.Vararg(Number)
+t4 = tltype.Tuple({ Number, Number, Number, t3 })
 
-assert(types.subtype({}, types.Function(t1,t1), types.Function(t4,t1)))
-assert(not types.subtype({}, types.Function(t4,t1), types.Function(t1,t1)))
+assert(tltype.subtype({}, tltype.Function(t1,t1), tltype.Function(t4,t1)))
+assert(not tltype.subtype({}, tltype.Function(t4,t1), tltype.Function(t1,t1)))
 
 -- consistent-subtyping
 
-assert(types.consistent_subtype({}, False,False))
-assert(types.consistent_subtype({}, True,True))
-assert(types.consistent_subtype({}, Double,Double))
-assert(types.consistent_subtype({}, Integer,Integer))
-assert(types.consistent_subtype({}, Word,Word))
+assert(tltype.consistent_subtype({}, False,False))
+assert(tltype.consistent_subtype({}, True,True))
+assert(tltype.consistent_subtype({}, Double,Double))
+assert(tltype.consistent_subtype({}, Integer,Integer))
+assert(tltype.consistent_subtype({}, Word,Word))
 
-assert(types.consistent_subtype({}, False,Boolean))
-assert(types.consistent_subtype({}, True,Boolean))
-assert(types.consistent_subtype({}, Double,Number))
-assert(types.consistent_subtype({}, Integer,Number))
-assert(types.consistent_subtype({}, Word,String))
+assert(tltype.consistent_subtype({}, False,Boolean))
+assert(tltype.consistent_subtype({}, True,Boolean))
+assert(tltype.consistent_subtype({}, Double,Number))
+assert(tltype.consistent_subtype({}, Integer,Number))
+assert(tltype.consistent_subtype({}, Word,String))
 
-assert(not types.consistent_subtype({}, Nil,False))
-assert(not types.consistent_subtype({}, False,True))
-assert(not types.consistent_subtype({}, True,Double))
-assert(not types.consistent_subtype({}, Double,Integer))
-assert(not types.consistent_subtype({}, Integer,Word))
-assert(not types.consistent_subtype({}, Word,Nil))
+assert(not tltype.consistent_subtype({}, Nil,False))
+assert(not tltype.consistent_subtype({}, False,True))
+assert(not tltype.consistent_subtype({}, True,Double))
+assert(not tltype.consistent_subtype({}, Double,Integer))
+assert(not tltype.consistent_subtype({}, Integer,Word))
+assert(not tltype.consistent_subtype({}, Word,Nil))
 
-assert(types.consistent_subtype({}, Nil,Nil))
-assert(types.consistent_subtype({}, Boolean,Boolean))
-assert(types.consistent_subtype({}, Number,Number))
-assert(types.consistent_subtype({}, String,String))
+assert(tltype.consistent_subtype({}, Nil,Nil))
+assert(tltype.consistent_subtype({}, Boolean,Boolean))
+assert(tltype.consistent_subtype({}, Number,Number))
+assert(tltype.consistent_subtype({}, String,String))
 
-assert(not types.consistent_subtype({}, Boolean,False))
-assert(not types.consistent_subtype({}, Boolean,True))
-assert(not types.consistent_subtype({}, Number,Double))
-assert(not types.consistent_subtype({}, Number,Integer))
-assert(not types.consistent_subtype({}, String,Word))
+assert(not tltype.consistent_subtype({}, Boolean,False))
+assert(not tltype.consistent_subtype({}, Boolean,True))
+assert(not tltype.consistent_subtype({}, Number,Double))
+assert(not tltype.consistent_subtype({}, Number,Integer))
+assert(not tltype.consistent_subtype({}, String,Word))
 
-assert(types.consistent_subtype({}, False,Value))
-assert(types.consistent_subtype({}, True,Value))
-assert(types.consistent_subtype({}, Double,Value))
-assert(types.consistent_subtype({}, Integer,Value))
-assert(types.consistent_subtype({}, Word,Value))
-assert(types.consistent_subtype({}, Nil,Value))
-assert(types.consistent_subtype({}, Boolean,Value))
-assert(types.consistent_subtype({}, Number,Value))
-assert(types.consistent_subtype({}, String,Value))
-assert(types.consistent_subtype({}, Value,Value))
-assert(types.consistent_subtype({}, types.Union(Number,Nil),Value))
+assert(tltype.consistent_subtype({}, False,Value))
+assert(tltype.consistent_subtype({}, True,Value))
+assert(tltype.consistent_subtype({}, Double,Value))
+assert(tltype.consistent_subtype({}, Integer,Value))
+assert(tltype.consistent_subtype({}, Word,Value))
+assert(tltype.consistent_subtype({}, Nil,Value))
+assert(tltype.consistent_subtype({}, Boolean,Value))
+assert(tltype.consistent_subtype({}, Number,Value))
+assert(tltype.consistent_subtype({}, String,Value))
+assert(tltype.consistent_subtype({}, Value,Value))
+assert(tltype.consistent_subtype({}, tltype.Union(Number,Nil),Value))
 
-assert(not types.consistent_subtype({}, Value,False))
-assert(not types.consistent_subtype({}, Value,True))
-assert(not types.consistent_subtype({}, Value,Double))
-assert(not types.consistent_subtype({}, Value,Integer))
-assert(not types.consistent_subtype({}, Value,Word))
-assert(not types.consistent_subtype({}, Value,Nil))
-assert(not types.consistent_subtype({}, Value,Boolean))
-assert(not types.consistent_subtype({}, Value,Number))
-assert(not types.consistent_subtype({}, Value,String))
-assert(not types.consistent_subtype({}, Value,types.Union(Number,Nil)))
+assert(not tltype.consistent_subtype({}, Value,False))
+assert(not tltype.consistent_subtype({}, Value,True))
+assert(not tltype.consistent_subtype({}, Value,Double))
+assert(not tltype.consistent_subtype({}, Value,Integer))
+assert(not tltype.consistent_subtype({}, Value,Word))
+assert(not tltype.consistent_subtype({}, Value,Nil))
+assert(not tltype.consistent_subtype({}, Value,Boolean))
+assert(not tltype.consistent_subtype({}, Value,Number))
+assert(not tltype.consistent_subtype({}, Value,String))
+assert(not tltype.consistent_subtype({}, Value,tltype.Union(Number,Nil)))
 
-assert(types.consistent_subtype({}, Any,Any))
+assert(tltype.consistent_subtype({}, Any,Any))
 
-assert(types.consistent_subtype({}, Any,Value))
-assert(types.consistent_subtype({}, Value,Any))
+assert(tltype.consistent_subtype({}, Any,Value))
+assert(tltype.consistent_subtype({}, Value,Any))
 
-assert(types.consistent_subtype({}, Nil,Any))
-assert(types.consistent_subtype({}, False,Any))
-assert(types.consistent_subtype({}, True,Any))
-assert(types.consistent_subtype({}, Double,Any))
-assert(types.consistent_subtype({}, Integer,Any))
-assert(types.consistent_subtype({}, Word,Any))
+assert(tltype.consistent_subtype({}, Nil,Any))
+assert(tltype.consistent_subtype({}, False,Any))
+assert(tltype.consistent_subtype({}, True,Any))
+assert(tltype.consistent_subtype({}, Double,Any))
+assert(tltype.consistent_subtype({}, Integer,Any))
+assert(tltype.consistent_subtype({}, Word,Any))
 
-assert(types.consistent_subtype({}, Boolean,Any))
-assert(types.consistent_subtype({}, Number,Any))
-assert(types.consistent_subtype({}, String,Any))
+assert(tltype.consistent_subtype({}, Boolean,Any))
+assert(tltype.consistent_subtype({}, Number,Any))
+assert(tltype.consistent_subtype({}, String,Any))
 
-assert(types.consistent_subtype({}, Any,Nil))
-assert(types.consistent_subtype({}, Any,False))
-assert(types.consistent_subtype({}, Any,True))
-assert(types.consistent_subtype({}, Any,Double))
-assert(types.consistent_subtype({}, Any,Integer))
-assert(types.consistent_subtype({}, Any,Word))
+assert(tltype.consistent_subtype({}, Any,Nil))
+assert(tltype.consistent_subtype({}, Any,False))
+assert(tltype.consistent_subtype({}, Any,True))
+assert(tltype.consistent_subtype({}, Any,Double))
+assert(tltype.consistent_subtype({}, Any,Integer))
+assert(tltype.consistent_subtype({}, Any,Word))
 
-assert(types.consistent_subtype({}, Any,Boolean))
-assert(types.consistent_subtype({}, Any,Number))
-assert(types.consistent_subtype({}, Any,String))
+assert(tltype.consistent_subtype({}, Any,Boolean))
+assert(tltype.consistent_subtype({}, Any,Number))
+assert(tltype.consistent_subtype({}, Any,String))
 
-t = types.Union(Number,Nil)
+t = tltype.Union(Number,Nil)
 
-assert(types.consistent_subtype({}, Number,t))
-assert(types.consistent_subtype({}, Nil,t))
-assert(types.consistent_subtype({}, t,t))
+assert(tltype.consistent_subtype({}, Number,t))
+assert(tltype.consistent_subtype({}, Nil,t))
+assert(tltype.consistent_subtype({}, t,t))
 
-assert(not types.consistent_subtype({}, t,Number))
-assert(not types.consistent_subtype({}, t,Nil))
+assert(not tltype.consistent_subtype({}, t,Number))
+assert(not tltype.consistent_subtype({}, t,Nil))
 
-t = types.Union(Number,Any)
+t = tltype.Union(Number,Any)
 
-assert(types.consistent_subtype({}, Number,t))
-assert(types.consistent_subtype({}, Any,t))
-assert(types.consistent_subtype({}, t,t))
-assert(types.consistent_subtype({}, String,t))
-assert(types.consistent_subtype({}, t,Any))
+assert(tltype.consistent_subtype({}, Number,t))
+assert(tltype.consistent_subtype({}, Any,t))
+assert(tltype.consistent_subtype({}, t,t))
+assert(tltype.consistent_subtype({}, String,t))
+assert(tltype.consistent_subtype({}, t,Any))
 
-assert(not types.consistent_subtype({}, t,String))
+assert(not tltype.consistent_subtype({}, t,String))
 
-t1 = types.Tuple(types.Vararg(Any))
-t2 = types.Tuple(types.Vararg(Nil))
+t1 = tltype.Tuple({ Any }, true)
+t2 = tltype.Tuple({ Nil }, true)
 
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t1,t2)))
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t2,t1)))
-assert(types.consistent_subtype({}, types.Function(t2,t1), types.Function(t2,t1)))
-assert(types.consistent_subtype({}, types.Function(t2,t1), types.Function(t1,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t1,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t1)))
+assert(tltype.consistent_subtype({}, tltype.Function(t2,t1), tltype.Function(t2,t1)))
+assert(tltype.consistent_subtype({}, tltype.Function(t2,t1), tltype.Function(t1,t2)))
 
-t2 = types.Tuple(types.Vararg(Number))
+t2 = tltype.Tuple({ Number }, true)
 
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t1,t2)))
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t2,t1)))
-assert(types.consistent_subtype({}, types.Function(t2,t1), types.Function(t2,t1)))
-assert(types.consistent_subtype({}, types.Function(t2,t1), types.Function(t1,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t1,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t1)))
+assert(tltype.consistent_subtype({}, tltype.Function(t2,t1), tltype.Function(t2,t1)))
+assert(tltype.consistent_subtype({}, tltype.Function(t2,t1), tltype.Function(t1,t2)))
 
-t3 = types.Vararg(Any)
-t4 = types.Tuple(Any,Any,t3)
+t3 = tltype.Vararg(Any)
+t4 = tltype.Tuple({ Any, Any, t3 }, false)
 
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t2,t1)))
-assert(types.consistent_subtype({}, types.Function(t4,t2), types.Function(t1,t2)))
-assert(types.consistent_subtype({}, types.Function(t1,t2), types.Function(t4,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t2,t1)))
+assert(tltype.consistent_subtype({}, tltype.Function(t4,t2), tltype.Function(t1,t2)))
+assert(tltype.consistent_subtype({}, tltype.Function(t1,t2), tltype.Function(t4,t2)))
 
 print("> testing type checker...")
 
