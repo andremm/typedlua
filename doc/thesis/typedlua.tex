@@ -258,12 +258,213 @@ Figure \ref{fig:typelang} presents the abstract syntax of the
 Typed Lua types.
 We split Typed Lua types into two categories:
 \emph{first-level types} and \emph{second-level types}.
-We use first-level types to represent Lua values, and
+We use first-level types to represent Lua values and
 second-level types to type expression lists, multiple assignments,
 and function applications.
-We will all Typed Lua types along this section.
+We will explain all Typed Lua types in more detail along this section.
 
 \subsection{Subtyping and Consistent-Subtyping}
+
+\[
+\senv \vdash L \subtype L
+\mylabel{S-LITERAL}
+\]
+
+\[
+\senv \vdash \False \subtype \Boolean
+\mylabel{S-FALSE}
+\]
+
+\[
+\senv \vdash \True \subtype \Boolean
+\mylabel{S-TRUE}
+\]
+
+\[
+\senv \vdash {<}{\it number}{>} \subtype \Number
+\mylabel{S-NUMBER}
+\]
+
+\[
+\senv \vdash {<}{\it string}{>} \subtype \String
+\mylabel{S-STRING}
+\]
+
+\[
+\senv \vdash B \subtype B
+\mylabel{S-BASE}
+\]
+
+\[
+\senv \vdash \Nil \subtype \Nil
+\mylabel{S-NIL}
+\]
+
+\[
+\senv \vdash T \subtype \Value
+\mylabel{S-VALUE}
+\]
+
+\[
+\senv \vdash \Any \subtype \Any
+\mylabel{S-ANY}
+\]
+
+\[
+\senv \vdash \Self \subtype \Self
+\mylabel{S-SELF}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \subtype T \;\;\;
+      \senv \vdash T_{2} \subtype T}
+     {\senv \vdash T_{1} \cup T_{2} \subtype T}
+\mylabel{S-UNION1}
+\]
+
+\[
+\frac{\senv \vdash T \subtype T_{1}}
+     {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\mylabel{S-UNION2}
+\]
+
+\[
+\frac{\senv \vdash T \subtype T_{2}}
+     {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\mylabel{S-UNION3}
+\]
+
+\[
+\frac{\senv \vdash P_{2} \subtype P_{1} \;\;\;
+      \senv \vdash R_{1} \subtype R_{2}}
+     {\senv \vdash P_{1} \rightarrow R_{1} \subtype P_{2} \rightarrow R_{2}}
+\mylabel{S-FUNCTION}
+\]
+
+\[
+\frac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+      \senv \vdash F_{j} \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \subtype \{F_{1}, ..., F_{n}\}}
+\mylabel{S-TABLE1}
+\]
+
+\[
+\frac{\forall i \in 1..m \; \senv \vdash F_{i}' \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
+\mylabel{S-TABLE2}
+\]
+
+\[
+\frac{\forall i \in 1..m \; \senv \vdash F \subtype F_{i}}
+     {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F\}} 
+\mylabel{S-TABLE3}
+\]
+
+\[
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash T_{2} \subtype T_{1}}
+     {\senv \vdash K_{1}:T_{1} \subtype K_{2}:T_{2}}
+\mylabel{S-FIELD1}
+\]
+
+\[
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\mylabel{S-FIELD2}
+\]
+
+\[
+\frac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+      \senv \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\mylabel{S-FIELD3}
+\]
+
+\[
+\frac{X_{1} \subtype X_{2} \in \senv}
+     {\senv \vdash X_{1} \subtype X_{2}}
+\mylabel{S-VARIABLE}
+\]
+
+\[
+\frac{\senv, X_{1} \subtype X_{2} \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \mu X_{1}.T_{1} \subtype \mu X_{2}.T_{2}}
+\mylabel{S-RECURSIVE1}
+\]
+
+\[
+\frac{X \subtype X \not\in \senv \;\;\;
+      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\mylabel{S-RECURSIVE2}
+\]
+
+\[
+\frac{X \subtype X \in \senv \;\;\;
+      \senv \vdash X \subtype T_{2}}
+     {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\mylabel{S-RECURSIVE3}
+\]
+
+\[
+\frac{X \subtype X \not\in \senv \;\;\;
+      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+     {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\mylabel{S-RECURSIVE4}
+\]
+
+\[
+\frac{X \subtype X \in \senv \;\;\;
+      \senv \vdash T_{1} \subtype X}
+     {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\mylabel{S-RECURSIVE5}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
+     {\senv \vdash T_{1}* \subtype T_{2}*}
+\mylabel{S-VARARG}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+      \senv \vdash S_{1} \subtype S_{2}}
+     {\senv \vdash T_{1} \times S_{1} \subtype T_{2} \times S_{2}}
+\mylabel{S-TUPLE1}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \;\;\;
+      \senv \vdash T_{1}* \subtype S_{2}}
+     {\senv \vdash T_{1}* \subtype T_{2} \times S_{2}}
+\mylabel{S-TUPLE2}
+\]
+
+\[
+\frac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil \;\;\;
+      \senv \vdash S_{1} \subtype T_{2}*}
+     {\senv \vdash T_{1} \times S_{1} \subtype T_{2}*}
+\mylabel{S-TUPLE3}
+\]
+
+\[
+\senv \vdash \Void \subtype \Void
+\mylabel{S-VOID}
+\]
+
+The consistent-subtyping rules are exactly the same as the subtyping rules,
+except those that handle the dynamic type:
+\[
+\senv \vdash T \lesssim \Any
+\mylabel{C-ANY1}
+\]
+
+\[
+\senv \vdash \Any \lesssim T
+\mylabel{C-ANY2}
+\]
 
 \subsection{Atomic types and Functions}
 
