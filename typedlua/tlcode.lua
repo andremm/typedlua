@@ -1,7 +1,7 @@
 --[[
 This file implements the code generator for Typed Lua
 ]]
-local code = {}
+local tlcode = {}
 
 local code_block, code_stm, code_exp, code_var
 local code_explist, code_varlist, code_fieldlist, code_idlist
@@ -258,9 +258,9 @@ function code_block (block, i)
   return table.concat(l, "\n") .. "\n"
 end
 
-function code.generate (ast)
+function tlcode.generate (ast)
   assert(type(ast) == "table")
   return code_block(ast, -1)
 end
 
-return code
+return tlcode

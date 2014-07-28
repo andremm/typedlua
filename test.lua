@@ -1,10 +1,10 @@
 #!/usr/bin/env lua
 
-local code = require "typedlua.code"
-local checker = require "typedlua.checker"
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
 local tltype = require "typedlua.tltype"
+local checker = require "typedlua.checker"
+local tlcode = require "typedlua.tlcode"
 
 -- expected result, result, subject
 local e, r, s
@@ -48,7 +48,7 @@ local function generate (s)
   if m then
     return m .. "\n"
   else
-    return code.generate(t)
+    return tlcode.generate(t)
   end
 end
 
