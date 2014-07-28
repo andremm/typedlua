@@ -5,10 +5,13 @@ This module implements Typed Lua symbol table.
 local tlst = {}
 
 -- new_env : (string, string) -> (env)
-function tlst.new_env (subject, filename)
+function tlst.new_env (subject, filename, strict, warnings)
   local env = {}
   env.subject = subject
   env.filename = filename
+  env.strict = strict
+  env.warnings = warnings
+  env.messages = {}
   env.maxscope = 0
   env.scope = 0
   env.fscope = 0
@@ -108,14 +111,20 @@ function tlst.end_function (env)
   env.fscope = env.fscope - 1
 end
 
--- set_vararg : (env) -> ()
-function tlst.set_vararg (env)
-  env["function"][env.fscope].is_vararg = true
+-- set_vararg : (env, type) -> ()
+function tlst.set_vararg (env, t)
+  env["function"][env.fscope]["vararg"] = t
+end
+
+-- get_vararg : (env) -> (type?)
+function tlst.get_vararg (env, t)
+  return env["function"][env.fscope]["vararg"]
 end
 
 -- is_vararg : (env) -> (boolean)
 function tlst.is_vararg (env)
-  return env["function"][env.fscope].is_vararg
+  local t = tlst.get_vararg(env)
+  if t then return true else return false end
 end
 
 -- begin_loop : (env) -> ()

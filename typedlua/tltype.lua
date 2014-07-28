@@ -650,12 +650,36 @@ function subtype (env, t1, t2, relation)
   end
 end
 
-function tltype.subtype (env, t1, t2)
-  return subtype(env, t1, t2, "<:")
+function tltype.subtype (t1, t2)
+  return subtype({}, t1, t2, "<:")
 end
 
-function tltype.consistent_subtype (env, t1, t2)
-  return subtype(env, t1, t2, "<~")
+function tltype.consistent_subtype (t1, t2)
+  return subtype({}, t1, t2, "<~")
+end
+
+-- most general type
+
+function tltype.general (t)
+  if tltype.False(t) and tltype.isTrue(t) then
+    return tltype.Boolean()
+  elseif tltype.isNum(t) then
+    return tltype.Number()
+  elseif tltype.isStr(t) then
+    return tltype.String()
+  else
+    return t
+  end
+end
+
+-- first level type
+
+function tltype.first (t)
+  if tltype.isVararg(t) then
+    return tltype.Union(t[1], tltype.Nil())
+  else
+    return t
+  end
 end
 
 -- tostring

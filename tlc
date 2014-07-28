@@ -1,9 +1,9 @@
 #!/usr/bin/env lua
 
-local checker = require "typedlua.checker"
-local code = require "typedlua.code"
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
+local tlchecker = require "typedlua.tlchecker"
+local tlcode = require "typedlua.tlcode"
 
 local VERSION = "0.1-alpha1"
 local PROGNAME = "tlc"
@@ -12,7 +12,6 @@ local OUTPUT = PROGNAME .. ".lua"
 local DUMPAST = false
 local PRINTAST = false
 
-local TYPECHECK = true
 local STRICT = false
 local WARNINGS = false
 
@@ -22,7 +21,6 @@ local USAGE = [[
 usage: %s [options] [filename]
 Available options are:
 -d	dump the AST
--g	generate code without type checking
 -h	print this help
 -o name	output to file 'name' (default is '%s')
 -p	print the AST
@@ -46,8 +44,6 @@ local function doargs ()
       return i
     elseif arg[i] == "-d" then
       DUMPAST = true
-    elseif arg[i] == "-g" then
-      TYPECHECK = false
     elseif arg[i] == "-h" then
       usage()
     elseif arg[i] == "-o" then
@@ -118,12 +114,10 @@ if PRINTAST then
   os.exit(0)
 end
 
-if TYPECHECK then
-  ast, error_msg = checker.typecheck(ast, subject, filename)
-  if error_msg then print(error_msg) end
-end
+ast, error_msg = tlchecker.typecheck(ast, subject, filename, STRICT, WARNINGS)
+if error_msg then print(error_msg) end
 
-local generated_code = code.generate(ast)
+local generated_code = tlcode.generate(ast)
 setcontents(generated_code, OUTPUT)
 
 os.exit(0)

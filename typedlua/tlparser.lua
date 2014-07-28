@@ -243,7 +243,8 @@ local traverse_block, traverse_explist, traverse_varlist, traverse_parlist
 function traverse_parlist (env, parlist)
   local len = #parlist
   if len > 0 and parlist[len].tag == "Dots" then
-    tlst.set_vararg(env)
+    local t = parlist[len][1] or tltype.Any()
+    tlst.set_vararg(env, t)
     len = len - 1
   end
   for i = 1, len do
@@ -604,12 +605,12 @@ local function traverse (ast, errorinfo, strict)
   assert(type(ast) == "table")
   assert(type(errorinfo) == "table")
   assert(type(strict) == "boolean")
-  local env = tlst.new_env(errorinfo.subject, errorinfo.filename)
+  local env = tlst.new_env(errorinfo.subject, errorinfo.filename, strict, false)
   local ENV = tlast.ident(0, "_ENV")
   local _type = tlast.ident(0, "type")
   local _setmetatable = tlast.ident(0, "setmetatable")
   tlst.begin_function(env)
-  tlst.set_vararg(env)
+  tlst.set_vararg(env, tltype.String())
   tlst.begin_scope(env)
   tlst.set_local(env, ENV)
   tlst.set_local(env, _type)
