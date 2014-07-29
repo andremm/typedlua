@@ -303,7 +303,8 @@ local function explist2typelist (explist)
       local t = get_type(explist[i])
       return tltype.first(t)
     else
-      local t = get_type(explist[len])
+      local t
+      if len == 0 then t = Nil else t = get_type(explist[len]) end
       if tltype.isVararg(t) then
         return tltype.first(t)
       else
@@ -346,11 +347,115 @@ local function check_local (env, idlist, explist)
   end
 end
 
+local function check_parameters (env, parlist)
+  local len = #parlist
+  if len == 0 then
+    if env.strict then
+      return tltype.Void()
+    else
+      return tltype.Tuple({ Value }, true)
+    end
+  else
+    local l = {}
+    for i = 1, len do
+      if not parlist[i][2] then parlist[i][2] = Any end
+      l[i] = parlist[i][2]
+    end
+    if parlist[len].tag == "Dots" then
+      tlst.set_vararg(env, parlist[len][2])
+      return tltype.Tuple(l, true)
+    else
+      if env.strict then
+        return tltype.Tuple(l)
+      else
+        l[len + 1] = Value
+        return tltype.Tuple(l, true)
+      end
+    end
+  end
+end
+
+local function check_localrec (env, id, exp)
+  local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  if not block then
+    block = ret_type
+    ret_type = tltype.Tuple({ Any }, true)
+  end
+  tlst.begin_function(env)
+  local input_type = check_parameters(env, idlist)
+  local t = tltype.Function(input_type, ret_type)
+  id[2] = t
+  set_type(id, t)
+  tlst.set_local(env, id)
+  tlst.begin_scope(env)
+  for k, v in ipairs(idlist) do
+    tlst.set_local(env, v)
+  end
+  check_block(env, block)
+  tlst.end_scope(env)
+  tlst.end_function(env)
+end
+
+local function explist2type (explist)
+  local len = #explist
+  if len == 0 then
+    return tltype.Tuple({ Nil }, true)
+  else
+    local l = {}
+    for i = 1, len do
+      l[i] = tltype.first(get_type(explist[i]))
+    end
+    if not tltype.isVararg(explist[len]) then
+      l[len + 1] = Nil
+    end
+    return tltype.Tuple(l, true)
+  end
+end
+
+local function check_return (env, stm)
+  check_explist(env, stm)
+  local t = explist2type(stm)
+  tlst.set_return_type(env, t)
+end
+
+local function check_var (env, var)
+  local tag = var.tag
+  if tag == "Id" then
+    local name = var[1]
+    local l = tlst.get_local(env, name)
+    set_type(var, get_type(l))
+  elseif tag == "Index" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+  end
+end
+
+local function check_assignment (env, varlist, explist)
+  check_explist(env, explist)
+  local tuple = explist2typelist(explist)
+  for k, v in ipairs(varlist) do
+    check_var(env, v)
+    local var_type, exp_type = get_type(v), tuple(k)
+    local msg = "attempt to assign '%s' to '%s'"
+    msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
+    if tltype.subtype(exp_type, var_type) then
+    elseif tltype.consistent_subtype(exp_type, var_type) then
+      if env.warnings then
+       typeerror(env, msg, v.pos)
+      end
+    else
+      typeerror(env, msg, v.pos)
+    end
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then
     check_block(env, stm)
   elseif tag == "Set" then
+    check_assignment(env, stm[1], stm[2])
   elseif tag == "While" then
   elseif tag == "Repeat" then
   elseif tag == "If" then
@@ -363,6 +468,7 @@ function check_stm (env, stm)
   elseif tag == "Goto" then
   elseif tag == "Label" then
   elseif tag == "Return" then
+    check_return(env, stm)
   elseif tag == "Break" then
   elseif tag == "Call" then
   elseif tag == "Invoke" then

@@ -96,7 +96,7 @@ end
 -- new_fenv : () -> (fenv)
 local function new_fenv ()
   local fenv = {}
-  fenv.is_vararg = false
+  fenv["return_type"] = {}
   return fenv
 end
 
@@ -125,6 +125,11 @@ end
 function tlst.is_vararg (env)
   local t = tlst.get_vararg(env)
   if t then return true else return false end
+end
+
+-- set_return_type : (env, type) -> ()
+function tlst.set_return_type (env, t)
+  table.insert(env["function"][env.fscope]["return_type"], t)
 end
 
 -- begin_loop : (env) -> ()

@@ -675,7 +675,9 @@ end
 -- first level type
 
 function tltype.first (t)
-  if tltype.isVararg(t) then
+  if tltype.isTuple(t) then
+    return t[1]
+  elseif tltype.isVararg(t) then
     return tltype.Union(t[1], tltype.Nil())
   else
     return t
