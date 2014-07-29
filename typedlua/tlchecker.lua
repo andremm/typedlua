@@ -261,6 +261,75 @@ local function check_paren (env, exp)
   set_type(env, t1)
 end
 
+local function check_parameters (env, parlist)
+  local len = #parlist
+  if len == 0 then
+    if env.strict then
+      return tltype.Void()
+    else
+      return tltype.Tuple({ Value }, true)
+    end
+  else
+    local l = {}
+    for i = 1, len do
+      if not parlist[i][2] then parlist[i][2] = Any end
+      l[i] = parlist[i][2]
+    end
+    if parlist[len].tag == "Dots" then
+      tlst.set_vararg(env, parlist[len][2])
+      return tltype.Tuple(l, true)
+    else
+      if env.strict then
+        return tltype.Tuple(l)
+      else
+        l[len + 1] = Value
+        return tltype.Tuple(l, true)
+      end
+    end
+  end
+end
+
+local function check_function (env, exp)
+  local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  if not block then
+    block = ret_type
+    ret_type = tltype.Tuple({ Any }, true)
+  end
+  tlst.begin_function(env)
+  tlst.begin_scope(env)
+  local input_type = check_parameters(env, idlist)
+  local t = tltype.Function(input_type, ret_type)
+  for k, v in ipairs(idlist) do
+    tlst.set_local(env, v)
+  end
+  check_block(env, block)
+  tlst.end_scope(env)
+  tlst.end_function(env)
+  set_type(exp, t)
+end
+
+local function check_table (env, exp)
+  local l = {}
+  local i = 1
+  for k, v in ipairs(exp) do
+    local tag = v.tag
+    local t1, t2
+    if tag == "Pair" then
+      local exp1, exp2 = v[1], v[2]
+      check_exp(env, exp1)
+      check_exp(env, exp2)
+      t1, t2 = get_type(exp1), tltype.general(get_type(exp2))
+    else
+      local exp1 = v
+      check_exp(env, exp1)
+      t1, t2 = tltype.Literal(i), tltype.general(get_type(exp1))
+      i = i + 1
+    end
+    l[k] = tltype.Field(v.const, t1, t2)
+  end
+  set_type(exp, tltype.Table(table.unpack(l)))
+end
+
 function check_exp (env, exp)
   local tag = exp.tag
   if tag == "Nil" then
@@ -276,7 +345,9 @@ function check_exp (env, exp)
   elseif tag == "String" then
     set_type(exp, tltype.Literal(exp[1]))
   elseif tag == "Function" then
+    check_function(env, exp)
   elseif tag == "Table" then
+    check_table(env, exp)
   elseif tag == "Op" then
     check_op(env, exp)
   elseif tag == "Paren" then
@@ -344,34 +415,6 @@ local function check_local (env, idlist, explist)
   for k, v in ipairs(idlist) do
     local t = tuple(k)
     check_local_var(env, v, t)
-  end
-end
-
-local function check_parameters (env, parlist)
-  local len = #parlist
-  if len == 0 then
-    if env.strict then
-      return tltype.Void()
-    else
-      return tltype.Tuple({ Value }, true)
-    end
-  else
-    local l = {}
-    for i = 1, len do
-      if not parlist[i][2] then parlist[i][2] = Any end
-      l[i] = parlist[i][2]
-    end
-    if parlist[len].tag == "Dots" then
-      tlst.set_vararg(env, parlist[len][2])
-      return tltype.Tuple(l, true)
-    else
-      if env.strict then
-        return tltype.Tuple(l)
-      else
-        l[len + 1] = Value
-        return tltype.Tuple(l, true)
-      end
-    end
   end
 end
 
@@ -450,6 +493,78 @@ local function check_assignment (env, varlist, explist)
   end
 end
 
+local function check_while (env, stm)
+  local exp1, stm1 = stm[1], stm[2]
+  check_exp(env, exp1)
+  check_block(env, stm1)
+end
+
+local function check_repeat (env, stm)
+  local stm1, exp1 = stm[1], stm[2]
+  check_block(env, stm1)
+  check_exp(env, exp1)
+end
+
+local function check_if (env, stm)
+  for i = 1, #stm, 2 do
+    local exp, block = stm[i], stm[i + 1]
+    if block then
+      check_exp(env, exp)
+    else
+      block = exp
+    end
+    check_block(env, block)
+  end
+end
+
+local function check_fornum (env, stm)
+  local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
+  id[2] = Number
+  set_type(id, Number)
+  tlst.begin_scope(env)
+  tlst.set_local(env, id)
+  check_exp(env, exp1)
+  local t = get_type(exp1)
+  local msg = "'for' initial value must be a number"
+  if tltype.subtype(t, Number) then
+  elseif tltype.consistent_subtype(t, Number) then
+    if env.warnings then typeerror(env, msg, exp1.pos) end
+  else
+    typeerror(env, msg, exp1.pos)
+  end
+  check_exp(env, exp2)
+  t = get_type(exp2)
+  msg = "'for' limit must be a number"
+  if tltype.subtype(t, Number) then
+  elseif tltype.consistent_subtype(t, Number) then
+    if env.warnings then typeerror(env, msg, exp2.pos) end
+  else
+    typeerror(env, msg, exp2.pos)
+  end
+  if block then
+    check_exp(env, exp3)
+    t = get_type(exp3)
+    msg = "'for' step must be a number"
+    if tltype.subtype(t, Number) then
+    elseif tltype.consistent_subtype(t, Number) then
+      if env.warnings then typeerror(env, msg, exp3.pos) end
+    else
+      typeerror(env, msg, exp3.pos)
+    end
+  else
+    block = exp3
+  end
+  check_block(env, block)
+  tlst.end_scope(env)
+end
+
+local function check_forin (env, idlist, explist, block)
+  tlst.begin_scope(env)
+  check_local(env, idlist, explist)
+  check_block(env, block)
+  tlst.end_scope(env)
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then
@@ -457,10 +572,15 @@ function check_stm (env, stm)
   elseif tag == "Set" then
     check_assignment(env, stm[1], stm[2])
   elseif tag == "While" then
+    check_while(env, stm)
   elseif tag == "Repeat" then
+    check_repeat(env, stm)
   elseif tag == "If" then
+    check_if(env, stm)
   elseif tag == "Fornum" then
+    check_fornum(env, stm[1], stm[2], stm[3])
   elseif tag == "Forin" then
+    check_forin(env, stm)
   elseif tag == "Local" then
     check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then
