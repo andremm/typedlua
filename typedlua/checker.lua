@@ -704,7 +704,9 @@ local function check_call (env, exp)
   end
   check_exp(env, exp1)
   local name = var2name(exp1)
-  if name == "setmetatable" then
+  if exp1.tag == "Index" and
+     exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
+     exp1[2].tag == "String" and exp1[2][1] == "setmetatable" then
     if explist[1] and explist[2] then
       check_exp(env, explist[1])
       check_exp(env, explist[2])
@@ -937,7 +939,10 @@ local function check_if (env, stm)
           end
         end
       elseif exp.tag == "Op" and exp[1] == "eq" and
-             exp[2].tag == "Call" and exp[2][1].tag == "Id" and exp[2][1][1] == "type" and exp[2][2].tag == "Id" then
+             exp[2].tag == "Call" and exp[2][1].tag == "Index" and
+             exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
+             exp[2][1][2].tag == "String" and exp[2][1][2][1] == "type" and
+             exp[2][2].tag == "Id" then
         name = exp[2][2][1]
         l[name] = get_local(env, name)
         if l[name] then
@@ -956,7 +961,11 @@ local function check_if (env, stm)
           end
         end
       elseif exp.tag == "Op" and exp[1] == "not" and
-             exp[2].tag == "Op" and exp[2][1] == "eq" and exp[2][2].tag == "Call" and exp[2][2][1].tag == "Id" and exp[2][2][1][1] == "type" and exp[2][2][2].tag == "Id" then
+             exp[2].tag == "Op" and exp[2][1] == "eq" and
+             exp[2][2].tag == "Call" and exp[2][2][1].tag == "Index" and
+             exp[2][2][1][1].tag == "Id" and exp[2][2][1][1][1] == "_ENV" and
+             exp[2][2][1][2].tag == "String" and exp[2][2][1][2][1] == "type" and
+             exp[2][2][2].tag == "Id" then
         name = exp[2][2][2][1]
         l[name] = get_local(env, name)
         if l[name] then
@@ -1286,18 +1295,12 @@ function checker.typecheck (ast, subject, filename)
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
-  local _type = { tag = "Id", [1] = "type", [2] = types.Function(types.Tuple(types.Value, types.ValueStar), types.Tuple(types.String, types.NilStar)) }
-  local _setmetatable = { tag = "Id", [1] = "setmetatable",
-    [2] = types.Function(types.Tuple(types.Table(), types.Table(), types.ValueStar), types.Tuple(types.Table(), types.NilStar)) }
   local ENV = { tag = "Id", [1] = "_ENV", [2] = assert(tldparser.parse("typedlua/lsl.tld", false)) }
   ENV[2].open = true
   begin_function(env)
   begin_scope(env)
   set_vararg_type(env, String)
   set_local(env, ENV, ENV[2], env.scope)
-  -- setting print and type as local for now, just for passing on tests
-  set_local(env, _type, _type[2], env.scope)
-  set_local(env, _setmetatable, _setmetatable[2], env.scope)
   for k, v in ipairs(ast) do
     check_stm(env, v, false)
   end

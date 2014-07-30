@@ -22,10 +22,10 @@ rawget : ({}, any) -> (any)
 rawlen : ({}|string) -> (number)
 rawset : ({any:any}, any, any) -> ({any:any})
 select : (number, any*) -> (any*)
--- setmetatable is a primitive in Typed Lua
+setmetatable : ({any:any}, {any:any}|nil) -> ({any:any}) -- it is a primitive in Typed Lua
 tonumber : (value, number|string?) -> (number) | (nil)
 tostring : (value) -> (string)
--- type is a primitive in Typed Lua
+type : (value) -> ("nil"|"number"|"string"|"boolean"|"table"|"function"|"thread"|"userdata") -- it is a primitive in Typed Lua
 _VERSION : string
 xpcall : ((any*) -> (any*), any, any*) -> (true, any*) | (false, string)
 
@@ -42,7 +42,7 @@ coroutine : {
 
 -- Modules
 
--- require is a primitive in Typed Lua
+require : (string) -> (any) -- is a primitive in Typed Lua
 
 package : {
   "config" : string,
