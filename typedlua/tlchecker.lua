@@ -19,7 +19,7 @@ local Boolean = tltype.Boolean()
 local Number = tltype.Number()
 local String = tltype.String()
 
-local check_block, check_stm, check_exp
+local check_block, check_stm, check_exp, check_var
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
@@ -289,6 +289,12 @@ local function check_parameters (env, parlist)
   end
 end
 
+local function check_explist (env, explist)
+  for k, v in ipairs(explist) do
+    check_exp(env, v)
+  end
+end
+
 local function check_function (env, exp)
   local idlist, ret_type, block = exp[1], exp[2], exp[3]
   if not block then
@@ -330,40 +336,16 @@ local function check_table (env, exp)
   set_type(exp, tltype.Table(table.unpack(l)))
 end
 
-function check_exp (env, exp)
-  local tag = exp.tag
-  if tag == "Nil" then
-    set_type(exp, Nil)
-  elseif tag == "Dots" then
-    set_type(exp, tltype.Vararg(tlst.get_vararg(env)))
-  elseif tag == "True" then
-    set_type(exp, True)
-  elseif tag == "False" then
-    set_type(exp, False)
-  elseif tag == "Number" then
-    set_type(exp, tltype.Literal(exp[1]))
-  elseif tag == "String" then
-    set_type(exp, tltype.Literal(exp[1]))
-  elseif tag == "Function" then
-    check_function(env, exp)
-  elseif tag == "Table" then
-    check_table(env, exp)
-  elseif tag == "Op" then
-    check_op(env, exp)
-  elseif tag == "Paren" then
-    check_paren(env, exp)
-  elseif tag == "Call" then
-  elseif tag == "Invoke" then
-  elseif tag == "Id" then
+local function var2name (var)
+  local tag = var.tag
+  if tag == "Id" then
+    return string.format("local '%s'", var[1])
   elseif tag == "Index" then
-  else
-    error("cannot type check expression " .. tag)
-  end
-end
-
-local function check_explist (env, explist)
-  for k, v in ipairs(explist) do
-    check_exp(env, v)
+    if var[1].tag == "Id" and var[1][1] == "_ENV" and var[2].tag == "String" then
+      return string.format("global '%s'", var[2][1])
+    else
+      return string.format("field '%s'", var[2][1])
+    end
   end
 end
 
@@ -382,6 +364,89 @@ local function explist2typelist (explist)
         return Nil
       end
     end
+  end
+end
+
+local function explist2type (explist)
+  local len = #explist
+  if len == 0 then
+    return tltype.Tuple({ Nil }, true)
+  else
+    local l = {}
+    for i = 1, len do
+      l[i] = tltype.first(get_type(explist[i]))
+    end
+    if not tltype.isVararg(explist[len]) then
+      l[len + 1] = Nil
+    end
+    return tltype.Tuple(l, true)
+  end
+end
+
+local function check_arguments (env, func_name, dec_type, infer_type, pos)
+  local msg = "attempt to pass '%s' to %s of input type '%s'"
+  if tltype.subtype(infer_type, dec_type) then
+  elseif tltype.consistent_subtype(infer_type, dec_type) then
+    if env.warnings then
+      msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
+      typeerror(env, msg, pos)
+    end
+  else
+    msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
+    typeerror(env, msg, pos)
+  end
+end
+
+local function check_call (env, exp)
+  local exp1 = exp[1]
+  local explist = {}
+  for i = 2, #exp do
+    explist[i - 1] = exp[i]
+  end
+  check_exp(env, exp1)
+  check_explist(env, explist)
+  local t = get_type(exp1)
+  local inferred_type = explist2type(explist)
+  local msg = "attempt to call %s of type '%s'"
+  if tltype.isFunction(t) then
+    check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
+    set_type(exp, t[2])
+  elseif tltype.isAny(t) then
+    if env.warnings then
+      msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+      typeerror(env, msg, exp.pos)
+    end
+    set_type(exp, Any)
+  else
+    msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+    typeerror(env, msg, exp.pos)
+    set_type(exp, Nil)
+  end
+end
+
+local function check_invoke (env, exp)
+  local exp1, exp2 = exp[1], exp[2]
+  local explist = {}
+  for i = 3, #exp do
+    explist[i - 2] = exp[i]
+  end
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  check_explist(env, explist)
+  local t = get_type(exp1)
+  local msg = "attempt to call method '%s' of type '%s'"
+  if tltype.isFunction(t) then
+    set_type(exp, t[2])
+  elseif tltype.isAny(t) then
+    if env.warnings then
+      msg = string.format(msg, exp2[1], tltype.tostring(t))
+      typeerror(env, msg, exp.pos)
+    end
+    set_type(exp, Any)
+  else
+    msg = string.format(msg, exp2[1], tltype.tostring(t))
+    typeerror(env, msg, exp.pos)
+    set_type(exp, Nil)
   end
 end
 
@@ -439,39 +504,10 @@ local function check_localrec (env, id, exp)
   tlst.end_function(env)
 end
 
-local function explist2type (explist)
-  local len = #explist
-  if len == 0 then
-    return tltype.Tuple({ Nil }, true)
-  else
-    local l = {}
-    for i = 1, len do
-      l[i] = tltype.first(get_type(explist[i]))
-    end
-    if not tltype.isVararg(explist[len]) then
-      l[len + 1] = Nil
-    end
-    return tltype.Tuple(l, true)
-  end
-end
-
 local function check_return (env, stm)
   check_explist(env, stm)
   local t = explist2type(stm)
   tlst.set_return_type(env, t)
-end
-
-local function check_var (env, var)
-  local tag = var.tag
-  if tag == "Id" then
-    local name = var[1]
-    local l = tlst.get_local(env, name)
-    set_type(var, get_type(l))
-  elseif tag == "Index" then
-    local exp1, exp2 = var[1], var[2]
-    check_exp(env, exp1)
-    check_exp(env, exp2)
-  end
 end
 
 local function check_assignment (env, varlist, explist)
@@ -565,6 +601,55 @@ local function check_forin (env, idlist, explist, block)
   tlst.end_scope(env)
 end
 
+function check_var (env, var)
+  local tag = var.tag
+  if tag == "Id" then
+    local name = var[1]
+    local l = tlst.get_local(env, name)
+    set_type(var, get_type(l))
+  elseif tag == "Index" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+    set_type(var, get_type(exp1))
+  end
+end
+
+function check_exp (env, exp)
+  local tag = exp.tag
+  if tag == "Nil" then
+    set_type(exp, Nil)
+  elseif tag == "Dots" then
+    set_type(exp, tltype.Vararg(tlst.get_vararg(env)))
+  elseif tag == "True" then
+    set_type(exp, True)
+  elseif tag == "False" then
+    set_type(exp, False)
+  elseif tag == "Number" then
+    set_type(exp, tltype.Literal(exp[1]))
+  elseif tag == "String" then
+    set_type(exp, tltype.Literal(exp[1]))
+  elseif tag == "Function" then
+    check_function(env, exp)
+  elseif tag == "Table" then
+    check_table(env, exp)
+  elseif tag == "Op" then
+    check_op(env, exp)
+  elseif tag == "Paren" then
+    check_paren(env, exp)
+  elseif tag == "Call" then
+    check_call(env, exp)
+  elseif tag == "Invoke" then
+    check_invoke(env, exp)
+  elseif tag == "Id" then
+    check_var(env, exp)
+  elseif tag == "Index" then
+    check_var(env, exp)
+  else
+    error("cannot type check expression " .. tag)
+  end
+end
+
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then
@@ -591,7 +676,9 @@ function check_stm (env, stm)
     check_return(env, stm)
   elseif tag == "Break" then
   elseif tag == "Call" then
+    check_call(env, stm)
   elseif tag == "Invoke" then
+    check_invoke(env, stm)
   elseif tag == "Interface" then
   elseif tag == "LocalInterface" then
   else
