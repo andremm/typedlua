@@ -2,6 +2,8 @@
 Lua Standard Libraries Typed Lua description file
 ]]
 
+arg : {string}
+
 -- Basic Functions
 
 assert : (any, string?) -> (any, string?) | (nil)

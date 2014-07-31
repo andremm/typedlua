@@ -60,13 +60,13 @@ local function check_arith (env, exp)
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1))
-      typerror(env, msg, exp1.pos)
+      typeerror(env, msg, exp1.pos)
     end
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t2))
-      typerror(env, msg, exp2.pos)
+      typeerror(env, msg, exp2.pos)
     end
   else
     set_type(exp, Any)
@@ -91,13 +91,13 @@ local function check_concat (env, exp)
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1))
-      typerror(env, msg, exp1.pos)
+      typeerror(env, msg, exp1.pos)
     end
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t2))
-      typerror(env, msg, exp2.pos)
+      typeerror(env, msg, exp2.pos)
     end
   else
     set_type(exp, Any)
@@ -131,13 +131,13 @@ local function check_order (env, exp)
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typerror(env, msg, exp1.pos)
+      typeerror(env, msg, exp1.pos)
     end
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typerror(env, msg, exp2.pos)
+      typeerror(env, msg, exp2.pos)
     end
   else
     set_type(exp, Any)
@@ -152,7 +152,15 @@ local function check_and (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = get_type(exp1), get_type(exp2)
-  set_type(exp, tltype.Union(t1, t2))
+  if tltype.isNil(t1) or tltype.isFalse(t1) then
+    set_type(exp, t1)
+  elseif tltype.isUnion(t1, Nil) then
+    set_type(exp, tltype.Union(t2, Nil))
+  elseif tltype.isUnion(t1, False) then
+    set_type(exp, tltype.Union(t2, False))
+  else
+    set_type(exp, tltype.Union(t1, t2))
+  end
 end
 
 local function check_or (env, exp)
@@ -160,7 +168,15 @@ local function check_or (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = get_type(exp1), get_type(exp2)
-  set_type(exp, tltype.Union(t1, t2))
+  if tltype.isNil(t1) or tltype.isFalse(t1) then
+    set_type(exp, t2)
+  elseif tltype.isUnion(t1, Nil) then
+    set_type(exp, tltype.Union(tltype.filterUnion(t1, Nil), t2))
+  elseif tltype.isUnion(t1, False) then
+    set_type(exp, tltype.Union(tltype.filterUnion(t1, False), t2))
+  else
+    set_type(exp, tltype.Union(t1, t2))
+  end
 end
 
 local function check_binary_op (env, exp)
@@ -201,7 +217,7 @@ local function check_minus (env, exp)
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1))
-      typerror(env, msg, exp1.pos)
+      typeerror(env, msg, exp1.pos)
     end
   else
     set_type(exp, Any)
@@ -214,7 +230,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = general(exp1)
+  local t1 = tltype.general(get_type(exp1))
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table(tltype.Field(false, Number, Value))) then
@@ -223,7 +239,7 @@ local function check_len (env, exp)
     set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1))
-      typerror(env, msg, exp1.pos)
+      typeerror(env, msg, exp1.pos)
     end
   else
     set_type(exp, Any)
@@ -258,7 +274,7 @@ local function check_paren (env, exp)
   local exp1 = exp[1]
   check_exp(env, exp1)
   local t1 = get_type(exp1)
-  set_type(env, t1)
+  set_type(exp, tltype.first(t1))
 end
 
 local function check_parameters (env, parlist)
@@ -306,6 +322,7 @@ local function check_function (env, exp)
   local input_type = check_parameters(env, idlist)
   local t = tltype.Function(input_type, ret_type)
   for k, v in ipairs(idlist) do
+    set_type(v, v[2])
     tlst.set_local(env, v)
   end
   check_block(env, block)
@@ -497,6 +514,7 @@ local function check_localrec (env, id, exp)
   tlst.set_local(env, id)
   tlst.begin_scope(env)
   for k, v in ipairs(idlist) do
+    set_type(v, v[2])
     tlst.set_local(env, v)
   end
   check_block(env, block)
@@ -611,7 +629,28 @@ function check_var (env, var)
     local exp1, exp2 = var[1], var[2]
     check_exp(env, exp1)
     check_exp(env, exp2)
-    set_type(var, get_type(exp1))
+    local t1, t2 = get_type(exp1), get_type(exp2)
+    local msg = "attempt to index '%s' with '%s'"
+    if tltype.isTable(t1) then
+      local field_type = tltype.getField(t2, t1)
+      if not tltype.isNil(field_type) then
+        set_type(var, field_type)
+      else
+        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+        typeerror(env, msg, var.pos)
+        set_type(var, Nil)
+      end
+    elseif tltype.isAny(t1) then
+      if env.warnings then
+        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+        typeerror(env, msg, var.pos)
+      end
+      set_type(var, Any)
+    else
+      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      typeerror(env, msg, var.pos)
+      set_type(var, Nil)
+    end
   end
 end
 
@@ -705,6 +744,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
   local _env = tlast.ident(0, "_ENV", assert(tldparser.parse("typedlua/lsl.tld", strict)))
+  set_type(_env, _env[2])
   tlst.set_local(env, _env)
   for k, v in ipairs(ast) do
     check_stm(env, v)

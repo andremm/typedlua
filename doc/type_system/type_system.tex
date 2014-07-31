@@ -730,10 +730,24 @@ $$
 \]
 
 \[
+\frac{\env \vdash e_{1}:T_{1} \cup \Nil \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{and} \; e_{2} : T_{2} \cup \Nil}
+\mylabel{T-AND3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \False \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \kw{and} \; e_{2} : T_{2} \cup \False}
+\mylabel{T-AND4}
+\]
+
+\[
 \frac{\env \vdash e_{1}:T_{1} \;\;\;
       \env \vdash e_{2}:T_{2}}
      {\env \vdash e_{1} \; \kw{and} \; e_{2} : T_{1} \cup T_{2}}
-\mylabel{T-AND3}
+\mylabel{T-AND5}
 \]
 
 \[

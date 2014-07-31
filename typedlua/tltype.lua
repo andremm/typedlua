@@ -181,9 +181,37 @@ function tltype.Union (...)
   end
 end
 
--- isUnion : (type) -> (boolean)
-function tltype.isUnion (t)
-  return t.tag == "Union"
+-- isUnion : (type, type?) -> (boolean)
+function tltype.isUnion (t1, t2)
+  if not t2 then
+    return t1.tag == "Union"
+  else
+    if t1.tag == "Union" then
+      for k, v in ipairs(t1) do
+        if tltype.subtype(t2, v) and tltype.subtype(v, t2) then
+          return true
+        end
+      end
+      return false
+    else
+      return false
+    end
+  end
+end
+
+-- filterUnion : (type, type) -> (type)
+function tltype.filterUnion (u, t)
+  if tltype.isUnion(u) then
+    local l = {}
+    for k, v in ipairs(u) do
+      if not (tltype.subtype(t, v) and tltype.subtype(v, t)) then
+        table.insert(l, v)
+      end
+    end
+    return tltype.Union(table.unpack(l))
+  else
+    return u
+  end
 end
 
 -- UnionNil : (type, true?) -> (type)
@@ -193,18 +221,6 @@ function tltype.UnionNil (t, is_union_nil)
   else
     return t
   end
-end
-
--- isUnionNil : (type) -> (boolean)
-function tltype.isUnionNil (t)
-  if tltype.isUnion(t) then
-    for k, v in ipairs(t) do
-      if tltype.isNil(v) then
-        return true
-      end
-    end
-  end
-  return false
 end
 
 -- vararg types
@@ -360,6 +376,20 @@ end
 -- isTable : (type) -> (boolean)
 function tltype.isTable (t)
   return t.tag == "Table"
+end
+
+-- getField : (type, type) -> (type)
+function tltype.getField (f, t)
+  if tltype.isTable(t) then
+    for k, v in ipairs(t) do
+      if tltype.subtype(f, v[1]) then
+        return v[2]
+      end
+    end
+    return tltype.Nil()
+  else
+    return tltype.Nil()
+  end
 end
 
 -- type variables
@@ -605,7 +635,9 @@ local function subtype_tuple (env, t1, t2, relation)
 end
 
 function subtype (env, t1, t2, relation)
-  if tltype.isUnionlist(t1) then
+  if tltype.isVoid(t1) and tltype.isVoid(t2) then
+    return true
+  elseif tltype.isUnionlist(t1) then
     for k, v in ipairs(t1) do
       if not subtype(env, v, t2, relation) then
         return false
