@@ -2,6 +2,8 @@
 This module implements Typed Lua tltype.
 ]]
 
+if not table.unpack then table.unpack = unpack end
+
 local tltype = {}
 
 -- literal types

@@ -22,6 +22,8 @@ literal: false | true | <number> | <string>
 base: 'boolean' | 'number' | 'string'
 ]]
 
+if not table.unpack then table.unpack = unpack end
+
 local types = {}
 
 -- literal types

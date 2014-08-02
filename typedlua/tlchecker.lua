@@ -2,6 +2,8 @@
 This file implements Typed Lua type checker
 ]]
 
+if not table.unpack then table.unpack = unpack end
+
 local tlchecker = {}
 
 local tlast = require "typedlua.tlast"
@@ -733,6 +735,25 @@ function check_block (env, block)
   tlst.end_scope(env)
 end
 
+local function searchpath (name, path)
+  if package.searchpath then
+    return package.searchpath("typedlua/lsl", path)
+  else
+    local error_msg = ""
+    for tldpath in string.gmatch(path, "([^;]*);") do
+      tldpath = string.gsub(tldpath, "?", name)
+      local f = io.open(tldpath, "r")
+      if f then
+        f:close()
+        return tldpath
+      else
+        error_msg = error_msg .. string.format("no file '%s'\n", tldpath)
+      end
+    end
+    return nil, error_msg
+  end
+end
+
 function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
@@ -743,7 +764,9 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   tlst.begin_function(env)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
-  local _env = tlast.ident(0, "_ENV", assert(tldparser.parse("typedlua/lsl.tld", strict)))
+  local tldpath = string.gsub(package.path, "[.]lua", ".tld")
+  local lslpath = assert(searchpath("typedlua/lsl", tldpath))
+  local _env = tlast.ident(0, "_ENV", tldparser.parse(lslpath, strict))
   set_type(_env, _env[2])
   tlst.set_local(env, _env)
   for k, v in ipairs(ast) do

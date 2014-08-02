@@ -5,9 +5,9 @@ It provides optional type annotations, compile-time type checking, and
 class-based object oriented programming through the definition of classes,
 interfaces, and modules.
 
-# Requirements
+# Requirements for running the compiler
 
-    lua >= 5.2
+    lua >= 5.1
     lpeg >= 0.12
 
 # Usage

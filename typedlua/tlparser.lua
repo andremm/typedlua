@@ -2,6 +2,8 @@
 This module implements Typed Lua parser
 ]]
 
+if not table.unpack then table.unpack = unpack end
+
 local tlparser = {}
 
 local lpeg = require "lpeg"

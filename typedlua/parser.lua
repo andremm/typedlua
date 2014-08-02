@@ -69,6 +69,9 @@ base: 'boolean' | 'number' | 'string'
 
 field: `Field{ <string> type } | `Const{ <string> type }
 ]]
+
+if not table.unpack then table.unpack = unpack end
+
 local parser = {}
 
 local lpeg = require "lpeg"

@@ -2,6 +2,8 @@
 This file implements the type checker for Typed Lua
 ]]
 
+if not table.unpack then table.unpack = unpack end
+
 local scope = require "typedlua.scope"
 local types = require "typedlua.types"
 local tldparser = require "typedlua.tldparser"
@@ -1290,12 +1292,33 @@ local function new_env (subject, filename)
   return env
 end
 
+local function searchpath (name, path)
+  if package.searchpath then
+    return package.searchpath("typedlua/lsl", path)
+  else
+    local error_msg = ""
+    for tldpath in string.gmatch(path, "([^;]*);") do
+      tldpath = string.gsub(tldpath, "?", name)
+      local f = io.open(tldpath, "r")
+      if f then
+        f:close()
+        return tldpath
+      else
+        error_msg = error_msg .. string.format("no file '%s'\n", tldpath)
+      end
+    end
+    return nil, error_msg
+  end
+end
+
 function checker.typecheck (ast, subject, filename)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   local env = new_env(subject, filename)
-  local ENV = { tag = "Id", [1] = "_ENV", [2] = assert(tldparser.parse("typedlua/lsl.tld", false)) }
+  local tldpath = string.gsub(package.path, "[.]lua", ".tld")
+  local lslpath = assert(searchpath("typedlua/lsl", tldpath))
+  local ENV = { tag = "Id", [1] = "_ENV", [2] = tldparser.parse(lslpath, false) }
   ENV[2].open = true
   begin_function(env)
   begin_scope(env)
