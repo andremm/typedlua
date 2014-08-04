@@ -561,15 +561,85 @@ local function check_repeat (env, stm)
   check_exp(env, exp1)
 end
 
+local function tag2type (t)
+  if tltype.isLiteral(t) then
+    local tag = t[1]
+    if tag == "nil" then
+      return Nil
+    elseif tag == "boolean" then
+      return Boolean
+    elseif tag == "number" then
+      return Number
+    elseif tag == "string" then
+      return String
+    else
+      return t
+    end
+  else
+    return t
+  end
+end
+
 local function check_if (env, stm)
+  local l = {}
   for i = 1, #stm, 2 do
     local exp, block = stm[i], stm[i + 1]
     if block then
       check_exp(env, exp)
+      if exp.tag == "Id" then
+        local name = exp[1]
+        l[name] = tlst.get_local(env, name)
+        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+        l[name].filter = Nil
+        set_type(l[name], tltype.filterUnion(get_type(l[name]), Nil))
+      elseif exp.tag == "Op" and exp[1] == "not" and exp[2].tag == "Id" then
+        local name = exp[2][1]
+        l[name] = tlst.get_local(env, name)
+        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+        if not l[name].filter then
+          l[name].filter = tltype.filterUnion(get_type(l[name]), Nil)
+        else
+          l[name].filter = tltype.filterUnion(l[name].filter, Nil)
+        end
+        set_type(l[name], Nil)
+      elseif exp.tag == "Op" and exp[1] == "eq" and
+             exp[2].tag == "Call" and exp[2][1].tag == "Index" and
+             exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
+             exp[2][1][2].tag == "String" and exp[2][1][2][1] == "type" and
+             exp[2][2].tag == "Id" then
+        local name = exp[2][2][1]
+        l[name] = tlst.get_local(env, name)
+        local t = tag2type(get_type(exp[3]))
+        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+        if not l[name].filter then
+          l[name].filter = tltype.filterUnion(get_type(l[name]), t)
+        else
+          l[name].filter = tltype.filterUnion(l[name].filter, t)
+        end
+        set_type(l[name], t)
+      elseif exp.tag == "Op" and exp[1] == "not" and
+             exp[2].tag == "Op" and exp[2][1] == "eq" and
+             exp[2][2].tag == "Call" and exp[2][2][1].tag == "Index" and
+             exp[2][2][1][1].tag == "Id" and exp[2][2][1][1][1] == "_ENV" and
+             exp[2][2][1][2].tag == "String" and exp[2][2][1][2][1] == "type" and
+             exp[2][2][2].tag == "Id" then
+        local name = exp[2][2][2][1]
+        l[name] = tlst.get_local(env, name)
+        local t = tag2type(get_type(exp[2][3]))
+        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+        l[name].filter = t
+        set_type(l[name], tltype.filterUnion(get_type(l[name]), t))
+      end
     else
       block = exp
     end
     check_block(env, block)
+    for k, v in pairs(l) do
+      set_type(v, v.filter)
+    end
+  end
+  for k, v in pairs(l) do
+    set_type(v, v.bkp)
   end
 end
 
@@ -638,7 +708,12 @@ function check_var (env, var)
       if not tltype.isNil(field_type) then
         set_type(var, field_type)
       else
-        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+        if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
+          msg = "attempt to access undeclared global '%s'"
+          msg = string.format(msg, exp2[1])
+        else
+          msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+        end
         typeerror(env, msg, var.pos)
         set_type(var, Nil)
       end
@@ -704,9 +779,9 @@ function check_stm (env, stm)
   elseif tag == "If" then
     check_if(env, stm)
   elseif tag == "Fornum" then
-    check_fornum(env, stm[1], stm[2], stm[3])
+    check_fornum(env, stm)
   elseif tag == "Forin" then
-    check_forin(env, stm)
+    check_forin(env, stm[1], stm[2], stm[3])
   elseif tag == "Local" then
     check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then
