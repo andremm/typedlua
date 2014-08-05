@@ -54,7 +54,7 @@ local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local msg = "attempt to perform arithmetic on a '%s'"
   if tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
     set_type(exp, Number)
@@ -85,7 +85,7 @@ local function check_concat (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local msg = "attempt to concatenate a '%s'"
   if tltype.subtype(t1, String) and tltype.subtype(t2, String) then
     set_type(exp, String)
@@ -123,7 +123,7 @@ local function check_order (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local msg = "attempt to compare '%s' with '%s'"
   if tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
     set_type(exp, Boolean)
@@ -153,7 +153,7 @@ local function check_and (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   if tltype.isNil(t1) or tltype.isFalse(t1) then
     set_type(exp, t1)
   elseif tltype.isUnion(t1, Nil) then
@@ -169,7 +169,7 @@ local function check_or (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   if tltype.isNil(t1) or tltype.isFalse(t1) then
     set_type(exp, t2)
   elseif tltype.isUnion(t1, Nil) then
@@ -211,7 +211,7 @@ end
 local function check_minus (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = get_type(exp1)
+  local t1 = tltype.first(get_type(exp1))
   local msg = "attempt to perform arithmetic on a '%s'"
   if tltype.subtype(t1, Number) then
     set_type(exp, Number)
@@ -232,7 +232,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = tltype.general(get_type(exp1))
+  local t1 = tltype.first(get_type(exp1))
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table(tltype.Field(false, Number, Value))) then
@@ -313,6 +313,19 @@ local function check_explist (env, explist)
   end
 end
 
+local function infer_return_type (env)
+  local l = tlst.get_return_type(env)
+  if #l == 0 then
+    if env.strict then
+      return tltype.Void()
+    else
+      return tltype.Tuple({ Nil }, true)
+    end
+  else
+    return tltype.Unionlist(table.unpack(l))
+  end
+end
+
 local function check_function (env, exp)
   local idlist, ret_type, block = exp[1], exp[2], exp[3]
   if not block then
@@ -329,6 +342,8 @@ local function check_function (env, exp)
   end
   check_block(env, block)
   tlst.end_scope(env)
+  ret_type = infer_return_type(env)
+  t = tltype.Function(input_type, ret_type)
   tlst.end_function(env)
   set_type(exp, t)
 end
@@ -368,7 +383,7 @@ local function var2name (var)
   end
 end
 
-local function explist2typelist (explist)
+local function explist2typegen (explist)
   local len = #explist
   return function (i)
     if i <= len then
@@ -495,7 +510,7 @@ end
 
 local function check_local (env, idlist, explist)
   check_explist(env, explist)
-  local tuple = explist2typelist(explist)
+  local tuple = explist2typegen(explist)
   for k, v in ipairs(idlist) do
     local t = tuple(k)
     check_local_var(env, v, t)
@@ -521,18 +536,48 @@ local function check_localrec (env, id, exp)
   end
   check_block(env, block)
   tlst.end_scope(env)
+  ret_type = infer_return_type(env)
+  t = tltype.Function(input_type, ret_type)
+  id[2] = t
+  set_type(id, t)
+  tlst.set_local(env, id)
+  set_type(exp, t)
   tlst.end_function(env)
+end
+
+local function explist2typelist (explist)
+  local len = #explist
+  if len == 0 then
+    return tltype.Tuple({ Nil }, true)
+  else
+    local l = {}
+    for i = 1, len - 1 do
+      table.insert(l, tltype.first(get_type(explist[i])))
+    end
+    local last_type = get_type(explist[len])
+    if tltype.isTuple(last_type) then
+      for k, v in ipairs(last_type) do
+        table.insert(l, v)
+      end
+    else
+      table.insert(l, last_type)
+    end
+    if not tltype.isVararg(last_type) then
+      table.insert(l, tltype.Vararg(Nil))
+    end
+    return tltype.Tuple(l)
+  end
 end
 
 local function check_return (env, stm)
   check_explist(env, stm)
-  local t = explist2type(stm)
-  tlst.set_return_type(env, t)
+  local t = explist2typelist(stm)
+  tlst.set_return_type(env, tltype.general(t))
 end
 
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
-  local tuple = explist2typelist(explist)
+  local tuple = explist2typegen(explist)
   for k, v in ipairs(varlist) do
     check_var(env, v)
     local var_type, exp_type = get_type(v), tuple(k)

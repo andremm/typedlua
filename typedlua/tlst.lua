@@ -132,6 +132,11 @@ function tlst.set_return_type (env, t)
   table.insert(env["function"][env.fscope]["return_type"], t)
 end
 
+-- get_return_type : (env) -> ({type})
+function tlst.get_return_type (env)
+  return env["function"][env.fscope]["return_type"]
+end
+
 -- begin_loop : (env) -> ()
 function tlst.begin_loop (env)
   env.loop = env.loop + 1

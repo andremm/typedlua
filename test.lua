@@ -1321,7 +1321,7 @@ s = [=[
 local x:number|nil|nil|nil|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Nil, `Nil, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1331,7 +1331,7 @@ s = [=[
 local x:number|nil|string|nil|number|boolean|string
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil, `Base string, `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
+{ `Local{ { `Id "x":`Union{ `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -2587,507 +2587,6 @@ assert(tltype.consistent_subtype(tltype.Function(t1,t2), tltype.Function(t4,t2))
 
 print("> testing type checker...")
 
--- paper dyla
-
-s = [=[
-local function factorial(n:number):number
-  if n == 0 then
-    return 1
-  else
-    return n * factorial(n - 1)
-  end
-end
-local x = 5
-print(factorial(x))
-]=]
-e = [=[
-{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "factorial", `Id "x" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function abs(n:number)
-  if n < 0 then
-    return -n
-  else
-    return n
-  end
-end
-
-local function distance(x, y)
-  return abs(x - y)
-end
-]=]
-e = [=[
-test.lua:10:14: warning, attempt to perform arithmetic on a 'any'
-test.lua:10:10: warning, parameter 1 of abs, attempt to assign 'any' to 'number'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function multiple ()
-  return 2, "foo"
-end
-local function sum(x:number, y:number)
-  return x + y
-end
-local x, y, z = multiple(), multiple()
-print(sum(multiple(), multiple()))
-]=]
-e = [=[
-{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function message (name:string, greeting:string?)
-  local greeting = greeting or "Hello "
-  return greeting .. name
-end
-
-print(message("Lua"))
-print(message("Lua", "Hi"))
-]=]
-e = [=[
-{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Local{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua", `String "Hi" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function message (name:string, greeting:string?)
-  greeting = greeting or "Hello "
-  return greeting .. name
-end
-]=]
-e = [=[
-{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Set{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function f (s:string?)
-  local function f ()
-    s = nil
-  end
-  s = s or "hi"
-  s = s .. "hello"
-end
-]=]
-e = [=[
-test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
-test.lua:6:3: warning, attempt to assign 'any' to '(string | nil)'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local s:string?
-
-while true do
-  s = s or "foo"
-end
-
-s = s .. "bar"
-]=]
-e = [=[
-test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
-test.lua:7:1: warning, attempt to assign 'any' to '(string | nil)'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function rep (s:string, n:number, sep:string?):string
-  sep = sep or ""
-  local r = ""
-  for i = 1, n - 1 do
-    r = r .. s .. sep
-  end
-  return r .. s
-end
-
-local function overload (s1:string, s2:string|number)
-  if type(s2) == "string" then
-    return s1 .. s2
-  else
-    return rep(s1, s2)
-  end
-end
-]=]
-e = [=[
-{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function overload (s1:string, s2:string|number)
-  if type(s2) == "string" then
-    return s1 .. s2
-  else
-    return string.rep(s1, s2)
-  end
-end
-]=]
-e = [=[
-{ `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function idiv (d1:number, d2:number):(number, number) | (nil, string)
-  if d2 == 0 then
-    return nil, "division by zero"
-  else
-    local r = d1 % d2
-    local q = (d1 - r) / d2
-    return q, r
-  end
-end
-
-local n1, n2 = 4, 4
-local q, r = idiv(n1, n2)
-local x:number, msg:string = 0, ""
-if q then
-  x = q + r
-else
-  msg = r
-end
-]=]
-e = [=[
-{ `Localrec{ { `Id "idiv":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Unionlist{ `Tuple{ `Nil, `Base string, `Vararg{ `Nil } }, `Tuple{ `Base number, `Base number, `Vararg{ `Nil } } } } }, { `Function{ { `Id "d1":`Base number, `Id "d2":`Base number }:`Unionlist{ `Tuple{ `Base number, `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`Base number, `Id "msg":`Base string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local t:{string:number} = { foo = 1 }
-local x:number = t.foo
-local y:number = t["bar"]
-]=]
-e = [=[
-{ `Local{ { `Id "t":`Table{ `Base string:`Base number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`Base number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`Base number }, { `Index{ `Id "t", `String "bar" } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local t:{string:number?} = { foo = 1 or nil }
-local x:number = t.foo
-local y:number = t.bar or 0
-local z:number? = t["bar"]
-]=]
-e = [=[
-test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local t1:{"foo":number} = { foo = 1, bar = "foo" }
-local t2:{string:number} = t1
-]=]
-e = [=[
-test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number}'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local days:{string} = { "Sunday", "Monday", "Tuesday", "Wednesday",
-  "Thursday", "Friday", "Saturday" }
-local x = days[1]
-local y = days[8]
-]=]
-e = [=[
-{ `Local{ { `Id "days":`Table{ `Base number:`Base string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
-  "Thursday", "Friday", "Saturday" }
-]=]
-e = [=[
-{ `Local{ { `Id "days" }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
-  "Thursday", "Friday", "Saturday" }
-local t1:{string} = days
-local t2:{string?} = days
-t2 = t1
-]=]
-e = [=[
-test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
-test.lua:5:1: type error, attempt to assign '{number:string}' to '{number:(string | nil)}'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local t:{const "foo":string?} = { const foo = "foo" or nil }
-local s:{const "foo":string} = { const foo = "foo" }
-local r:{"foo":string?} = { foo = "foo" or nil }
-
-t = s
-r = t
-r.foo = nil
-]=]
-e = [=[
-test.lua:6:1: type error, attempt to assign '{const foo:(string | nil)}' to '{foo:(string | nil)}'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local person:{"firstname":string, "lastname":string} =
-  { firstname = "Lou", lastname = "Reed" }
-]=]
-e = [=[
-{ `Local{ { `Id "person":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Person
-  firstname:string
-  lastname:string
-end
-
-local function greet (person:Person)
-  return "Hello, " .. person.firstname .. " " .. person.lastname
-end
-local user1 = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
-local user2 = { firstname = "Lou" }
-local user3 = { lastname = "Reed", firstname = "Lou" }
-local user4 = { "Lou", "Reed" }
-print(greet(user1))
-print(greet(user2))
-print(greet(user3))
-print(greet(user4))
-]=]
-e = [=[
-test.lua:14:7: type error, parameter 1 of greet, attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
-test.lua:16:7: type error, parameter 1 of greet, attempt to assign '{1:string, 2:string}' to '{firstname:string, lastname:string}'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Person
-  firstname:string
-  middlename:string?
-  lastname:string
-end
-
-local user1:Person = { firstname = "Lewis", middlename = "Allan" or nil, lastname = "Reed" }
-local user2:Person = { lastname = "Reed", firstname = "Lou" }
-]=]
-e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Element
-  info:number
-  next:Elment?
-end
-]=]
-e = [=[
-{ `LocalInterface{ Element, `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local person = {}
-person.firstname = "Lou"
-person.lastname = "Reed"
-]=]
-e = [=[
-{ `Local{ { `Id "person" }, { `Table } }, `Set{ { `Index{ `Id "person", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "person", `String "lastname" } }, { `String "Reed" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local bogus = { firstname = 1 }
-local person:{} = bogus
-person.firstname = "Lou"
-person.lastname = "Reed"
-]=]
-e = [=[
-test.lua:3:1: type error, attempt to use 'firstname' to index closed table
-test.lua:4:1: type error, attempt to use 'lastname' to index closed table
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local person = {}
-local bogus = person
-bogus.firstname = 1
-person.firstname = "Lou"
-person.lastname = "Reed"
-]=]
-e = [=[
-test.lua:3:1: type error, attempt to use 'firstname' to index closed table
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local person = {}
-local bogus = { firstname = 1 }
-do
-  person.firstname = 1
-  bogus = person
-end
-do
-  person.firstname = "Lou"
-end
-]=]
-e = [=[
-test.lua:4:3: type error, attempt to use 'firstname' to index closed table
-test.lua:5:3: type error, attempt to assign '{}' to '{firstname:number}'
-test.lua:8:3: type error, attempt to use 'firstname' to index closed table
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Person
-  firstname:string
-  middlename:string?
-  lastname:string
-end
-
-local user = {}
-user.firstname = "Lou"
-user.lastname = "Reed"
-local person:Person = user
-]=]
-e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Person
-  firstname:string
-  middlename:string?
-  lastname:string
-end
-
-local user = {}
-user.firstname = "Lewis"
-user.middlename = "Allan" or nil
-user.lastname = "Reed"
-local person:Person = user
-]=]
-e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-interface Shape
-  x, y:number
-  const new:(number, number) => (self)
-  const move:(number, number) => ()
-end
-
-local Shape = { x = 0, y = 0 }
-
-const function Shape:new (x:number, y:number)
-  local s = setmetatable({}, { __index = self })
-  s.x = x
-  s.y = y
-  return s
-end
-
-const function Shape:move (dx:number, dy:number)
-  self.x = self.x + dx
-  self.y = self.y + dy
-end
-
-local shape1 = Shape:new(0, 5)
-local shape2:Shape = Shape:new(10, 10)
-
-interface Circle
-  x, y, radius:number
-  const new:(number, number, value) => (self)
-  const move:(number, number) => ()
-  const area:() => (number)
-end
-
-local Circle = setmetatable({}, { __index = Shape })
-
-Circle.radius = 0
-
-const function Circle:new (x:number, y:number, radius:value)
-  local c = setmetatable(Shape:new(x, y), { __index = self })
-  c.radius = tonumber(radius) or 0
-  return c
-end
-
-const function Circle:area ()
-  return 3.14 * self.radius * self.radius
-end
-
-local circle1 = Circle:new(0, 5, 10)
-local circle2:Circle = Circle:new(10, 10, 15)
-]=]
-e = [=[
-{ `Interface{ Shape, `Literal x:`Base number, `Literal y:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `Set{ { `Index{ `Id "Shape", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number }, { `Local{ { `Id "s" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } } }, `Set{ { `Index{ `Id "Shape", `String "move" } }, { `Function{ { `Id "self":`Self, `Id "dx":`Base number, `Id "dy":`Base number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`Variable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `Literal x:`Base number, `Literal y:`Base number, `Literal radius:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Value, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } }, `Literal area:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, `Local{ { `Id "Circle" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `Set{ { `Index{ `Id "Circle", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number, `Id "radius":`Value }, { `Local{ { `Id "c" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } } }, `Set{ { `Index{ `Id "Circle", `String "area" } }, { `Function{ { `Id "self":`Self }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`Variable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
 -- type check
 
 s = [=[
@@ -3791,6 +3290,545 @@ for i = 10, 1, false do local x = i end
 ]=]
 e = [=[
 test.lua:1:16: type error, 'for' step must be a number
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- new tests
+
+s = [=[
+local function fib (n:number)
+  if n == 0 then
+    return 0
+  elseif n == 1 then
+    return 1
+  else
+    return fib(n - 1) + fib(n - 2)
+  end
+end
+]=]
+e = [=[
+test.lua:7:12: type error, attempt to perform arithmetic on a '(any | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function fib (n:number):number
+  if n == 0 then
+    return 0
+  elseif n == 1 then
+    return 1
+  else
+    return fib(n - 1) + fib(n - 2)
+  end
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "fib":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "0" } }, `Op{ "eq", `Id "n", `Number "1" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "add", `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "1" } }, `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "2" } } } } } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+-- paper dyla
+
+s = [=[
+local function factorial(n:number):number
+  if n == 0 then
+    return 1
+  else
+    return n * factorial(n - 1)
+  end
+end
+local x = 5
+print(factorial(x))
+]=]
+e = [=[
+{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "factorial", `Id "x" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function abs(n:number)
+  if n < 0 then
+    return -n
+  else
+    return n
+  end
+end
+
+local function distance(x, y)
+  return abs(x - y)
+end
+]=]
+e = [=[
+test.lua:10:14: warning, attempt to perform arithmetic on a 'any'
+test.lua:10:10: warning, parameter 1 of abs, attempt to assign 'any' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function multiple ()
+  return 2, "foo"
+end
+local function sum(x:number, y:number)
+  return x + y
+end
+local x, y, z = multiple(), multiple()
+print(sum(multiple(), multiple()))
+]=]
+e = [=[
+{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function message (name:string, greeting:string?)
+  local greeting = greeting or "Hello "
+  return greeting .. name
+end
+
+print(message("Lua"))
+print(message("Lua", "Hi"))
+]=]
+e = [=[
+{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Local{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua", `String "Hi" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function message (name:string, greeting:string?)
+  greeting = greeting or "Hello "
+  return greeting .. name
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Set{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (s:string?)
+  local function f ()
+    s = nil
+  end
+  s = s or "hi"
+  s = s .. "hello"
+end
+]=]
+e = [=[
+test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
+test.lua:6:3: warning, attempt to assign 'any' to '(string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local s:string?
+
+while true do
+  s = s or "foo"
+end
+
+s = s .. "bar"
+]=]
+e = [=[
+test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
+test.lua:7:1: warning, attempt to assign 'any' to '(string | nil)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function rep (s:string, n:number, sep:string?):string
+  sep = sep or ""
+  local r = ""
+  for i = 1, n - 1 do
+    r = r .. s .. sep
+  end
+  return r .. s
+end
+
+local function overload (s1:string, s2:string|number)
+  if type(s2) == "string" then
+    return s1 .. s2
+  else
+    return rep(s1, s2)
+  end
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function overload (s1:string, s2:string|number)
+  if type(s2) == "string" then
+    return s1 .. s2
+  else
+    return string.rep(s1, s2)
+  end
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function idiv (d1:number, d2:number):(number, number) | (nil, string)
+  if d2 == 0 then
+    return nil, "division by zero"
+  else
+    local r = d1 % d2
+    local q = (d1 - r) / d2
+    return q, r
+  end
+end
+
+local n1, n2 = 4, 4
+local q, r = idiv(n1, n2)
+local x:number, msg:string = 0, ""
+if q then
+  x = q + r
+else
+  msg = r
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "idiv":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Unionlist{ `Tuple{ `Nil, `Base string, `Vararg{ `Nil } }, `Tuple{ `Base number, `Base number, `Vararg{ `Nil } } } } }, { `Function{ { `Id "d1":`Base number, `Id "d2":`Base number }:`Unionlist{ `Tuple{ `Base number, `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`Base number, `Id "msg":`Base string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number} = { foo = 1 }
+local x:number = t.foo
+local y:number = t["bar"]
+]=]
+e = [=[
+{ `Local{ { `Id "t":`Table{ `Base string:`Base number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`Base number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`Base number }, { `Index{ `Id "t", `String "bar" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{string:number?} = { foo = 1 or nil }
+local x:number = t.foo
+local y:number = t.bar or 0
+local z:number? = t["bar"]
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t1:{"foo":number} = { foo = 1, bar = "foo" }
+local t2:{string:number} = t1
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days:{string} = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
+local x = days[1]
+local y = days[8]
+]=]
+e = [=[
+{ `Local{ { `Id "days":`Table{ `Base number:`Base string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
+]=]
+e = [=[
+{ `Local{ { `Id "days" }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
+  "Thursday", "Friday", "Saturday" }
+local t1:{string} = days
+local t2:{string?} = days
+t2 = t1
+]=]
+e = [=[
+test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
+test.lua:5:1: type error, attempt to assign '{number:string}' to '{number:(string | nil)}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{const "foo":string?} = { const foo = "foo" or nil }
+local s:{const "foo":string} = { const foo = "foo" }
+local r:{"foo":string?} = { foo = "foo" or nil }
+
+t = s
+r = t
+r.foo = nil
+]=]
+e = [=[
+test.lua:6:1: type error, attempt to assign '{const foo:(string | nil)}' to '{foo:(string | nil)}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person:{"firstname":string, "lastname":string} =
+  { firstname = "Lou", lastname = "Reed" }
+]=]
+e = [=[
+{ `Local{ { `Id "person":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  lastname:string
+end
+
+local function greet (person:Person)
+  return "Hello, " .. person.firstname .. " " .. person.lastname
+end
+local user1 = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
+local user2 = { firstname = "Lou" }
+local user3 = { lastname = "Reed", firstname = "Lou" }
+local user4 = { "Lou", "Reed" }
+print(greet(user1))
+print(greet(user2))
+print(greet(user3))
+print(greet(user4))
+]=]
+e = [=[
+test.lua:14:7: type error, parameter 1 of greet, attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
+test.lua:16:7: type error, parameter 1 of greet, attempt to assign '{1:string, 2:string}' to '{firstname:string, lastname:string}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user1:Person = { firstname = "Lewis", middlename = "Allan" or nil, lastname = "Reed" }
+local user2:Person = { lastname = "Reed", firstname = "Lou" }
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Element
+  info:number
+  next:Elment?
+end
+]=]
+e = [=[
+{ `LocalInterface{ Element, `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+{ `Local{ { `Id "person" }, { `Table } }, `Set{ { `Index{ `Id "person", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "person", `String "lastname" } }, { `String "Reed" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local bogus = { firstname = 1 }
+local person:{} = bogus
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+test.lua:4:1: type error, attempt to use 'lastname' to index closed table
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
+local bogus = person
+bogus.firstname = 1
+person.firstname = "Lou"
+person.lastname = "Reed"
+]=]
+e = [=[
+test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local person = {}
+local bogus = { firstname = 1 }
+do
+  person.firstname = 1
+  bogus = person
+end
+do
+  person.firstname = "Lou"
+end
+]=]
+e = [=[
+test.lua:4:3: type error, attempt to use 'firstname' to index closed table
+test.lua:5:3: type error, attempt to assign '{}' to '{firstname:number}'
+test.lua:8:3: type error, attempt to use 'firstname' to index closed table
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user = {}
+user.firstname = "Lou"
+user.lastname = "Reed"
+local person:Person = user
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user = {}
+user.firstname = "Lewis"
+user.middlename = "Allan" or nil
+user.lastname = "Reed"
+local person:Person = user
+]=]
+e = [=[
+{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+interface Shape
+  x, y:number
+  const new:(number, number) => (self)
+  const move:(number, number) => ()
+end
+
+local Shape = { x = 0, y = 0 }
+
+const function Shape:new (x:number, y:number)
+  local s = setmetatable({}, { __index = self })
+  s.x = x
+  s.y = y
+  return s
+end
+
+const function Shape:move (dx:number, dy:number)
+  self.x = self.x + dx
+  self.y = self.y + dy
+end
+
+local shape1 = Shape:new(0, 5)
+local shape2:Shape = Shape:new(10, 10)
+
+interface Circle
+  x, y, radius:number
+  const new:(number, number, value) => (self)
+  const move:(number, number) => ()
+  const area:() => (number)
+end
+
+local Circle = setmetatable({}, { __index = Shape })
+
+Circle.radius = 0
+
+const function Circle:new (x:number, y:number, radius:value)
+  local c = setmetatable(Shape:new(x, y), { __index = self })
+  c.radius = tonumber(radius) or 0
+  return c
+end
+
+const function Circle:area ()
+  return 3.14 * self.radius * self.radius
+end
+
+local circle1 = Circle:new(0, 5, 10)
+local circle2:Circle = Circle:new(10, 10, 15)
+]=]
+e = [=[
+{ `Interface{ Shape, `Literal x:`Base number, `Literal y:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `Set{ { `Index{ `Id "Shape", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number }, { `Local{ { `Id "s" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } } }, `Set{ { `Index{ `Id "Shape", `String "move" } }, { `Function{ { `Id "self":`Self, `Id "dx":`Base number, `Id "dy":`Base number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`Variable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `Literal x:`Base number, `Literal y:`Base number, `Literal radius:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Value, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } }, `Literal area:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, `Local{ { `Id "Circle" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `Set{ { `Index{ `Id "Circle", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number, `Id "radius":`Value }, { `Local{ { `Id "c" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } } }, `Set{ { `Index{ `Id "Circle", `String "area" } }, { `Function{ { `Id "self":`Self }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`Variable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
 ]=]
 
 r = typecheck(s)

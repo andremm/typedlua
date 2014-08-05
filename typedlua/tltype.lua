@@ -164,17 +164,41 @@ end
 
 -- Union : (type*) -> (type)
 function tltype.Union (...)
-  local l = {...}
-  local t = { tag = "Union" }
+  local l1 = {...}
   -- remove unions of unions
-  for i = 1, #l do
-    if tltype.isUnion(l[i]) then
-      for j = 1, #l[i] do
-        table.insert(t, l[i][j])
+  local l2 = {}
+  for i = 1, #l1 do
+    if tltype.isUnion(l1[i]) then
+      for j = 1, #l1[i] do
+        table.insert(l2, l1[i][j])
       end
     else
-      table.insert(t, l[i])
+      table.insert(l2, l1[i])
     end
+  end
+  -- remove duplicated types
+  local l3 = {}
+  for i = 1, #l2 do
+    local enter = true
+    for j = i + 1, #l2 do
+      if tltype.subtype(l2[i], l2[j]) and tltype.subtype(l2[j], l2[i]) then
+        enter = false
+        break
+      end
+    end
+    if enter then table.insert(l3, l2[i]) end
+  end
+  -- simplify union
+  local t = { tag = "Union" }
+  for i = 1, #l3 do
+    local enter = true
+    for j = 1, #l3 do
+      if i ~= j and tltype.subtype(l3[i], l3[j]) then
+        enter = false
+        break
+      end
+    end
+    if enter then table.insert(t, l3[i]) end
   end
   if #t == 1 then
     return t[1]
@@ -301,23 +325,9 @@ end
 
 -- Unionlist : (type*) -> (type)
 function tltype.Unionlist (...)
-  local l = {...}
-  local t = { tag = "Unionlist" }
-  -- remove unions of unions
-  for i = 1, #l do
-    if tltype.isUnionlist(l[i]) then
-      for j = 1, #l[i] do
-        table.insert(t, l[i][j])
-      end
-    else
-      table.insert(t, l[i])
-    end
-  end
-  if #t == 1 then
-    return t[1]
-  else
-    return t
-  end
+  local t = tltype.Union(...)
+  if tltype.isUnion(t) then t.tag = "Unionlist" end
+  return t
 end
 
 -- isUnionlist : (type) -> (boolean)
@@ -695,12 +705,34 @@ end
 -- most general type
 
 function tltype.general (t)
-  if tltype.False(t) and tltype.isTrue(t) then
+  if tltype.isFalse(t) or tltype.isTrue(t) then
     return tltype.Boolean()
   elseif tltype.isNum(t) then
     return tltype.Number()
   elseif tltype.isStr(t) then
     return tltype.String()
+  elseif tltype.isUnion(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.general(v))
+    end
+    return tltype.Union(table.unpack(l))
+  elseif tltype.isFunction(t) then
+    return tltype.Function(tltype.general(t[1]), tltype.general(t[2]))
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.Field(v[1], tltype.general(v[2])))
+    end
+    return tltype.Table(table.unpack(l))
+  elseif tltype.isTuple(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.general(v))
+    end
+    return tltype.Tuple(l)
+  elseif tltype.isVararg(t) then
+    return tltype.Vararg(tltype.general(t[1]))
   else
     return t
   end
@@ -710,7 +742,7 @@ end
 
 function tltype.first (t)
   if tltype.isTuple(t) then
-    return t[1]
+    return tltype.first(t[1])
   elseif tltype.isVararg(t) then
     return tltype.Union(t[1], tltype.Nil())
   else
