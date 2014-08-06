@@ -700,17 +700,27 @@ Category 1.
 
 \subsection{Input and Output Facilities}
 
+\begin{verbatim}
+userdata file
+  close : (self) -> (boolean) | (nil, string) | (true?, string, number),
+  flush : (self) -> (boolean),
+  lines : (self, string|number*) -> (() -> (any*)),
+  read : (self, string|number*) -> (string*),
+  seek : (self, string?, number?) -> (number?),
+  setvbuf : (self, string, number?) -> (true) | (nil, string, number),
+  write : (self, string|number*) -> (self?)
+end
+\end{verbatim}
+
 \begin{enumerate}
 \item io.close ([file]) :
 \begin{verbatim}
-(any?) -> (boolean) | (nil, string) | (true?, string, number)
+(file?) -> (boolean) | (nil, string) | (true?, string, number)
 \end{verbatim}
 Category 1?
 \\
 Returns \texttt{(true?, string, number)} when the file handle
 was created with \textbf{io.popen}.
-The parameter \textbf{file} is a \textit{userdata} and I need
-to fix that on the type system.
 \item io.flush () :
 \begin{verbatim}
 () -> (boolean)
@@ -718,46 +728,33 @@ to fix that on the type system.
 Category 1.
 \item io.input ([file]) :
 \begin{verbatim}
-(string|any|nil) -> (any)
+(string|file|nil) -> (file)
 \end{verbatim}
 Category 1?
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.lines ([filename ···]) :
 \begin{verbatim}
-(string|any|nil) -> ((any*) -> (any*))
+(string|file|nil) -> ((any*) -> (any*))
 \end{verbatim}
 Category 1?
 \\
 In fact, this function returns an iterator. Need to check the return type.
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.open (filename [, mode]) :
 \begin{verbatim}
 (string,
 "r"|"w"|"a"|"r+"|"w+"|"a+"|"rb"|"wb"|"ab"|"r+b"|"w+b"|"w+b"|nil) ->
-(any) | (nil, string, number)
+(file) | (nil, string, number)
 \end{verbatim}
 Category 1?
-\\
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.output ([file]) :
 \begin{verbatim}
-(string|any|nil) -> (any)
+(string|file|nil) -> (file)
 \end{verbatim}
 Category 1?
-\\
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.popen (prog [, mode]) :
 \begin{verbatim}
-(string, "r"|"w"|nil) -> (any) | (nil, string, number)
+(string, "r"|"w"|nil) -> (file) | (nil, string, number)
 \end{verbatim}
 Category 1?
-\\
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.read (···) :
 \begin{verbatim}
 ("*n"|"*a"|"*l"|"*L"|number*) -> (string|number*)
@@ -765,12 +762,9 @@ I need to fix that on the type system.
 Category 1.
 \item io.tmpfile () :
 \begin{verbatim}
-() -> (any)
+() -> (file)
 \end{verbatim}
 Category 1?
-\\
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
 \item io.type (obj) :
 \begin{verbatim}
 (value) -> ("file"|"closed file"|nil)
@@ -778,19 +772,9 @@ I need to fix that on the type system.
 Category 1.
 \item io.write (···) :
 \begin{verbatim}
-(string|number*) -> (any) | (nil, string, number)
+(string|number*) -> (file) | (nil, string, number)
 \end{verbatim}
 Category 1?
-\\
-Here the type \texttt{any} refers to a \textit{userdata} and
-I need to fix that on the type system.
-\item file:close () : ?
-\item file:flush () : ?
-\item file:lines (···) : ?
-\item file:read (···) : ?
-\item file:seek ([whence [, offset]]) : ?
-\item file:setvbuf (mode [, size]) : ?
-\item file:write (···) : ?
 \end{enumerate}
 
 \subsection{Operating System Facilities}
