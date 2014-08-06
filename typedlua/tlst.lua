@@ -39,6 +39,12 @@ end
 -- end_scope : (env) -> ()
 function tlst.end_scope (env)
   env.scope = env.scope - 1
+  local scope = env.scope
+  if scope > 0 then
+    for k, v in pairs(env[scope]["local"]) do
+      if v.bkp then v["type"] = v.bkp end
+    end
+  end
 end
 
 -- set_pending_goto : (env, stm) -> ()

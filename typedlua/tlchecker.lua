@@ -577,19 +577,35 @@ end
 
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
-  local tuple = explist2typegen(explist)
-  for k, v in ipairs(varlist) do
-    check_var(env, v)
-    local var_type, exp_type = get_type(v), tuple(k)
-    local msg = "attempt to assign '%s' to '%s'"
+  check_explist(env, varlist)
+  local var_type, exp_type = explist2typelist(varlist), explist2typelist(explist)
+  local msg = "attempt to assign '%s' to '%s'"
+  if tltype.subtype(exp_type, var_type) then
+  elseif tltype.consistent_subtype(exp_type, var_type) then
+    if env.warnings then
+      msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
+      typeerror(env, msg, varlist[1].pos)
+    end
+  else
     msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
-    if tltype.subtype(exp_type, var_type) then
-    elseif tltype.consistent_subtype(exp_type, var_type) then
-      if env.warnings then
-       typeerror(env, msg, v.pos)
+    typeerror(env, msg, varlist[1].pos)
+  end
+  for k, v in ipairs(varlist) do
+    local tag = v.tag
+    if tag == "Id" then
+      local name = v[1]
+      local l = tlst.get_local(env, name)
+      local exp = explist[k]
+      if exp and exp.tag == "Op" and exp[1] == "or" and
+         exp[2].tag == "Id" and exp[2][1] == name and not l.assigned then
+        local t1, t2 = get_type(exp), get_type(l)
+        if tltype.subtype(t1, t2) then
+          l.bkp = t2
+          set_type(l, t1)
+        end
       end
-    else
-      typeerror(env, msg, v.pos)
+      l.assigned = true
+    elseif tag == "Index" then
     end
   end
 end
@@ -736,6 +752,45 @@ local function check_forin (env, idlist, explist, block)
   tlst.end_scope(env)
 end
 
+local function check_id (env, exp)
+  local name = exp[1]
+  local l = tlst.get_local(env, name)
+  set_type(exp, get_type(l))
+end
+
+local function check_index (env, exp)
+  local exp1, exp2 = exp[1], exp[2]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = get_type(exp1), get_type(exp2)
+  local msg = "attempt to index '%s' with '%s'"
+  if tltype.isTable(t1) then
+    local field_type = tltype.getField(t2, t1)
+    if not tltype.isNil(field_type) then
+      set_type(exp, field_type)
+    else
+      if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
+        msg = "attempt to access undeclared global '%s'"
+        msg = string.format(msg, exp2[1])
+      else
+        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      end
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Nil)
+    end
+  elseif tltype.isAny(t1) then
+    if env.warnings then
+      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      typeerror(env, msg, exp.pos)
+    end
+    set_type(exp, Nil)
+  else
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    typeerror(env, msg, exp.pos)
+    set_type(exp, Nil)
+  end
+end
+
 function check_var (env, var)
   local tag = var.tag
   if tag == "Id" then
@@ -803,9 +858,9 @@ function check_exp (env, exp)
   elseif tag == "Invoke" then
     check_invoke(env, exp)
   elseif tag == "Id" then
-    check_var(env, exp)
+    check_id(env, exp)
   elseif tag == "Index" then
-    check_var(env, exp)
+    check_index(env, exp)
   else
     error("cannot type check expression " .. tag)
   end
