@@ -23,6 +23,7 @@
 \newcommand{\env}{\Gamma}
 \newcommand{\senv}{\Sigma}
 \newcommand{\subtype}{<:}
+\newcommand{\ret}{\string_RET}
 
 \def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
 \def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
@@ -102,9 +103,14 @@ Fabio Mascarenhas
 \input{conclusions.tex}
 
 \appendix
+
 \chapter{The Syntax of Typed Lua}
 \label{app:syntax}
 \input{syntax.tex}
+
+\chapter{Typing Rules}
+\label{app:rules}
+\input{rules.tex}
 
 \bibliographystyle{plainnat}
 \bibliography{thesis_andre}
