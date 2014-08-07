@@ -200,31 +200,53 @@ functions and vararg expressions.
 \section{Typed Lua}
 \label{sec:typedlua}
 
-Typed Lua allows statically typed Lua code to coexist and interact
-with dynamically typed Lua code.
-The Typed Lua compiler checks for type errors, but alwayas removes
-the annotations, generating Lua code that runs in unmodified Lua
-implementations.
-The programmer can enjoy some of the benefits of static types even
-without converting existing Lua modules to Typed Lua:
-a dynamically typed module can export a statically typed interface,
-and statically typed users of the module will have their use of the
-module checked by the compiler.
+Typed Lua is an optional type system for Lua, and its main goal is to
+allow programmers to combine static and dynamic typing in Lua.
+In practice, Typed Lua extends the syntax of Lua to introduce
+optional type annotations and class-based object-oriented
+programming through the definition of classes, interfaces, and
+modules.
+In addition, Typed Lua performs local type inference \citep{pierce2000lti}
+to detect more precise types for unannotated expressions.
+Even though the compiler warns the programmer about type errors,
+it always removes the type annotations to generate Lua code that
+runs in unmodified Lua implementations.
 
-Unlike gradual typing, Typed Lua does not insert run-time checks
-between dynamically typed and statically typed parts of the program.
-Unlike some optional type systems, the statically typed subset of
-Typed Lua aims to be sound, so a later version of the Typed Lua
-compiler can switch to gradual typing instead of just optional typing.
+An important feature of Typed Lua is its backwards compatibility with Lua,
+that is, unannotated Typed Lua code is valid Lua code.
+For this reason, the syntactic extensions introduced by Typed Lua
+include new keywords that are not reserved words.
+Appendix \ref{app:syntax} presents the complete syntax of Typed Lua.
 
-In this section we cover the design of Typed Lua:
-In Section \ref{sec:types} we present the types that are available
-in Typed Lua along with the subtyping and consistent-subtyping
-relations.
-In Section \ref{sec:examples} we present the design of Typed Lua
-through code examples.
-In Section \ref{sec:rules} we present the design of Typed Lua
-through typing rules.
+Another important feature of Typed Lua is its interface between
+statically and dynamically typed modules. 
+This means that the programmer can enjoy some of the benefits of
+static types even without converting existing Lua modules to Typed Lua,
+as a dynamically typed module can export a statically typed interface,
+and statically typed users of the module have their use of the module
+checked by the compiler.
+
+Although we use a gradual type system to formalize our optional type system,
+Typed Lua does not insert run-time checks in the gradual typing style.
+In gradual typing, run-time checks inspect the interaction between
+dynamically typed and statically typed code to guarantee that dynamically
+typed code does not violate statically typed code during run-time.
+A good reason for not inserting run-time checks at this moment is that they
+can decrease run-time performance \citep{allende2013cis}, and we believe that
+a careful evaluation of run-time checks should be done before inserting them
+on the type system.
+
+Unlike some optional type systems, we are designing Typed Lua aiming soundness
+to make it possible to switch Typed Lua from optional typing to gradual typing
+in the future, as a sound type system is the first step to make Typed Lua
+insert run-time checks after static type checking.
+
+In this section we show that Typed Lua is rich enough to preserve some Lua idioms.
+First, we present the abstract syntax of Typed Lua types along with the
+relationship among types.
+Then we use some code examples to present an overview about Typed Lua and
+its syntactical extensions.
+After that we present the formalization of Typed Lua.
 
 \subsection{Type Language}
 \label{sec:types}
@@ -714,17 +736,11 @@ $$
 \subsection{Typed Lua through examples}
 \label{sec:examples}
 
-The main goal of Typed Lua is to allow programmers to combine static
-and dynamic typing in Lua, so Typed Lua is an extension to Lua 5.2
-syntax that introduces optional type annotations, and class-based
-object-oriented programming through the definition of classes,
-interfaces, and modules.
-An important feature of Typed Lua is its backwards compatibility with
-Lua, that is, unannotated Typed Lua code is valid Lua code.
-For this reason, the syntactic extensions introduced by Typed Lua
-include new keywords that are not reserved words.
-Appendix \ref{app:syntax} presents the complete syntax of Typed Lua,
-which we cover in this section through code examples. 
+In this section we use some examples of Typed Lua code to show how
+they relate to Lua.
+This examples shall give an informal overview of the type system.
+It worth mentioning that we used our implementation to produce and
+test all the examples that we present along this section.
 
 \subsection{Atomic types and Functions}
 
@@ -799,23 +815,10 @@ consistent with the type $\Number$.
 The type $\Any$ is not the union of all types, but it is a separate
 type.
 
-Unlike gradual typing, we do not insert run-time checks that
-inspect the interaction between dynamically typed code and statically
-typed code during run-time.
-In other words, Typed Lua does not guarantee that dynamically typed
-code does not violate statically typed code.
-Typed Lua does not insert run-time checks because they can decrease
-run-time performance \citep{allende2013cis}.
-We believe that a careful evaluation of run-time checks should be done
-before inserting them on the type system.
 In the previous example, we cannot guarantee that \texttt{dist} is never
 going to call \texttt{abs} with a parameter that is not a number,
 because in the semantics of Lua the minus operator can result in a
 value that is not a number.
-Still, we can implement run-time checks in the future because we are
-using the consistent-subtyping relation of gradual typing to
-formalize our optional type system, and the type system is being
-designed to be sound.
 
 \subsection{Unions}
 
