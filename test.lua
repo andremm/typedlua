@@ -3,7 +3,7 @@
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
 local tltype = require "typedlua.tltype"
-local tlchecker = require "typedlua.checker"
+local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
 
 -- expected result, result, subject
@@ -913,6 +913,56 @@ end
 ]=]
 e = [=[
 { `If{ `Index{ `Id "_ENV", `String "a" }, { `Return }, `Index{ `Id "_ENV", `String "c" }, {  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+local interface Empty end
+]=]
+e = [=[
+{ `Interface{ Empty, `Table{  } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface X
+  x, y, z:number
+end
+]=]
+e = [=[
+{ `Interface{ X, `Table{ `Literal x:`Base number, `Literal y:`Base number, `Literal z:`Base number } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  lastname:string
+end
+]=]
+e = [=[
+{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface Element
+  info:number
+  next:Element?
+end
+]=]
+e = [=[
+{ `Interface{ Element, `Recursive{ Element, `Table{ `Literal info:`Base number, `Literal next:`Union{ `Variable Element, `Nil } } } } }
 ]=]
 
 r = parse(s)
@@ -1883,6 +1933,35 @@ if a:any then else end
 ]=]
 e = [=[
 test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
+]=]
+
+r = parse(s)
+assert(r == e)
+
+-- interfaces
+
+s = [=[
+local interface X
+ x:number
+ y:number
+ z:number
+ x:number
+end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attmept to redeclare field 'x'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface X
+ x, y, z, x:number
+end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attmept to redeclare field 'x'
 ]=]
 
 r = parse(s)
@@ -3131,7 +3210,7 @@ s = [=[
 local x = #1
 ]=]
 e = [=[
-test.lua:1:12: type error, attempt to get length of a 'number' value
+test.lua:1:12: type error, attempt to get length of a 'number'
 ]=]
 
 r = typecheck(s)
@@ -3216,13 +3295,9 @@ y = y .. "hello"
 ]=]
 e = [=[
 test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
-test.lua:9:3: warning, attempt to assign 'any' to 'nil'
 test.lua:10:7: type error, attempt to perform arithmetic on a 'nil'
-test.lua:10:3: warning, attempt to assign 'any' to 'nil'
 test.lua:13:5: type error, attempt to perform arithmetic on a '(number | nil)'
-test.lua:13:1: warning, attempt to assign 'any' to '(number | nil)'
 test.lua:14:5: type error, attempt to concatenate a '(string | nil)'
-test.lua:14:1: warning, attempt to assign 'any' to '(string | nil)'
 ]=]
 
 r = typecheck(s)
@@ -3243,7 +3318,6 @@ x = x + 1
 ]=]
 e = [=[
 test.lua:11:5: type error, attempt to perform arithmetic on a '(boolean | number | string | nil)'
-test.lua:11:1: warning, attempt to assign 'any' to '(boolean | number | string | nil)'
 ]=]
 
 r = typecheck(s)
@@ -3367,8 +3441,7 @@ local function distance(x, y)
 end
 ]=]
 e = [=[
-test.lua:10:14: warning, attempt to perform arithmetic on a 'any'
-test.lua:10:10: warning, parameter 1 of abs, attempt to assign 'any' to 'number'
+{ `Localrec{ { `Id "abs":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }, { `If{ `Op{ "lt", `Id "n", `Number "0" }, { `Return{ `Op{ "unm", `Id "n" } } }, { `Return{ `Id "n" } } } } } } }, `Localrec{ { `Id "distance":`Function{ `Tuple{ `Any, `Any, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Any, `Id "y":`Any }, { `Return{ `Call{ `Id "abs", `Op{ "sub", `Id "x", `Id "y" } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3431,7 +3504,6 @@ end
 ]=]
 e = [=[
 test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
-test.lua:6:3: warning, attempt to assign 'any' to '(string | nil)'
 ]=]
 
 r = typecheck(s)
@@ -3448,7 +3520,6 @@ s = s .. "bar"
 ]=]
 e = [=[
 test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
-test.lua:7:1: warning, attempt to assign 'any' to '(string | nil)'
 ]=]
 
 r = typecheck(s)
@@ -3473,7 +3544,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3489,7 +3560,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3591,7 +3662,7 @@ t2 = t1
 ]=]
 e = [=[
 test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
-test.lua:5:1: type error, attempt to assign '{number:string}' to '{number:(string | nil)}'
+test.lua:5:1: type error, attempt to assign '({number:string}, nil*)' to '({number:(string | nil)}, nil*)'
 ]=]
 
 r = typecheck(s)
@@ -3607,7 +3678,7 @@ r = t
 r.foo = nil
 ]=]
 e = [=[
-test.lua:6:1: type error, attempt to assign '{const foo:(string | nil)}' to '{foo:(string | nil)}'
+test.lua:6:1: type error, attempt to assign '({const foo:(string | nil)}, nil*)' to '({foo:(string | nil)}, nil*)'
 ]=]
 
 r = typecheck(s)

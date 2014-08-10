@@ -367,7 +367,9 @@ local function check_table (env, exp)
     end
     l[k] = tltype.Field(v.const, t1, t2)
   end
-  set_type(exp, tltype.Table(table.unpack(l)))
+  local t = tltype.Table(table.unpack(l))
+  t.open = true
+  set_type(exp, t)
 end
 
 local function var2name (var)
@@ -791,6 +793,17 @@ local function check_index (env, exp)
   end
 end
 
+local function check_interface (env, stm)
+  local name, t, is_local = stm[1], stm[2], stm.is_local
+  if tlst.get_interface(env, name) then
+    local msg = "attempt to redeclare interface '%s'"
+    msg = string.format(msg, name)
+    typeerror(env, msg, stm.pos)
+  else
+    tlst.set_interface(env, name, t, is_local)
+  end
+end
+
 function check_var (env, var)
   local tag = var.tag
   if tag == "Id" then
@@ -896,7 +909,7 @@ function check_stm (env, stm)
   elseif tag == "Invoke" then
     check_invoke(env, stm)
   elseif tag == "Interface" then
-  elseif tag == "LocalInterface" then
+    check_interface(env, stm)
   else
     error("cannot type check statement " .. tag)
   end

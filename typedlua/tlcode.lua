@@ -81,9 +81,9 @@ end
 
 function code_var (var, i)
   local tag = var.tag
-  if tag == "Id" then -- `Id{ <string> }
+  if tag == "Id" then
     return var[1]
-  elseif tag == "Index" then -- `Index{ expr expr }
+  elseif tag == "Index" then
     return code_exp(var[1], i) .. "[" .. code_exp(var[2], i) .. "]"
   else
     error("trying to generate code for a variable, but got a " .. tag)
@@ -108,11 +108,11 @@ function code_exp (exp, i)
     return "true"
   elseif tag == "False" then
     return "false"
-  elseif tag == "Number" then -- `Number{ <number> }
+  elseif tag == "Number" then
     return tostring(exp[1])
-  elseif tag == "String" then -- `String{ <string> }
+  elseif tag == "String" then
     return '"' .. exp[1] .. '"'
-  elseif tag == "Function" then -- `Function{ { `Id{ <string> }* `Dots? } block }
+  elseif tag == "Function" then
     local str = "function ("
     str = str .. code_parlist(exp[1], i) .. ")\n"
     if not exp[3] then
@@ -121,10 +121,10 @@ function code_exp (exp, i)
       str = str .. code_block(exp[3], i) .. ident("end", i)
     end
     return str
-  elseif tag == "Table" then -- `Table{ ( `Pair{ expr expr } | expr )* }
+  elseif tag == "Table" then
     local str = "{" .. code_fieldlist(exp, i) .. "}"
     return str
-  elseif tag == "Op" then -- `Op{ opid expr expr? }
+  elseif tag == "Op" then
     local str
     if exp[3] then
       str = code_exp(exp[2], i) .. op[exp[1]] .. code_exp(exp[3], i)
@@ -132,15 +132,15 @@ function code_exp (exp, i)
       str = op[exp[1]] .. code_exp(exp[2], i)
     end
     return str
-  elseif tag == "Paren" then -- `Paren{ expr }
+  elseif tag == "Paren" then
     local str = "(" .. code_exp(exp[1], i) .. ")"
     return str
-  elseif tag == "Call" then -- `Call{ expr expr* }
+  elseif tag == "Call" then
     return code_call(exp, i)
-  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> expr* }
+  elseif tag == "Invoke" then
     return code_invoke(exp, i)
-  elseif tag == "Id" or -- `Id{ <string> }
-         tag == "Index" then -- `Index{ expr expr }
+  elseif tag == "Id" or
+         tag == "Index" then
     return code_var(exp, i)
   else
     error("trying to generate code for a expression, but got a " .. tag)
@@ -157,24 +157,24 @@ end
 
 function code_stm (stm, i)
   local tag = stm.tag
-  if tag == "Do" then -- `Do{ stat* }
+  if tag == "Do" then
     local str = ident("do\n", i) .. code_block(stm, i) .. ident("end", i)
     return str
-  elseif tag == "Set" then -- `Set{ {lhs+} {expr+} }
+  elseif tag == "Set" then
     local str = spaces(i)
     str = code_varlist(stm[1], i) .. " = " .. code_explist(stm[2], i)
     return str
-  elseif tag == "While" then -- `While{ expr block }
+  elseif tag == "While" then
     local str = ident("while ", i) .. code_exp(stm[1], 0) .. " do\n"
     str = str .. code_block(stm[2], i) .. ident("end", i)
     return str
-  elseif tag == "Repeat" then -- `Repeat{ block expr }
+  elseif tag == "Repeat" then
     local str = ident("repeat\n", i)
     str = str .. code_block(stm[1], i)
     str = str .. ident("until ", i)
     str = str .. code_exp(stm[2], i)
     return str
-  elseif tag == "If" then -- `If{ (expr block)+ block? }
+  elseif tag == "If" then
     local str = ident("if ", i) .. code_exp(stm[1], 0) .. " then\n"
     str = str .. code_block(stm[2], i)
     local len = #stm
@@ -193,7 +193,7 @@ function code_stm (stm, i)
     end
     str = str .. ident("end", i)
     return str
-  elseif tag == "Fornum" then -- `Fornum{ ident expr expr expr? block }
+  elseif tag == "Fornum" then
     local str = ident("for ", i)
     str = str .. code_var(stm[1], i) .. " = " .. code_exp(stm[2], i)
     str = str .. ", " .. code_exp(stm[3], i)
@@ -205,20 +205,20 @@ function code_stm (stm, i)
     end
     str = str .. ident("end", i)
     return str
-  elseif tag == "Forin" then -- `Forin{ {ident+} {expr+} block }
+  elseif tag == "Forin" then
     local str = ident("for ", i)
     str = str .. code_varlist(stm[1], i) .. " in "
     str = str .. code_explist(stm[2], i) .. " do\n"
     str = str .. code_block(stm[3], i)
     str = str .. ident("end", i)
     return str
-  elseif tag == "Local" then -- `Local{ {ident+} {expr+}? }
+  elseif tag == "Local" then
     local str = ident("local ", i) .. code_varlist(stm[1], i)
     if #stm[2] > 0 then
       str = str .. " = " .. code_explist(stm[2], i)
     end
     return str
-  elseif tag == "Localrec" then -- `Localrec{ ident expr }
+  elseif tag == "Localrec" then
     local str = ident("local function ", i) .. code_var(stm[1][1], i)
     str = str .. " (" .. code_parlist(stm[2][1][1], i) .. ")\n"
     if not stm[2][1][3] then
@@ -227,23 +227,22 @@ function code_stm (stm, i)
       str = str .. code_block(stm[2][1][3], i) .. ident("end", i)
     end
     return str
-  elseif tag == "Goto" then -- `Goto{ <string> }
+  elseif tag == "Goto" then
     local str = ident("goto ", i) .. stm[1]
     return str
-  elseif tag == "Label" then -- `Label{ <string> }
+  elseif tag == "Label" then
     local str = ident("::", i) .. stm[1] .. "::"
     return str
-  elseif tag == "Return" then -- `Return{ <expr>* }
+  elseif tag == "Return" then
     local str = ident("return ", i) .. code_explist(stm, i)
     return str
   elseif tag == "Break" then
     return ident("break", i)
-  elseif tag == "Call" then -- `Call{ expr expr* }
+  elseif tag == "Call" then
     return code_call(stm, i)
-  elseif tag == "Invoke" then -- `Invoke{ expr `String{ <string> } expr* }
+  elseif tag == "Invoke" then
     return code_invoke(stm, i)
-  elseif tag == "Interface" or -- `Interface{ <string> <string> field+ }
-         tag == "LocalInterface" then -- `LocalInterface{ <string> field+ }
+  elseif tag == "Interface" then
     return ""
   else
     error("tyring to generate code for a statement, but got " .. tag)

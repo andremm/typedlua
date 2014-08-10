@@ -17,6 +17,7 @@ function tlst.new_env (subject, filename, strict, warnings)
   env.fscope = 0
   env.loop = 0
   env["function"] = {}
+  env["interface"] = {}
   return env
 end
 
@@ -26,6 +27,7 @@ local function new_scope ()
   senv["goto"] = {}
   senv["label"] = {}
   senv["local"] = {}
+  senv["interface"] = {}
   return senv
 end
 
@@ -97,6 +99,26 @@ function tlst.get_local (env, local_name)
     if l then return l end
   end
   return nil
+end
+
+-- set_interface : (env, string, type, boolean?) -> ()
+function tlst.set_interface (env, name, t, is_local)
+  if is_local then
+    local scope = env.scope
+    env[scope]["interface"][name] = t
+  else
+    env["interface"][name] = t
+  end
+end
+
+-- get_interface : (env) -> (type?)
+function tlst.get_interface (env, name)
+  local scope = env.scope
+  for s = scope, 1, -1 do
+    local t = env[s]["interface"][name]
+    if t then return t end
+  end
+  return env["interface"][name]
 end
 
 -- new_fenv : () -> (fenv)

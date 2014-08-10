@@ -21,8 +21,7 @@ stat:
   | `Return{ <expr*> }                        -- return e1, e2...
   | `Break                                    -- break
   | apply
-  | `Interface{ <string> field+ }
-  | `LocalInterface{ <string> field+ }
+  | `Interface{ <string> type }
 
 expr:
   `Nil
@@ -201,17 +200,15 @@ function tlast.statApply (expr)
   end
 end
 
--- statInterface : (number, string, any*) -> (stat)
-function tlast.statInterface (pos, name, ...)
-  local stat = { tag = "Interface", pos = pos, ... }
-  table.insert(stat, 1, name)
-  return stat
+-- statInterface : (number, string, type) -> (stat)
+function tlast.statInterface (pos, name, t)
+  t.interface = name
+  return { tag = "Interface", pos = pos, [1] = name, [2] = t }
 end
 
--- statLocalInterface : (number, string, any*) -> (stat)
-function tlast.statLocalInterface (pos, name, ...)
-  local stat = { tag = "LocalInterface", pos = pos, ... }
-  table.insert(stat, 1, name)
+-- statLocalInterface : (stat) -> (stat)
+function tlast.statLocalInterface (stat)
+  stat.is_local = true
   return stat
 end
 
@@ -737,14 +734,10 @@ function stm2str (stm)
       end
     end
     str = str .. " }"
-  elseif tag == "Interface" or
-         tag == "LocalInterface" then
+  elseif tag == "Interface" then
     str = str .. "{ "
     str = str .. stm[1] .. ", "
-    str = str .. type2str(stm[2][1]) .. ":" .. type2str(stm[2][2])
-    for i = 3, #stm do
-      str = str .. ", " .. type2str(stm[i][1]) .. ":" .. type2str(stm[i][2])
-    end
+    str = str .. type2str(stm[2])
     str = str .. " }"
   else
     error("expecting a statement, but got a " .. tag)

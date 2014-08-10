@@ -377,7 +377,7 @@ end
 
 -- isConstField : (field) -> (boolean)
 function tltype.isConstField (f)
-  return f.tag == "Const" and f.const
+  return f.tag == "Field" and f.const
 end
 
 -- Table : (field*) -> (type)
@@ -404,6 +404,37 @@ function tltype.getField (f, t)
   end
 end
 
+-- fieldlist : ({ident}, type) -> (field*)
+function tltype.fieldlist (idlist, t)
+  local l = {}
+  for k, v in ipairs(idlist) do
+    table.insert(l, tltype.Field(v.const, tltype.Literal(v[1]), t))
+  end
+  return table.unpack(l)
+end
+
+-- checkTypeDec : (type) -> (true)?
+function tltype.checkTypeDec (t)
+  if tltype.isTable(t) then
+    local namelist = {}
+    for k, v in ipairs(t) do
+      local f1, f2 = v[1], v[2]
+      if tltype.isStr(f1) then
+        local name = f1[1]
+        if not namelist[name] then
+          namelist[name] = true
+        else
+          local msg = "attmept to redeclare field '%s'"
+          return nil, string.format(msg, name)
+        end
+      end
+    end
+    return true
+  else
+    return nil, "attempt to name a type that is not a table"
+  end
+end
+
 -- type variables
 
 -- Variable : (string) -> (type)
@@ -426,6 +457,56 @@ end
 -- isRecursive : (type) -> (boolean)
 function tltype.isRecursive (t)
   return t.tag == "Recursive"
+end
+
+local function check_recursive (t, name)
+  if tltype.isLiteral(t) or
+     tltype.isBase(t) or
+     tltype.isNil(t) or
+     tltype.isValue(t) or
+     tltype.isAny(t) or
+     tltype.isSelf(t) or
+     tltype.isVoid(t) then
+    return false
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+    for k, v in ipairs(t) do
+      if check_recursive(v, name) then
+        return true
+      end
+    end
+    return false
+  elseif tltype.isFunction(t) then
+    return check_recursive(t[1], name) or check_recursive(t[2], name)
+  elseif tltype.isTable(t) then
+    for k, v in ipairs(t) do
+      if check_recursive(v[2], name) then
+        return true
+      end
+    end
+    return false
+  elseif tltype.isVariable(t) then
+    return t[1] == name
+  elseif tltype.isRecursive(t) then
+    return check_recursive(t[2], name)
+  elseif tltype.isVararg(t) then
+    return check_recursive(t[1], name)
+  else
+    return false
+  end
+end
+
+-- checkRecursive : (type, string) -> (boolean)
+function tltype.checkRecursive (t, name)
+  if tltype.isTable(t) then
+    for k, v in ipairs(t) do
+      if check_recursive(v[2], name) then return true end
+    end
+    return false
+  else
+    return false
+  end
 end
 
 -- subtyping and consistent-subtyping
@@ -719,12 +800,6 @@ function tltype.general (t)
     return tltype.Union(table.unpack(l))
   elseif tltype.isFunction(t) then
     return tltype.Function(tltype.general(t[1]), tltype.general(t[2]))
-  elseif tltype.isTable(t) then
-    local l = {}
-    for k, v in ipairs(t) do
-      table.insert(l, tltype.Field(v[1], tltype.general(v[2])))
-    end
-    return tltype.Table(table.unpack(l))
   elseif tltype.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do

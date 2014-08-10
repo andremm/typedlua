@@ -2,8 +2,6 @@
 This module implements Typed Lua parser
 ]]
 
-if not table.unpack then table.unpack = unpack end
-
 local tlparser = {}
 
 local lpeg = require "lpeg"
@@ -80,11 +78,20 @@ local G = lpeg.P { "TypedLua";
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
+  Id = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.ident;
+  TypeDecId = (tllexer.kw("const") * lpeg.V("Id") / tlast.setConst) +
+              lpeg.V("Id");
+  IdList = lpeg.Cp() * lpeg.V("TypeDecId") * (tllexer.symb(",") * lpeg.V("TypeDecId"))^0 /
+           tlast.namelist;
+  IdDec = lpeg.V("IdList") * tllexer.symb(":") *
+          (lpeg.V("Type") + lpeg.V("MethodType")) / tltype.fieldlist;
+  TypeDec = (lpeg.V("IdDec")^1 + lpeg.Cc(nil)) / tltype.Table;
+  Interface = lpeg.Cp() * tllexer.kw("interface") * tllexer.token(tllexer.Name, "Name") *
+              lpeg.V("TypeDec") * tllexer.kw("end") / tlast.statInterface;
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (tllexer.symb(";") + lpeg.V("Stat"))^0;
   Var = lpeg.V("Id");
-  Id = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.ident;
   TypedId = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") * (tllexer.symb(":") *
             lpeg.V("Type"))^-1 / tlast.ident;
   FunctionDef = tllexer.kw("function") * lpeg.V("FuncBody");
@@ -208,24 +215,8 @@ local G = lpeg.P { "TypedLua";
   RetStat = lpeg.Cp() * tllexer.kw("return") *
             (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
             tllexer.symb(";")^-1 / tlast.statReturn;
-  InterfaceStat = lpeg.Cp() * tllexer.kw("interface") * tllexer.token(tllexer.Name, "Name") *
-                  lpeg.V("InterfaceDec")^1 * tllexer.kw("end") / tlast.statInterface;
-  LocalInterface = lpeg.Cp() * tllexer.kw("interface") * tllexer.token(tllexer.Name, "Name") *
-                   lpeg.V("InterfaceDec")^1 * tllexer.kw("end") / tlast.statLocalInterface;
-  TId = (tllexer.kw("const") * lpeg.V("Id") / tlast.setConst) +
-        lpeg.V("Id");
-  IdList = lpeg.Cp() * lpeg.V("TId") * (tllexer.symb(",") * lpeg.V("TId"))^0 /
-           tlast.namelist;
-  InterfaceDec = lpeg.V("IdList") * tllexer.symb(":") *
-                 (lpeg.V("Type") + lpeg.V("MethodType")) /
-  function (idlist, t)
-    local l = {}
-    for k, v in ipairs(idlist) do
-      local f = tltype.Field(v.const, tltype.Literal(v[1]), t)
-      table.insert(l, f)
-    end
-    return table.unpack(l)
-  end;
+  InterfaceStat = lpeg.V("Interface");
+  LocalInterface = lpeg.V("Interface") / tlast.statLocalInterface;
   LVar = (tllexer.kw("const") * lpeg.V("SuffixedExp") / tlast.setConst) +
          lpeg.V("SuffixedExp");
   ExprStat = lpeg.Cmt(
@@ -469,6 +460,18 @@ local function traverse_while (env, stm)
   return true
 end
 
+local function traverse_interface (env, stm)
+  local name, t = stm[1], stm[2]
+  local status, msg = tltype.checkTypeDec(t)
+  if not status then
+    return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
+  end
+  if tltype.checkRecursive(t, name) then
+    stm[2] = tltype.Recursive(name, t)
+  end
+  return true
+end
+
 function traverse_var (env, var)
   local tag = var.tag
   if tag == "Id" then
@@ -571,9 +574,8 @@ function traverse_stm (env, stm)
     return traverse_call(env, stm)
   elseif tag == "Invoke" then
     return traverse_invoke(env, stm)
-  elseif tag == "Interface" or
-         tag == "LocalInterface" then
-    return true
+  elseif tag == "Interface" then
+    return traverse_interface(env, stm)
   else
     error("trying to traverse a statement, but got a " .. tag)
   end
