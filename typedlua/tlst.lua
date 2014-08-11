@@ -33,7 +33,16 @@ end
 
 -- begin_scope : (env) -> ()
 function tlst.begin_scope (env)
-  env.scope = env.scope + 1
+  local scope = env.scope
+  if scope > 0 then
+    for k, v in pairs(env[scope]["local"]) do
+      if v["type"] and v["type"].open then
+        v["type"].open = nil
+        v["type"].reopen = true
+      end
+    end
+  end
+  env.scope = scope + 1
   env.maxscope = env.scope
   env[env.scope] = new_scope()
 end
@@ -44,7 +53,13 @@ function tlst.end_scope (env)
   local scope = env.scope
   if scope > 0 then
     for k, v in pairs(env[scope]["local"]) do
-      if v.bkp then v["type"] = v.bkp end
+      if v.bkp then
+        v["type"] = v.bkp
+      end
+      if v["type"] and v["type"].reopen then
+        v["type"].reopen = nil
+        v["type"].open = true
+      end
     end
   end
 end

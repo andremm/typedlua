@@ -50,6 +50,55 @@ local function get_type (node)
   return node["type"] or Nil
 end
 
+local function get_interface (env, name, pos)
+  local t = tlst.get_interface(env, name)
+  if not t then
+    local msg = "type alias '%s' is not defined"
+    msg = string.format(msg, name)
+    typeerror(env, msg, pos)
+    return Nil
+  else
+    return t
+  end
+end
+
+local function replace_names (env, t, pos)
+  if tltype.isLiteral(t) or
+     tltype.isBase(t) or
+     tltype.isNil(t) or
+     tltype.isValue(t) or
+     tltype.isAny(t) or
+     tltype.isSelf(t) or
+     tltype.isVoid(t) or
+     tltype.isRecursive(t) then
+    return t
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+    local r = { tag = t.tag }
+    for k, v in ipairs(t) do
+      r[k] = replace_names(env, t[k], pos)
+    end
+    return r
+  elseif tltype.isFunction(t) then
+    t[1] = replace_names(env, t[1], pos)
+    t[2] = replace_names(env, t[2], pos)
+    return t
+  elseif tltype.isTable(t) then
+    for k, v in ipairs(t) do
+      t[k][2] = replace_names(env, t[k][2], pos)
+    end
+    return t
+  elseif tltype.isVariable(t) then
+    return get_interface(env, t[1], pos)
+  elseif tltype.isVararg(t) then
+    t[1] = replace_names(env, t[1], pos)
+    return t
+  else
+    return t
+  end
+end
+
 local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
@@ -421,6 +470,7 @@ end
 
 local function check_arguments (env, func_name, dec_type, infer_type, pos)
   local msg = "attempt to pass '%s' to %s of input type '%s'"
+  infer_type = replace_names(env, infer_type, pos)
   if tltype.subtype(infer_type, dec_type) then
   elseif tltype.consistent_subtype(infer_type, dec_type) then
     if env.warnings then
@@ -486,15 +536,18 @@ local function check_invoke (env, exp)
   end
 end
 
-local function check_local_var (env, id, inferred_type)
+local function check_local_var (env, id, inferred_type, close_local)
   local local_name, local_type, pos = id[1], id[2], id.pos
+  inferred_type = replace_names(env, inferred_type, pos)
   if not local_type then
     if tltype.isNil(inferred_type) then
       local_type = Any
     else
       local_type = tltype.general(inferred_type)
+      if close_local then local_type.open = nil end
     end
   else
+    local_type = replace_names(env, local_type, pos)
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
     if tltype.subtype(inferred_type, local_type) then
@@ -515,7 +568,8 @@ local function check_local (env, idlist, explist)
   local tuple = explist2typegen(explist)
   for k, v in ipairs(idlist) do
     local t = tuple(k)
-    check_local_var(env, v, t)
+    local close_local = explist[k] and explist[k].tag == "Id" and tltype.isTable(t)
+    check_local_var(env, v, t, close_local)
   end
 end
 
@@ -528,11 +582,13 @@ local function check_localrec (env, id, exp)
   tlst.begin_function(env)
   local input_type = check_parameters(env, idlist)
   local t = tltype.Function(input_type, ret_type)
+  t = replace_names(env, t, exp.pos)
   id[2] = t
   set_type(id, t)
   tlst.set_local(env, id)
   tlst.begin_scope(env)
   for k, v in ipairs(idlist) do
+    v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
     tlst.set_local(env, v)
   end
@@ -540,6 +596,7 @@ local function check_localrec (env, id, exp)
   tlst.end_scope(env)
   ret_type = infer_return_type(env)
   t = tltype.Function(input_type, ret_type)
+  t = replace_names(env, t, exp.pos)
   id[2] = t
   set_type(id, t)
   tlst.set_local(env, id)
@@ -579,7 +636,10 @@ end
 
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
-  check_explist(env, varlist)
+  --check_explist(env, varlist)
+  for k, v in ipairs(varlist) do
+    check_var(env, v, explist[k])
+  end
   local var_type, exp_type = explist2typelist(varlist), explist2typelist(explist)
   local msg = "attempt to assign '%s' to '%s'"
   if tltype.subtype(exp_type, var_type) then
@@ -804,7 +864,7 @@ local function check_interface (env, stm)
   end
 end
 
-function check_var (env, var)
+function check_var1 (env, var)
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
@@ -841,6 +901,63 @@ function check_var (env, var)
       typeerror(env, msg, var.pos)
       set_type(var, Nil)
     end
+  end
+end
+
+function check_var (env, var, exp)
+  local tag = var.tag
+  if tag == "Id" then
+    local name = var[1]
+    local l = tlst.get_local(env, name)
+    set_type(var, get_type(l))
+  elseif tag == "Index" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+    local t1, t2 = get_type(exp1), get_type(exp2)
+    local msg = "attmept to index '%s' with '%s'"
+    if tltype.isTable(t1) then
+      local field_type = tltype.getField(t2, t1)
+      if not tltype.isNil(field_type) then
+        set_type(var, field_type)
+      else
+        if t1.open then
+          if exp then
+            local t3 = tltype.general(get_type(exp))
+            local t = tltype.general(t1)
+            table.insert(t, tltype.Field(var.const, t2, t3))
+            if tltype.subtype(t, t1) then
+              table.insert(t1, tltype.Field(var.const, t2, t3))
+            end
+            set_type(var, t3)
+          else
+            set_type(var, Nil)
+          end
+        else
+          if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
+            msg = "attempt to access undeclared global '%s'"
+            msg = string.format(msg, exp2[1])
+          else
+            msg = "attempt to use '%s' to index closed table"
+            msg = string.format(msg, tltype.tostring(t2))
+          end
+          typeerror(env, msg, var.pos)
+          set_type(var, Nil)
+        end
+      end
+    elseif tltype.isAny(t1) then
+      if env.warnings then
+        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+        typeerror(env, msg, var.pos)
+      end
+      set_type(var, Any)
+    else
+      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      typeerror(env, msg, var.pos)
+      set_type(var, Nil)
+    end
+  else
+    error("cannot type check variable " .. tag)
   end
 end
 
@@ -955,6 +1072,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   local tldpath = string.gsub(package.path, "[.]lua", ".tld")
   local lslpath = assert(searchpath("typedlua/lsl", tldpath))
   local _env = tlast.ident(0, "_ENV", tldparser.parse(lslpath, strict))
+  _env[2].open = true
   set_type(_env, _env[2])
   tlst.set_local(env, _env)
   for k, v in ipairs(ast) do

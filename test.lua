@@ -3714,8 +3714,8 @@ print(greet(user3))
 print(greet(user4))
 ]=]
 e = [=[
-test.lua:14:7: type error, parameter 1 of greet, attempt to assign '{firstname:string}' to '{firstname:string, lastname:string}'
-test.lua:16:7: type error, parameter 1 of greet, attempt to assign '{1:string, 2:string}' to '{firstname:string, lastname:string}'
+test.lua:14:7: type error, attempt to pass '({firstname:string}, nil*)' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
+test.lua:16:7: type error, attempt to pass '({1:string, 2:string}, nil*)' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -3732,7 +3732,7 @@ local user1:Person = { firstname = "Lewis", middlename = "Allan" or nil, lastnam
 local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3745,7 +3745,7 @@ local interface Element
 end
 ]=]
 e = [=[
-{ `LocalInterface{ Element, `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } }
+{ `Interface{ Element, `Table{ `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -3771,7 +3771,9 @@ person.lastname = "Reed"
 ]=]
 e = [=[
 test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+test.lua:3:1: type error, attempt to assign '(Lou, nil*)' to '(nil, nil*)'
 test.lua:4:1: type error, attempt to use 'lastname' to index closed table
+test.lua:4:1: type error, attempt to assign '(Reed, nil*)' to '(nil, nil*)'
 ]=]
 
 r = typecheck(s)
@@ -3786,6 +3788,7 @@ person.lastname = "Reed"
 ]=]
 e = [=[
 test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+test.lua:3:1: type error, attempt to assign '(1, nil*)' to '(nil, nil*)'
 ]=]
 
 r = typecheck(s)
@@ -3804,8 +3807,10 @@ end
 ]=]
 e = [=[
 test.lua:4:3: type error, attempt to use 'firstname' to index closed table
-test.lua:5:3: type error, attempt to assign '{}' to '{firstname:number}'
+test.lua:4:3: type error, attempt to assign '(1, nil*)' to '(nil, nil*)'
+test.lua:5:3: type error, attempt to assign '({}, nil*)' to '({firstname:number}, nil*)'
 test.lua:8:3: type error, attempt to use 'firstname' to index closed table
+test.lua:8:3: type error, attempt to assign '(Lou, nil*)' to '(nil, nil*)'
 ]=]
 
 r = typecheck(s)
@@ -3824,7 +3829,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)
@@ -3844,7 +3849,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-{ `LocalInterface{ Person, `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)

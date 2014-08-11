@@ -800,6 +800,14 @@ function tltype.general (t)
     return tltype.Union(table.unpack(l))
   elseif tltype.isFunction(t) then
     return tltype.Function(tltype.general(t[1]), tltype.general(t[2]))
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.Field(v.const, v[1], tltype.general(v[2])))
+    end
+    local n = tltype.Table(table.unpack(l))
+    n.open = t.open
+    return n
   elseif tltype.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do
@@ -851,6 +859,7 @@ local function type2str (t)
   elseif tltype.isFunction(t) then
     return type2str(t[1]) .. " -> " .. type2str(t[2])
   elseif tltype.isTable(t) then
+    --if t.interface then return t.interface end
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
