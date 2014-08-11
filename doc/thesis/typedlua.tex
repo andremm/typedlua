@@ -759,20 +759,21 @@ In the following example we use type annotations in a function
 declaration, and we do not use type annotations in a declaration of a
 local variable:
 \begin{verbatim}
-    local function fact (n:number):number
+    local function factorial (n:number):number
       if n == 0 then
         return 1
       else
-        return n * fact(n - 1)
+        return n * factorial(n - 1)
       end
     end
     local x = 5
-    print(fact(x))
+    print(factorial(x))
 \end{verbatim}
 
 Even though we did not add type annotations in the declaration of
 the local variable \texttt{x}, the compiler uses local type inference to
-assign the type $\Number$ to \texttt{x}.
+assign the type $\Number$ to \texttt{x}, and this example compiles
+without any warnings.
 The compiler does not use the literal type $5$ instead of the base
 type $\Number$ because this would prevent
 programmers from assigning other numeric values to the variable
@@ -802,9 +803,9 @@ The compiler assigns the dynamic type $\Any$ to the input
 parameters of \texttt{dist} because they do not have type annotations,
 and the compiler does not use global type inference, as we mentioned
 previously.
-The compiler infers the return type of \texttt{dist} because it is
-not a recursive function, that is, Typed Lua does not infer the return
-type of recursive functions.
+Even though we did not annotated the return type of \texttt{dist},
+the compiler is able to infer its return type because it is local
+and not recursive.
 
 We are using the consistent-subtyping relation of gradual
 typing to check the interaction among the dynamic type and the other
@@ -815,10 +816,117 @@ consistent with the type $\Number$.
 The type $\Any$ is not the union of all types, but it is a separate
 type.
 
-In the previous example, we cannot guarantee that \texttt{dist} is never
+In this example, Typed Lua cannot guarantee that \texttt{dist} is never
 going to call \texttt{abs} with a parameter that is not a number,
 because in the semantics of Lua the minus operator can result in a
 value that is not a number.
+This is a typical example where run-time checks would ensure safety
+between the interaction of dynamically typed and statically typed code.
+
+Lua has first-class functions, and they have three peculiarities:
+flexible arity, multiple return values, and multiple assignment.
+In the first case, the number of arguments of a function call does
+not need to match the arity of the function declaration, as Lua silently
+drops extra arguments after evaluating them, or uses \texttt{nil} to
+replace missing arguments.
+In the second case, Lua function can return any number of values,
+and this number of returned values may not be statically known.
+In the third case, Lua has multiple assignment, and the semantics
+of argument passing is the same of the multiple assignment
+(or vice-versa), that is, calling a function is like doing a
+multiple assignment where the left hand side is the parameter list
+and the right hand side is the argument list.
+
+Typed Lua uses \emph{second-level types} to encode functions with
+flexible arity, multiple returns, and multiple assignment.
+We call them second-level because these types do not correspond
+to actual Lua values and we cannot use them to type variables or
+parameters.
+They are just an artifact of the interaction between the type system
+and the semantics of Lua.
+
+As we can see in Figure \ref{fig:typelang}, a second-level type is
+a tuple of first-level types optionally ending in a variadic type,
+or a union of these tuples.
+A variadic type $T{*}$ is a generator for a sequence of values of
+type $T \cup \Nil$.
+Unions of tuples play an important role in functions that are
+overloaded on the return type, together with \emph{projection types}.
+We will explain union types and projection types in more detail
+in the next section.
+
+To match the semantics of Lua function calls, the default operation
+mode of Typed Lua adds a variadic tail to the parts of a function
+type whenever the programmer does not specify one.
+In the previous examples, the type of both \texttt{factorial} and
+\texttt{abs} is
+$\Number \times \Value{*} \rightarrow \Number \times \Nil{*}$,
+and the type of \texttt{dist} is
+$\Any \times \Any \times \Value{*} \rightarrow \Number \times \Nil{*}$.
+If we call \texttt{abs} with extra arguments, Typed Lua silently ignores
+them, as the type signature lets \texttt{abs} receive any number of
+extra arguments.
+If we call \texttt{abs} with fewer arguments, Typed Lua uses $\Nil$ to
+replace the missing arguments and in the case of \texttt{abs} generates
+a warning, as $\Nil$ is neither a subtype of $\Number$ nor consistent
+with $\Number$.
+
+Typed Lua also provides a strict operation mode, and programmers can
+use this mode if they want to catch arity mismatch of function calls.
+In the strict mode, Typed Lua does not add a variadic tail to the
+parts of a function type unless the programmer explicitly declares one.
+In the previous examples, the type of both \texttt{factorial} and
+\texttt{abs} is $\Number \rightarrow \Number$, and the type of
+\texttt{dist} is $\Any \times \Any \rightarrow \Number$.
+If we call \texttt{abs} with either extra or missing arguments,
+Typed Lua generates warnings about arity mismatch.
+
+A variadic type can only appear in the tail position of a tuple,
+because Lua takes only the first value of any expression that appears
+in an expression list that is not in tail position.
+The following example shows the interaction between multiple returns
+and expression lists:
+\begin{verbatim}
+local function multiple ()
+  return 2, "foo"
+end
+local function sum (x:number, y:number)
+  return x + y
+end
+local x, y, z = multiple(), multiple()
+print(sum(multiple(), multiple()))
+\end{verbatim}
+
+In the default mode, the type of \texttt{multiple} is
+$\Value{*} \rightarrow \Number \times \String \times \Nil{*}$,
+and the type of \texttt{sum} is
+$\Number \times \Number \times \Value{*} \rightarrow \Number \times \Nil{*}$.
+In the right hand side of the multiple assignment, only the first
+value produced by the first call to multiple gets used,
+so the type of the right hand side is
+$\Number \times \Number \times \String \times \Nil{*}$,
+and the type assigned to \texttt{x}, \texttt{y}, and \texttt{z}
+are respectively $\Number$, $\Number$, and $\String$.
+The same tuple is assigned to the call to \texttt{sum} and it
+compiles without errors, as the first two components of the tuple
+are consistent with the types of the parameters, and the other
+components are consistent with \texttt{value}.
+
+In the strict mode, the type of \texttt{multiple} is
+$\Void \rightarrow \Number \times \String$,
+and the type of \texttt{sum} is $\Number \times \Number \rightarrow \Number$.
+Like in the default mode, only the first value produced by the
+first call to multiple gets used in the right hand side of the
+multiple assignment;
+and the type of the right hand side is also
+$\Number \times \Number \times \String \times \Nil{*}$,
+because the strict mode affects only the type of function declarations
+and multiple assignments that appear in function calls.
+Unlike in the default mode, the type of the call to \texttt{sum} is
+$\Number \times \Number \times \String$, and does not include the
+variadic tail to catch arity mismatch.
+Thus, this example compiles with error because the call to \texttt{sum}
+passes an unexpected extra argument of type $\String$.
 
 \subsection{Unions}
 
