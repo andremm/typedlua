@@ -636,7 +636,6 @@ end
 
 local function check_assignment (env, varlist, explist)
   check_explist(env, explist)
-  --check_explist(env, varlist)
   for k, v in ipairs(varlist) do
     check_var(env, v, explist[k])
   end
@@ -861,46 +860,6 @@ local function check_interface (env, stm)
     typeerror(env, msg, stm.pos)
   else
     tlst.set_interface(env, name, t, is_local)
-  end
-end
-
-function check_var1 (env, var)
-  local tag = var.tag
-  if tag == "Id" then
-    local name = var[1]
-    local l = tlst.get_local(env, name)
-    set_type(var, get_type(l))
-  elseif tag == "Index" then
-    local exp1, exp2 = var[1], var[2]
-    check_exp(env, exp1)
-    check_exp(env, exp2)
-    local t1, t2 = get_type(exp1), get_type(exp2)
-    local msg = "attempt to index '%s' with '%s'"
-    if tltype.isTable(t1) then
-      local field_type = tltype.getField(t2, t1)
-      if not tltype.isNil(field_type) then
-        set_type(var, field_type)
-      else
-        if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
-          msg = "attempt to access undeclared global '%s'"
-          msg = string.format(msg, exp2[1])
-        else
-          msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-        end
-        typeerror(env, msg, var.pos)
-        set_type(var, Nil)
-      end
-    elseif tltype.isAny(t1) then
-      if env.warnings then
-        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-        typeerror(env, msg, var.pos)
-      end
-      set_type(var, Any)
-    else
-      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, var.pos)
-      set_type(var, Nil)
-    end
   end
 end
 
