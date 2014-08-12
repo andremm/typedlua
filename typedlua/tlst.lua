@@ -18,6 +18,7 @@ function tlst.new_env (subject, filename, strict, warnings)
   env.loop = 0
   env["function"] = {}
   env["interface"] = {}
+  env["userdata"] = {}
   return env
 end
 
@@ -28,6 +29,7 @@ local function new_scope ()
   senv["label"] = {}
   senv["local"] = {}
   senv["interface"] = {}
+  senv["userdata"] = {}
   return senv
 end
 
@@ -134,6 +136,26 @@ function tlst.get_interface (env, name)
     if t then return t end
   end
   return env["interface"][name]
+end
+
+-- set_userdata : (env, string, type, boolean?) -> ()
+function tlst.set_userdata (env, name, t, is_local)
+  if is_local then
+    local scope = env.scope
+    env[scope]["userdata"][name] = t
+  else
+    env["userdata"][name] = t
+  end
+end
+
+-- get_userdata : (env) -> (type?)
+function tlst.get_userdata (env, name)
+  local scope = env.scope
+  for s = scope, 1, -1 do
+    local t = env[s]["userdata"][name]
+    if t then return t end
+  end
+  return env["userdata"][name]
 end
 
 -- new_fenv : () -> (fenv)

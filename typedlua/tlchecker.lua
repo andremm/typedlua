@@ -954,6 +954,17 @@ local function check_interface (env, stm)
   end
 end
 
+local function check_userdata (env, stm)
+  local name, t, is_local = stm[1], stm[2], stm.is_local
+  if tlst.get_userdata(env, name) then
+    local msg = "attempt to redeclare userdata '%s'"
+    msg = string.format(msg, name)
+    typeerror(env, msg, stm.pos)
+  else
+    tlst.set_userdata(env, name, t, is_local)
+  end
+end
+
 function check_var (env, var, exp)
   local tag = var.tag
   if tag == "Id" then
@@ -1079,6 +1090,8 @@ function check_stm (env, stm)
     check_invoke(env, stm)
   elseif tag == "Interface" then
     check_interface(env, stm)
+  elseif tag == "Userdata" then
+    check_userdata(env, stm)
   else
     error("cannot type check statement " .. tag)
   end

@@ -85,9 +85,12 @@ local G = lpeg.P { "TypedLua";
            tlast.namelist;
   IdDec = lpeg.V("IdList") * tllexer.symb(":") *
           (lpeg.V("Type") + lpeg.V("MethodType")) / tltype.fieldlist;
-  TypeDec = (lpeg.V("IdDec")^1 + lpeg.Cc(nil)) / tltype.Table;
-  Interface = lpeg.Cp() * tllexer.kw("interface") * tllexer.token(tllexer.Name, "Name") *
-              lpeg.V("TypeDec") * tllexer.kw("end") / tlast.statInterface;
+  IdDecList = (lpeg.V("IdDec")^1 + lpeg.Cc(nil)) / tltype.Table;
+  TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.kw("end");
+  Interface = lpeg.Cp() * tllexer.kw("interface") * lpeg.V("TypeDec") /
+              tlast.statInterface;
+  Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /
+             tlast.statUserdata;
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (tllexer.symb(";") + lpeg.V("Stat"))^0;
@@ -208,15 +211,15 @@ local G = lpeg.P { "TypedLua";
   LocalAssign = lpeg.Cp() * lpeg.V("NameList") *
                 ((tllexer.symb("=") * lpeg.V("ExpList")) + lpeg.Ct(lpeg.Cc())) / tlast.statLocal;
   LocalStat = tllexer.kw("local") *
-              (lpeg.V("LocalInterface") + lpeg.V("LocalFunc") + lpeg.V("LocalAssign"));
+              (lpeg.V("LocalTypeDec") + lpeg.V("LocalFunc") + lpeg.V("LocalAssign"));
   LabelStat = lpeg.Cp() * tllexer.symb("::") * tllexer.token(tllexer.Name, "Name") * tllexer.symb("::") / tlast.statLabel;
   BreakStat = lpeg.Cp() * tllexer.kw("break") / tlast.statBreak;
   GoToStat = lpeg.Cp() * tllexer.kw("goto") * tllexer.token(tllexer.Name, "Name") / tlast.statGoto;
   RetStat = lpeg.Cp() * tllexer.kw("return") *
             (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
             tllexer.symb(";")^-1 / tlast.statReturn;
-  InterfaceStat = lpeg.V("Interface");
-  LocalInterface = lpeg.V("Interface") / tlast.statLocalInterface;
+  TypeDecStat = lpeg.V("Interface") + lpeg.V("Userdata");
+  LocalTypeDec = lpeg.V("TypeDecStat") / tlast.statLocalTypeDec;
   LVar = (tllexer.kw("const") * lpeg.V("SuffixedExp") / tlast.setConst) +
          lpeg.V("SuffixedExp");
   ExprStat = lpeg.Cmt(
@@ -227,7 +230,7 @@ local G = lpeg.P { "TypedLua";
   Stat = lpeg.V("IfStat") + lpeg.V("WhileStat") + lpeg.V("DoStat") + lpeg.V("ForStat") +
          lpeg.V("RepeatStat") + lpeg.V("FuncStat") + lpeg.V("LocalStat") +
          lpeg.V("LabelStat") + lpeg.V("BreakStat") + lpeg.V("GoToStat") +
-         lpeg.V("InterfaceStat") + lpeg.V("ExprStat");
+         lpeg.V("TypeDecStat") + lpeg.V("ExprStat");
 }
 
 local traverse_stm, traverse_exp, traverse_var
@@ -472,6 +475,19 @@ local function traverse_interface (env, stm)
   return true
 end
 
+local function traverse_userdata (env, stm)
+  local name, t = stm[1], stm[2]
+  local status, msg = tltype.checkTypeDec(t)
+  if not status then
+    return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
+  end
+  if tltype.checkRecursive(t, name) then
+    local msg = string.format("userdata '%s' is recursive", name)
+    return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
+  end
+  return true
+end
+
 function traverse_var (env, var)
   local tag = var.tag
   if tag == "Id" then
@@ -576,6 +592,8 @@ function traverse_stm (env, stm)
     return traverse_invoke(env, stm)
   elseif tag == "Interface" then
     return traverse_interface(env, stm)
+  elseif tag == "Userdata" then
+    return traverse_userdata(env, stm)
   else
     error("trying to traverse a statement, but got a " .. tag)
   end

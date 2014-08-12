@@ -13,7 +13,7 @@ local tlst = require "typedlua.tlst"
 local tltype = require "typedlua.tltype"
 
 local G = lpeg.P { "TypedLuaDescription";
-  TypedLuaDescription = tllexer.Skip * lpeg.V("Description") * -1 +
+  TypedLuaDescription = tllexer.Skip * lpeg.V("DescriptionList") * -1 +
                         tllexer.report_error();
   -- type language
   Type = lpeg.V("NilableType");
@@ -74,11 +74,65 @@ local G = lpeg.P { "TypedLuaDescription";
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
+  Id = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.ident;
+  TypeDecId = (tllexer.kw("const") * lpeg.V("Id") / tlast.setConst) +
+              lpeg.V("Id");
+  IdList = lpeg.Cp() * lpeg.V("TypeDecId") * (tllexer.symb(",") * lpeg.V("TypeDecId"))^0 /
+           tlast.namelist;
+  IdDec = lpeg.V("IdList") * tllexer.symb(":") *
+          (lpeg.V("Type") + lpeg.V("MethodType")) / tltype.fieldlist;
+  IdDecList = (lpeg.V("IdDec")^1 + lpeg.Cc(nil)) / tltype.Table;
+  TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.kw("end");
+  Interface = lpeg.Cp() * tllexer.kw("interface") * lpeg.V("TypeDec") /
+              tlast.statInterface;
+  Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /
+             tlast.statUserdata;
   -- parser
-  Id = tllexer.token(tllexer.Name, "Name") / tltype.Literal;
-  Description = lpeg.V("DescriptionList")^1 / tltype.Table;
-  DescriptionList = lpeg.Cc(false) * lpeg.V("Id") * tllexer.symb(":") * lpeg.V("Type") / tltype.Field;
+  DescriptionList = lpeg.V("DescriptionItem")^1 / function (...) return {...} end;
+  DescriptionItem = lpeg.V("TypedId") + lpeg.V("Interface") + lpeg.V("Userdata");
+  TypedId = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") *
+            tllexer.symb(":") * lpeg.V("Type") / tlast.ident;
 }
+
+local function traverse (ast, errorinfo, strict)
+  assert(type(ast) == "table")
+  assert(type(errorinfo) == "table")
+  assert(type(strict) == "boolean")
+  local t = tltype.Table()
+  for k, v in ipairs(ast) do
+    local tag = v.tag
+    if tag == "Id" then
+      table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
+    elseif tag == "Interface" then
+      local name, t = v[1], v[2]
+      local status, msg = tltype.checkTypeDec(t)
+      if not status then
+        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+      end
+      if tltype.checkRecursive(t, name) then
+        v[2] = tltype.Recursive(name, t)
+      end
+    elseif tag == "Userdata" then
+      local name, t = v[1], v[2]
+      local status, msg = tltype.checkTypeDec(t)
+      if not status then
+        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+      end
+      if tltype.checkRecursive(t, name) then
+        local msg = string.format("userdata '%s' is recursive", name)
+        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+      end
+    else
+      error("trying to traverse a description item, but got a " .. tag)
+    end
+  end
+  local status, msg = tltype.checkTypeDec(t)
+  if not status then
+    return nil, tllexer.syntaxerror(env.subject, 1, env.filename, msg)
+  else
+    return t
+  end
+end
 
 function tldparser.parse (filename, strict)
   local file = assert(io.open(filename, "r"))
@@ -88,7 +142,7 @@ function tldparser.parse (filename, strict)
   lpeg.setmaxstack(1000)
   local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict)
   if not ast then return ast, error_msg end
-  return ast
+  return traverse(ast, errorinfo, strict)
 end
 
 return tldparser

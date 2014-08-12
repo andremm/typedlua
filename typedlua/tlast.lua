@@ -22,6 +22,7 @@ stat:
   | `Break                                    -- break
   | apply
   | `Interface{ <string> type }
+  | `Userdata{ <string> type }
 
 expr:
   `Nil
@@ -206,8 +207,14 @@ function tlast.statInterface (pos, name, t)
   return { tag = "Interface", pos = pos, [1] = name, [2] = t }
 end
 
--- statLocalInterface : (stat) -> (stat)
-function tlast.statLocalInterface (stat)
+-- statUserdata : (number, string, type) -> (stat)
+function tlast.statUserdata (pos, name, t)
+  t.userdata = name
+  return { tag = "Userdata", pos = pos, [1] = name, [2] = t }
+end
+
+-- statLocalTypeDec : (stat) -> (stat)
+function tlast.statLocalTypeDec (stat)
   stat.is_local = true
   return stat
 end
@@ -734,7 +741,8 @@ function stm2str (stm)
       end
     end
     str = str .. " }"
-  elseif tag == "Interface" then
+  elseif tag == "Interface" or
+         tag == "Userdata" then
     str = str .. "{ "
     str = str .. stm[1] .. ", "
     str = str .. type2str(stm[2])
