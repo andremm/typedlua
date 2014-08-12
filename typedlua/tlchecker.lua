@@ -340,6 +340,7 @@ local function check_parameters (env, parlist)
     local l = {}
     for i = 1, len do
       if not parlist[i][2] then parlist[i][2] = Any end
+      if parlist[i][1] == "self" then parlist[i][2] = Self end
       l[i] = parlist[i][2]
     end
     if parlist[len].tag == "Dots" then
@@ -375,24 +376,51 @@ local function infer_return_type (env)
   end
 end
 
+local function check_return_type (env, inf_type, dec_type, pos)
+  local msg = "return type '%s' does not match '%s'"
+  inf_type = replace_names(env, inf_type, pos)
+  dec_type = replace_names(env, dec_type, pos)
+  if tltype.subtype(inf_type, dec_type) then
+  elseif tltype.consistent_subtype(inf_type, dec_type) then
+    if env.warnings then
+      msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
+      typeerror(env, msg, pos)
+    end
+  else
+    msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
+    typeerror(env, msg, pos)
+  end
+end
+
 local function check_function (env, exp)
   local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  local infer_return = false
   if not block then
     block = ret_type
     ret_type = tltype.Tuple({ Any }, true)
+    infer_return = true
   end
   tlst.begin_function(env)
   tlst.begin_scope(env)
   local input_type = check_parameters(env, idlist)
   local t = tltype.Function(input_type, ret_type)
-  for k, v in ipairs(idlist) do
+  local len = #idlist
+  if len > 0 and idlist[len].tag == "Dots" then len = len - 1 end
+  for k = 1, len do
+    local v = idlist[k]
     set_type(v, v[2])
     tlst.set_local(env, v)
   end
   check_block(env, block)
   tlst.end_scope(env)
-  ret_type = infer_return_type(env)
-  t = tltype.Function(input_type, ret_type)
+  local inferred_type = infer_return_type(env)
+  if infer_return then
+    ret_type = inferred_type
+    t = tltype.Function(input_type, ret_type)
+    set_type(exp, t)
+  end
+  t = replace_names(env, t, exp.pos)
+  check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
   set_type(exp, t)
 end
@@ -491,22 +519,59 @@ local function check_call (env, exp)
   end
   check_exp(env, exp1)
   check_explist(env, explist)
-  local t = get_type(exp1)
-  local inferred_type = explist2type(explist)
-  local msg = "attempt to call %s of type '%s'"
-  if tltype.isFunction(t) then
-    check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
-    set_type(exp, t[2])
-  elseif tltype.isAny(t) then
-    if env.warnings then
+  if exp1.tag == "Index" and
+     exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
+     exp1[2].tag == "String" and exp1[2][1] == "setmetatable" then
+    if explist[1] and explist[2] then
+      local t1, t2 = get_type(explist[1]), get_type(explist[2])
+      local t3 = tltype.getField(tltype.Literal("__index"), t2)
+      if not tltype.isNil(t3) then
+        set_type(exp, t3)
+      else
+        local msg = "second argument of setmetatable must be { __index = e }"
+        typeerror(env, msg, exp.pos)
+        set_type(exp, Any)
+      end
+    else
+      local msg = "setmetatable must have two arguments"
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Any)
+    end
+  else
+    local t = get_type(exp1)
+    local inferred_type = explist2type(explist)
+    local msg = "attempt to call %s of type '%s'"
+    if tltype.isFunction(t) then
+      check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
+      set_type(exp, t[2])
+    elseif tltype.isAny(t) then
+      if env.warnings then
+        msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+        typeerror(env, msg, exp.pos)
+      end
+      set_type(exp, Any)
+    else
       msg = string.format(msg, var2name(exp1), tltype.tostring(t))
       typeerror(env, msg, exp.pos)
+      set_type(exp, Nil)
     end
-    set_type(exp, Any)
+  end
+end
+
+local function replace_self (env, t)
+  local s = env.self or Nil
+  if tltype.isTuple(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      if tltype.isSelf(v) then
+        table.insert(l, s)
+      else
+        table.insert(l, v)
+      end
+    end
+    return tltype.Tuple(l, env.strict)
   else
-    msg = string.format(msg, var2name(exp1), tltype.tostring(t))
-    typeerror(env, msg, exp.pos)
-    set_type(exp, Nil)
+    return t
   end
 end
 
@@ -519,18 +584,22 @@ local function check_invoke (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   check_explist(env, explist)
-  local t = get_type(exp1)
+  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t3 = tltype.getField(t2, t1)
+  local inferred_type = explist2type(explist)
+  table.insert(inferred_type, 1, Self)
   local msg = "attempt to call method '%s' of type '%s'"
-  if tltype.isFunction(t) then
-    set_type(exp, t[2])
-  elseif tltype.isAny(t) then
+  if tltype.isFunction(t3) then
+    check_arguments(env, "field", t3[1], inferred_type, exp.pos)
+    set_type(exp, replace_self(env, t3[2]))
+  elseif tltype.isAny(t3) then
     if env.warnings then
-      msg = string.format(msg, exp2[1], tltype.tostring(t))
+      msg = string.format(msg, exp2[1], tltype.tostring(t3))
       typeerror(env, msg, exp.pos)
     end
     set_type(exp, Any)
   else
-    msg = string.format(msg, exp2[1], tltype.tostring(t))
+    msg = string.format(msg, exp2[1], tltype.tostring(t3))
     typeerror(env, msg, exp.pos)
     set_type(exp, Nil)
   end
@@ -575,9 +644,11 @@ end
 
 local function check_localrec (env, id, exp)
   local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  local infer_return = false
   if not block then
     block = ret_type
     ret_type = tltype.Tuple({ Any }, true)
+    infer_return = true
   end
   tlst.begin_function(env)
   local input_type = check_parameters(env, idlist)
@@ -587,20 +658,27 @@ local function check_localrec (env, id, exp)
   set_type(id, t)
   tlst.set_local(env, id)
   tlst.begin_scope(env)
-  for k, v in ipairs(idlist) do
+  local len = #idlist
+  if len > 0 and idlist[len].tag == "Dots" then len = len - 1 end
+  for k = 1, len do
+    local v = idlist[k]
     v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
     tlst.set_local(env, v)
   end
   check_block(env, block)
   tlst.end_scope(env)
-  ret_type = infer_return_type(env)
-  t = tltype.Function(input_type, ret_type)
+  local inferred_type = infer_return_type(env)
+  if infer_return then
+    ret_type = inferred_type
+    t = tltype.Function(input_type, ret_type)
+    id[2] = t
+    set_type(id, t)
+    tlst.set_local(env, id)
+    set_type(exp, t)
+  end
   t = replace_names(env, t, exp.pos)
-  id[2] = t
-  set_type(id, t)
-  tlst.set_local(env, id)
-  set_type(exp, t)
+  check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
 end
 
@@ -635,6 +713,17 @@ local function check_return (env, stm)
 end
 
 local function check_assignment (env, varlist, explist)
+  for k, v in ipairs(varlist) do
+    if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
+      local l = tlst.get_local(env, v[1][1])
+      local t = get_type(l)
+      if not env.self then
+        env.self = t
+      else
+        if tltype.subtype(t, env.self) then env.self = t end
+      end
+    end
+  end
   check_explist(env, explist)
   for k, v in ipairs(varlist) do
     check_var(env, v, explist[k])
@@ -825,6 +914,8 @@ local function check_index (env, exp)
   check_exp(env, exp2)
   local t1, t2 = get_type(exp1), get_type(exp2)
   local msg = "attempt to index '%s' with '%s'"
+  if tltype.isRecursive(t1) then t1 = t1[2] end
+  if tltype.isSelf(t1) and env.self then t1 = env.self end
   if tltype.isTable(t1) then
     local field_type = tltype.getField(t2, t1)
     if not tltype.isNil(field_type) then
@@ -875,6 +966,8 @@ function check_var (env, var, exp)
     check_exp(env, exp2)
     local t1, t2 = get_type(exp1), get_type(exp2)
     local msg = "attmept to index '%s' with '%s'"
+    if tltype.isRecursive(t1) then t1 = t1[2] end
+    if tltype.isSelf(t1) and env.self then t1 = env.self end
     if tltype.isTable(t1) then
       local field_type = tltype.getField(t2, t1)
       if not tltype.isNil(field_type) then

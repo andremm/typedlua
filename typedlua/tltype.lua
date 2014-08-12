@@ -826,6 +826,12 @@ end
 function tltype.first (t)
   if tltype.isTuple(t) then
     return tltype.first(t[1])
+  elseif tltype.isUnionlist(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.first(v))
+    end
+    return tltype.Union(table.unpack(l))
   elseif tltype.isVararg(t) then
     return tltype.Union(t[1], tltype.Nil())
   else
