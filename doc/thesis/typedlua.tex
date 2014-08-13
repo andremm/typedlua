@@ -1126,70 +1126,108 @@ and we are still working on this problem.
 
 \subsubsection{Tables and Interfaces}
 
-Typed Lua includes table types to represent Lua's tables.
-Although Typed Lua has just one table type constructor, it has three
-different syntaxes for defining the type of a table.
-The first syntax defines table types for hash tables;
-it is written \texttt{\{t1:t2\}},
-and maps to the table type $\{t_{1}:t_{2}\;\cup\;\Nil\}$.
-This table type represents a hash table that maps values of type
-$t_{1}$ to values of type $t_{2}\;\cup\;\Nil$, as Lua returns
-$\Nil$ when we use a non-existing key to index a table.
-The second syntax defines table types for lists;
-it is written \texttt{\{t\}},
-and maps to the table type $\{\Number:t\;\cup\;\Nil\}$.
-This table type is just a syntactic sugar to the definition of a
-hash table that maps values of type $\Number$ to values of type
-$t\;\cup\;\Nil$.
-The third syntax defines table types for records;
-it is written \texttt{\{s1:t1, ..., sn:tn\}},
-and maps to the table type $\{s_{1}:t_{1}, ..., s_{n}:t_{n}\}$.
-This table type represents a record that maps the literals
-$s_{i}$\texttt{, ..., }$s_{n}$ to values of types
-$t_{i}$\texttt{, ..., }$t_{n}$, where $i$ may vary from one to $n$.
+Tables are the only mechanism that Lua has to build data structures;
+they are associative arrays where any value (except \texttt{nil})
+can be used as a key.
+Programmers can use tables to represent tuples, arrays (dense or sparse),
+records, graphs, modules, objects, etc.
+Lua has syntactic sugar for indexing tables as records:
+\texttt{t.k} is syntactic sugar for \texttt{t["k"]}, and means that
+we are accessing field \texttt{k} from table \texttt{t}. 
+In this section, we show how Typed Lua encodes tables as maps,
+arrays, and records.
 
-Next, we show one example of table type to type a hash table:
+Table types are the only framework that Typed Lua has to represent
+the different uses that a Lua table has.
+A table type $\{K_{1}:T_{1}, ..., K_{n}:T_{n}\}$ represents a map
+from values of type $K_{i}$ to values of type $T_{i}$.
+
+Although Typed Lua has just one framework to represent tables,
+it has three different syntaxes for defining the type of a table.
+The first syntax defines table types for maps:
+it is written \texttt{\{k:t\}},
+and maps to the table type $\{K:T\;\cup\;\Nil\}$.
+This table type represents a map that maps values of type
+$K$ to values of type $T\;\cup\;\Nil$,
+as Lua returns $\Nil$ when we use a non-existing key to index a table.
+The second syntax defines table types for arrays:
+it is written \texttt{\{t\}},
+and maps to the table type $\{\Number:T\;\cup\;\Nil\}$.
+This table type is just a syntactic sugar to the definition of a
+map that maps values of type $\Number$ to values of type $T\;\cup\;\Nil$.
+The third syntax defines table types for records:
+it is written \texttt{\{k1:t1, ..., kn:tn\}},
+and maps to the table type $\{K_{1}:T_{1}, ..., K_{n}:T_{n}\}$.
+This table type represents a record that maps the literal types
+$K_{i}$\texttt{, ..., }$K_{n}$ to values of types
+$T_{i}$\texttt{, ..., }$T_{n}$, where $i$ may vary from one to $n$.
+
+Next, we show one example of table type to type a map from strings to numbers:
 \begin{verbatim}
-    local t:{string:number} = { foo = 1 }  -- OK
-    local x:number = t.foo                 -- Error
-    local y:number? = t.bar                -- OK
+    local t:{string:number} = { foo = 1 } 
+    local x:number = t.foo               -- compile-time error
+    local y:number? = t.bar              -- y gets nil
+    local z:number = t["bar"] or 0       -- z gets 0 
 \end{verbatim}
 
-The second line of this example gives a type error for the same
-reason that the last line of the previous example gives a type error
-too, that is, we are trying to assign a value that can be of two
-different types to a variable that accepts values of only one type.
-Although the field \texttt{bar} does not exist in \texttt{t}, the last
+The second line of this example gives a type error because we are
+attempting to assign a value of type $\Number\;\cup\;\Nil$ to a
+variable that accepts only values of type $\Number$.
+Although the field \texttt{bar} does not exist in \texttt{t}, the third
 line of this example does not give a type error because the
 annotated type matches the type of the values that can be stored in
 \texttt{t}.
+The last line shows that the \texttt{or} idiom is also useful to
+give a default value to a missing table field.
 
-Next, we show one example of table type to type a list:
+Next, we show one example of table type to type an array:
 \begin{verbatim}
     local days:{string} = { "Sunday", "Monday", "Tuesday",
                             "Wednesday", "Thursday", "Friday",
-                            "Saturday" }  -- OK
+                            "Saturday" }
+    local x = days[1]                    -- x gets "Sunday"
+    local y = days[8]                    -- y gets nil
 \end{verbatim}
+
+In this example, the type of both variables \texttt{x} and \texttt{y}
+is $\String\;\cup\;\Nil$.
+An incovenience aspect of making the types of maps and arrays always
+include the type $\Nil$ is to overload the programmers,
+as they need to use \texttt{or} or \texttt{if} to narrow the type of
+the elements they are accessing. 
 
 When we know that a list has fixed elements, we can leave the
 variable declaration unannotated and let local type inference assign
-a more specific table type to the list.
+a more specific table type to the variable.
 If we remove the annotation in this example, the compiler uses the
 syntax of records to infer the following table type to \texttt{days}:
 \begin{align*}
 \{{1:\String},\;{2:\String},\;{3:\String},\;{4:\String},\;\\
 {5:\String},\;{6:\String},\;{7:\String}\}
 \end{align*}
-This inferred table type is a subtype of the type
-$\{\Number:\String\;\cup\;\Nil\}$, which is the type that we used to
-annotate the variable \texttt{days}.
+% text about subtyping
 
 When we use the inferred table type while initializing a table, the
 compiler gives an error message when we try to access an index that
 is out of bounds.
 
-It also worth mentioning that we can use the style of the inferred
-type to define heterogeneous tuples.
+We can also use the style of the inferred type to define heterogeneous
+tuples:
+\begin{verbatim}
+    local album = { "Transformer", 1972, "Lou Reed" }
+\end{verbatim}
+
+The next example shows how we can annotate a \texttt{map} function
+that receives another function as its parameter and uses this
+function to alter the elements of a list of numbers, which is
+also a parameter of \texttt{map}:
+\begin{verbatim}
+    local function map (f:(number)->(number), l:{number})
+      for i = 1, #l do
+        l[i] = f(l[i] or 0)
+      end
+    end
+\end{verbatim}
 
 Next, we show one example of table type to type a record:
 \begin{verbatim}
@@ -1200,20 +1238,22 @@ Next, we show one example of table type to type a record:
 Type inference would infer the very same table type that we used to
 annotate the variable \texttt{person}.
 
-Typed Lua includes interfaces as syntactic sugar to table types
-that specify records.
+Typed Lua includes \emph{interfaces} as syntactic sugar to table types
+that specify records, as writing table types can be unwieldy when
+records get bigger and types of record fields get more complicated.
 For instance, we can use the following interface as an alias to the
 type of the record we showed in the previous example:
 \begin{verbatim}
-    interface Person
+    local interface Person
       firstname:string
       lastname:string
     end
 \end{verbatim}
 
-Now we can use the type \texttt{Person} as an alias to a table type
-that certainly has the fields \texttt{firstname} and \texttt{lastname}.
-Next, we show an example of code that uses the type \texttt{Person}:
+The declaration of the interface \texttt{Person} is an alias to the table type
+$\{``firstname":\String, ``lastname":\String\}$ in the remainder
+of the current scope.
+Now we can use \texttt{Person} in type declarations:
 \begin{verbatim}
     local function greeter (person:Person):string
       return "Hello " .. person.firstname ..
@@ -1228,10 +1268,10 @@ Next, we show an example of code that uses the type \texttt{Person}:
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
 
-    print(greeter(user1)) -- OK
-    print(greeter(user2)) -- Error
-    print(greeter(user3)) -- OK
-    print(greeter(user4)) -- Error
+    print(greeter(user1)) -- Hello, Lewis Allan
+    print(greeter(user2)) -- compile-time error
+    print(greeter(user3)) -- Hello, Lou Reed
+    print(greeter(user4)) -- compile-time error
 \end{verbatim}
 
 This example shows that our optional type system is structural rather
@@ -1239,21 +1279,115 @@ than nominal, that is, it checks the structure of types instead of
 their names, and it uses subtyping and consistent-subtyping for
 checking types.
 
-Using interfaces we can also define recursive types such as linked
-lists:
+If our record type has optinal fields, that is, fields that can be \texttt{nil},
+we need to use an explicit type declaration when declaring a
+variable of this record type, as we show in the following example:
+\begin{verbatim}
+    local interface Person
+      firstname:string
+      middlename:string?
+      lastname:string
+    end
+    local user1:Person = { firstname = "Lewis",
+                           middlename = "Allan" or nil,
+                           lastname = "Reed" }
+    local user2:Person = { lastname = "Reed",
+                           firstname = "Lou" }
+\end{verbatim}
+
+We need an explicit type declaration because neither of the types
+that the Typed Lua compiler assigns to the above table constructors
+is a subtype of
+$\{``firstname":\String, ``middlename":\String\cup\Nil, ``lastname":\String\}$,
+the type that \texttt{Person} describes.
+While declaring \texttt{user1}, we use \texttt{or} to cast the type of
+\texttt{middlename} because of the contravariance in the type of
+mutable fields.
+
+We can also use interfaces to define recursive types such as liked lists:
 
 \begin{verbatim}
-    interface Element
+    local interface Element
       info:number
       next:Element?
     end
 \end{verbatim}
 
+The declaration of the interface \texttt{Element} is an alias to the
+recursive type
+$\mu Element.\{``info":\Number, ``next":Element \cup \Nil\}$ in the
+remainder of the current scope.
+
 We need to explicitly annotate \texttt{next} being of type
-\texttt{Element}$\;\cup\;\Nil$ because in our type system $\Nil$
+$Element\;\cup\;\Nil$ because in our type system $\Nil$
 is not the bottom type, that is, $\Nil$ is subtype of itself only.
 Typed Lua has this behavior because in Lua $\Nil$ represents
 the absence of an useful value.
+Thus, making $\Nil$ the bottom type would severaly reduce the amount
+of type safety in the system.
+
+Now we can use \texttt{Element} to annotate a function that
+inserts an element at the begining of a list:
+\begin{verbatim}
+    local function insert (e:Element?, v:number):Element 
+      return { info = v, next = e }
+    end
+\end{verbatim}
+
+We need an explicit type declaration on the return type because
+the Typed Lua compiler cannot infer recursive types, though
+it has subtyping rules to check that the inferred return type
+matches the annotation.
+
+Now we can write a program that declares a list, inserts some
+elements in this list, and then traverses the list printing
+each element of the list:
+\begin{verbatim}
+    local l:Element?
+
+    l = insert(l, 4)
+    l = insert(l, 3)
+    l = insert(l, 2)
+    l = insert(l, 1)
+
+    while l do
+      if l then print(l.info) end
+      l = l.next                  -- compile-time error
+    end
+\end{verbatim}
+
+However, this example has one compile-time error because we
+are attempting to index the variable \texttt{l},
+which can be \texttt{nil}.
+Notice that we would have the same compile-time error while
+printing the list element if we had not narrowed the type of
+\texttt{l}.
+To eliminate this compile-time error we have to write a
+function that narrows the type of \texttt{l} before using it:
+\begin{verbatim}
+    local function get_next (l:Element?)
+      if l then return l.next else return nil end
+    end
+\end{verbatim}
+
+Now we can use \texttt{get\string_next} to rewrite the \texttt{while}
+from the previous example, thus eliminating the compile-time error:
+\begin{verbatim}
+    while l do
+      if l then print(l.info) end
+      l = get_next(l)
+    end
+\end{verbatim}
+
+\subsubsection{Modules}
+
+Typed Lua will also introduce a specific syntax for defining modules.
+For now, each file is a module.
+We use all global names and their types to build the interface that
+represents the type of the module, in case the module is not returned
+at the end of the file.
+
+\subsubsection{Objects and Classes}
 
 Besides interfaces, Typed Lua will also introduce classes.
 We want to offer classes as a standard way for writing code that
@@ -1262,46 +1396,6 @@ specific model.
 Our classes will not include static attributes and will also not offer
 privacy rules.
 
-Typed Lua will also introduce a specific syntax for defining modules.
-For now, each file is a module.
-We use all global names and their types to build the interface that
-represents the type of the module, in case the module is not returned
-at the end of the file.
-
-Typed Lua includes function types because functions are first-class
-values in Lua.
-The syntax for defining a function type is \texttt{(s) -> (s)},
-where \texttt{s} is a second-class type.
-As we saw in Figure \ref{fig:typelang}, a second-class type in
-Typed Lua can be the type $\Void$, a first-class type, a variadic
-type, or a tuple type.
-We use tuple types to represent multiple parameters, multiple return
-values, and multiple assignments, and we use the variadic type to
-represent variadic functions and the vararg expression.
-Even though we already included the tuple type and the vararg type,
-we are still working on these types.
-
-The next example shows how we can annotate a \texttt{map} function
-that receives another function as its parameter and uses this
-function to alter the elements of a list of numbers, which is
-also a parameter of \texttt{map}:
-\begin{verbatim}
-    local function map (f:(number)->(number), l:{number}):void
-      for i=1, #l do
-        l[i] = f(l[i] or 0)
-      end
-    end
-\end{verbatim}
-
-To conclude this section, we just started the design and
-implementation of Typed Lua, and there is still several design
-decisions to be taken on this subject.
-For instance, our type system should handle the subtleties that
-come with metatables.
-
-\subsubsection{Modules}
-
-\subsubsection{Objects and Classes}
 
 \subsection{The typing rules of Typed Lua}
 \label{sec:rules}
@@ -1355,6 +1449,11 @@ $$
 \caption{Typed Lua abstract syntax}
 \label{fig:syntax}
 \end{figure}
+
+Rule for checking if a table type is well formed:
+\[
+\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
+\]
 
 \section{Related Lua projects}
 \label{sec:related}
