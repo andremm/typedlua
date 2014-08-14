@@ -1255,8 +1255,8 @@ $\{``firstname":\String, ``lastname":\String\}$ in the remainder
 of the current scope.
 Now we can use \texttt{Person} in type declarations:
 \begin{verbatim}
-    local function greeter (person:Person):string
-      return "Hello " .. person.firstname ..
+    local function byebye (person:Person):string
+      return "Goodbye " .. person.firstname ..
              " " .. person.lastname
     end
 
@@ -1268,9 +1268,9 @@ Now we can use \texttt{Person} in type declarations:
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
 
-    print(greeter(user1)) -- Hello, Lewis Allan
+    print(greeter(user1)) -- Goodbye Lewis Allan
     print(greeter(user2)) -- compile-time error
-    print(greeter(user3)) -- Hello, Lou Reed
+    print(greeter(user3)) -- Goodbye Lou Reed
     print(greeter(user4)) -- compile-time error
 \end{verbatim}
 
@@ -1378,6 +1378,104 @@ from the previous example, thus eliminating the compile-time error:
       l = get_next(l)
     end
 \end{verbatim}
+
+Lua programmers often build records incrementally, that is,
+they usually declares a local variable with an empty table,
+and then use assignment to add fields to this table:
+\begin{verbatim}
+    local person = {}
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+    print("bye bye " .. person.firstname)  -- bye bye Lou
+\end{verbatim}
+
+In this example, we want to refine the type of \texttt{person} as
+we build the table:
+starting with $\{\}$, and then refining to $\{``firstname":\String\}$,
+and finally reaching $\{``firstname":\String, ``lastname":\String\}$.
+This type change is trickier than the one that we introduced for narrowing
+union types, as we are not just allowing the programmer to change
+the type of the variable \texttt{person}, but we are actually allowing
+the programmer to change the type of the value that \texttt{person} points to.
+This type change is safe in this example, but it is not in the following one:
+\begin{verbatim}
+    local person = {}
+    local bogus = person
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+    bogus.firstname = true               -- compile-time error
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, the fifth line is unsound because it allows the
+programmer to change the type of the value that is stored in
+\texttt{person.firstname}, and makes the last line crash during
+run-time.
+On the first line, we assign an empty table to \texttt{person}.
+On the second line, we assign the type of \texttt{person} to
+\texttt{bogus}.
+On the third and fourth lines we change the type of \texttt{person}
+as we did in the previous example.
+On the fifth line we try to change the type of \texttt{bogus}
+from $\{\}$ to $\{``firstname":\Boolean\}$, but if we allow this
+type change we also allow changing the value that is stored in
+\texttt{person.firstname}, regardless of its type.
+Taking the changes individually looks fine, but the truth is that
+aliasing makes one of them unsound.
+
+The location of the change also matters, as the next example shows:
+\begin{verbatim}
+    local person = { lastname = "Reed" }
+    local function spoil ()
+      person.firstname = nil             -- compile-time error
+    end
+    person.firstname = "Lou"
+    spoil()
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, the third line is unsound because it allows the
+programmer to change the type of \texttt{person} outside of the scope
+that it was declared.
+The call to \texttt{spoil} erases the field \texttt{firstname} from
+\texttt{person}, and makes the last line crash during run-time.
+
+It is also not sound to allow the type of the fields to change,
+as the next example shows:
+\begin{verbatim}
+    local person = { firstname = "Lewis", lastname = "Reed" }
+    person.middlename = "Allan"
+    person.firstname = 1964              -- compile-time error
+    person.lastname = 2013               -- compile-time error
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, both third and fourth line are unsound because
+they are trying to change the type of fields that already exist.
+
+Typed Lua tags a variable that holds a table type as either
+\emph{open} or \emph{closed}.
+If a variable gets its type from a table constructor then it
+is open, otherwise it is always closed.
+
+Typed Lua uses three restrictions to decide whether it is
+sound to allow field assignment to change the type of an
+open variable or not:
+the variable must be local to the current block,
+the new type must be a subtype of the old one, and
+the variable cannot have been assigned in another function.
+
+We can create aliases to open variables, but they are always closed.
+Any mutation on these aliases is not a problem, as the type of
+the original reference can only change towards a subtype.
+For mutable fields this means that the type of the field cannot
+change after it is added to the type of the table.
+
+Table types along with their refinement through field assignment
+are the foundation for defining modules and objects in Typed Lua.
+In the next section, we show that the refinement of table types
+through field assignment is crucial for making Typed Lua
+support idiomatic definition of Lua modules.
 
 \subsubsection{Modules}
 
