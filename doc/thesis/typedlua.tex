@@ -1604,13 +1604,6 @@ the next section.
 
 \subsubsection{Object-Oriented Programming}
 
-%Besides interfaces, Typed Lua will also introduce classes.
-%We want to offer classes as a standard way for writing code that
-%Lua programmers are already using, but without tying them to a
-%specific model.
-%Our classes will not include static attributes and will also not offer
-%privacy rules.
-
 Lua provides minimal support for object-oriented programming.
 The basic mechanism is the \texttt{:} syntactic sugar for method
 calls and method definitions.
@@ -1796,13 +1789,17 @@ and type declarations, they become valid Lua code, which run with the
 same semantics as Typed Lua code.
 
 The current version of Typed Lua has some limitations regarding
-the use of \texttt{setmetatable}.
+the use of \texttt{setmetatable} that are on plans for future work.
 One limitation is that Typed Lua does not have polymorphism,
 so programmers cannot hide the calls to \texttt{setmetatable} behind
 nicer abstractions, as some Lua libraries do.
 Another limitation is that Typed Lua does not support operator overloading,
 so programmers cannot use \texttt{setmetatable} to change the behavior
 of predefined operations, as some Lua libraries do.
+
+Our classes system also does not support multiple inheritance
+and does not offer privacy rules, but these limitations are not
+on plans for future work anyway.
 
 \subsection{The typing rules of Typed Lua}
 \label{sec:rules}
