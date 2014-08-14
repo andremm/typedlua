@@ -1445,7 +1445,7 @@ as the next example shows:
 \begin{verbatim}
     local person = { firstname = "Lewis", lastname = "Reed" }
     person.middlename = "Allan"
-    person.firstname = 1964              -- compile-time error
+    person.firstname = 1942              -- compile-time error
     person.lastname = 2013               -- compile-time error
     print("bye bye " .. person.firstname)
 \end{verbatim}
@@ -1479,11 +1479,128 @@ support idiomatic definition of Lua modules.
 
 \subsubsection{Modules}
 
-Typed Lua will also introduce a specific syntax for defining modules.
-For now, each file is a module.
-We use all global names and their types to build the interface that
-represents the type of the module, in case the module is not returned
-at the end of the file.
+Lua does not set policies on how programmers should define modules,
+but it provides mechanisms for organizing a program in modules.
+To load a module, Lua first checks whether the module is already
+loaded or not.
+When the module is not loaded, Lua executes its soure file as a
+function, and the value returned by this function is the module.
+Thus, Lua modules can be any Lua value.
+However, our survey from Section \ref{sec:statistics} confirms that
+the convention among Lua programmers is to use tables for defining modules. 
+In this case, the fields of the table are the functions and other
+values that the module exports.
+
+The simplest way for defining a module in Lua is to declare an
+empty table at the begin of the source file,
+populate this table with the members that the module should export,
+and return this table at the end of the source file. 
+The following example shows how Typed Lua handles this case:
+\begin{verbatim}
+    local mymath = {}
+    local RADIANS_PER_DEGREE = 3.14 / 180.0
+    mymath.deg = function (x:number)
+      return x / RADIANS_PER_DEGREE
+    end
+    mymath.rad = function (x:number)
+      return x * RADIANS_PER_DEGREE
+    end
+    mymath.pow = function (x:number, y:number)
+      return x ^ y
+    end
+    return mymath
+\end{verbatim}
+
+In this example, Typed Lua uses the refinement of table types to
+allow the programmer to incrementally build the type of the
+module \texttt{mymath}.
+Like in Lua, the variable \texttt{RADIANS\string_PER\string_DEGREE}
+is private because we declared it as local to the module. 
+The \texttt{return} at the end of the source file gives the
+final type of the module \texttt{mymath}:
+\begin{align*}
+\{ & ``deg":\Number \times \Value{*} \rightarrow \Number \times \Nil{*},\\
+& ``rad":\Number \times \Value{*} \rightarrow \Number \times \Nil{*},\\
+& ``pow":\Number \times \Number \times \Value{*} \rightarrow \Number \times \Nil{*}\}
+\end{align*}
+
+Another way of defining modules in Lua is to declare only locals
+in the source file and return a table constructor that includes
+the members that the module should export at the end of the source file.
+The following example shows how Typed Lua handles this case:
+\begin{verbatim}
+    local RADIANS_PER_DEGREE = 3.14 / 180.0
+    local function deg (x:number)
+      return x / RADIANS_PER_DEGREE
+    end
+    local function rad (x:number)
+      return x * RADIANS_PER_DEGREE
+    end
+    local function pow (x:number, y:number)
+      return x ^ y
+    end
+    return {
+      deg = deg,
+      rad = rad,
+      pow = pow,
+    }
+\end{verbatim}
+
+In this example, the \texttt{return} at the end of the source file
+also gives the final type of the module \texttt{mymath}, which is
+the same of the previous example.
+
+There is still a third way of defining modules in Lua through the
+\texttt{module} function, which has been deprecated.
+In this style, the first line of the module calls \texttt{module}.
+This function installs a fresh table as the global environment for
+the rest of the module, so any assignments to global variables are
+field assignments to this table.
+The \texttt{module} function also sets an \texttt{\string_M} field
+in this table as a circular reference to the table itself,
+so the module can end with \texttt{return \string_M},
+but this explicit return is not necessary.
+
+Even though this style has been deprecated, our survey from
+Section \ref{sec:statistics} indicated that around a third of the
+Lua modules that are in LuaRocks still use this style.
+Thus, Typed Lua also supports this style:
+\begin{verbatim}
+    module "mymath"
+    local RADIANS_PER_DEGREE = 3.14 / 180.0
+    deg = function (x:number)
+      return x / RADIANS_PER_DEGREE
+    end
+    rad = function (x:number)
+      return x * RADIANS_PER_DEGREE
+    end
+    pow = function (x:number, y:number)
+      return x ^ y
+    end
+\end{verbatim}
+
+In this example, Typed Lua treats accesses to global variables as
+field accesses to an open table in the top-level scope,
+and at the end of file this open table gives the final type of the
+module \texttt{mymath}, which is also the same of the previous two
+examples.
+
+After we define the module \texttt{mymath}, regardless of adopted style,
+users can use it in the standard way:
+\begin{verbatim}
+    local m = require "mymath"
+    print(m.pow(2, 3))                   -- 8
+    print(m.pow(2, "foo"))               -- compile-time error
+\end{verbatim}
+
+And now the users of the module \texttt{mymath} have the policies that
+Typed Lua provides.
+The call to \texttt{require} assigns the type of the module \texttt{mymath}
+to \texttt{m}, so Typed Lua can catch misuses of the module.
+
+The way Typed Lua handle modules using table types is also
+relevant for supporting object-oriented programming, as we discuss in
+the next section.
 
 \subsubsection{Objects and Classes}
 
@@ -1493,7 +1610,6 @@ Lua programmers are already using, but without tying them to a
 specific model.
 Our classes will not include static attributes and will also not offer
 privacy rules.
-
 
 \subsection{The typing rules of Typed Lua}
 \label{sec:rules}
