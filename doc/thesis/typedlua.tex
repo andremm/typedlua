@@ -1,205 +1,3 @@
-We begin this chapter presenting statistics about the usage of Lua
-features and idioms.
-We collected statistics about how programmers use tables, functions,
-dynamic type checking, object-oriented programming, and modules.
-We shall see that these statistics informed important design decisions
-on our optional type system.
-We end this chapter introducing Typed Lua through examples, and
-describing a few Lua projects that are similar to Typed Lua.
-
-\section{Statistics about the usage of Lua}
-\label{sec:statistics}
-
-We used the LuaRocks repository to build our statistics database;
-LuaRocks \citep{hisham2013luarocks} is a package manager for Lua
-modules.
-We downloaded the 3928 \texttt{.lua} files that were available in
-the LuaRocks repository at February 1st 2014.
-However, we ignored files that are not compatible with Lua 5.2,
-the latest version of Lua.
-We also ignored \emph{machine-generated} files and test files,
-because these files may not represent idiomatic Lua code,
-and might skew our statistics towards non-typical uses of Lua.
-This left 2598 \texttt{.lua} files from 262 different projects for
-our statistics database;
-we parsed these files and processed their abstract syntax tree
-to gather the statistics that we show in this section.
-
-To verify how programmers use tables, we measured how they
-initialize, index, and iterate tables.
-We present these statistics in the next three paragraphs to discuss
-their influence on our type system.
-
-The table constructor appears 23185 times.
-In 36\% of the occurrences it is a constructor that initializes a
-record (e.g., \texttt{\{ x = 120, y = 121 \}});
-in 29\% of the occurrences it is a constructor that initializes a
-list (e.g., \texttt{\{ "one", "two", "three", "four" \}});
-in 8\% of the occurrences it is a constructor that initializes a
-record with a list part;
-and in less than 1\% of the occurrences (4 times) it is a constructor
-that uses only the booleans \texttt{true} and \texttt{false} as indexes.
-At all, in 73\% of the occurrences it is a constructor that uses
-only literal keys;
-in 26\% of the occurrences it is the empty constructor;
-in 1\% of the occurrences it is a constructor with non-literal keys
-only, that is, a constructor that uses variables and function calls
-to create the indexes of a table;
-and in less than 1\% of the occurrences (19 times) it is a constructor
-that mixes literal keys and non-literal keys.
-
-The indexing of tables appears 130448 times:
-86\% of them are for reading a table field while
-14\% of them are for writing into a table field.
-We can classify the indexing operations that are reads as follows:
-89\% of the reads use a literal string key,
-4\% of the reads use a literal number key,
-and less than 1\% of the reads (10 times) use a literal boolean key.
-At all, 93\% of the reads use literals to index a table while
-7\% of the reads use non-literal expressions to index a table.
-It also worth mentioning that 45\% of the reads are actually
-function calls.
-More precisely, 25\% of the reads use literals to call a function,
-20\% of the reads use literals to call a method, that is,
-a function call that uses the colon syntactic sugar, 
-and less than 1\% of the reads (195 times) use non-literal expressions
-to call a function.
-We can also classify the indexing operations that are writes as follows: 
-69\% of the writes use a literal string key,
-2\% of the writes use a literal number key,
-and less than 1\% of the writes (1 time) uses a literal boolean key.
-At all, 71\% of the writes use literals to index a table while
-29\% of the writes use non-literal expressions to index a table.
-
-We also measured how many files have code that iterate over tables to
-observe how frequently iteration is used.
-We observed that 23\% of the files have code that iterate over keys
-of any value, that is, the call to \texttt{pairs} appears at least
-once in these files (the median is twice per file);
-21\% of the files have code that iterate over integer keys, that is,
-the call to \texttt{ipairs} appears at least once in these files
-(the median is also twice per file);
-and 10\% of the files have code that use the numeric \texttt{for}
-along with the length operator (the median is once per file).
-
-The numbers about table initialization, indexing, and iteration
-show us that tables are mostly used to represent records, lists,
-and associative arrays.
-Therefore, Typed Lua should include a table type for handling
-these uses of Lua tables.
-Even though the statistics show that programmers initialize tables
-more often than they use the empty constructor to
-dynamically initialize tables, the statistics of the empty
-constructor are still expressive and indicate that Typed Lua should
-also include a way to handle this style of defining table types.
-
-We found a total of 24858 function declarations in our database
-(the median is six per file).
-Next, we discuss how frequently programmers use dynamic type
-checking and multiple return values inside these functions.
-
-We observed that 9\% of the functions perform dynamic type checking
-on their input parameters, that is, these functions use \texttt{type}
-to inspect the tags of Lua values (the median is once per function).
-We randomly selected 20 functions to sample how programmers are
-using \texttt{type}, and we got the following data:
-50\% of these functions use \texttt{type} for asserting the tags of
-their input parameters, that is, they raise an error when the tag of a
-certain parameter does not match the expected tag, and
-50\% of these functions use \texttt{type} for overloading, that is,
-they execute different code according to the inspected tag.
-
-These numbers show us that Typed Lua should include union types,
-because the use of the \texttt{type} idiom shows that disjoint unions
-will help programmers define data structures that can hold a value of
-several different, but fixed types.
-Typed Lua should also use \texttt{type} as a mechanism for decomposing
-unions, though it may be restricted to base types only.
-
-We observed that 10\% of the functions explicitly return multiple
-values.
-We also observed that 5\% of the functions return \texttt{nil} plus
-something else, for signaling an unexpected behavior;
-and 1\% of the functions return \texttt{false} plus something else,
-also for signaling an unexpected behavior.
-
-Typed Lua should include function types to represent Lua functions,
-and tuple types to represent the signatures of Lua functions,
-multiple return values, and multiple assignments.
-Tuple types will require some special attention, because Typed Lua
-should be able to adjust tuple types during compile-time, in a
-similar way to what Lua does with function calls and multiple
-assignments during run-time.
-In addition, the number of functions that return \texttt{nil} and
-\texttt{false} plus something else show us that overloading on the
-return type will be useful to the type system.
-
-We also measured how frequently programmers use the object-oriented
-paradigm in Lua.
-We observed that 23\% of the function declarations are actually
-method declarations.
-More precisely, 14\% of them use the colon syntactic sugar while
-9\% of them use \texttt{self} as their first parameter.
-We also observed that 63\% of the projects extend tables with
-metatables, that is, they call \texttt{setmetatable} at least once,
-and 27\% of the projects access the metatable of a given table,
-that is, they call \texttt{getmetatable} at least once.
-In fact, 45\% of the projects extend tables with metatables and
-declare methods:
-13\% using the colon syntactic sugar, 14\% using \texttt{self}, and
-18\% using both.
-
-Based on these observations, Typed Lua should include interfaces and
-classes as syntactic sugar for table types that encode objects.
-Proposing an optional type system for Lua that includes classes may
-sound unusual at first glance, because Lua does not have standard
-policies for object-oriented programming.
-However, Lua provides mechanisms that allow programmers to abstract
-their code in terms of objects, and our statistics confirm that
-an expressive number of programmers are relying on these mechanisms to
-use the object-oriented paradigm in Lua.
-Typed Lua should include interfaces and classes as merely syntactic
-mechanisms that help the compiler type check object-oriented code,
-and they should not influence the semantics of Lua.
-
-We also measured how programmers are defining modules.
-We observed that 38\% of the files use the current way of defining
-modules, that is, these files return a table that contains the
-exported members of the module at the end of the file;
-22\% of the files still use the deprecated way of defining modules,
-that is, these files call the function \texttt{module};
-and 1\% of the files use both ways.
-At all, 61\% of the files are modules while 39\% of the files are
-plain scripts.
-The number of plain scripts is high considering the origin of
-our database.
-However, we did not ignore sample scripts, which usually serve to
-help the users of a given module on how to use this module, and
-that is the reason why we have a high number of plain scripts.
-
-Based on these observations, Typed Lua should also use interfaces as
-syntactic sugar for table types that define modules.
-Typed Lua should also support the deprecated style of module
-definition, using global names as exported members of the module.
-
-Besides using interfaces for encoding objects and defining modules,
-Typed Lua should also use interfaces for defining the types of
-userdata, as programmers often use userdata in an object-oriented
-style.
-
-The last statistics that we collected were about variadic functions
-and vararg expressions.
-We observed that 8\% of the functions are variadic, that is,
-their last parameter is the vararg expression.
-We also observed that 5\% of the initialization of lists
-(or 2\% of the occurrences of the table constructor) use solely the
-vararg expression.
-Typed Lua should include a \emph{vararg type} to handle variadic
-functions and vararg expressions.
-
-\section{Typed Lua}
-\label{sec:typedlua}
-
 Typed Lua is an optional type system for Lua, and its main goal is to
 allow programmers to combine static and dynamic typing in Lua.
 In practice, Typed Lua extends the syntax of Lua to introduce
@@ -219,15 +17,16 @@ include new keywords that are not reserved words.
 Appendix \ref{app:syntax} presents the complete syntax of Typed Lua.
 
 Another important feature of Typed Lua is its interface between
-statically and dynamically typed modules. 
+statically and dynamically typed modules.
 This means that the programmer can enjoy some of the benefits of
 static types even without converting existing Lua modules to Typed Lua,
 as a dynamically typed module can export a statically typed interface,
 and statically typed users of the module have their use of the module
 checked by the compiler.
 
-Although we use a gradual type system to formalize our optional type system,
-Typed Lua does not insert run-time checks in the gradual typing style.
+We use the consistent-subtyping relation of gradual typing
+\citep{siek2007objects,siek2013mutable} to formalize Typed Lua,
+though it does not insert run-time checks in the gradual typing style.
 In gradual typing, run-time checks inspect the interaction between
 dynamically typed and statically typed code to guarantee that dynamically
 typed code does not violate statically typed code during run-time.
@@ -236,19 +35,21 @@ can decrease run-time performance \citep{allende2013cis}, and we believe that
 a careful evaluation of run-time checks should be done before inserting them
 on the type system.
 
-Unlike some optional type systems, we are designing Typed Lua aiming soundness
-to make it possible to switch Typed Lua from optional typing to gradual typing
-in the future, as a sound type system is the first step to make Typed Lua
-insert run-time checks after static type checking.
+Unlike Dart \citep{dart} and TypeScript \citep{typescript},
+we are designing Typed Lua aiming soundness to make it possible to switch
+Typed Lua from optional typing to gradual typing in the future,
+as a sound type system is a prerequisite to make Typed Lua insert
+run-time checks after static type checking.
 
-In this section we show that Typed Lua is rich enough to preserve some Lua idioms.
-First, we present the abstract syntax of Typed Lua types along with the
-relationship among types.
-Then we use some code examples to present an overview about Typed Lua and
-its syntactical extensions.
-After that we present the formalization of Typed Lua.
+In this chapter we use some examples of Typed Lua code to show how
+they relate to Lua.
+This examples shall give an informal overview of our optional type system.
+We use typing rules to present the formalization of our optional type system
+in Chapter \ref{chap:system}.
+It worth mentioning that we used our implementation to produce and
+test all the examples that we present along this section.
 
-\subsection{Type Language}
+\section{Types}
 \label{sec:types}
 
 Lua values can have one of eight tags:
@@ -258,43 +59,49 @@ In this section we present the types that Typed Lua introduces
 to represent these tags.
 
 \begin{figure}[!ht]
-\textbf{Type Language}\\
+\textbf{Types}\\
 \dstart
-$$
-\begin{array}{rlr}
-\multicolumn{3}{c}{\textbf{First-level types}}\\
-T ::= & \;\; L & \textit{literal types}\\
-& | \; B & \textit{base types}\\
-& | \; \Nil & \textit{nil type}\\
-& | \; \Value & \textit{top type}\\
-& | \; \Any & \textit{dynamic type}\\
-& | \; \Self & \textit{self type}\\
-& | \; T \cup T & \textit{disjoint union types}\\
-& | \; P \rightarrow R & \textit{function types}\\
-& | \; \{ \}_{o|c} & \textit{empty table type}\\
-& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
-& | \; X & \textit{type variables}\\
-& | \; \mu X.T & \textit{recursive types}\\
-& | \; X_{i} & \textit{projection types}\\
-L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
-B ::= & \Boolean \; | \; \Number \; | \; \String & \\
-F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
-K ::= & L \; | \; B \; | \; \Value \; | \; \Any & \textit{key types}\\
-\multicolumn{3}{c}{}\\
-\multicolumn{3}{c}{\textbf{Second-level types}}\\
-S ::= & \;\; T &\\
-& | \; T* & \textit{vararg types}\\
-& | \; T \times S & \textit{tuple types}\\
-P ::= & \Void \; | \; S & \textit{parameters list type}\\
-R ::= & \Void \; | \; S \; | \; S \cup R & \textit{return types}\\
-\end{array}
-$$
+\begin{align*}
+\textit{type} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
+\textit{primarytype} & ::= \; \textit{literaltype} \; | \;
+  \textit{basetype} \; | \;
+  \textbf{nil} \; | \;
+  \textbf{value} \; | \;
+  \textbf{any} \; | \;
+  \textbf{self} \; | \;
+  \textit{Name}\\
+& | \; \textit{functiontype} \; | \;
+  \textit{tabletype} \; | \;
+  \textit{primarytype} \; \texttt{`|'} \; \textit{primarytype}\\
+\textit{literaltype} & ::= \; \textbf{false} \; | \;
+  \textbf{true} \; | \;
+  \textit{Number} \; | \;
+  \textit{String}\\
+\textit{basetype} & ::= \; \textbf{boolean} \; | \;
+  \textbf{number} \; | \;
+  \textbf{string}\\
+\textit{functiontype} & ::= \; \textit{tupletype} \; \texttt{`->'} \; \textit{rettypelist}\\
+\textit{methodtype} & ::= \; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettypelist}\\
+\textit{tabletype} & ::= \; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
+\textit{tupletype} & ::= \; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+\textit{typelist} & ::= \; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
+\textit{rettypelist} & ::= \; \textit{unionlist} \; [\texttt{`?'}]\\
+\textit{unionlist} & ::= \; \textit{tupletype} \; | \;
+  \textit{unionlist} \; \texttt{`|'} \; \textit{unionlist}\\
+\textit{tabletypebody} & ::= \; \textit{type} \; | \; \textit{fieldtypelist}\\
+\textit{fieldtypelist} & ::= \; [\textbf{const}] \; \textit{fieldtype} \; \{\texttt{`,'} \; [\textbf{const}] \; \textit{fieldtype}\}\\ 
+\textit{fieldtype} & ::= \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
+\textit{keytype} & ::= \; \textit{literaltype} \; | \;
+  \textit{basetype} \; | \;
+  \textbf{value} \; | \;
+  \textbf{any}
+\end{align*}
 \dend
-\caption{Typed Lua types}
-\label{fig:typelang}
+\caption{The concrete syntax of Typed Lua types}
+\label{fig:types}
 \end{figure}
 
-Figure \ref{fig:typelang} presents the abstract syntax of the
+Figure \ref{fig:types} presents the concrete syntax of the
 Typed Lua types.
 We split Typed Lua types into two categories:
 \emph{first-level types} and \emph{second-level types}.
@@ -302,8 +109,7 @@ We use first-level types to represent Lua values and
 second-level types to type expression lists, multiple assignments,
 and function applications.
 
-Figure \ref{fig:subtyping} presents the subtyping relation among
-Typed Lua types.
+Typed Lua uses subtyping to order types.
 Any first-level type is a subtype of $\Value$.
 The rest of the subtyping relationship is standard:
 union types are supertypes of their respective literal types,
@@ -312,211 +118,8 @@ and covariance on the output, table types have width subtyping,
 with depth subtyping on $\Const$ fields, tuple and vararg types
 are covariant.
 
-\begin{figure}[!ht]
-\textbf{Subtyping}\\
-\dstart
-\begin{footnotesize}
-$$
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-LITERAL}\\
-\senv \vdash L \subtype L
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FALSE}\\
-\senv \vdash \False \subtype \Boolean
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TRUE}\\
-\senv \vdash \True \subtype \Boolean
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-NUMBER}\\
-\senv \vdash {<}{\it number}{>} \subtype \Number
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-STRING}\\
-\senv \vdash {<}{\it string}{>} \subtype \String
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-BASE}\\
-\senv \vdash B \subtype B
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-NIL}\\
-\senv \vdash \Nil \subtype \Nil
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-VALUE}\\
-\senv \vdash T \subtype \Value
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-ANY}\\
-\senv \vdash \Any \subtype \Any
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-SELF}\\
-\senv \vdash \Self \subtype \Self
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-UNION1}\\
-\dfrac{\senv \vdash T_{1} \subtype T \;\;\;
-       \senv \vdash T_{2} \subtype T}
-      {\senv \vdash T_{1} \cup T_{2} \subtype T}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-UNION2}\\
-\dfrac{\senv \vdash T \subtype T_{1}}
-      {\senv \vdash T \subtype T_{1} \cup T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-UNION3}\\
-\dfrac{\senv \vdash T \subtype T_{2}}
-      {\senv \vdash T \subtype T_{1} \cup T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FUNCTION}\\
-\dfrac{\senv \vdash P_{2} \subtype P_{1} \;\;\;
-       \senv \vdash R_{1} \subtype R_{2}}
-      {\senv \vdash P_{1} \rightarrow R_{1} \subtype P_{2} \rightarrow R_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TABLE1}\\
-\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash F_{j} \subtype F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \subtype \{F_{1}, ..., F_{n}\}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-TABLE2}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash F_{i}' \subtype F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TABLE3}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash F \subtype F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F\}} 
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD1}\\
-\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
-       \senv \vdash T_{1} \subtype T_{2} \;\;\;
-       \senv \vdash T_{2} \subtype T_{1}}
-      {\senv \vdash K_{1}:T_{1} \subtype K_{2}:T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD2}\\
-\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
-       \senv \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD3}\\
-\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
-       \senv \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-VARIABLE}\\
-\dfrac{X_{1} \subtype X_{2} \in \senv}
-      {\senv \vdash X_{1} \subtype X_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-RECURSIVE1}\\
-\dfrac{\senv, X_{1} \subtype X_{2} \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash \mu X_{1}.T_{1} \subtype \mu X_{2}.T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-RECURSIVE2}\\
-\dfrac{X \subtype X \not\in \senv \;\;\;
-      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash \mu X.T_{1} \subtype T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-RECURSIVE3}\\
-\dfrac{X \subtype X \in \senv \;\;\;
-       \senv \vdash X \subtype T_{2}}
-      {\senv \vdash \mu X.T_{1} \subtype T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-RECURSIVE4}\\
-\dfrac{X \subtype X \not\in \senv \;\;\;
-       \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash T_{1} \subtype \mu X.T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-RECURSIVE5}\\
-\dfrac{X \subtype X \in \senv \;\;\;
-       \senv \vdash T_{1} \subtype X}
-      {\senv \vdash T_{1} \subtype \mu X.T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-VOID}\\
-\senv \vdash \Void \subtype \Void
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-VARARG}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
-      {\senv \vdash T_{1}* \subtype T_{2}*}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TUPLE1}\\
-\dfrac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
-       \senv \vdash S_{1} \subtype S_{2}}
-      {\senv \vdash T_{1} \times S_{1} \subtype T_{2} \times S_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-TUPLE2}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \;\;\;
-       \senv \vdash T_{1}* \subtype S_{2}}
-      {\senv \vdash T_{1}* \subtype T_{2} \times S_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TUPLE3}\\
-\dfrac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil \;\;\;
-       \senv \vdash S_{1} \subtype T_{2}*}
-      {\senv \vdash T_{1} \times S_{1} \subtype T_{2}*}
-\end{array}
-\end{array}
-$$
-\end{footnotesize}
-\dend
-\caption{The subtyping relation}
-\label{fig:subtyping}
-\end{figure}
-
-Figure \ref{fig:consistent_subtyping} presents the consistent-subtyping
-relation that allows the dynamic type $\Any$ interoperate between
-dynamically typed and statically typed code.
+Typed Lua uses consistent-subtyping to allow the dynamic type $\Any$
+to interoperate between dynamically typed and statically typed code.
 The dynamic type $\Any$ is a subtype of $\Value$, but neither a
 supertype nor a subtype of any other type.
 Our consistent-subtyping relationship follows the standards defined
@@ -526,223 +129,7 @@ a value of some other type, and can pass any value where where a
 value of the dynamic type is expected, but these operations are tracked
 by the type system, and the programmer can choose to be warned about them.
 
-\begin{figure}[!ht]
-\textbf{Consistent-Subtyping}\\
-\dstart
-\begin{footnotesize}
-$$
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{C-LITERAL}\\
-\senv \vdash L \lesssim L
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-FALSE}\\
-\senv \vdash \False \lesssim \Boolean
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-TRUE}\\
-\senv \vdash \True \lesssim \Boolean
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-NUMBER}\\
-\senv \vdash {<}{\it number}{>} \lesssim \Number
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-STRING}\\
-\senv \vdash {<}{\it string}{>} \lesssim \String
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-BASE}\\
-\senv \vdash B \lesssim B
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-NIL}\\
-\senv \vdash \Nil \lesssim \Nil
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-VALUE}\\
-\senv \vdash T \lesssim \Value
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-ANY1}\\
-\senv \vdash T \lesssim \Any
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-ANY2}\\
-\senv \vdash \Any \lesssim T
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-SELF}\\
-\senv \vdash \Self \lesssim \Self
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-UNION1}\\
-\dfrac{\senv \vdash T_{1} \lesssim T \;\;\;
-       \senv \vdash T_{2} \lesssim T}
-      {\senv \vdash T_{1} \cup T_{2} \lesssim T}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-UNION2}\\
-\dfrac{\senv \vdash T \lesssim T_{1}}
-      {\senv \vdash T \lesssim T_{1} \cup T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-UNION3}\\
-\dfrac{\senv \vdash T \lesssim T_{2}}
-      {\senv \vdash T \lesssim T_{1} \cup T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-FUNCTION}\\
-\dfrac{\senv \vdash P_{2} \lesssim P_{1} \;\;\;
-       \senv \vdash R_{1} \lesssim R_{2}}
-      {\senv \vdash P_{1} \rightarrow R_{1} \lesssim P_{2} \rightarrow R_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-TABLE1}\\
-\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash F_{j} \lesssim F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \lesssim \{F_{1}, ..., F_{n}\}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-TABLE2}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash F_{i}' \lesssim F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \lesssim \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-TABLE3}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash F \lesssim F_{i}}
-      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \lesssim \{F\}} 
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-FIELD1}\\
-\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
-       \senv \vdash T_{1} \lesssim T_{2} \;\;\;
-       \senv \vdash T_{2} \lesssim T_{1}}
-      {\senv \vdash K_{1}:T_{1} \lesssim K_{2}:T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-FIELD2}\\
-\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
-       \senv \vdash T_{1} \lesssim T_{2}}
-      {\senv \vdash \Const \; K_{1}:T_{1} \lesssim \Const \; K_{2}:T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-FIELD3}\\
-\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
-       \senv \vdash T_{1} \lesssim T_{2}}
-      {\senv \vdash K_{1}:T_{1} \lesssim \Const \; K_{2}:T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-VARIABLE}\\
-\dfrac{X_{1} \lesssim X_{2} \in \senv}
-      {\senv \vdash X_{1} \lesssim X_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-RECURSIVE1}\\
-\dfrac{\senv, X_{1} \lesssim X_{2} \vdash T_{1} \lesssim T_{2}}
-      {\senv \vdash \mu X_{1}.T_{1} \lesssim \mu X_{2}.T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-RECURSIVE2}\\
-\dfrac{X \lesssim X \not\in \senv \;\;\;
-      \senv, X \lesssim X \vdash T_{1} \lesssim T_{2}}
-      {\senv \vdash \mu X.T_{1} \lesssim T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-RECURSIVE3}\\
-\dfrac{X \lesssim X \in \senv \;\;\;
-       \senv \vdash X \lesssim T_{2}}
-      {\senv \vdash \mu X.T_{1} \lesssim T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-RECURSIVE4}\\
-\dfrac{X \lesssim X \not\in \senv \;\;\;
-       \senv, X \lesssim X \vdash T_{1} \lesssim T_{2}}
-      {\senv \vdash T_{1} \lesssim \mu X.T_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-RECURSIVE5}\\
-\dfrac{X \lesssim X \in \senv \;\;\;
-       \senv \vdash T_{1} \lesssim X}
-      {\senv \vdash T_{1} \lesssim \mu X.T_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-VOID}\\
-\senv \vdash \Void \lesssim \Void
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-VARARG}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \lesssim T_{2} \cup \Nil}
-      {\senv \vdash T_{1}* \lesssim T_{2}*}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-TUPLE1}\\
-\dfrac{\senv \vdash T_{1} \lesssim T_{2} \;\;\;
-       \senv \vdash S_{1} \lesssim S_{2}}
-      {\senv \vdash T_{1} \times S_{1} \lesssim T_{2} \times S_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{C-TUPLE2}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \lesssim T_{2} \;\;\;
-       \senv \vdash T_{1}* \lesssim S_{2}}
-      {\senv \vdash T_{1}* \lesssim T_{2} \times S_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-TUPLE3}\\
-\dfrac{\senv \vdash T_{1} \lesssim T_{2} \cup \Nil \;\;\;
-       \senv \vdash S_{1} \lesssim T_{2}*}
-      {\senv \vdash T_{1} \times S_{1} \lesssim T_{2}*}
-\end{array}
-\end{array}
-$$
-\end{footnotesize}
-\dend
-\caption{The consistent-subtyping relation}
-\label{fig:consistent_subtyping}
-\end{figure}
-
-\subsection{Typed Lua through examples}
-\label{sec:examples}
-
-In this section we use some examples of Typed Lua code to show how
-they relate to Lua.
-This examples shall give an informal overview of the type system.
-It worth mentioning that we used our implementation to produce and
-test all the examples that we present along this section.
-
-\subsubsection{Atomic types and Functions}
+\section{Atomic types and Functions}
 
 Typed Lua allows optional type annotations in variable and function
 declarations.
@@ -928,7 +315,7 @@ variadic tail to catch arity mismatch.
 Thus, this example compiles with error because the call to \texttt{sum}
 passes an unexpected extra argument of type $\String$.
 
-\subsubsection{Unions}
+\section{Unions}
 
 Typed Lua includes union types to encode three common Lua idioms:
 the use of optional values, the overloading based on the tags of
@@ -1124,7 +511,7 @@ intersection types require more sophisticated flow typing to
 check whether a function has this type,
 and we are still working on this problem.
 
-\subsubsection{Tables and Interfaces}
+\section{Tables and Interfaces}
 
 Tables are the only mechanism that Lua has to build data structures;
 they are associative arrays where any value (except \texttt{nil})
@@ -1477,7 +864,7 @@ In the next section, we show that the refinement of table types
 through field assignment is crucial for making Typed Lua
 support idiomatic definition of Lua modules.
 
-\subsubsection{Modules}
+\section{Modules}
 
 Lua does not set policies on how programmers should define modules,
 but it provides mechanisms for organizing a program in modules.
@@ -1486,7 +873,7 @@ loaded or not.
 When the module is not loaded, Lua executes its soure file as a
 function, and the value returned by this function is the module.
 Thus, Lua modules can be any Lua value.
-However, our survey from Section \ref{sec:statistics} confirms that
+However, our survey from Chapter \ref{chapter:statistics} confirms that
 the convention among Lua programmers is to use tables for defining modules. 
 In this case, the fields of the table are the functions and other
 values that the module exports.
@@ -1562,7 +949,7 @@ so the module can end with \texttt{return \string_M},
 but this explicit return is not necessary.
 
 Even though this style has been deprecated, our survey from
-Section \ref{sec:statistics} indicated that around a third of the
+Chapter \ref{chap:statistics} indicated that around a third of the
 Lua modules that are in LuaRocks still use this style.
 Thus, Typed Lua also supports this style:
 \begin{verbatim}
@@ -1602,7 +989,7 @@ The way Typed Lua handle modules using table types is also
 relevant for supporting object-oriented programming, as we discuss in
 the next section.
 
-\subsubsection{Object-Oriented Programming}
+\section{Object-Oriented Programming}
 
 Lua provides minimal support for object-oriented programming.
 The basic mechanism is the \texttt{:} syntactic sugar for method
@@ -1800,64 +1187,6 @@ of predefined operations, as some Lua libraries do.
 Our classes system also does not support multiple inheritance
 and does not offer privacy rules, but these limitations are not
 on plans for future work anyway.
-
-\subsection{The typing rules of Typed Lua}
-\label{sec:rules}
-
-\begin{figure}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rl}
-s ::= & \;\; \mathbf{skip} \; | \;
-s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = \vec{e}  \; | \;
-\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
-\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; \vec{e} \; | \;
-a\\
-e ::= & \;\; \mathbf{nil} \; | \;
-\mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{<}{\it number}{>} \; | \;
-{<}{\it string}{>} \; | \;
-{...} \; | \;
-f \; | \;
-\{ \; \vec{c}\; \} \\
-& | \; e_{1} + e_{2} \; | \;
-e_{1} \; {..} \; e_{2} \; | \;
-e_{1} == e_{2} \; | \;
-e_{1} < e_{2} \; | \;
-e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \\
-& | \; \mathbf{not} \; e \; | \;
-- e \; | \;
-\# \; e \; | \;
-a \; | \;
-l \\
-l ::= & \; n \; | \;
-e_{1}[e_{2}]\\
-a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
-e_{1}{:}n(\vec{e_{2}})\\
-f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
-\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
-c ::= & \; [e_{1}] = e_{2}\\
-n ::= & \; {<}{\it name}{>}\\
-\end{array}
-$$
-\dend
-\caption{Typed Lua abstract syntax}
-\label{fig:syntax}
-\end{figure}
-
-Rule for checking if a table type is well formed:
-\[
-\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
-\]
 
 \section{Related Lua projects}
 \label{sec:related}

@@ -1,0 +1,511 @@
+\begin{figure}[!ht]
+\textbf{Type Language}\\
+\dstart
+$$
+\begin{array}{rlr}
+\multicolumn{3}{c}{\textbf{First-level types}}\\
+T ::= & \;\; L & \textit{literal types}\\
+& | \; B & \textit{base types}\\
+& | \; \Nil & \textit{nil type}\\
+& | \; \Value & \textit{top type}\\
+& | \; \Any & \textit{dynamic type}\\
+& | \; \Self & \textit{self type}\\
+& | \; T \cup T & \textit{disjoint union types}\\
+& | \; P \rightarrow R & \textit{function types}\\
+& | \; \{ \}_{o|c} & \textit{empty table type}\\
+& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
+& | \; X & \textit{type variables}\\
+& | \; \mu X.T & \textit{recursive types}\\
+& | \; X_{i} & \textit{projection types}\\
+L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
+B ::= & \Boolean \; | \; \Number \; | \; \String & \\
+F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
+K ::= & L \; | \; B \; | \; \Value \; | \; \Any & \textit{key types}\\
+\multicolumn{3}{c}{}\\
+\multicolumn{3}{c}{\textbf{Second-level types}}\\
+S ::= & \;\; T &\\
+& | \; T* & \textit{vararg types}\\
+& | \; T \times S & \textit{tuple types}\\
+P ::= & \Void \; | \; S & \textit{parameters list type}\\
+R ::= & \Void \; | \; S \; | \; S \cup R & \textit{return types}\\
+\end{array}
+$$
+\dend
+\caption{The abstract syntax of Typed Lua types}
+\label{fig:typelang}
+\end{figure}
+
+Figure \ref{fig:typelang} presents the abstract syntax of the
+Typed Lua types.
+We split Typed Lua types into two categories:
+\emph{first-level types} and \emph{second-level types}.
+We use first-level types to represent Lua values and
+second-level types to type expression lists, multiple assignments,
+and function applications.
+
+Rule for checking if a table type is well formed:
+\[
+\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
+\]
+
+\begin{figure}[!ht]
+\textbf{Subtyping}\\
+\dstart
+\begin{footnotesize}
+$$
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-LITERAL}\\
+\senv \vdash L \subtype L
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FALSE}\\
+\senv \vdash \False \subtype \Boolean
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-TRUE}\\
+\senv \vdash \True \subtype \Boolean
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-NUMBER}\\
+\senv \vdash {<}{\it number}{>} \subtype \Number
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-STRING}\\
+\senv \vdash {<}{\it string}{>} \subtype \String
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-BASE}\\
+\senv \vdash B \subtype B
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-NIL}\\
+\senv \vdash \Nil \subtype \Nil
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VALUE}\\
+\senv \vdash T \subtype \Value
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-ANY}\\
+\senv \vdash \Any \subtype \Any
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-SELF}\\
+\senv \vdash \Self \subtype \Self
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-UNION1}\\
+\dfrac{\senv \vdash T_{1} \subtype T \;\;\;
+       \senv \vdash T_{2} \subtype T}
+      {\senv \vdash T_{1} \cup T_{2} \subtype T}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-UNION2}\\
+\dfrac{\senv \vdash T \subtype T_{1}}
+      {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-UNION3}\\
+\dfrac{\senv \vdash T \subtype T_{2}}
+      {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FUNCTION}\\
+\dfrac{\senv \vdash P_{2} \subtype P_{1} \;\;\;
+       \senv \vdash R_{1} \subtype R_{2}}
+      {\senv \vdash P_{1} \rightarrow R_{1} \subtype P_{2} \rightarrow R_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-TABLE1}\\
+\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+       \senv \vdash F_{j} \subtype F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \subtype \{F_{1}, ..., F_{n}\}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-TABLE2}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash F_{i}' \subtype F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-TABLE3}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash F \subtype F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \subtype \{F\}} 
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FIELD1}\\
+\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+       \senv \vdash T_{1} \subtype T_{2} \;\;\;
+       \senv \vdash T_{2} \subtype T_{1}}
+      {\senv \vdash K_{1}:T_{1} \subtype K_{2}:T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD2}\\
+\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+       \senv \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash \Const \; K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FIELD3}\\
+\dfrac{\senv \vdash K_{2} \subtype K_{1} \;\;\;
+       \senv \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash K_{1}:T_{1} \subtype \Const \; K_{2}:T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VARIABLE}\\
+\dfrac{X_{1} \subtype X_{2} \in \senv}
+      {\senv \vdash X_{1} \subtype X_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-RECURSIVE1}\\
+\dfrac{\senv, X_{1} \subtype X_{2} \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash \mu X_{1}.T_{1} \subtype \mu X_{2}.T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-RECURSIVE2}\\
+\dfrac{X \subtype X \not\in \senv \;\;\;
+      \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-RECURSIVE3}\\
+\dfrac{X \subtype X \in \senv \;\;\;
+       \senv \vdash X \subtype T_{2}}
+      {\senv \vdash \mu X.T_{1} \subtype T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-RECURSIVE4}\\
+\dfrac{X \subtype X \not\in \senv \;\;\;
+       \senv, X \subtype X \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-RECURSIVE5}\\
+\dfrac{X \subtype X \in \senv \;\;\;
+       \senv \vdash T_{1} \subtype X}
+      {\senv \vdash T_{1} \subtype \mu X.T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-VOID}\\
+\senv \vdash \Void \subtype \Void
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VARARG}\\
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
+      {\senv \vdash T_{1}* \subtype T_{2}*}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-TUPLE1}\\
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+       \senv \vdash S_{1} \subtype S_{2}}
+      {\senv \vdash T_{1} \times S_{1} \subtype T_{2} \times S_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-TUPLE2}\\
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \;\;\;
+       \senv \vdash T_{1}* \subtype S_{2}}
+      {\senv \vdash T_{1}* \subtype T_{2} \times S_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-TUPLE3}\\
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil \;\;\;
+       \senv \vdash S_{1} \subtype T_{2}*}
+      {\senv \vdash T_{1} \times S_{1} \subtype T_{2}*}
+\end{array}
+\end{array}
+$$
+\end{footnotesize}
+\dend
+\caption{The subtyping relation}
+\label{fig:subtyping}
+\end{figure}
+
+
+\begin{figure}[!ht]
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rl}
+s ::= & \;\; \mathbf{skip} \; | \;
+s_{1} \; ; \; s_{2} \; | \;
+\vec{l} = \vec{e}  \; | \;
+\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
+\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
+& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
+\mathbf{return} \; \vec{e} \; | \;
+a\\
+e ::= & \;\; \mathbf{nil} \; | \;
+\mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{<}{\it number}{>} \; | \;
+{<}{\it string}{>} \; | \;
+{...} \; | \;
+f \; | \;
+\{ \; \vec{c}\; \} \\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
+e_{1} < e_{2} \; | \;
+e_{1} \; \mathbf{and} \; e_{2} \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \\
+& | \; \mathbf{not} \; e \; | \;
+- e \; | \;
+\# \; e \; | \;
+a \; | \;
+l \\
+l ::= & \; n \; | \;
+e_{1}[e_{2}]\\
+a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}n(\vec{e_{2}})\\
+f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
+\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
+c ::= & \; [e_{1}] = e_{2}\\
+n ::= & \; {<}{\it name}{>}\\
+\end{array}
+$$
+\dend
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax}
+\end{figure}
+
+\begin{figure}[!ht]
+\textbf{Consistent-Subtyping}\\
+\dstart
+\begin{footnotesize}
+$$
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{C-LITERAL}\\
+\senv \vdash L \lesssim L
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-FALSE}\\
+\senv \vdash \False \lesssim \Boolean
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-TRUE}\\
+\senv \vdash \True \lesssim \Boolean
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-NUMBER}\\
+\senv \vdash {<}{\it number}{>} \lesssim \Number
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-STRING}\\
+\senv \vdash {<}{\it string}{>} \lesssim \String
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-BASE}\\
+\senv \vdash B \lesssim B
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-NIL}\\
+\senv \vdash \Nil \lesssim \Nil
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-VALUE}\\
+\senv \vdash T \lesssim \Value
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-ANY1}\\
+\senv \vdash T \lesssim \Any
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-ANY2}\\
+\senv \vdash \Any \lesssim T
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-SELF}\\
+\senv \vdash \Self \lesssim \Self
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-UNION1}\\
+\dfrac{\senv \vdash T_{1} \lesssim T \;\;\;
+       \senv \vdash T_{2} \lesssim T}
+      {\senv \vdash T_{1} \cup T_{2} \lesssim T}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-UNION2}\\
+\dfrac{\senv \vdash T \lesssim T_{1}}
+      {\senv \vdash T \lesssim T_{1} \cup T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-UNION3}\\
+\dfrac{\senv \vdash T \lesssim T_{2}}
+      {\senv \vdash T \lesssim T_{1} \cup T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-FUNCTION}\\
+\dfrac{\senv \vdash P_{2} \lesssim P_{1} \;\;\;
+       \senv \vdash R_{1} \lesssim R_{2}}
+      {\senv \vdash P_{1} \rightarrow R_{1} \lesssim P_{2} \rightarrow R_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-TABLE1}\\
+\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+       \senv \vdash F_{j} \lesssim F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{c} \lesssim \{F_{1}, ..., F_{n}\}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-TABLE2}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash F_{i}' \lesssim F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \lesssim \{F_{1}', ..., F_{m}', ..., F_{n}'\}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-TABLE3}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash F \lesssim F_{i}}
+      {\senv \vdash \{F_{1}, ..., F_{m}\}_{o} \lesssim \{F\}} 
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-FIELD1}\\
+\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
+       \senv \vdash T_{1} \lesssim T_{2} \;\;\;
+       \senv \vdash T_{2} \lesssim T_{1}}
+      {\senv \vdash K_{1}:T_{1} \lesssim K_{2}:T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-FIELD2}\\
+\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
+       \senv \vdash T_{1} \lesssim T_{2}}
+      {\senv \vdash \Const \; K_{1}:T_{1} \lesssim \Const \; K_{2}:T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-FIELD3}\\
+\dfrac{\senv \vdash K_{2} \lesssim K_{1} \;\;\;
+       \senv \vdash T_{1} \lesssim T_{2}}
+      {\senv \vdash K_{1}:T_{1} \lesssim \Const \; K_{2}:T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-VARIABLE}\\
+\dfrac{X_{1} \lesssim X_{2} \in \senv}
+      {\senv \vdash X_{1} \lesssim X_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-RECURSIVE1}\\
+\dfrac{\senv, X_{1} \lesssim X_{2} \vdash T_{1} \lesssim T_{2}}
+      {\senv \vdash \mu X_{1}.T_{1} \lesssim \mu X_{2}.T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-RECURSIVE2}\\
+\dfrac{X \lesssim X \not\in \senv \;\;\;
+      \senv, X \lesssim X \vdash T_{1} \lesssim T_{2}}
+      {\senv \vdash \mu X.T_{1} \lesssim T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-RECURSIVE3}\\
+\dfrac{X \lesssim X \in \senv \;\;\;
+       \senv \vdash X \lesssim T_{2}}
+      {\senv \vdash \mu X.T_{1} \lesssim T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-RECURSIVE4}\\
+\dfrac{X \lesssim X \not\in \senv \;\;\;
+       \senv, X \lesssim X \vdash T_{1} \lesssim T_{2}}
+      {\senv \vdash T_{1} \lesssim \mu X.T_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-RECURSIVE5}\\
+\dfrac{X \lesssim X \in \senv \;\;\;
+       \senv \vdash T_{1} \lesssim X}
+      {\senv \vdash T_{1} \lesssim \mu X.T_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-VOID}\\
+\senv \vdash \Void \lesssim \Void
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-VARARG}\\
+\dfrac{\senv \vdash T_{1} \cup \Nil \lesssim T_{2} \cup \Nil}
+      {\senv \vdash T_{1}* \lesssim T_{2}*}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-TUPLE1}\\
+\dfrac{\senv \vdash T_{1} \lesssim T_{2} \;\;\;
+       \senv \vdash S_{1} \lesssim S_{2}}
+      {\senv \vdash T_{1} \times S_{1} \lesssim T_{2} \times S_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{C-TUPLE2}\\
+\dfrac{\senv \vdash T_{1} \cup \Nil \lesssim T_{2} \;\;\;
+       \senv \vdash T_{1}* \lesssim S_{2}}
+      {\senv \vdash T_{1}* \lesssim T_{2} \times S_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-TUPLE3}\\
+\dfrac{\senv \vdash T_{1} \lesssim T_{2} \cup \Nil \;\;\;
+       \senv \vdash S_{1} \lesssim T_{2}*}
+      {\senv \vdash T_{1} \times S_{1} \lesssim T_{2}*}
+\end{array}
+\end{array}
+$$
+\end{footnotesize}
+\dend
+\caption{The consistent-subtyping relation}
+\label{fig:consistent_subtyping}
+\end{figure}
+
+

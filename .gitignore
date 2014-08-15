@@ -4,6 +4,7 @@
 *.csv
 *.lof
 *.log
+*.lot
 *.nav
 *.out
 *.pdf
