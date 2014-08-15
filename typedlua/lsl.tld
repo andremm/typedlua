@@ -33,12 +33,14 @@ xpcall : ((any*) -> (any*), any, any*) -> (true, any*) | (false, string)
 
 -- Coroutine Manipulation
 
+userdata thread end
+
 coroutine : {
-  "create" : ((any*) -> (any*)) -> (any),
-  "resume" : (any, any*) -> (true, any*) | (false, string),
-  "running" : () -> (any, boolean),
-  "status" : (any) -> (string),
-  "wrap" : ((any*) -> (true, any*) | (false, string)) -> ((any*) -> (true, any*) | (false, string)),
+  "create" : ((any*) -> (any*)) -> (thread),
+  "resume" : (thread, any*) -> (boolean, any*) | (boolean, string),
+  "running" : () -> (thread, boolean),
+  "status" : (thread) -> (string),
+  "wrap" : ((any*) -> (boolean, any*) | (boolean, string)) -> ((any*) -> (boolean, any*) | (boolean, string)),
   "yield" : (any*) -> ()
 }
 
@@ -139,6 +141,16 @@ bit32 : {
 }
 
 -- Input and Output Facilities
+
+userdata file
+  close : (self) -> (boolean) | (nil, string) | (boolean, string, number)
+  flush : (self) -> (boolean)
+  lines : (self, string|number*) -> (() -> (any*))
+  read : (self, string|number*) -> (string*)
+  seek : (self, string?, number?) -> (number?)
+  setvbuf : (self, string, number?) -> (boolean) | (nil, string, number)
+  write : (self, string|number*) -> (self?)
+end
 
 io : {
   "close" : (any?) -> (boolean) | (nil, string) | (boolean?, string, number),
