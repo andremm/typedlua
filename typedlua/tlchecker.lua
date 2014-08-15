@@ -99,6 +99,18 @@ local function replace_names (env, t, pos)
   end
 end
 
+local function close_type (t)
+  if tltype.isUnion(t) or
+     tltype.isUnionlist(t) or
+     tltype.isTuple(t) then
+    for k, v in ipairs(t) do
+      close_type(v)
+    end
+  else
+    if t.open then t.open = nil end
+  end
+end
+
 local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
@@ -284,7 +296,7 @@ local function check_len (env, exp)
   local t1 = tltype.first(get_type(exp1))
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
-     tltype.subtype(t1, tltype.Table(tltype.Field(false, Number, Value))) then
+     tltype.subtype(t1, tltype.Table()) then
     set_type(exp, Number)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
@@ -372,7 +384,9 @@ local function infer_return_type (env)
       return tltype.Tuple({ Nil }, true)
     end
   else
-    return tltype.Unionlist(table.unpack(l))
+    local r = tltype.Unionlist(table.unpack(l))
+    close_type(r)
+    return r
   end
 end
 
@@ -526,6 +540,7 @@ local function check_call (env, exp)
       local t1, t2 = get_type(explist[1]), get_type(explist[2])
       local t3 = tltype.getField(tltype.Literal("__index"), t2)
       if not tltype.isNil(t3) then
+        if tltype.isTable(t3) then t3.open = true end
         set_type(exp, t3)
       else
         local msg = "second argument of setmetatable must be { __index = e }"
@@ -970,7 +985,9 @@ function check_var (env, var, exp)
   if tag == "Id" then
     local name = var[1]
     local l = tlst.get_local(env, name)
-    set_type(var, get_type(l))
+    local t = get_type(l)
+    if exp and exp.tag == "Id" and tltype.isTable(t) then t.open = nil end
+    set_type(var, t)
   elseif tag == "Index" then
     local exp1, exp2 = var[1], var[2]
     check_exp(env, exp1)
