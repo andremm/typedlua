@@ -205,7 +205,9 @@ local function check_require (env, name)
   path = string.gsub(package.path, "[.]lua", ".tld")
   local tldpath, tldmsg = searchpath(name, path)
   if tldpath then return check_tld(env, name, tldpath) end
-  assert(tldpath, tlmsg .. tldmsg)
+  local lpath, lmsg = searchpath(name, path)
+  if lpath then return Any end
+  assert(lpath, tlmsg .. tldmsg .. lmsg)
 end
 
 local function check_arith (env, exp)
@@ -607,6 +609,23 @@ local function check_arguments (env, func_name, dec_type, infer_type, pos)
   end
 end
 
+local function replace_self (env, t)
+  local s = env.self or Nil
+  if tltype.isTuple(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      if tltype.isSelf(v) then
+        table.insert(l, s)
+      else
+        table.insert(l, v)
+      end
+    end
+    return tltype.Tuple(l, env.strict)
+  else
+    return t
+  end
+end
+
 local function check_call (env, exp)
   local exp1 = exp[1]
   local explist = {}
@@ -656,8 +675,8 @@ local function check_call (env, exp)
     local inferred_type = explist2type(explist)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
-      check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
-      set_type(exp, t[2])
+      check_arguments(env, var2name(exp1), replace_self(env, t[1]), inferred_type, exp.pos)
+      set_type(exp, replace_self(env, t[2]))
     elseif tltype.isAny(t) then
       if env.warnings then
         msg = string.format(msg, var2name(exp1), tltype.tostring(t))
@@ -669,23 +688,6 @@ local function check_call (env, exp)
       typeerror(env, msg, exp.pos)
       set_type(exp, Nil)
     end
-  end
-end
-
-local function replace_self (env, t)
-  local s = env.self or Nil
-  if tltype.isTuple(t) then
-    local l = {}
-    for k, v in ipairs(t) do
-      if tltype.isSelf(v) then
-        table.insert(l, s)
-      else
-        table.insert(l, v)
-      end
-    end
-    return tltype.Tuple(l, env.strict)
-  else
-    return t
   end
 end
 
@@ -722,6 +724,11 @@ end
 local function check_local_var (env, id, inferred_type, close_local)
   local local_name, local_type, pos = id[1], id[2], id.pos
   inferred_type = replace_names(env, inferred_type, pos)
+  if tltype.isMethod(inferred_type) then
+    local msg = "attempt to create a method reference"
+    typeerror(env, msg, pos)
+    inferred_type = Nil
+  end
   if not local_type then
     if tltype.isNil(inferred_type) then
       local_type = Any

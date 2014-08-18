@@ -363,6 +363,17 @@ function tltype.isFunction (t)
   return t.tag == "Function"
 end
 
+function tltype.isMethod (t)
+  if tltype.isFunction(t) then
+    for k, v in ipairs(t[1]) do
+      if tltype.isSelf(v) then return true end
+    end
+    return false
+  else
+    return false
+  end
+end
+
 -- table types
 
 -- Field : (boolean, type, type) -> (field)
