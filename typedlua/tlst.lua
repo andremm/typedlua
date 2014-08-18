@@ -135,7 +135,14 @@ function tlst.get_interface (env, name)
     local t = env[s]["interface"][name]
     if t then return t end
   end
-  return env["interface"][name]
+  if env["interface"][name] then
+    return env["interface"][name]
+  end
+  for s = scope, 1, -1 do
+    local t = env[s]["userdata"][name]
+    if t then return t end
+  end
+  return env["userdata"][name]
 end
 
 -- set_userdata : (env, string, type, boolean?) -> ()

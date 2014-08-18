@@ -130,7 +130,7 @@ local function traverse (ast, errorinfo, strict)
   if not status then
     return nil, tllexer.syntaxerror(env.subject, 1, env.filename, msg)
   else
-    return t
+    return ast
   end
 end
 

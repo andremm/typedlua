@@ -151,5 +151,4 @@ function tllexer.report_error ()
   return errormsg()
 end
 
-
 return tllexer

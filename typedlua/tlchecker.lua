@@ -9,6 +9,7 @@ local tlchecker = {}
 local tlast = require "typedlua.tlast"
 local tlst = require "typedlua.tlst"
 local tltype = require "typedlua.tltype"
+local tlparser = require "typedlua.tlparser"
 local tldparser = require "typedlua.tldparser"
 
 local Value = tltype.Value()
@@ -109,6 +110,102 @@ local function close_type (t)
   else
     if t.open then t.open = nil end
   end
+end
+
+local function searchpath (name, path)
+  if package.searchpath then
+    return package.searchpath(name, path)
+  else
+    local error_msg = ""
+    for tldpath in string.gmatch(path, "([^;]*);") do
+      tldpath = string.gsub(tldpath, "?", name)
+      local f = io.open(tldpath, "r")
+      if f then
+        f:close()
+        return tldpath
+      else
+        error_msg = error_msg .. string.format("no file '%s'\n", tldpath)
+      end
+    end
+    return nil, error_msg
+  end
+end
+
+local function infer_return_type (env)
+  local l = tlst.get_return_type(env)
+  if #l == 0 then
+    if env.strict then
+      return tltype.Void()
+    else
+      return tltype.Tuple({ Nil }, true)
+    end
+  else
+    local r = tltype.Unionlist(table.unpack(l))
+    close_type(r)
+    return r
+  end
+end
+
+local function check_tl (env, name, path)
+  local file = io.open(path, "r")
+  local subject = file:read("*a")
+  io.close(file)
+  local ast = assert(tlparser.parse(subject, path, env.strict))
+  tlst.begin_function(env)
+  check_block(env, ast)
+  local t1 = tltype.first(infer_return_type(env))
+  tlst.end_function(env)
+  return t1
+end
+
+local function check_interface (env, stm)
+  local name, t, is_local = stm[1], stm[2], stm.is_local
+  if tlst.get_interface(env, name) then
+    local msg = "attempt to redeclare interface '%s'"
+    msg = string.format(msg, name)
+    typeerror(env, msg, stm.pos)
+  else
+    tlst.set_interface(env, name, t, is_local)
+  end
+end
+
+local function check_userdata (env, stm)
+  local name, t, is_local = stm[1], stm[2], stm.is_local
+  if tlst.get_userdata(env, name) then
+    local msg = "attempt to redeclare userdata '%s'"
+    msg = string.format(msg, name)
+    typeerror(env, msg, stm.pos)
+  else
+    tlst.set_userdata(env, name, t, is_local)
+  end
+end
+
+local function check_tld (env, name, path)
+  local ast = assert(tldparser.parse(path, env.strict))
+  local t = tltype.Table()
+  for k, v in ipairs(ast) do
+    local tag = v.tag
+    if tag == "Id" then
+      table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
+    elseif tag == "Interface" then
+      check_interface(env, v)
+    elseif tag == "Userdata" then
+      check_userdata(env, v)
+    else
+      error("trying to check a description item, but got a " .. tag)
+    end
+  end
+  return t
+end
+
+local function check_require (env, name)
+  local path = string.gsub(package.path, "[.]lua", ".tl")
+  local tlpath, tlmsg = searchpath(name, path)
+  if tlpath then return check_tl(env, name, tlpath) end
+  path = string.gsub(package.path, "[.]lua", ".tld")
+  local tldpath, tldmsg = searchpath(name, path)
+  if tldpath then return check_tld(env, name, tldpath) end
+  assert(tldpath, tlmsg .. tldmsg)
 end
 
 local function check_arith (env, exp)
@@ -375,21 +472,6 @@ local function check_explist (env, explist)
   end
 end
 
-local function infer_return_type (env)
-  local l = tlst.get_return_type(env)
-  if #l == 0 then
-    if env.strict then
-      return tltype.Void()
-    else
-      return tltype.Tuple({ Nil }, true)
-    end
-  else
-    local r = tltype.Unionlist(table.unpack(l))
-    close_type(r)
-    return r
-  end
-end
-
 local function check_return_type (env, inf_type, dec_type, pos)
   local msg = "return type '%s' does not match '%s'"
   inf_type = replace_names(env, inf_type, pos)
@@ -549,6 +631,23 @@ local function check_call (env, exp)
       end
     else
       local msg = "setmetatable must have two arguments"
+      typeerror(env, msg, exp.pos)
+      set_type(exp, Any)
+    end
+  elseif exp1.tag == "Index" and
+         exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
+         exp1[2].tag == "String" and exp1[2][1] == "require" then
+    if explist[1] then
+      local t1 = get_type(explist[1])
+      if tltype.isStr(t1) then
+        set_type(exp, check_require(env, explist[1][1]))
+      else
+        local msg = "the argument of require must be a literal string"
+        typeerror(env, msg, exp.pos)
+        set_type(exp, Any)
+      end
+    else
+      local msg = "require must have one argument"
       typeerror(env, msg, exp.pos)
       set_type(exp, Any)
     end
@@ -958,28 +1057,6 @@ local function check_index (env, exp)
   end
 end
 
-local function check_interface (env, stm)
-  local name, t, is_local = stm[1], stm[2], stm.is_local
-  if tlst.get_interface(env, name) then
-    local msg = "attempt to redeclare interface '%s'"
-    msg = string.format(msg, name)
-    typeerror(env, msg, stm.pos)
-  else
-    tlst.set_interface(env, name, t, is_local)
-  end
-end
-
-local function check_userdata (env, stm)
-  local name, t, is_local = stm[1], stm[2], stm.is_local
-  if tlst.get_userdata(env, name) then
-    local msg = "attempt to redeclare userdata '%s'"
-    msg = string.format(msg, name)
-    typeerror(env, msg, stm.pos)
-  else
-    tlst.set_userdata(env, name, t, is_local)
-  end
-end
-
 function check_var (env, var, exp)
   local tag = var.tag
   if tag == "Id" then
@@ -1122,25 +1199,6 @@ function check_block (env, block)
   tlst.end_scope(env)
 end
 
-local function searchpath (name, path)
-  if package.searchpath then
-    return package.searchpath("typedlua/lsl", path)
-  else
-    local error_msg = ""
-    for tldpath in string.gmatch(path, "([^;]*);") do
-      tldpath = string.gsub(tldpath, "?", name)
-      local f = io.open(tldpath, "r")
-      if f then
-        f:close()
-        return tldpath
-      else
-        error_msg = error_msg .. string.format("no file '%s'\n", tldpath)
-      end
-    end
-    return nil, error_msg
-  end
-end
-
 function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
@@ -1153,7 +1211,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   tlst.set_vararg(env, String)
   local tldpath = string.gsub(package.path, "[.]lua", ".tld")
   local lslpath = assert(searchpath("typedlua/lsl", tldpath))
-  local _env = tlast.ident(0, "_ENV", tldparser.parse(lslpath, strict))
+  local _env = tlast.ident(0, "_ENV", check_tld(env, "lsl", lslpath))
   _env[2].open = true
   set_type(_env, _env[2])
   tlst.set_local(env, _env)
