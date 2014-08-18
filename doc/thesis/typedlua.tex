@@ -1194,6 +1194,85 @@ Our classes system also does not support multiple inheritance
 and does not offer privacy rules, but these limitations are not
 on plans for future work anyway.
 
+\section{Description files}
+
+The Typed Lua compiler also handles description files.
+The programmer can use description files for two purposes:
+export a statically typed interface for an existing Lua
+module, without coverting it to Typed Lua,
+or export a statically typed interface for a Lua module
+that is written in C.
+
+\begin{figure}[!ht]
+\textbf{The complete syntax of description files}\\
+\dstart
+\begin{align*}
+\textit{description} & ::= \; \textit{desclist}\\
+\textit{desclist} & ::= \; \textit{descitem} \; \{ \textit{descitem} \}\\
+\textit{descitem} & ::= \; \textit{typedid} \; | \;
+  \textit{interface} \; | \;
+  \textit{userdata}\\
+\textit{typedid} & ::= \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
+\textit{interface} & ::= \; \textbf{interface} \; \textit{typedec}\\
+\textit{userdata} & ::= \; \textbf{userdata} \; \textit{typedec}\\
+\textit{typedec} & ::= \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
+\textit{decitem} & ::= \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} & ::= \; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} & ::= \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
+\textit{id} & ::= \; [\textbf{const}] \; \textit{Name}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua description files}
+\label{fig:tldsyntax}
+\end{figure}
+
+The Typed Lua compiler searches for description files when it cannot
+not find the respective Typed Lua file that is the argument of
+\texttt{require}, as we can also use description files to give and
+export the type of modules.
+
+The following example shows the description file for \texttt{lmd5},
+a MD5 digest library for Lua that is written in C:
+\begin{verbatim}
+    userdata md5_context
+      __tostring : (self) -> (string)
+      clone : (self) -> (self)
+      digest : (self|string, value?) -> (string)
+      new : () -> (self)
+      reset : (self) -> (self)
+      update : (self, string*) -> (self)
+      version : string
+    end
+
+    __tostring : (md5_context) -> (string)
+    clone : (md5_context) -> (md5_context)
+    digest : (md5_context|string, value) -> (string)
+    new : () -> (md5_context)
+    reset : (md5_context) -> (md5_context)
+    update : (md5_context, string*) -> (md5_context)
+    version : string
+\end{verbatim}
+
+This description file exports the type \texttt{md5\string_context}
+through the \texttt{userdata} declaration, and the table type
+that represents the module.
+Now we can use the Typed Lua compiler to check for type errors on
+our use of the library:
+\begin{verbatim}
+    local m = require "md5"
+    local x = m.new()
+    local y = x:clone()
+    local z = m.clone("foo")             -- compile-time error
+    print(x:digest() == m.digest(x))
+\end{verbatim}
+
+In this example there is a type error because function \texttt{clone}
+expects a value of type \texttt{md5\string_context} instead of a value
+of type \texttt{string}.
+
+The description files are the mechanism that we used to include the
+typing of the Lua standard libraries inside Typed Lua.
+
 \section{Related Lua projects}
 
 Metalua \citep{metalua} is a Lua compiler that supports compile-time
