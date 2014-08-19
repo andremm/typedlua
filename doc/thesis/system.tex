@@ -1,3 +1,6 @@
+
+\section{Type Language}
+
 \begin{figure}[!ht]
 \textbf{Type Language}\\
 \dstart
@@ -43,10 +46,7 @@ We use first-level types to represent Lua values and
 second-level types to type expression lists, multiple assignments,
 and function applications.
 
-Rule for checking if a table type is well formed:
-\[
-\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
-\]
+\section{Subtyping}
 
 \begin{figure}[!ht]
 \textbf{Subtyping}\\
@@ -250,56 +250,7 @@ $$
 \label{fig:subtyping}
 \end{figure}
 
-
-\begin{figure}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rl}
-s ::= & \;\; \mathbf{skip} \; | \;
-s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = \vec{e}  \; | \;
-\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
-\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; \vec{e} \; | \;
-a\\
-e ::= & \;\; \mathbf{nil} \; | \;
-\mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{<}{\it number}{>} \; | \;
-{<}{\it string}{>} \; | \;
-{...} \; | \;
-f \; | \;
-\{ \; \vec{c}\; \} \\
-& | \; e_{1} + e_{2} \; | \;
-e_{1} \; {..} \; e_{2} \; | \;
-e_{1} == e_{2} \; | \;
-e_{1} < e_{2} \; | \;
-e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \\
-& | \; \mathbf{not} \; e \; | \;
-- e \; | \;
-\# \; e \; | \;
-a \; | \;
-l \\
-l ::= & \; n \; | \;
-e_{1}[e_{2}]\\
-a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
-e_{1}{:}n(\vec{e_{2}})\\
-f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
-\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
-c ::= & \; [e_{1}] = e_{2}\\
-n ::= & \; {<}{\it name}{>}\\
-\end{array}
-$$
-\dend
-\caption{Typed Lua abstract syntax}
-\label{fig:syntax}
-\end{figure}
+\section{Consistent-Subtyping}
 
 \begin{figure}[!ht]
 \textbf{Consistent-Subtyping}\\
@@ -508,4 +459,60 @@ $$
 \label{fig:consistent_subtyping}
 \end{figure}
 
+\section{Typing rules}
+
+\begin{figure}[!ht]
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rl}
+s ::= & \;\; \mathbf{skip} \; | \;
+s_{1} \; ; \; s_{2} \; | \;
+\vec{l} = \vec{e}  \; | \;
+\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
+\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
+& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
+\mathbf{return} \; \vec{e} \; | \;
+a\\
+e ::= & \;\; \mathbf{nil} \; | \;
+\mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{<}{\it number}{>} \; | \;
+{<}{\it string}{>} \; | \;
+{...} \; | \;
+f \; | \;
+\{ \; \vec{c}\; \} \\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
+e_{1} < e_{2} \; | \;
+e_{1} \; \mathbf{and} \; e_{2} \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \\
+& | \; \mathbf{not} \; e \; | \;
+- e \; | \;
+\# \; e \; | \;
+a \; | \;
+l \\
+l ::= & \; n \; | \;
+e_{1}[e_{2}]\\
+a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}n(\vec{e_{2}})\\
+f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
+\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
+c ::= & \; [e_{1}] = e_{2}\\
+n ::= & \; {<}{\it name}{>}\\
+\end{array}
+$$
+\dend
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax}
+\end{figure}
+
+Rule for checking if a table type is well formed:
+\[
+\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
+\]
 
