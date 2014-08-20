@@ -540,6 +540,7 @@ local function check_table (env, exp)
       t1, t2 = tltype.Literal(i), tltype.general(get_type(exp1))
       i = i + 1
     end
+    if t2.open then t2.open = nil end
     l[k] = tltype.Field(v.const, t1, t2)
   end
   local t = tltype.Table(table.unpack(l))
@@ -1172,6 +1173,7 @@ function check_var (env, var, exp)
             if tltype.subtype(t, t1) then
               table.insert(t1, tltype.Field(var.const, t2, t3))
             end
+            if t3.open then t3.open = nil end
             set_type(var, t3)
           else
             set_type(var, Nil)
