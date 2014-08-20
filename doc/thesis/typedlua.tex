@@ -14,7 +14,8 @@ An important feature of Typed Lua is its backwards compatibility with Lua,
 that is, unannotated Typed Lua code is valid Lua code.
 For this reason, the syntactic extensions introduced by Typed Lua
 include new keywords that are not reserved words.
-Appendix \ref{app:syntax} presents the complete syntax of Typed Lua.
+Appendix \ref{app:syntax} presents the complete syntax of Typed Lua
+in extended BNF.
 
 Another important feature of Typed Lua is its interface between
 statically and dynamically typed modules.
@@ -61,7 +62,7 @@ In this section, we present the Typed Lua types that may appear on annotations.
 We explain all Typed Lua types and syntactical extensions along this chapter.
 
 \begin{figure}[!ht]
-\textbf{Type annotations}\\
+\textbf{Types}\\
 \dstart
 \begin{align*}
 \textit{type} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
@@ -116,7 +117,7 @@ First-level types include literal types, base types, the type \texttt{nil},
 the top type \texttt{value}, the dynamic type \texttt{any},
 the self type \texttt{self}, named types, function types, table types,
 and union types.
-Second-level types include the type void \texttt{()}, first-level types,
+Second-level types include the type void \texttt{()},
 vararg types, tuple types, and union of tuple types.
 
 Typed Lua uses subtyping to order types.
@@ -253,7 +254,7 @@ in functions that are overloaded on the return type.
 We will explain union types and projection types in more detail
 in the next section.
 
-To match the semantics of Lua function calls, the default operation
+To match the semantics of Lua function calls, the \emph{default} operation
 mode of Typed Lua adds a variadic tail to the parts of a function
 type whenever the programmer does not specify one.
 In the previous examples, the type of both \texttt{factorial} and
@@ -267,7 +268,7 @@ replace the missing arguments and in the case of \texttt{absolute} generates
 an error, as \texttt{nil} is neither a subtype of \texttt{number} nor consistent
 with \texttt{number}.
 
-Typed Lua also provides a strict operation mode, and programmers can
+Typed Lua also provides a \emph{strict} operation mode, and programmers can
 use this mode if they want to catch arity mismatch of function calls.
 In the strict mode, Typed Lua does not add a variadic tail to the
 parts of a function type unless the programmer explicitly declares one.
@@ -351,7 +352,7 @@ because we used the short-circuiting \texttt{or} operator to declare a
 new variable \texttt{greeting} that is guaranteed to have type \texttt{string}. 
 In Lua, only the values \texttt{nil} and \texttt{false} represent a
 false condition, so programmers often use the \texttt{or} operator as a
-common idiom for giving a default value to an optional parameter. 
+common idiom to assign a default value to an optional parameter. 
 Typed Lua uses a typing rule to encode this idiom: 
 if the left hand side of \texttt{or} has type \texttt{t|nil} and
 the right hand side has type \texttt{t} then the \texttt{or} expression has
@@ -410,7 +411,7 @@ or two base types, but they cannot discriminate a union that combines
 two different table types, or two different function types.
 
 Lua programmers also overload the return type of functions,
-usually for signaling the occurence of errors.
+usually for signaling the occurrence of errors.
 In this idiom, a function returns its normal set of return values
 when it successfully finished its execution,
 and usually returns \texttt{nil} as the first value plus an
@@ -418,7 +419,7 @@ error message or other data that describes the error
 when something failed during its execution.
 Next, we show an example:
 \begin{verbatim}
-    local function idiv(dividend:number, divisor:number):
+    local function idiv (dividend:number, divisor:number):
           (number, number)|(nil, string)
       if divisor == 0 then
         return nil, "division by zero"
@@ -475,7 +476,7 @@ has type \texttt{string} inside the \texttt{else} block.
 We could also have used \texttt{type(q) == "number"} or
 even \texttt{type(r) == "number"} as the predicate of our example,
 as both predicates would produce the same result.
-However, the form that appears in our example is much more succint and idiomatic.
+However, the form that appears in our example is much more succinct and idiomatic.
 
 Typed Lua does not allow assignments to variables that hold a projection type,
 unless the union has been discriminated down to a single value.
@@ -483,7 +484,7 @@ Unrestricted assignment to these variables would be unsound,
 as it could break the dependency relation among the types in each tuple
 that is part of the union.
 
-The overloading mechanims of Typed Lua have a limitation:
+The overloading mechanism of Typed Lua have a limitation:
 the return type cannot depend on the input type.
 Next, we show an example:
 \begin{verbatim}
@@ -503,14 +504,14 @@ Next, we show an example:
 This example shows that we cannot write a function that is
 guaranteed to return a number when we pass two numbers and
 guaranteed to return a string when we pass two strings.
-Even though we can use intersection types to express the type
+Even though we could use intersection types to express the type
 of this function as
-\texttt{(number, number, value*) -> (number, nil*) \string&
-(string, string, value*) -> (string, nil*)},
-and thefore solving this limitation,
+\texttt{(number, number) -> (number) \string&
+(string, string) -> (string)},
+and therefore solve this limitation,
 intersection types require more sophisticated flow typing to
 check whether a function has this type,
-and we are still working on this problem.
+and we still need to work on this problem.
 
 \section{Tables and Interfaces}
 
@@ -593,7 +594,7 @@ Next, we show one example of table type to type an array:
 
 In this example, the type of both variables \texttt{x} and \texttt{y}
 is \texttt{string|nil}.
-An incovenience aspect of making the types of maps and arrays always
+An inconvenience aspect of making the types of maps and arrays always
 include the type \texttt{nil} is to overload the programmers,
 as they need to use \texttt{or} or \texttt{if} to narrow the type of
 the elements they are accessing. 
@@ -637,7 +638,7 @@ Type inference would infer the very same table type that we used to
 annotate the variable \texttt{person}.
 
 Typed Lua includes \emph{interfaces} as syntactic sugar to table types
-that specify records, as writing table types can be unwidely when
+that specify records, as writing table types can be unwieldy when
 records get bigger and types of record fields get more complicated.
 For instance, we can use the following interface as an alias to the
 type of the record we showed in the previous example:
@@ -677,7 +678,7 @@ than nominal, that is, it checks the structure of types instead of
 their names, and it uses subtyping and consistent-subtyping for
 checking types.
 
-If our record type has optinal fields, that is, fields that can be \texttt{nil},
+If our record type has optional fields, that is, fields that can be \texttt{nil},
 we need to use an explicit type declaration when declaring a
 variable of this record type, as we show in the following example:
 \begin{verbatim}
@@ -716,11 +717,11 @@ We need to explicitly annotate \texttt{next} being of type
 is not the bottom type, that is, \texttt{nil} is subtype of itself only.
 Typed Lua has this behavior because in Lua \texttt{nil} represents
 the absence of an useful value.
-Thus, making \texttt{nil} the bottom type would severaly reduce the amount
+Thus, making \texttt{nil} the bottom type would severally reduce the amount
 of type safety in the system.
 
 Now we can use \texttt{Element} to annotate a function that
-inserts an element at the begining of a list:
+inserts an element at the beginning of a list:
 \begin{verbatim}
     local function insert (e:Element?, v:number):Element 
       return { info = v, next = e }
@@ -876,7 +877,7 @@ Lua does not set policies on how programmers should define modules,
 but it provides mechanisms for organizing a program in modules.
 To load a module, Lua first checks whether the module is already
 loaded or not.
-When the module is not loaded, Lua executes its soure file as a
+When the module is not loaded, Lua executes its source file as a
 function, and the value returned by this function is the module.
 Thus, Lua modules can be any Lua value.
 However, our survey from Chapter \ref{chap:statistics} confirms that
@@ -918,7 +919,7 @@ final type of the module \texttt{mymath}:
 \end{verbatim}
 
 Another way of defining modules in Lua is to declare only locals
-in the source file and return a table constructor that includes
+in the source file, and return a table constructor that includes
 the members that the module should export at the end of the source file.
 The following example shows how Typed Lua handles this case:
 \begin{verbatim}
@@ -991,7 +992,7 @@ Typed Lua provides.
 The call to \texttt{require} assigns the type of the module \texttt{mymath}
 to \texttt{m}, so Typed Lua can catch misuses of the module.
 
-The way Typed Lua handle modules using table types is also
+The way Typed Lua handles modules using table types is also
 relevant for supporting object-oriented programming, as we discuss in
 the next section.
 
@@ -1034,7 +1035,7 @@ the following type:
 \end{verbatim}
 
 While \texttt{:} is syntactic sugar in plain Lua, Typed Lua uses it
-to check method calls, binding any occurence of the type \texttt{self}
+to check method calls, binding any occurrence of the type \texttt{self}
 in the type of the method to the receiver.
 Indexing a method and not immediately calling it with the correct
 receiver is a compile-time error:
@@ -1094,7 +1095,7 @@ because we use \texttt{setmetatable} to declare \texttt{s} having
 the same type of \texttt{self}.
 
 In the same example, we also declare the interface \texttt{Shape}.
-Notice that we used double arrow instead of single arrow inside the
+Notice that we use double arrow instead of single arrow inside the
 definition of the interface \texttt{Shape}.
 The double arrow is syntactic sugar for defining the type of methods,
 as it includes an implicit first parameter of type \texttt{self}.
@@ -1106,10 +1107,10 @@ which is the same type that is given by the variable \texttt{Shape}:
       const "move":(self, number, number) -> () }
 \end{verbatim}
 
-In Typed Lua, exporting interfaces allow us to use \texttt{require}
+In Typed Lua, this style of classes definition allow us to use \texttt{require}
 for creating prototype objects that work as classes,
 along with a shortcut to the table type of the class.
-This allows us to use this shortcut on type annotatoins,
+This allows us to use this shortcut on type annotations,
 as we show in the following example:
 \begin{verbatim}
     local Shape = require "shape"
@@ -1199,7 +1200,7 @@ on plans for future work anyway.
 The Typed Lua compiler also handles description files.
 The programmer can use description files for two purposes:
 export a statically typed interface for an existing Lua
-module, without coverting it to Typed Lua,
+module, without converting it to Typed Lua,
 or export a statically typed interface for a Lua module
 that is written in C.
 
@@ -1226,10 +1227,22 @@ that is written in C.
 \label{fig:tldsyntax}
 \end{figure}
 
-The Typed Lua compiler searches for description files when it cannot
+Figure \ref{fig:tldsyntax} shows the complete syntax of Typed Lua
+description files in extended BNF.
+A Typed Lua description file defines the table type that represents
+a certain module and the type names that are exported
+along with this table type.
+We can export a type name through the declaration of an interface or
+userdata.
+As we saw, an interface declaration is just a shortcut to a table type.
+An userdata declaration is a shortcut to a table type that includes
+a \emph{brand} that is its name.
+The Typed Lua compiler uses this brand to combine structural with
+nominal type checking, so two different userdata are not subtype
+of each other because they do not share the same brand.
+The Typed Lua compiler searches for a description file when it cannot
 not find the respective Typed Lua file that is the argument of
-\texttt{require}, as we can also use description files to give and
-export the type of modules.
+\texttt{require}.
 
 The following example shows the description file for \texttt{lmd5},
 a MD5 digest library for Lua that is written in C:
@@ -1306,9 +1319,9 @@ More precisely, Tidal Lock allows the programmer to create an empty
 table to build its type according to the keys that the programmer
 inserts in it, so the programmer does not need to build the table in
 a single table constructor.
-Typed Lua has a simpler form of this feature, with a different
-formalization.
+This feature inspired us to introduce it into Typed Lua,
+but in a simpler way and with different formalization.
 Like Typed Lua, Tidal Lock also has local type inference.
 Unlike Typed Lua, Tidal Lock does not type the common object-oriented
-idioms used by Lua programmers.
+idioms used by Lua programmers, though it also uses subtyping.
 

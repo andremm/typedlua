@@ -20,7 +20,7 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 & | \; X_{i} & \textit{projection types}\\
-L ::= & \False \; | \; \True \; | \; {<}{\it number}{>} \; | \; {<}{\it string}{>} & \\
+L ::= & \False \; | \; \True \; | \; {\it number} \; | \; {\it string} & \\
 B ::= & \Boolean \; | \; \Number \; | \; \String & \\
 F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
 K ::= & L \; | \; B \; | \; \Value \; | \; \Any & \textit{key types}\\
@@ -71,12 +71,12 @@ $$
 \\ \\
 \begin{array}{c}
 \mylabel{S-NUMBER}\\
-\senv \vdash {<}{\it number}{>} \subtype \Number
+\senv \vdash {\it number} \subtype \Number
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-STRING}\\
-\senv \vdash {<}{\it string}{>} \subtype \String
+\senv \vdash {\it string} \subtype \String
 \end{array}
 \;
 \begin{array}{c}
@@ -275,12 +275,12 @@ $$
 \\ \\
 \begin{array}{c}
 \mylabel{C-NUMBER}\\
-\senv \vdash {<}{\it number}{>} \lesssim \Number
+\senv \vdash {\it number} \lesssim \Number
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{C-STRING}\\
-\senv \vdash {<}{\it string}{>} \lesssim \String
+\senv \vdash {\it string} \lesssim \String
 \end{array}
 \;
 \begin{array}{c}
@@ -478,8 +478,8 @@ a\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
 \mathbf{true} \; | \;
-{<}{\it number}{>} \; | \;
-{<}{\it string}{>} \; | \;
+{\it number} \; | \;
+{\it string} \; | \;
 {...} \; | \;
 f \; | \;
 \{ \; \vec{c}\; \} \\
@@ -493,7 +493,9 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 - e \; | \;
 \# \; e \; | \;
 a \; | \;
-l \\
+l \; | \;
+(e) \; | \;
+{<}t{>} \; e\\
 l ::= & \; n \; | \;
 e_{1}[e_{2}]\\
 a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
@@ -503,7 +505,7 @@ f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
 \mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
 \mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
 c ::= & \; [e_{1}] = e_{2}\\
-n ::= & \; {<}{\it name}{>}\\
+n ::= & \; {\it name}\\
 \end{array}
 $$
 \dend
