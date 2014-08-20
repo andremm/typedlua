@@ -803,7 +803,8 @@ function tltype.general (t)
     return tltype.Number()
   elseif tltype.isStr(t) then
     return tltype.String()
-  elseif tltype.isUnion(t) then
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) then
     local l = {}
     for k, v in ipairs(t) do
       table.insert(l, tltype.general(v))
@@ -833,6 +834,63 @@ function tltype.general (t)
 end
 
 -- first level type
+
+local function resize_tuple (t, n)
+  local tuple = { tag = "Tuple" }
+  local vararg = t[#t][1]
+  for i = 1, #t - 1 do
+    tuple[i] = t[i]
+  end
+  for i = #t, n - 1 do
+    if tltype.isNil(vararg) then
+      tuple[i] = vararg
+    else
+      tuple[i] = tltype.Union(vararg, Nil)
+    end
+  end
+  tuple[n] = tltype.Vararg(vararg)
+  return tuple
+end
+
+function tltype.unionlist2tuple (t)
+  local max = 1
+  for i = 1, #t do
+    if #t[i] > max then max = #t[i] end
+  end
+  local u = {}
+  for i = 1, #t do
+    if #t[i] < max then
+      u[i] = resize_tuple(t[i], max)
+    else
+      u[i] = t[i]
+    end
+  end
+  local l = {}
+  for i = 1, #u do
+    for j = 1, #u[i] do
+      if not l[j] then l[j] = {} end
+      table.insert(l[j], u[i][j])
+    end
+  end
+  local n = { tag = "Tuple" }
+  for i = 1, #l - 1 do
+    n[i] = tltype.Union(table.unpack(l[i]))
+  end
+  local vs = {}
+  for k, v in ipairs(l[#l]) do
+    table.insert(vs, v[1])
+  end
+  n[#l] = tltype.Vararg(tltype.Union(table.unpack(vs)))
+  return n
+end
+
+function tltype.unionlist2union (t, i)
+  local l = {}
+  for k, v in ipairs(t) do
+    l[#l + 1] = v[i]
+  end
+  return tltype.Union(table.unpack(l))
+end
 
 function tltype.first (t)
   if tltype.isTuple(t) then

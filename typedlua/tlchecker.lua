@@ -753,13 +753,40 @@ local function check_local_var (env, id, inferred_type, close_local)
   tlst.set_local(env, id)
 end
 
+local function unannotated_idlist (idlist)
+  for k, v in ipairs(idlist) do
+    if v[2] then return false end
+  end
+  return true
+end
+
+local function sized_unionlist (t)
+  for i = 1, #t - 1 do
+    if #t[i] ~= #t[i + 1] then return false end
+  end
+  return true
+end
+
 local function check_local (env, idlist, explist)
   check_explist(env, explist)
-  local tuple = explist2typegen(explist)
-  for k, v in ipairs(idlist) do
-    local t = tuple(k)
-    local close_local = explist[k] and explist[k].tag == "Id" and tltype.isTable(t)
-    check_local_var(env, v, t, close_local)
+  if unannotated_idlist(idlist) and
+     #explist == 1 and
+     tltype.isUnionlist(get_type(explist[1])) and
+     sized_unionlist(get_type(explist[1])) and
+     #idlist == #get_type(explist[1])[1] - 1 then
+    local t = get_type(explist[1])
+    for k, v in ipairs(idlist) do
+      set_type(v, t)
+      v.i = k
+      tlst.set_local(env, v)
+    end
+  else
+    local tuple = explist2typegen(explist)
+    for k, v in ipairs(idlist) do
+      local t = tuple(k)
+      local close_local = explist[k] and explist[k].tag == "Id" and tltype.isTable(t)
+      check_local_var(env, v, t, close_local)
+    end
   end
 end
 
@@ -912,6 +939,16 @@ local function tag2type (t)
   end
 end
 
+local function get_index (u, t, i)
+  if tltype.isUnionlist(u) then
+    for k, v in ipairs(u) do
+      if tltype.subtype(v[i], t) and tltype.subtype(t, v[i]) then
+        return k
+      end
+    end
+  end
+end
+
 local function check_if (env, stm)
   local l = {}
   for i = 1, #stm, 2 do
@@ -921,19 +958,32 @@ local function check_if (env, stm)
       if exp.tag == "Id" then
         local name = exp[1]
         l[name] = tlst.get_local(env, name)
-        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-        l[name].filter = Nil
-        set_type(l[name], tltype.filterUnion(get_type(l[name]), Nil))
+        if not tltype.isUnionlist(get_type(l[name])) then
+          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+          l[name].filter = Nil
+          set_type(l[name], tltype.filterUnion(get_type(l[name]), Nil))
+        else
+          local i = get_index(get_type(l[name]), Nil, l[name].i)
+          l[name].filter = table.remove(get_type(l[name]), i)
+        end
       elseif exp.tag == "Op" and exp[1] == "not" and exp[2].tag == "Id" then
         local name = exp[2][1]
         l[name] = tlst.get_local(env, name)
-        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-        if not l[name].filter then
-          l[name].filter = tltype.filterUnion(get_type(l[name]), Nil)
+        if not tltype.isUnionlist(get_type(l[name])) then
+          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+          if not l[name].filter then
+            l[name].filter = tltype.filterUnion(get_type(l[name]), Nil)
+          else
+            l[name].filter = tltype.filterUnion(l[name].filter, Nil)
+          end
+          set_type(l[name], Nil)
         else
-          l[name].filter = tltype.filterUnion(l[name].filter, Nil)
+          local i = get_index(get_type(l[name]), Nil, l[name].i)
+          l[name].filter = table.remove(get_type(l[name]), i)
+          local bkp = table.remove(get_type(l[name]))
+          table.insert(get_type(l[name]), l[name].filter)
+          l[name].filter = bkp
         end
-        set_type(l[name], Nil)
       elseif exp.tag == "Op" and exp[1] == "eq" and
              exp[2].tag == "Call" and exp[2][1].tag == "Index" and
              exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
@@ -942,13 +992,21 @@ local function check_if (env, stm)
         local name = exp[2][2][1]
         l[name] = tlst.get_local(env, name)
         local t = tag2type(get_type(exp[3]))
-        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-        if not l[name].filter then
-          l[name].filter = tltype.filterUnion(get_type(l[name]), t)
+        if not tltype.isUnionlist(get_type(l[name])) then
+          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+          if not l[name].filter then
+            l[name].filter = tltype.filterUnion(get_type(l[name]), t)
+          else
+            l[name].filter = tltype.filterUnion(l[name].filter, t)
+          end
+          set_type(l[name], t)
         else
-          l[name].filter = tltype.filterUnion(l[name].filter, t)
+          local i = get_index(get_type(l[name]), t, l[name].i)
+          l[name].filter = table.remove(get_type(l[name]), i)
+          local bkp = table.remove(get_type(l[name]))
+          table.insert(get_type(l[name]), l[name].filter)
+          l[name].filter = bkp
         end
-        set_type(l[name], t)
       elseif exp.tag == "Op" and exp[1] == "not" and
              exp[2].tag == "Op" and exp[2][1] == "eq" and
              exp[2][2].tag == "Call" and exp[2][2][1].tag == "Index" and
@@ -958,20 +1016,36 @@ local function check_if (env, stm)
         local name = exp[2][2][2][1]
         l[name] = tlst.get_local(env, name)
         local t = tag2type(get_type(exp[2][3]))
-        if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-        l[name].filter = t
-        set_type(l[name], tltype.filterUnion(get_type(l[name]), t))
+        if not tltype.isUnionlist(get_type(l[name])) then
+          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
+          l[name].filter = t
+          set_type(l[name], tltype.filterUnion(get_type(l[name]), t))
+        else
+          local i = get_index(get_type(l[name]), t, l[name].i)
+          l[name].filter = table.remove(get_type(l[name]), i)
+        end
       end
     else
       block = exp
     end
     check_block(env, block)
     for k, v in pairs(l) do
-      set_type(v, v.filter)
+      if not tltype.isTuple(v.filter) then
+        set_type(v, v.filter)
+      else
+        local t = get_type(v)
+        local bkp = table.remove(t)
+        table.insert(t, v.filter)
+        v.filter = bkp
+      end
     end
   end
   for k, v in pairs(l) do
-    set_type(v, v.bkp)
+    if not tltype.isUnionlist(get_type(v)) then
+      set_type(v, v.bkp)
+    else
+      table.insert(get_type(v), v.filter)
+    end
   end
 end
 
@@ -1026,7 +1100,12 @@ end
 local function check_id (env, exp)
   local name = exp[1]
   local l = tlst.get_local(env, name)
-  set_type(exp, get_type(l))
+  local t = get_type(l)
+  if tltype.isUnionlist(t) and l.i then
+    set_type(exp, tltype.unionlist2union(t, l.i))
+  else
+    set_type(exp, t)
+  end
 end
 
 local function check_index (env, exp)
