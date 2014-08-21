@@ -10,7 +10,7 @@ local tltype = {}
 
 -- Literal : (boolean|number|string) -> (type) 
 function tltype.Literal (l)
-  return { tag = "Literal", [1] = l }
+  return { tag = "TLiteral", [1] = l }
 end
 
 -- False : () -> (type)
@@ -35,7 +35,7 @@ end
 
 -- isLiteral : (type) -> (boolean)
 function tltype.isLiteral (t)
-  return t.tag == "Literal"
+  return t.tag == "TLiteral"
 end
 
 -- isFalse : (type) -> (boolean)
@@ -62,7 +62,7 @@ end
 
 -- Base : ("boolean"|"number"|"string") -> (type)
 function tltype.Base (s)
-  return { tag = "Base", [1] = s }
+  return { tag = "TBase", [1] = s }
 end
 
 -- Boolean : () -> (type)
@@ -82,7 +82,7 @@ end
 
 -- isBase : (type) -> (boolean)
 function tltype.isBase (t)
-  return t.tag == "Base"
+  return t.tag == "TBase"
 end
 
 -- isBoolean : (type) -> (boolean)
@@ -104,60 +104,60 @@ end
 
 -- Nil : () -> (type)
 function tltype.Nil ()
-  return { tag = "Nil" }
+  return { tag = "TNil" }
 end
 
 -- isNil : (type) -> (boolean)
 function tltype.isNil (t)
-  return t.tag == "Nil"
+  return t.tag == "TNil"
 end
 
 -- value type
 
 -- Value : () -> (type)
 function tltype.Value (t)
-  return { tag = "Value" }
+  return { tag = "TValue" }
 end
 
 -- isValue : (type) -> (boolean)
 function tltype.isValue (t)
-  return t.tag == "Value"
+  return t.tag == "TValue"
 end
 
 -- dynamic type
 
 -- Any : () -> (type)
 function tltype.Any ()
-  return { tag = "Any" }
+  return { tag = "TAny" }
 end
 
 -- isAny : (type) -> (boolean)
 function tltype.isAny (t)
-  return t.tag == "Any"
+  return t.tag == "TAny"
 end
 
 -- self type
 
 -- Self : () -> (type)
 function tltype.Self ()
-  return { tag = "Self" }
+  return { tag = "TSelf" }
 end
 
 -- isSelf : (type) -> (boolean)
 function tltype.isSelf (t)
-  return t.tag == "Self"
+  return t.tag == "TSelf"
 end
 
 -- void type
 
 -- Void : () -> (type)
 function tltype.Void ()
-  return { tag = "Void" }
+  return { tag = "TVoid" }
 end
 
 -- isVoid : (type) -> (boolean)
 function tltype.isVoid (t)
-  return t.tag == "Void"
+  return t.tag == "TVoid"
 end
 
 -- union types
@@ -189,7 +189,7 @@ function tltype.Union (...)
     if enter then table.insert(l3, l2[i]) end
   end
   -- simplify union
-  local t = { tag = "Union" }
+  local t = { tag = "TUnion" }
   for i = 1, #l3 do
     local enter = true
     for j = 1, #l3 do
@@ -210,9 +210,9 @@ end
 -- isUnion : (type, type?) -> (boolean)
 function tltype.isUnion (t1, t2)
   if not t2 then
-    return t1.tag == "Union"
+    return t1.tag == "TUnion"
   else
-    if t1.tag == "Union" then
+    if t1.tag == "TUnion" then
       for k, v in ipairs(t1) do
         if tltype.subtype(t2, v) and tltype.subtype(v, t2) then
           return true
@@ -253,12 +253,12 @@ end
 
 -- Vararg : (type) -> (type)
 function tltype.Vararg (t)
-  return { tag = "Vararg", [1] = t }
+  return { tag = "TVararg", [1] = t }
 end
 
 -- isVararg : (type) -> (boolean)
 function tltype.isVararg (t)
-  return t.tag == "Vararg"
+  return t.tag == "TVararg"
 end
 
 -- tuple types
@@ -268,7 +268,7 @@ function tltype.Tuple (l, is_vararg)
   if is_vararg then
     l[#l] = tltype.Vararg(l[#l])
   end
-  return { tag = "Tuple", table.unpack(l) }
+  return { tag = "TTuple", table.unpack(l) }
 end
 
 -- inputTuple : (type?, boolean) -> (type)
@@ -318,7 +318,7 @@ end
 
 -- isTuple : (type) -> (boolean)
 function tltype.isTuple (t)
-  return t.tag == "Tuple"
+  return t.tag == "TTuple"
 end
 
 -- union of tuple types
@@ -326,13 +326,13 @@ end
 -- Unionlist : (type*) -> (type)
 function tltype.Unionlist (...)
   local t = tltype.Union(...)
-  if tltype.isUnion(t) then t.tag = "Unionlist" end
+  if tltype.isUnion(t) then t.tag = "TUnionlist" end
   return t
 end
 
 -- isUnionlist : (type) -> (boolean)
 function tltype.isUnionlist (t)
-  return t.tag == "Unionlist"
+  return t.tag == "TUnionlist"
 end
 
 -- UnionlistNil : (type, boolean?) -> (type)
@@ -356,11 +356,11 @@ function tltype.Function (t1, t2, is_method)
       table.insert(t1, 1, tltype.Self())
     end
   end
-  return { tag = "Function", [1] = t1, [2] = t2 }
+  return { tag = "TFunction", [1] = t1, [2] = t2 }
 end
 
 function tltype.isFunction (t)
-  return t.tag == "Function"
+  return t.tag == "TFunction"
 end
 
 function tltype.isMethod (t)
@@ -378,27 +378,27 @@ end
 
 -- Field : (boolean, type, type) -> (field)
 function tltype.Field (is_const, t1, t2)
-  return { tag = "Field", const = is_const, [1] = t1, [2] = t2 }
+  return { tag = "TField", const = is_const, [1] = t1, [2] = t2 }
 end
 
 -- isField : (field) -> (boolean)
 function tltype.isField (f)
-  return f.tag == "Field" and not f.const
+  return f.tag == "TField" and not f.const
 end
 
 -- isConstField : (field) -> (boolean)
 function tltype.isConstField (f)
-  return f.tag == "Field" and f.const
+  return f.tag == "TField" and f.const
 end
 
 -- Table : (field*) -> (type)
 function tltype.Table (...)
-  return { tag = "Table", ... }
+  return { tag = "TTable", ... }
 end
 
 -- isTable : (type) -> (boolean)
 function tltype.isTable (t)
-  return t.tag == "Table"
+  return t.tag == "TTable"
 end
 
 -- getField : (type, type) -> (type)
@@ -450,24 +450,24 @@ end
 
 -- Variable : (string) -> (type)
 function tltype.Variable (name)
-  return { tag = "Variable", [1] = name }
+  return { tag = "TVariable", [1] = name }
 end
 
 -- isVariable : (type) -> (boolean)
 function tltype.isVariable (t)
-  return t.tag == "Variable"
+  return t.tag == "TVariable"
 end
 
 -- recursive types
 
 -- Recursive : (string, type) -> (type)
 function tltype.Recursive (x, t)
-  return { tag = "Recursive", [1] = x, [2] = t }
+  return { tag = "TRecursive", [1] = x, [2] = t }
 end
 
 -- isRecursive : (type) -> (boolean)
 function tltype.isRecursive (t)
-  return t.tag == "Recursive"
+  return t.tag == "TRecursive"
 end
 
 local function check_recursive (t, name)
@@ -836,7 +836,7 @@ end
 -- first level type
 
 local function resize_tuple (t, n)
-  local tuple = { tag = "Tuple" }
+  local tuple = { tag = "TTuple" }
   local vararg = t[#t][1]
   for i = 1, #t - 1 do
     tuple[i] = t[i]
@@ -872,7 +872,7 @@ function tltype.unionlist2tuple (t)
       table.insert(l[j], u[i][j])
     end
   end
-  local n = { tag = "Tuple" }
+  local n = { tag = "TTuple" }
   for i = 1, #l - 1 do
     n[i] = tltype.Union(table.unpack(l[i]))
   end

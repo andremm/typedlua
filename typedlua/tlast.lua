@@ -50,24 +50,27 @@ opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
   | 'eq' | 'lt' | 'le' | 'and' | 'or' | 'not' | 'unm' | 'len'
 
 type:
-  `Literal{ literal }
-  | `Base{ base }
-  | `Nil
-  | `Value
-  | `Any
-  | `Self
-  | `Union{ type type type* }
-  | `Function{ typelist typelist }
-  | `Table{ type type* }
-  | `Variable{ <string> }
-  | `Tuple{ type* }
-  | `Vararg{ type }
+  `TLiteral{ literal }
+  | `TBase{ base }
+  | `TNil
+  | `TValue
+  | `TAny
+  | `TSelf
+  | `TUnion{ type type type* }
+  | `TFunction{ type type }
+  | `TTable{ type type* }
+  | `TVariable{ <string> }
+  | `TRecursive{ <string> type }
+  | `TVoid
+  | `TUnionlist{ type type type* }
+  | `TTuple{ type type* }
+  | `TVararg{ type }
 
 literal: false | true | <number> | <string>
 
 base: 'boolean' | 'number' | 'string'
 
-field: `Field{ <string> type }
+field: `TField{ <string> type }
 ]]
 
 local tlast = {}
@@ -453,47 +456,47 @@ end
 function type2str (t)
   local tag = t.tag
   local str = "`" .. tag
-  if tag == "Literal" then
+  if tag == "TLiteral" then
     str = str .. " " .. tostring(t[1])
-  elseif tag == "Base" then
+  elseif tag == "TBase" then
     str = str .. " " .. t[1]
-  elseif tag == "Nil" or
-         tag == "Value" or
-         tag == "Any" or
-         tag == "Self" or
-         tag == "Void" then
-  elseif tag == "Union" or
-         tag == "Unionlist" then
+  elseif tag == "TNil" or
+         tag == "TValue" or
+         tag == "TAny" or
+         tag == "TSelf" or
+         tag == "TVoid" then
+  elseif tag == "TUnion" or
+         tag == "TUnionlist" then
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v)
     end
     str = str .. "{ " .. table.concat(l, ", ") .. " }"
-  elseif tag == "Function" then
+  elseif tag == "TFunction" then
     str = str .. "{ "
     str = str .. type2str(t[1]) .. ", "
     str = str .. type2str(t[2])
     str = str .. " }"
-  elseif tag == "Table" then
+  elseif tag == "TTable" then
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
     end
     str = str .. "{ " .. table.concat(l, ", ") .. " }"
-  elseif tag == "Variable" then
+  elseif tag == "TVariable" then
     str = str .. " " .. t[1]
-  elseif tag == "Recursive" then
+  elseif tag == "TRecursive" then
     str = str .. "{ "
     str = str .. t[1] .. ", "
     str = str .. type2str(t[2])
     str = str .. " }"
-  elseif tag == "Tuple" then
+  elseif tag == "TTuple" then
     local l = {}
     for k, v in ipairs(t) do
       l[k] = type2str(v)
     end
     return str .. "{ " .. table.concat(l, ", ") .. " }"
-  elseif tag == "Vararg" then
+  elseif tag == "TVararg" then
     return str .. "{ " .. type2str(t[1]) .. " }"
   else
     error("expecting a type, but got a " .. tag)
