@@ -924,7 +924,7 @@ s = [=[
 local interface Empty end
 ]=]
 e = [=[
-{ `Interface{ Empty, `Table{  } } }
+{ `Interface{ Empty, `TTable{  } } }
 ]=]
 
 r = parse(s)
@@ -936,7 +936,7 @@ local interface X
 end
 ]=]
 e = [=[
-{ `Interface{ X, `Table{ `Literal x:`Base number, `Literal y:`Base number, `Literal z:`Base number } } }
+{ `Interface{ X, `TTable{ `TLiteral x:`TBase number, `TLiteral y:`TBase number, `TLiteral z:`TBase number } } }
 ]=]
 
 r = parse(s)
@@ -949,7 +949,7 @@ local interface Person
 end
 ]=]
 e = [=[
-{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } } }
+{ `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral lastname:`TBase string } } }
 ]=]
 
 r = parse(s)
@@ -962,7 +962,7 @@ local interface Element
 end
 ]=]
 e = [=[
-{ `Interface{ Element, `Recursive{ Element, `Table{ `Literal info:`Base number, `Literal next:`Union{ `Variable Element, `Nil } } } } }
+{ `Interface{ Element, `TRecursive{ Element, `TTable{ `TLiteral info:`TBase number, `TLiteral next:`TUnion{ `TVariable Element, `TNil } } } } }
 ]=]
 
 r = parse(s)
@@ -972,7 +972,7 @@ s = [=[
 local userdata Empty end
 ]=]
 e = [=[
-{ `Userdata{ Empty, `Table{  } } }
+{ `Userdata{ Empty, `TTable{  } } }
 ]=]
 
 r = parse(s)
@@ -984,7 +984,7 @@ local userdata X
 end
 ]=]
 e = [=[
-{ `Userdata{ X, `Table{ `Literal x:`Base number, `Literal y:`Base number, `Literal z:`Base number } } }
+{ `Userdata{ X, `TTable{ `TLiteral x:`TBase number, `TLiteral y:`TBase number, `TLiteral z:`TBase number } } }
 ]=]
 
 r = parse(s)
@@ -996,7 +996,7 @@ local userdata File
 end
 ]=]
 e = [=[
-{ `Userdata{ File, `Table{ `Literal close:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } } } }
+{ `Userdata{ File, `TTable{ `TLiteral close:`TFunction{ `TTuple{ `TSelf, `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } } } }
 ]=]
 
 r = parse(s)
@@ -1315,7 +1315,7 @@ s = [=[
 local x:nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Nil }, {  } } }
+{ `Local{ { `Id "x":`TNil }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1325,7 +1325,7 @@ s = [=[
 local x:false, y:true
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Literal false, `Id "y":`Literal true }, {  } } }
+{ `Local{ { `Id "x":`TLiteral false, `Id "y":`TLiteral true }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1335,7 +1335,7 @@ s = [=[
 local x:1, y:1.1
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Literal 1, `Id "y":`Literal 1.1 }, {  } } }
+{ `Local{ { `Id "x":`TLiteral 1, `Id "y":`TLiteral 1.1 }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1345,7 +1345,7 @@ s = [=[
 local x:"hello", y:'world' 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Literal hello, `Id "y":`Literal world }, {  } } }
+{ `Local{ { `Id "x":`TLiteral hello, `Id "y":`TLiteral world }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1355,7 +1355,7 @@ s = [=[
 local x:boolean, y:number, z:string 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base number, `Id "z":`Base string }, {  } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TBase number, `Id "z":`TBase string }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1365,7 +1365,7 @@ s = [=[
 local x:any
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Any }, {  } } }
+{ `Local{ { `Id "x":`TAny }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1375,7 +1375,7 @@ s = [=[
 local x:number?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1385,7 +1385,7 @@ s = [=[
 local x:number|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1395,7 +1395,7 @@ s = [=[
 local x:number|string|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1405,7 +1405,7 @@ s = [=[
 local x:number|nil|nil|nil|nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1415,7 +1415,7 @@ s = [=[
 local x:number|nil|string|nil|number|boolean|string
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Nil, `Base number, `Base boolean, `Base string } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TNil, `TBase number, `TBase boolean, `TBase string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1425,7 +1425,7 @@ s = [=[
 local x:number|string?
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1435,7 +1435,7 @@ s = [=[
 local x:(number) -> (number)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, {  } } }
+{ `Local{ { `Id "x":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1445,7 +1445,7 @@ s = [=[
 local x:(value*) -> (nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } }, {  } } }
+{ `Local{ { `Id "x":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1455,7 +1455,7 @@ s = [=[
 local x:(number,string,boolean) -> (string,number,boolean)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Base boolean, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Base boolean, `Vararg{ `Nil } } } }, {  } } }
+{ `Local{ { `Id "x":`TFunction{ `TTuple{ `TBase number, `TBase string, `TBase boolean, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TBase number, `TBase boolean, `TVararg{ `TNil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1465,7 +1465,7 @@ s = [=[
 local x:(number,string,value*) -> (string,number,nil*)
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Function{ `Tuple{ `Base number, `Base string, `Vararg{ `Value } }, `Tuple{ `Base string, `Base number, `Vararg{ `Nil } } } }, {  } } }
+{ `Local{ { `Id "x":`TFunction{ `TTuple{ `TBase number, `TBase string, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TBase number, `TVararg{ `TNil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1475,7 +1475,7 @@ s = [=[
 local x:{}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{  } }, {  } } }
+{ `Local{ { `Id "x":`TTable{  } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1485,7 +1485,7 @@ s = [=[
 local x:{{{{{}}}}}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Base number:`Table{ `Base number:`Table{ `Base number:`Table{ `Base number:`Table{  } } } } } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase number:`TTable{ `TBase number:`TTable{ `TBase number:`TTable{ `TBase number:`TTable{  } } } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1495,7 +1495,7 @@ s = [=[
 local x:{string}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Base number:`Base string } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase number:`TBase string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1505,7 +1505,7 @@ s = [=[
 local x:{string:number}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Base string:`Base number } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase string:`TBase number } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1515,7 +1515,7 @@ s = [=[
 local x:{'firstname':string, 'lastname':string}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TLiteral firstname:`TBase string, `TLiteral lastname:`TBase string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1525,7 +1525,7 @@ s = [=[
 local x:{'tag':string, number:string}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Literal tag:`Base string, `Base number:`Base string } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TLiteral tag:`TBase string, `TBase number:`TBase string } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1535,7 +1535,7 @@ s = [=[
 local x:{'f':(number) -> (number), 't':{number:number}}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Table{ `Literal f:`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } }, `Literal t:`Table{ `Base number:`Base number } } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TLiteral f:`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } }, `TLiteral t:`TTable{ `TBase number:`TBase number } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1545,7 +1545,7 @@ s = [=[
 for k:number, v:string in ipairs({"hello", "world"}) do end
 ]=]
 e = [=[
-{ `Forin{ { `Id "k":`Base number, `Id "v":`Base string }, { `Call{ `Index{ `Id "_ENV", `String "ipairs" }, `Table{ `String "hello", `String "world" } } }, {  } } }
+{ `Forin{ { `Id "k":`TBase number, `Id "v":`TBase string }, { `Call{ `Index{ `Id "_ENV", `String "ipairs" }, `Table{ `String "hello", `String "world" } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1555,7 +1555,7 @@ s = [=[
 for k:string, v in pairs({}) do end
 ]=]
 e = [=[
-{ `Forin{ { `Id "k":`Base string, `Id "v" }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Table } }, {  } } }
+{ `Forin{ { `Id "k":`TBase string, `Id "v" }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Table } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1565,7 +1565,7 @@ s = [=[
 for k, v:boolean in pairs({}) do end
 ]=]
 e = [=[
-{ `Forin{ { `Id "k", `Id "v":`Base boolean }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Table } }, {  } } }
+{ `Forin{ { `Id "k", `Id "v":`TBase boolean }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Table } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1575,7 +1575,7 @@ s = [=[
 local function f (x:any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TAny }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1585,7 +1585,7 @@ s = [=[
 local function f (x:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any }:`Tuple{ `Any, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TAny }:`TTuple{ `TAny, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1595,7 +1595,7 @@ s = [=[
 local function f (...:any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Dots:`Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Dots:`TAny }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1605,7 +1605,7 @@ s = [=[
 local function f (x:any, ...:any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TAny, `Dots:`TAny }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1615,7 +1615,7 @@ s = [=[
 local function f (x, ...:any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x", `Dots:`Any }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x", `Dots:`TAny }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1625,7 +1625,7 @@ s = [=[
 local function f (x:any, ...) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TAny, `Dots }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1635,7 +1635,7 @@ s = [=[
 local function f (x:any, ...:any):(any) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Any, `Dots:`Any }:`Tuple{ `Any, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TAny, `Dots:`TAny }:`TTuple{ `TAny, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1645,7 +1645,7 @@ s = [=[
 local function f (x:(any) -> (any)):((any) -> (any)) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Any, `Vararg{ `Value } }, `Tuple{ `Any, `Vararg{ `Nil } } } }:`Tuple{ `Function{ `Tuple{ `Any, `Vararg{ `Value } }, `Tuple{ `Any, `Vararg{ `Nil } } }, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TFunction{ `TTuple{ `TAny, `TVararg{ `TValue } }, `TTuple{ `TAny, `TVararg{ `TNil } } } }:`TTuple{ `TFunction{ `TTuple{ `TAny, `TVararg{ `TValue } }, `TTuple{ `TAny, `TVararg{ `TNil } } }, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1655,7 +1655,7 @@ s = [=[
 local function f (x:(number, number) -> (number, nil*)):(number*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }:`Tuple{ `Vararg{ `Base number } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ { `Id "x":`TFunction{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }:`TTuple{ `TVararg{ `TBase number } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1665,7 +1665,7 @@ s = [=[
 local function f ():(number, nil*) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`TTuple{ `TBase number, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1675,7 +1675,7 @@ s = [=[
 local function f ():number end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Base number, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`TTuple{ `TBase number, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1685,7 +1685,7 @@ s = [=[
 local function f ():number? end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Tuple{ `Union{ `Base number, `Nil }, `Vararg{ `Nil } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`TTuple{ `TUnion{ `TBase number, `TNil }, `TVararg{ `TNil } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1695,7 +1695,7 @@ s = [=[
 local function f ():(number) | (nil,string) end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -1705,7 +1705,7 @@ s = [=[
 local function f ():(number)? end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "f" }, { `Function{ {  }:`Unionlist{ `Tuple{ `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, {  } } } } }
+{ `Localrec{ { `Id "f" }, { `Function{ {  }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, {  } } } } }
 ]=]
 
 r = parse(s)
@@ -2746,7 +2746,7 @@ s = [=[
 local x:value, y:value, z:value = 1, "foo"
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Value, `Id "y":`Value, `Id "z":`Value }, { `Number "1", `String "foo" } } }
+{ `Local{ { `Id "x":`TValue, `Id "y":`TValue, `Id "z":`TValue }, { `Number "1", `String "foo" } } }
 ]=]
 
 r = typecheck(s)
@@ -2766,7 +2766,7 @@ s = [=[
 local x:number, y:string, z:boolean = 1, "foo", false
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Base string, `Id "z":`Base boolean }, { `Number "1", `String "foo", `False } } }
+{ `Local{ { `Id "x":`TBase number, `Id "y":`TBase string, `Id "z":`TBase boolean }, { `Number "1", `String "foo", `False } } }
 ]=]
 
 r = typecheck(s)
@@ -2776,7 +2776,7 @@ s = [=[
 local x:boolean, y:nil = true, nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Nil }, { `True, `Nil } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TNil }, { `True, `Nil } } }
 ]=]
 
 r = typecheck(s)
@@ -2786,7 +2786,7 @@ s = [=[
 local x:number?, y:number|nil = 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil }, `Id "y":`Union{ `Base number, `Nil } }, { `Number "1" } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil }, `Id "y":`TUnion{ `TBase number, `TNil } }, { `Number "1" } } }
 ]=]
 
 r = typecheck(s)
@@ -2796,7 +2796,7 @@ s = [=[
 local x:number = 1 + 1
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number }, { `Op{ "add", `Number "1", `Number "1" } } } }
+{ `Local{ { `Id "x":`TBase number }, { `Op{ "add", `Number "1", `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2806,7 +2806,7 @@ s = [=[
 local x:string = "hello" .. "world"
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base string }, { `Op{ "concat", `String "hello", `String "world" } } } }
+{ `Local{ { `Id "x":`TBase string }, { `Op{ "concat", `String "hello", `String "world" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2816,7 +2816,7 @@ s = [=[
 local x:boolean, y:boolean = nil == false, false == true
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "eq", `Nil, `False }, `Op{ "eq", `False, `True } } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TBase boolean }, { `Op{ "eq", `Nil, `False }, `Op{ "eq", `False, `True } } } }
 ]=]
 
 r = typecheck(s)
@@ -2826,7 +2826,7 @@ s = [=[
 local x:boolean, y:boolean = 1 == 2, "foo" == "bar"
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "eq", `Number "1", `Number "2" }, `Op{ "eq", `String "foo", `String "bar" } } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TBase boolean }, { `Op{ "eq", `Number "1", `Number "2" }, `Op{ "eq", `String "foo", `String "bar" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2836,7 +2836,7 @@ s = [=[
 local x:boolean, y:boolean = 1 < 2, "foo" < "bar"
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "lt", `Number "1", `Number "2" }, `Op{ "lt", `String "foo", `String "bar" } } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TBase boolean }, { `Op{ "lt", `Number "1", `Number "2" }, `Op{ "lt", `String "foo", `String "bar" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2846,7 +2846,7 @@ s = [=[
 local x:nil, y:boolean = nil and 1, false and 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Nil, `Id "y":`Base boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
+{ `Local{ { `Id "x":`TNil, `Id "y":`TBase boolean }, { `Op{ "and", `Nil, `Number "1" }, `Op{ "and", `False, `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2856,7 +2856,7 @@ s = [=[
 local x:number, y:string? = 1 and 2, "foo" and nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Nil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`TBase number, `Id "y":`TUnion{ `TBase string, `TNil } }, { `Op{ "and", `Number "1", `Number "2" }, `Op{ "and", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2866,7 +2866,7 @@ s = [=[
 local x:number, y:number = nil or 1, false or 1 
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Base number }, { `Op{ "or", `Nil, `Number "1" }, `Op{ "or", `False, `Number "1" } } } }
+{ `Local{ { `Id "x":`TBase number, `Id "y":`TBase number }, { `Op{ "or", `Nil, `Number "1" }, `Op{ "or", `False, `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2876,7 +2876,7 @@ s = [=[
 local x:number, y:string? = 1 or 2, "foo" or nil
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number, `Id "y":`Union{ `Base string, `Nil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
+{ `Local{ { `Id "x":`TBase number, `Id "y":`TUnion{ `TBase string, `TNil } }, { `Op{ "or", `Number "1", `Number "2" }, `Op{ "or", `String "foo", `Nil } } } }
 ]=]
 
 r = typecheck(s)
@@ -2887,7 +2887,7 @@ local x:number?
 local y:number = x or 0
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `Local{ { `Id "y":`Base number }, { `Op{ "or", `Id "x", `Number "0" } } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `Local{ { `Id "y":`TBase number }, { `Op{ "or", `Id "x", `Number "0" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2897,7 +2897,7 @@ s = [=[
 local x:boolean, y:boolean = not nil, not false
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base boolean, `Id "y":`Base boolean }, { `Op{ "not", `Nil }, `Op{ "not", `False } } } }
+{ `Local{ { `Id "x":`TBase boolean, `Id "y":`TBase boolean }, { `Op{ "not", `Nil }, `Op{ "not", `False } } } }
 ]=]
 
 r = typecheck(s)
@@ -2907,7 +2907,7 @@ s = [=[
 local x:number = -1
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number }, { `Op{ "unm", `Number "1" } } } }
+{ `Local{ { `Id "x":`TBase number }, { `Op{ "unm", `Number "1" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2917,7 +2917,7 @@ s = [=[
 local x:number = #"foo"
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Base number }, { `Op{ "len", `String "foo" } } } }
+{ `Local{ { `Id "x":`TBase number }, { `Op{ "len", `String "foo" } } } }
 ]=]
 
 r = typecheck(s)
@@ -2992,7 +2992,7 @@ else
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Id "x", { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Id "x", { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3007,7 +3007,7 @@ else
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "not", `Id "x" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "not", `Id "x" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3022,7 +3022,7 @@ else
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3037,7 +3037,7 @@ else
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Nil } }, {  } }, `If{ `Op{ "not", `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "not", `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3059,7 +3059,7 @@ x = y
 y = x
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "string" }, { `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "string" }, { `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
 ]=]
 
 r = typecheck(s)
@@ -3084,7 +3084,7 @@ x = y
 y = x
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`Union{ `Base number, `Base string, `Nil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "nil" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "nil" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "y is nil" } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } }, `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
+{ `Local{ { `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "nil" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "nil" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "y is nil" } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } }, `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
 ]=]
 
 r = typecheck(s)
@@ -3094,7 +3094,7 @@ s = [=[
 for i = 1, 10 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i":`Base number, `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i":`TBase number, `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3104,7 +3104,7 @@ s = [=[
 for i = 10, 1, -1 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i":`Base number, `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i":`TBase number, `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3475,7 +3475,7 @@ local function fib (n:number):number
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "fib":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "0" } }, `Op{ "eq", `Id "n", `Number "1" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "add", `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "1" } }, `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "2" } } } } } } } } } } }
+{ `Localrec{ { `Id "fib":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "n":`TBase number }:`TTuple{ `TBase number, `TVararg{ `TNil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "0" } }, `Op{ "eq", `Id "n", `Number "1" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "add", `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "1" } }, `Call{ `Id "fib", `Op{ "sub", `Id "n", `Number "2" } } } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3495,7 +3495,7 @@ local x = 5
 print(factorial(x))
 ]=]
 e = [=[
-{ `Localrec{ { `Id "factorial":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }:`Tuple{ `Base number, `Vararg{ `Nil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "factorial", `Id "x" } } }
+{ `Localrec{ { `Id "factorial":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "n":`TBase number }:`TTuple{ `TBase number, `TVararg{ `TNil } }, { `If{ `Op{ "eq", `Id "n", `Number "0" }, { `Return{ `Number "1" } }, { `Return{ `Op{ "mul", `Id "n", `Call{ `Id "factorial", `Op{ "sub", `Id "n", `Number "1" } } } } } } } } } }, `Local{ { `Id "x" }, { `Number "5" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "factorial", `Id "x" } } }
 ]=]
 
 r = typecheck(s)
@@ -3515,7 +3515,7 @@ local function distance(x, y)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "abs":`Function{ `Tuple{ `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "n":`Base number }, { `If{ `Op{ "lt", `Id "n", `Number "0" }, { `Return{ `Op{ "unm", `Id "n" } } }, { `Return{ `Id "n" } } } } } } }, `Localrec{ { `Id "distance":`Function{ `Tuple{ `Any, `Any, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Any, `Id "y":`Any }, { `Return{ `Call{ `Id "abs", `Op{ "sub", `Id "x", `Id "y" } } } } } } } }
+{ `Localrec{ { `Id "abs":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "n":`TBase number }, { `If{ `Op{ "lt", `Id "n", `Number "0" }, { `Return{ `Op{ "unm", `Id "n" } } }, { `Return{ `Id "n" } } } } } } }, `Localrec{ { `Id "distance":`TFunction{ `TTuple{ `TAny, `TAny, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil }, `TVararg{ `TNil } } } }, { `Function{ { `Id "x":`TAny, `Id "y":`TAny }, { `Return{ `Call{ `Id "abs", `Op{ "sub", `Id "x", `Id "y" } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3532,7 +3532,7 @@ local x, y, z = multiple(), multiple()
 print(sum(multiple(), multiple()))
 ]=]
 e = [=[
-{ `Localrec{ { `Id "multiple":`Function{ `Tuple{ `Vararg{ `Value } }, `Tuple{ `Base number, `Base string, `Vararg{ `Nil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } }, { `Function{ { `Id "x":`Base number, `Id "y":`Base number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } } }
+{ `Localrec{ { `Id "multiple":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TBase number, `TBase string, `TVararg{ `TNil } } } }, { `Function{ {  }, { `Return{ `Number "2", `String "foo" } } } } }, `Localrec{ { `Id "sum":`TFunction{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "x":`TBase number, `Id "y":`TBase number }, { `Return{ `Op{ "add", `Id "x", `Id "y" } } } } } }, `Local{ { `Id "x", `Id "y", `Id "z" }, { `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "sum", `Call{ `Id "multiple" }, `Call{ `Id "multiple" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3548,7 +3548,7 @@ print(message("Lua"))
 print(message("Lua", "Hi"))
 ]=]
 e = [=[
-{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Local{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua", `String "Hi" } } }
+{ `Localrec{ { `Id "message":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "name":`TBase string, `Id "greeting":`TUnion{ `TBase string, `TNil } }, { `Local{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Call{ `Id "message", `String "Lua", `String "Hi" } } }
 ]=]
 
 r = typecheck(s)
@@ -3561,7 +3561,7 @@ local function message (name:string, greeting:string?)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "message":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "name":`Base string, `Id "greeting":`Union{ `Base string, `Nil } }, { `Set{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } } }
+{ `Localrec{ { `Id "message":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "name":`TBase string, `Id "greeting":`TUnion{ `TBase string, `TNil } }, { `Set{ { `Id "greeting" }, { `Op{ "or", `Id "greeting", `String "Hello " } } }, `Return{ `Op{ "concat", `Id "greeting", `Id "name" } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3618,7 +3618,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "rep":`Function{ `Tuple{ `Base string, `Base number, `Union{ `Base string, `Nil }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil } } } }, { `Function{ { `Id "s":`Base string, `Id "n":`Base number, `Id "sep":`Union{ `Base string, `Nil } }:`Tuple{ `Base string, `Vararg{ `Nil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`Base number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil }, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3634,7 +3634,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "overload":`Function{ `Tuple{ `Base string, `Union{ `Base string, `Base number }, `Vararg{ `Value } }, `Tuple{ `Base string, `Vararg{ `Nil }, `Vararg{ `Nil } } } }, { `Function{ { `Id "s1":`Base string, `Id "s2":`Union{ `Base string, `Base number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil }, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3661,7 +3661,7 @@ else
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "idiv":`Function{ `Tuple{ `Base number, `Base number, `Vararg{ `Value } }, `Unionlist{ `Tuple{ `Base number, `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } } } }, { `Function{ { `Id "d1":`Base number, `Id "d2":`Base number }:`Unionlist{ `Tuple{ `Base number, `Base number, `Vararg{ `Nil } }, `Tuple{ `Nil, `Base string, `Vararg{ `Nil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`Base number, `Id "msg":`Base string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
+{ `Localrec{ { `Id "idiv":`TFunction{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "d1":`TBase number, `Id "d2":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`TBase number, `Id "msg":`TBase string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3673,7 +3673,7 @@ local x:number = t.foo
 local y:number = t["bar"]
 ]=]
 e = [=[
-{ `Local{ { `Id "t":`Table{ `Base string:`Base number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`Base number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`Base number }, { `Index{ `Id "t", `String "bar" } } } }
+{ `Local{ { `Id "t":`TTable{ `TBase string:`TBase number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`TBase number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`TBase number }, { `Index{ `Id "t", `String "bar" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3710,7 +3710,7 @@ local x = days[1]
 local y = days[8]
 ]=]
 e = [=[
-{ `Local{ { `Id "days":`Table{ `Base number:`Base string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
+{ `Local{ { `Id "days":`TTable{ `TBase number:`TBase string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3763,7 +3763,7 @@ local person:{"firstname":string, "lastname":string} =
   { firstname = "Lou", lastname = "Reed" }
 ]=]
 e = [=[
-{ `Local{ { `Id "person":`Table{ `Literal firstname:`Base string, `Literal lastname:`Base string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
+{ `Local{ { `Id "person":`TTable{ `TLiteral firstname:`TBase string, `TLiteral lastname:`TBase string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3806,7 +3806,7 @@ local user1:Person = { firstname = "Lewis", middlename = "Allan" or nil, lastnam
 local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
-{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user1":`Variable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`Variable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+{ `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user1":`TVariable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`TVariable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3819,7 +3819,7 @@ local interface Element
 end
 ]=]
 e = [=[
-{ `Interface{ Element, `Table{ `Literal info:`Base number, `Literal next:`Union{ `Variable Elment, `Nil } } } }
+{ `Interface{ Element, `TTable{ `TLiteral info:`TBase number, `TLiteral next:`TUnion{ `TVariable Elment, `TNil } } } }
 ]=]
 
 r = typecheck(s)
@@ -3903,7 +3903,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+{ `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`TVariable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)
@@ -3923,7 +3923,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-{ `Interface{ Person, `Table{ `Literal firstname:`Base string, `Literal middlename:`Union{ `Base string, `Nil }, `Literal lastname:`Base string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`Variable Person }, { `Id "user" } } }
+{ `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lewis" } }, `Set{ { `Index{ `Id "user", `String "middlename" } }, { `Op{ "or", `String "Allan", `Nil } } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`TVariable Person }, { `Id "user" } } }
 ]=]
 
 r = typecheck(s)
@@ -3978,7 +3978,7 @@ local circle1 = Circle:new(0, 5, 10)
 local circle2:Circle = Circle:new(10, 10, 15)
 ]=]
 e = [=[
-{ `Interface{ Shape, `Table{ `Literal x:`Base number, `Literal y:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `Set{ { `Index{ `Id "Shape", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number }, { `Local{ { `Id "s" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } } }, `Set{ { `Index{ `Id "Shape", `String "move" } }, { `Function{ { `Id "self":`Self, `Id "dx":`Base number, `Id "dy":`Base number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`Variable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `Table{ `Literal x:`Base number, `Literal y:`Base number, `Literal radius:`Base number, `Literal new:`Function{ `Tuple{ `Self, `Base number, `Base number, `Value, `Vararg{ `Value } }, `Tuple{ `Self, `Vararg{ `Nil } } }, `Literal move:`Function{ `Tuple{ `Self, `Base number, `Base number, `Vararg{ `Value } }, `Tuple{ `Vararg{ `Nil } } }, `Literal area:`Function{ `Tuple{ `Self, `Vararg{ `Value } }, `Tuple{ `Base number, `Vararg{ `Nil } } } } }, `Local{ { `Id "Circle" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `Set{ { `Index{ `Id "Circle", `String "new" } }, { `Function{ { `Id "self":`Self, `Id "x":`Base number, `Id "y":`Base number, `Id "radius":`Value }, { `Local{ { `Id "c" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } } }, `Set{ { `Index{ `Id "Circle", `String "area" } }, { `Function{ { `Id "self":`Self }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`Variable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
+{ `Interface{ Shape, `TTable{ `TLiteral x:`TBase number, `TLiteral y:`TBase number, `TLiteral new:`TFunction{ `TTuple{ `TSelf, `TBase number, `TBase number, `TVararg{ `TValue } }, `TTuple{ `TSelf, `TVararg{ `TNil } } }, `TLiteral move:`TFunction{ `TTuple{ `TSelf, `TBase number, `TBase number, `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } } }, `Local{ { `Id "Shape" }, { `Table{ `Pair{ `String "x", `Number "0" }, `Pair{ `String "y", `Number "0" } } } }, `Set{ { `Index{ `Id "Shape", `String "new" } }, { `Function{ { `Id "self":`TSelf, `Id "x":`TBase number, `Id "y":`TBase number }, { `Local{ { `Id "s" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "s", `String "x" } }, { `Id "x" } }, `Set{ { `Index{ `Id "s", `String "y" } }, { `Id "y" } }, `Return{ `Id "s" } } } } }, `Set{ { `Index{ `Id "Shape", `String "move" } }, { `Function{ { `Id "self":`TSelf, `Id "dx":`TBase number, `Id "dy":`TBase number }, { `Set{ { `Index{ `Id "self", `String "x" } }, { `Op{ "add", `Index{ `Id "self", `String "x" }, `Id "dx" } } }, `Set{ { `Index{ `Id "self", `String "y" } }, { `Op{ "add", `Index{ `Id "self", `String "y" }, `Id "dy" } } } } } } }, `Local{ { `Id "shape1" }, { `Invoke{ `Id "Shape", `String "new", `Number "0", `Number "5" } } }, `Local{ { `Id "shape2":`TVariable Shape }, { `Invoke{ `Id "Shape", `String "new", `Number "10", `Number "10" } } }, `Interface{ Circle, `TTable{ `TLiteral x:`TBase number, `TLiteral y:`TBase number, `TLiteral radius:`TBase number, `TLiteral new:`TFunction{ `TTuple{ `TSelf, `TBase number, `TBase number, `TValue, `TVararg{ `TValue } }, `TTuple{ `TSelf, `TVararg{ `TNil } } }, `TLiteral move:`TFunction{ `TTuple{ `TSelf, `TBase number, `TBase number, `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } }, `TLiteral area:`TFunction{ `TTuple{ `TSelf, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } } }, `Local{ { `Id "Circle" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Table, `Table{ `Pair{ `String "__index", `Id "Shape" } } } } }, `Set{ { `Index{ `Id "Circle", `String "radius" } }, { `Number "0" } }, `Set{ { `Index{ `Id "Circle", `String "new" } }, { `Function{ { `Id "self":`TSelf, `Id "x":`TBase number, `Id "y":`TBase number, `Id "radius":`TValue }, { `Local{ { `Id "c" }, { `Call{ `Index{ `Id "_ENV", `String "setmetatable" }, `Invoke{ `Id "Shape", `String "new", `Id "x", `Id "y" }, `Table{ `Pair{ `String "__index", `Id "self" } } } } }, `Set{ { `Index{ `Id "c", `String "radius" } }, { `Op{ "or", `Call{ `Index{ `Id "_ENV", `String "tonumber" }, `Id "radius" }, `Number "0" } } }, `Return{ `Id "c" } } } } }, `Set{ { `Index{ `Id "Circle", `String "area" } }, { `Function{ { `Id "self":`TSelf }, { `Return{ `Op{ "mul", `Op{ "mul", `Number "3.14", `Index{ `Id "self", `String "radius" } }, `Index{ `Id "self", `String "radius" } } } } } } }, `Local{ { `Id "circle1" }, { `Invoke{ `Id "Circle", `String "new", `Number "0", `Number "5", `Number "10" } } }, `Local{ { `Id "circle2":`TVariable Circle }, { `Invoke{ `Id "Circle", `String "new", `Number "10", `Number "10", `Number "15" } } } }
 ]=]
 
 r = typecheck(s)
