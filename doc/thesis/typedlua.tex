@@ -537,32 +537,32 @@ Although Typed Lua has just one framework to represent tables,
 it has three different syntaxes for defining the type of a table:
 \begin{align}
 \label{syn:table1}
-\texttt{\{k:t\}} & \equiv \texttt{\{k:t|nil\}}\\
+\texttt{`\{'} \; \textit{keytype} \; \texttt{`:'} \; \textit{type} \; \texttt{`\}'}\\
 \label{syn:table2}
-\texttt{\{t\}} & \equiv \texttt{\{number:t|nil\}}\\
+\texttt{`\{'} \; \textit{type} \; \texttt{`\}'}\\
 \label{syn:table3}
-\texttt{\{k}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
-\texttt{, ..., k}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}} & \equiv
-\texttt{\{k}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
-\texttt{, ..., k}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}
+\texttt{`\{'} \; \textit{literaltype} \; \texttt{`:'} \; \textit{type} \;
+\{\texttt{`,'} \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}\} \;
+[\texttt{`,'} \; \textit{type}] \; \texttt{`\}'}
 \end{align}
-The first syntax defines table types for maps:
+The syntax \ref{syn:table1} defines table types for maps:
 it is written \texttt{\{k:t\}},
 and maps to the table type \texttt{\{k:t|nil\}}.
 This table type represents a map that maps values of type
 \texttt{k} to values of type \texttt{t|nil},
 as Lua returns \texttt{nil} when we use a non-existing key to index a table.
-The second syntax defines table types for arrays:
+The syntax \ref{syn:table2} defines table types for arrays:
 it is written \texttt{\{t\}},
 and maps to the table type \texttt{\{number:t|nil\}}.
 This table type is just a syntactic sugar to the definition of a
 map that maps values of type \texttt{number} to values of type \texttt{t|nil}.
-The third syntax defines table types for records: it is written
-$\texttt{\{k}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
-\texttt{, ..., k}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$,
+The syntax \ref{syn:table3} defines table types for records with an
+optional array part: it is written
+$\texttt{\{l}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
+\texttt{, ..., l}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$,
 and maps to the same table type.
 This table type represents a record that maps the literal types
-$\texttt{k}_{\texttt{i}}$\texttt{, ..., }$\texttt{k}_{\texttt{n}}$
+$\texttt{l}_{\texttt{i}}$\texttt{, ..., }$\texttt{l}_{\texttt{n}}$
 to values of types $\texttt{t}_{\texttt{i}}$\texttt{, ..., }$\texttt{t}_{\texttt{n}}$.
 
 Next, we show one example of table type to type a map from strings to numbers:
@@ -613,7 +613,8 @@ is out of bounds.
 We can also use the style of the inferred type to define heterogeneous
 tuples:
 \begin{verbatim}
-    local album = { "Transformer", 1972, "Lou Reed" }
+    local album:{1:string, 2:number, 3:string} =
+      { "Transformer", 1972, "Lou Reed" }
 \end{verbatim}
 
 The next example shows how we can annotate a \texttt{map} function
@@ -688,7 +689,7 @@ variable of this record type, as we show in the following example:
       lastname:string
     end
     local user1:Person = { firstname = "Lewis",
-                           middlename = "Allan" or nil,
+                           middlename = "Allan",
                            lastname = "Reed" }
     local user2:Person = { lastname = "Reed",
                            firstname = "Lou" }
@@ -699,9 +700,6 @@ that the Typed Lua compiler assigns to the above table constructors
 is a subtype of
 \texttt{\{"firstname":string, "middlename":string|nil, "lastname":string\}},
 the type that \texttt{Person} describes.
-While declaring \texttt{user1}, we use \texttt{or} to cast the type of
-\texttt{middlename} because of the contravariance in the type of
-mutable fields.
 
 We can also use interfaces to define recursive types such as liked lists:
 
@@ -1244,7 +1242,7 @@ The Typed Lua compiler searches for a description file when it cannot
 not find the respective Typed Lua file that is the argument of
 \texttt{require}.
 
-The following example shows the description file for \texttt{lmd5},
+The following example shows the description file for \texttt{lmd5} \citep{lmd5},
 a MD5 digest library for Lua that is written in C:
 \begin{verbatim}
     userdata md5_context
