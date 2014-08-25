@@ -1,7 +1,7 @@
 userdata md5_context
   __tostring : (self) -> (string)
   clone : (self) -> (self)
-  digest : (self|string, value?) -> (string)
+  digest : (self|string, value) -> (string)
   new : () -> (self)
   reset : (self) -> (self)
   update : (self, string*) -> (self)
