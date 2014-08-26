@@ -198,19 +198,21 @@ local function check_tld (env, name, path)
   return t
 end
 
-local function check_require (env, name)
+local function check_require (env, name, pos)
   if not env["loaded"][name] then
-    package.path = package.path .. ";./typedlua/?.lua"
     local path = string.gsub(package.path, "[.]lua", ".tl")
-    local filepath = searchpath(name, path)
+    local filepath, msg1 = searchpath(name, path)
     if filepath then
       env["loaded"][name] = check_tl(env, name, filepath)
     else
       path = string.gsub(package.path, "[.]lua", ".tld")
-      filepath = searchpath(name, path)
+      local filepath, msg2 = searchpath(name, path)
       if filepath then
         env["loaded"][name] = check_tld(env, name, filepath)
       else
+        local msg = "could not load '%s'%s%s"
+        msg = string.format(msg, name, msg1, msg2)
+        typeerror(env, msg, pos)
         env["loaded"][name] = Any
       end
     end
@@ -669,7 +671,7 @@ local function check_call (env, exp)
     if explist[1] then
       local t1 = get_type(explist[1])
       if tltype.isStr(t1) then
-        set_type(exp, check_require(env, explist[1][1]))
+        set_type(exp, check_require(env, explist[1][1], exp.pos))
       else
         local msg = "the argument of require must be a literal string"
         typeerror(env, msg, exp.pos)
@@ -850,6 +852,9 @@ local function explist2typelist (explist)
       table.insert(l, tltype.first(get_type(explist[i])))
     end
     local last_type = get_type(explist[len])
+    if tltype.isUnionlist(last_type) then
+      last_type = tltype.unionlist2tuple(last_type)
+    end
     if tltype.isTuple(last_type) then
       for k, v in ipairs(last_type) do
         table.insert(l, v)
@@ -1297,11 +1302,11 @@ function check_block (env, block)
 end
 
 local function load_lua_env (env)
-  local t = check_require(env, "typedlua.base")
+  local t = check_require(env, "base", 0)
   local l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os" }
   for k, v in ipairs(l) do
     local t1 = tltype.Literal(v)
-    local t2 = check_require(env, v)
+    local t2 = check_require(env, v, 0)
     local f = tltype.Field(false, t1, t2)
     table.insert(t, f)
   end

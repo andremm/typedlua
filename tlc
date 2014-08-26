@@ -88,6 +88,8 @@ if #arg < 1 then
   usage("no input file given")
 end
 
+package.path = package.path .. ";./typedlua/?.lua"
+
 local i = doargs()
 local filename = arg[i]
 local subject = getcontents(filename)

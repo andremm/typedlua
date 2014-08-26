@@ -33,15 +33,15 @@ build = {
   install = {
     bin = { "tlc" },
     lua = {
-      ["typedlua.base"] = "typedlua/base.tld",
-      ["typedlua.coroutines"] = "typedlua/coroutines.tld",
-      ["typedlua.package"] = "typedlua/package.tld",
-      ["typedlua.string"] = "typedlua/string.tld",
-      ["typedlua.table"] = "typedlua/table.tld",
-      ["typedlua.math"] = "typedlua/math.tld",
-      ["typedlua.bit32"] = "typedlua/bit32.tld",
-      ["typedlua.io"] = "typedlua/io.tld",
-      ["typedlua.os"] = "typedlua/os.tld"
+      ["base"] = "typedlua/base.tld",
+      ["coroutine"] = "typedlua/coroutine.tld",
+      ["package"] = "typedlua/package.tld",
+      ["string"] = "typedlua/string.tld",
+      ["table"] = "typedlua/table.tld",
+      ["math"] = "typedlua/math.tld",
+      ["bit32"] = "typedlua/bit32.tld",
+      ["io"] = "typedlua/io.tld",
+      ["os"] = "typedlua/os.tld"
     }
   }
 }

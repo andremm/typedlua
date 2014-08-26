@@ -6,6 +6,8 @@ local tltype = require "typedlua.tltype"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
 
+package.path = package.path .. ";./typedlua/?.lua"
+
 -- expected result, result, subject
 local e, r, s
 

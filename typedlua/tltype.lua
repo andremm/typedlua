@@ -803,8 +803,7 @@ function tltype.general (t)
     return tltype.Number()
   elseif tltype.isStr(t) then
     return tltype.String()
-  elseif tltype.isUnion(t) or
-         tltype.isUnionlist(t) then
+  elseif tltype.isUnion(t) then
     local l = {}
     for k, v in ipairs(t) do
       table.insert(l, tltype.general(v))
@@ -826,6 +825,12 @@ function tltype.general (t)
       table.insert(l, tltype.general(v))
     end
     return tltype.Tuple(l)
+  elseif tltype.isUnionlist(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.general(v))
+    end
+    return tltype.Unionlist(table.unpack(l))
   elseif tltype.isVararg(t) then
     return tltype.Vararg(tltype.general(t[1]))
   else
