@@ -19,6 +19,7 @@ function tlst.new_env (subject, filename, strict, warnings)
   env["function"] = {}
   env["interface"] = {}
   env["userdata"] = {}
+  env["loaded"] = {}
   return env
 end
 

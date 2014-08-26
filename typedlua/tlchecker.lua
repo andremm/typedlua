@@ -199,15 +199,23 @@ local function check_tld (env, name, path)
 end
 
 local function check_require (env, name)
-  local path = string.gsub(package.path, "[.]lua", ".tl")
-  local tlpath, tlmsg = searchpath(name, path)
-  if tlpath then return check_tl(env, name, tlpath) end
-  path = string.gsub(package.path, "[.]lua", ".tld")
-  local tldpath, tldmsg = searchpath(name, path)
-  if tldpath then return check_tld(env, name, tldpath) end
-  local lpath, lmsg = searchpath(name, path)
-  if lpath then return Any end
-  assert(lpath, tlmsg .. tldmsg .. lmsg)
+  if not env["loaded"][name] then
+    package.path = package.path .. ";./typedlua/?.lua"
+    local path = string.gsub(package.path, "[.]lua", ".tl")
+    local filepath = searchpath(name, path)
+    if filepath then
+      env["loaded"][name] = check_tl(env, name, filepath)
+    else
+      path = string.gsub(package.path, "[.]lua", ".tld")
+      filepath = searchpath(name, path)
+      if filepath then
+        env["loaded"][name] = check_tld(env, name, filepath)
+      else
+        env["loaded"][name] = Any
+      end
+    end
+  end
+  return env["loaded"][name]
 end
 
 local function check_arith (env, exp)
@@ -597,6 +605,7 @@ end
 
 local function check_arguments (env, func_name, dec_type, infer_type, pos)
   local msg = "attempt to pass '%s' to %s of input type '%s'"
+  dec_type = replace_names(env, dec_type, pos)
   infer_type = replace_names(env, infer_type, pos)
   if tltype.subtype(infer_type, dec_type) then
   elseif tltype.consistent_subtype(infer_type, dec_type) then
@@ -1287,6 +1296,21 @@ function check_block (env, block)
   tlst.end_scope(env)
 end
 
+local function load_lua_env (env)
+  local t = check_require(env, "typedlua.base")
+  local l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os" }
+  for k, v in ipairs(l) do
+    local t1 = tltype.Literal(v)
+    local t2 = check_require(env, v)
+    local f = tltype.Field(false, t1, t2)
+    table.insert(t, f)
+  end
+  t.open = true
+  local lua_env = tlast.ident(0, "_ENV", t)
+  set_type(lua_env, t)
+  tlst.set_local(env, lua_env)
+end
+
 function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
@@ -1297,12 +1321,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   tlst.begin_function(env)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
-  local tldpath = string.gsub(package.path, "[.]lua", ".tld")
-  local lslpath = assert(searchpath("typedlua/lsl", tldpath))
-  local _env = tlast.ident(0, "_ENV", check_tld(env, "lsl", lslpath))
-  _env[2].open = true
-  set_type(_env, _env[2])
-  tlst.set_local(env, _env)
+  load_lua_env(env)
   for k, v in ipairs(ast) do
     check_stm(env, v)
   end
