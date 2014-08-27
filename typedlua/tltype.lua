@@ -616,20 +616,27 @@ end
 
 local function subtype_table (env, t1, t2, relation)
   if tltype.isTable(t1) and tltype.isTable(t2) then
-    if not t1.open then
-      local m, n = #t1, #t2
-      for i = 1, n do
-        local subtype = false
-        for j = 1, m do
-          if subtype_field(env, t1[j], t2[i], relation) then
-            subtype = true
-            break
+    if t1.unique then
+      local m, n = #t2, #t1
+      for i = 1, m do
+        local subtype_key, subtype_value = false, false
+        for j = 1, n do
+          if subtype(env, t1[j][1], t2[i][1], relation) then
+            subtype_key = true
+            if subtype(env, t1[j][2], t2[i][2], relation) then
+              subtype_value = true
+              break
+            end
           end
         end
-        if not subtype then return false end
+        if subtype_key then
+          if not subtype_value then return false end
+        else
+          if not subtype(env, tltype.Nil(), t2[i][2], relation) then return false end
+        end
       end
       return true
-    else
+    elseif t1.open then
       local m, n = #t2, #t1
       for i = 1, m do
         local subtype_key, subtype_value = false, false
@@ -647,6 +654,19 @@ local function subtype_table (env, t1, t2, relation)
         else
           if not subtype(env, tltype.Nil(), t2[i][2], relation) then return false end
         end
+      end
+      return true
+    else
+      local m, n = #t1, #t2
+      for i = 1, n do
+        local subtype = false
+        for j = 1, m do
+          if subtype_field(env, t1[j], t2[i], relation) then
+            subtype = true
+            break
+          end
+        end
+        if not subtype then return false end
       end
       return true
     end

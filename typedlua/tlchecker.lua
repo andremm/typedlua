@@ -554,7 +554,7 @@ local function check_table (env, exp)
     l[k] = tltype.Field(v.const, t1, t2)
   end
   local t = tltype.Table(table.unpack(l))
-  t.open = true
+  t.unique = true
   set_type(exp, t)
 end
 
@@ -746,6 +746,7 @@ local function check_local_var (env, id, inferred_type, close_local)
       local_type = Any
     else
       local_type = tltype.general(inferred_type)
+      if inferred_type.unique then local_type.open = true end
       if close_local then local_type.open = nil end
     end
   else

@@ -70,11 +70,12 @@ local G = lpeg.P { "TypedLuaDescription";
   RecordField = ((tllexer.kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
                 lpeg.V("LiteralType") * tllexer.symb(":") * lpeg.V("Type") /
                 tltype.Field;
-  HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("Type") /
+  HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("FieldType") /
              tltype.Field;
-  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type") /
+  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("FieldType") /
               tltype.Field;
   KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
+  FieldType = lpeg.V("Type") * lpeg.Cc(tltype.Nil()) / tltype.Union;
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;

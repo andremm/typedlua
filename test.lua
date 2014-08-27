@@ -920,7 +920,7 @@ e = [=[
 r = parse(s)
 assert(r == e)
 
--- interfaces and userdatas
+-- interfaces
 
 s = [=[
 local interface Empty end
@@ -1453,7 +1453,7 @@ s = [=[
 local x:{{{{{}}}}}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TTable{ `TBase number:`TTable{ `TBase number:`TTable{ `TBase number:`TTable{ `TBase number:`TTable{  } } } } } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase number:`TUnion{ `TTable{ `TBase number:`TUnion{ `TTable{ `TBase number:`TUnion{ `TTable{ `TBase number:`TUnion{ `TTable{  }, `TNil } }, `TNil } }, `TNil } }, `TNil } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1463,7 +1463,7 @@ s = [=[
 local x:{string}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TTable{ `TBase number:`TBase string } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase number:`TUnion{ `TBase string, `TNil } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1473,7 +1473,7 @@ s = [=[
 local x:{string:number}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TTable{ `TBase string:`TBase number } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TBase string:`TUnion{ `TBase number, `TNil } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1493,7 +1493,7 @@ s = [=[
 local x:{'tag':string, number:string}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TTable{ `TLiteral tag:`TBase string, `TBase number:`TBase string } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TLiteral tag:`TBase string, `TBase number:`TUnion{ `TBase string, `TNil } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1503,7 +1503,7 @@ s = [=[
 local x:{'f':(number) -> (number), 't':{number:number}}
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TTable{ `TLiteral f:`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } }, `TLiteral t:`TTable{ `TBase number:`TBase number } } }, {  } } }
+{ `Local{ { `Id "x":`TTable{ `TLiteral f:`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } }, `TLiteral t:`TTable{ `TBase number:`TUnion{ `TBase number, `TNil } } } }, {  } } }
 ]=]
 
 r = parse(s)
@@ -1940,7 +1940,7 @@ test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
 r = parse(s)
 assert(r == e)
 
--- interfaces and userdatas
+-- interfaces
 
 s = [=[
 local interface X
@@ -3597,11 +3597,11 @@ assert(r == e)
 
 s = [=[
 local t:{string:number} = { foo = 1 }
-local x:number = t.foo
-local y:number = t["bar"]
+local x:number? = t.foo
+local y:number = t["bar"] or 0
 ]=]
 e = [=[
-{ `Local{ { `Id "t":`TTable{ `TBase string:`TBase number } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`TBase number }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`TBase number }, { `Index{ `Id "t", `String "bar" } } } }
+{ `Local{ { `Id "t":`TTable{ `TBase string:`TUnion{ `TBase number, `TNil } } }, { `Table{ `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, { `Index{ `Id "t", `String "foo" } } }, `Local{ { `Id "y":`TBase number }, { `Op{ "or", `Index{ `Id "t", `String "bar" }, `Number "0" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3625,7 +3625,7 @@ local t1:{"foo":number} = { foo = 1, bar = "foo" }
 local t2:{string:number} = t1
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number}'
+test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:(number | nil)}'
 ]=]
 
 r = typecheck(s)
@@ -3638,7 +3638,7 @@ local x = days[1]
 local y = days[8]
 ]=]
 e = [=[
-{ `Local{ { `Id "days":`TTable{ `TBase number:`TBase string } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
+{ `Local{ { `Id "days":`TTable{ `TBase number:`TUnion{ `TBase string, `TNil } } }, { `Table{ `String "Sunday", `String "Monday", `String "Tuesday", `String "Wednesday", `String "Thursday", `String "Friday", `String "Saturday" } } }, `Local{ { `Id "x" }, { `Index{ `Id "days", `Number "1" } } }, `Local{ { `Id "y" }, { `Index{ `Id "days", `Number "8" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3663,8 +3663,8 @@ local t2:{string?} = days
 t2 = t1
 ]=]
 e = [=[
+test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
 test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
-test.lua:5:1: type error, attempt to assign '({number:string}, nil*)' to '({number:(string | nil)}, nil*)'
 ]=]
 
 r = typecheck(s)
@@ -3730,11 +3730,48 @@ local interface Person
   lastname:string
 end
 
+local user1:Person = { firstname = "Lewis", middlename = "Allan", lastname = "Reed" }
+local user2:Person = { lastname = "Reed", firstname = "Lou" }
+]=]
+e = [=[
+{ `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user1":`TVariable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `String "Allan" }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`TVariable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
 local user1:Person = { firstname = "Lewis", middlename = "Allan" or nil, lastname = "Reed" }
 local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
 { `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user1":`TVariable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`TVariable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+interface Test
+    a: string
+    b: boolean
+    c: number?
+end
+
+local function fn(x: Test): number
+    return 44
+end
+
+fn{a="", b = false, c = 33}
+]=]
+e = [=[
+{ `Interface{ Test, `TTable{ `TLiteral a:`TBase string, `TLiteral b:`TBase boolean, `TLiteral c:`TUnion{ `TBase number, `TNil } } }, `Localrec{ { `Id "fn":`TFunction{ `TTuple{ `TTable{ `TLiteral a:`TBase string, `TLiteral b:`TBase boolean, `TLiteral c:`TUnion{ `TBase number, `TNil } }, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "x":`TTable{ `TLiteral a:`TBase string, `TLiteral b:`TBase boolean, `TLiteral c:`TUnion{ `TBase number, `TNil } } }:`TTuple{ `TBase number, `TVararg{ `TNil } }, { `Return{ `Number "44" } } } } }, `Call{ `Id "fn", `Table{ `Pair{ `String "a", `String "" }, `Pair{ `String "b", `False }, `Pair{ `String "c", `Number "33" } } } }
 ]=]
 
 r = typecheck(s)
@@ -3832,6 +3869,26 @@ local person:Person = user
 ]=]
 e = [=[
 { `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user" }, { `Table } }, `Set{ { `Index{ `Id "user", `String "firstname" } }, { `String "Lou" } }, `Set{ { `Index{ `Id "user", `String "lastname" } }, { `String "Reed" } }, `Local{ { `Id "person":`TVariable Person }, { `Id "user" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local user = {}
+user.firstname = "Lewis"
+user.middlename = "Allan"
+user.lastname = "Reed"
+local person:Person = user
+]=]
+e = [=[
+test.lua:11:7: type error, attempt to assign '{firstname:string, middlename:string, lastname:string}' to '{firstname:string, middlename:(string | nil), lastname:string}'
 ]=]
 
 r = typecheck(s)
