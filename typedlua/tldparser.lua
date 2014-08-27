@@ -59,18 +59,22 @@ local G = lpeg.P { "TypedLuaDescription";
   TupleType = lpeg.Ct(lpeg.V("Type") * (tllexer.symb(",") * lpeg.V("Type"))^0) *
               (tllexer.symb("*") * lpeg.Cc(true))^-1 /
               tltype.Tuple;
-  TableType = tllexer.symb("{") *
-              ((lpeg.V("FieldType") * (tllexer.symb(",") * lpeg.V("FieldType"))^0) +
-              (lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type")) / tltype.Field +
-              lpeg.Cc(nil)) *
-              tllexer.symb("}") /
+  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody") * tllexer.symb("}") /
               tltype.Table;
-  FieldType = ((tllexer.kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
-              lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("Type") / tltype.Field;
-  KeyType = lpeg.V("LiteralType") +
-	    lpeg.V("BaseType") +
-            lpeg.V("ValueType") +
-            lpeg.V("AnyType");
+  TableTypeBody = lpeg.V("RecordType") +
+                  lpeg.V("HashType") +
+                  lpeg.V("ArrayType") +
+                  lpeg.Cc(nil);
+  RecordType = lpeg.V("RecordField") * (tllexer.symb(",") * lpeg.V("RecordField"))^0 *
+               (tllexer.symb(",") * (lpeg.V("HashType") + lpeg.V("ArrayType")))^-1;
+  RecordField = ((tllexer.kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
+                lpeg.V("LiteralType") * tllexer.symb(":") * lpeg.V("Type") /
+                tltype.Field;
+  HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("Type") /
+             tltype.Field;
+  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type") /
+              tltype.Field;
+  KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
@@ -85,9 +89,9 @@ local G = lpeg.P { "TypedLuaDescription";
   TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.kw("end");
   Interface = lpeg.Cp() * tllexer.kw("interface") * lpeg.V("TypeDec") /
               tlast.statInterface;
+  -- parser
   Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /
              tlast.statUserdata;
-  -- parser
   DescriptionList = lpeg.V("DescriptionItem")^1 / function (...) return {...} end;
   DescriptionItem = lpeg.V("TypedId") + lpeg.V("Interface") + lpeg.V("Userdata");
   TypedId = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") *

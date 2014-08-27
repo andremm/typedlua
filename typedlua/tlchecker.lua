@@ -1286,8 +1286,6 @@ function check_stm (env, stm)
     check_invoke(env, stm)
   elseif tag == "Interface" then
     check_interface(env, stm)
-  elseif tag == "Userdata" then
-    check_userdata(env, stm)
   else
     error("cannot type check statement " .. tag)
   end
@@ -1296,7 +1294,7 @@ end
 function check_block (env, block)
   tlst.begin_scope(env)
   for k, v in ipairs(block) do
-    check_stm(env, v, strict, warnings)
+    check_stm(env, v)
   end
   tlst.end_scope(env)
 end

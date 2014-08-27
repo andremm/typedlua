@@ -63,18 +63,22 @@ local G = lpeg.P { "TypedLua";
   TupleType = lpeg.Ct(lpeg.V("Type") * (tllexer.symb(",") * lpeg.V("Type"))^0) *
               (tllexer.symb("*") * lpeg.Cc(true))^-1 /
               tltype.Tuple;
-  TableType = tllexer.symb("{") *
-              ((lpeg.V("FieldType") * (tllexer.symb(",") * lpeg.V("FieldType"))^0) +
-              (lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type")) / tltype.Field +
-              lpeg.Cc(nil)) *
-              tllexer.symb("}") /
+  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody") * tllexer.symb("}") /
               tltype.Table;
-  FieldType = ((tllexer.kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
-              lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("Type") / tltype.Field;
-  KeyType = lpeg.V("LiteralType") +
-	    lpeg.V("BaseType") +
-            lpeg.V("ValueType") +
-            lpeg.V("AnyType");
+  TableTypeBody = lpeg.V("RecordType") +
+                  lpeg.V("HashType") +
+                  lpeg.V("ArrayType") +
+                  lpeg.Cc(nil);
+  RecordType = lpeg.V("RecordField") * (tllexer.symb(",") * lpeg.V("RecordField"))^0 *
+               (tllexer.symb(",") * (lpeg.V("HashType") + lpeg.V("ArrayType")))^-1;
+  RecordField = ((tllexer.kw("const") * lpeg.Cc(true)) + lpeg.Cc(false)) *
+                lpeg.V("LiteralType") * tllexer.symb(":") * lpeg.V("Type") /
+                tltype.Field;
+  HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("Type") /
+             tltype.Field;
+  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("Type") /
+              tltype.Field;
+  KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
             lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
@@ -89,8 +93,6 @@ local G = lpeg.P { "TypedLua";
   TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.kw("end");
   Interface = lpeg.Cp() * tllexer.kw("interface") * lpeg.V("TypeDec") /
               tlast.statInterface;
-  Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /
-             tlast.statUserdata;
   -- parser
   Chunk = lpeg.V("Block");
   StatList = (tllexer.symb(";") + lpeg.V("Stat"))^0;
@@ -218,7 +220,7 @@ local G = lpeg.P { "TypedLua";
   RetStat = lpeg.Cp() * tllexer.kw("return") *
             (lpeg.V("Expr") * (tllexer.symb(",") * lpeg.V("Expr"))^0)^-1 *
             tllexer.symb(";")^-1 / tlast.statReturn;
-  TypeDecStat = lpeg.V("Interface") + lpeg.V("Userdata");
+  TypeDecStat = lpeg.V("Interface");
   LocalTypeDec = lpeg.V("TypeDecStat") / tlast.statLocalTypeDec;
   LVar = (tllexer.kw("const") * lpeg.V("SuffixedExp") / tlast.setConst) +
          lpeg.V("SuffixedExp");
@@ -475,19 +477,6 @@ local function traverse_interface (env, stm)
   return true
 end
 
-local function traverse_userdata (env, stm)
-  local name, t = stm[1], stm[2]
-  local status, msg = tltype.checkTypeDec(t)
-  if not status then
-    return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
-  end
-  if tltype.checkRecursive(t, name) then
-    local msg = string.format("userdata '%s' is recursive", name)
-    return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
-  end
-  return true
-end
-
 function traverse_var (env, var)
   local tag = var.tag
   if tag == "Id" then
@@ -592,8 +581,6 @@ function traverse_stm (env, stm)
     return traverse_invoke(env, stm)
   elseif tag == "Interface" then
     return traverse_interface(env, stm)
-  elseif tag == "Userdata" then
-    return traverse_userdata(env, stm)
   else
     error("trying to traverse a statement, but got a " .. tag)
   end

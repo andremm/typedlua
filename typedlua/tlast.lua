@@ -22,7 +22,6 @@ stat:
   | `Break                                    -- break
   | apply
   | `Interface{ <string> type }
-  | `Userdata{ <string> type }
 
 expr:
   `Nil
@@ -744,8 +743,7 @@ function stm2str (stm)
       end
     end
     str = str .. " }"
-  elseif tag == "Interface" or
-         tag == "Userdata" then
+  elseif tag == "Interface" then
     str = str .. "{ "
     str = str .. stm[1] .. ", "
     str = str .. type2str(stm[2])

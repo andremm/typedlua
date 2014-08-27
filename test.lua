@@ -970,40 +970,6 @@ e = [=[
 r = parse(s)
 assert(r == e)
 
-s = [=[
-local userdata Empty end
-]=]
-e = [=[
-{ `Userdata{ Empty, `TTable{  } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local userdata X
-  x, y, z:number
-end
-]=]
-e = [=[
-{ `Userdata{ X, `TTable{ `TLiteral x:`TBase number, `TLiteral y:`TBase number, `TLiteral z:`TBase number } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local userdata File
-  close:(self) -> ()
-end
-]=]
-e = [=[
-{ `Userdata{ File, `TTable{ `TLiteral close:`TFunction{ `TTuple{ `TSelf, `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
 -- labels
 
 s = [=[
@@ -1751,7 +1717,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)
@@ -1799,7 +1765,7 @@ s = [=[
 concat2 = 2^3..1
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -1932,7 +1898,7 @@ s = [=[
 if a then
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -1942,7 +1908,7 @@ s = [=[
 if a then else
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -1993,46 +1959,6 @@ assert(r == e)
 
 s = [=[
 local interface X
- x, y, z, x:number
-end
-]=]
-e = [=[
-test.lua:1:7: syntax error, attmept to redeclare field 'x'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local userdata Element
-  info:number
-  next:Element?
-end
-]=]
-e = [=[
-test.lua:1:7: syntax error, userdata 'Element' is recursive
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local userdata X
- x:number
- y:number
- z:number
- x:number
-end
-]=]
-e = [=[
-test.lua:1:7: syntax error, attmept to redeclare field 'x'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-local userdata X
  x, y, z, x:number
 end
 ]=]
@@ -2128,7 +2054,7 @@ repeat
   break
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2266,7 +2192,7 @@ s = [=[
 x = ...:any
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2296,7 +2222,7 @@ s = [=[
 local x:number*
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
+test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
 ]=]
 
 r = parse(s)
@@ -2316,7 +2242,7 @@ s = [=[
 local x:number?|string?
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'userdata', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
+test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
 ]=]
 
 r = parse(s)
@@ -2356,7 +2282,7 @@ s = [=[
 local x:{string:t 1}
 ]=]
 e = [=[
-test.lua:1:19: syntax error, unexpected '1', expecting '}', ',', '?', '|'
+test.lua:1:19: syntax error, unexpected '1', expecting '}', '?', '|'
 ]=]
 
 r = parse(s)
