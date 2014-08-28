@@ -3778,6 +3778,36 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+interface Attribute
+    name: string
+    value: string
+    namespace: string?
+end
+
+interface Element
+    tag: string
+    tag_namespace: string?
+    attr: {Attribute?}
+end
+
+local elem: Element = {
+    tag = "html",
+    attr = {
+        {
+            name = "lang",
+            value = "en"
+        }
+    }
+}
+]=]
+e = [=[
+{ `Interface{ Attribute, `TTable{ `TLiteral name:`TBase string, `TLiteral value:`TBase string, `TLiteral namespace:`TUnion{ `TBase string, `TNil } } }, `Interface{ Element, `TTable{ `TLiteral tag:`TBase string, `TLiteral tag_namespace:`TUnion{ `TBase string, `TNil }, `TLiteral attr:`TTable{ `TBase number:`TUnion{ `TTable{ `TLiteral name:`TBase string, `TLiteral value:`TBase string, `TLiteral namespace:`TUnion{ `TBase string, `TNil } }, `TNil } } } }, `Local{ { `Id "elem":`TVariable Element }, { `Table{ `Pair{ `String "tag", `String "html" }, `Pair{ `String "attr", `Table{ `Table{ `Pair{ `String "name", `String "lang" }, `Pair{ `String "value", `String "en" } } } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local interface Element
   info:number
   next:Elment?

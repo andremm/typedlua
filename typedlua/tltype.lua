@@ -837,6 +837,7 @@ function tltype.general (t)
       table.insert(l, tltype.Field(v.const, v[1], tltype.general(v[2])))
     end
     local n = tltype.Table(table.unpack(l))
+    n.unique = t.unique
     n.open = t.open
     return n
   elseif tltype.isTuple(t) then

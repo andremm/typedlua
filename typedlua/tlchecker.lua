@@ -91,7 +91,7 @@ local function replace_names (env, t, pos)
     end
     return t
   elseif tltype.isVariable(t) then
-    return get_interface(env, t[1], pos)
+    return replace_names(env, get_interface(env, t[1], pos), pos)
   elseif tltype.isVararg(t) then
     t[1] = replace_names(env, t[1], pos)
     return t
@@ -746,7 +746,10 @@ local function check_local_var (env, id, inferred_type, close_local)
       local_type = Any
     else
       local_type = tltype.general(inferred_type)
-      if inferred_type.unique then local_type.open = true end
+      if inferred_type.unique then
+        local_type.unique = nil
+        local_type.open = true
+      end
       if close_local then local_type.open = nil end
     end
   else
