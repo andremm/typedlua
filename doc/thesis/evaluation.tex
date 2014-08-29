@@ -1,0 +1,47 @@
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{easy} & \textbf{over} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+Lua Standard Libraries & 79 & 8 & 12 & 24 & 123 & 71\% \\
+\hline
+MD5 & 7 & 0 & 0 & 0 & 7 & 100\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation of Typed Lua by library}
+\end{table}
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{over} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{9}{*}{Lua Standard Libraries}
+& base & 8 & 2 & 5 & 11 & 26 & 38\% \\
+\cline{2-8}
+& coroutine & 0 & 0 & 0 & 6 & 6 & 0\% \\
+\cline{2-8}
+& package & 4 & 1 & 2 & 1 & 8 & 62\% \\
+\cline{2-8}
+& string & 11 & 2 & 0 & 1 & 14 & 93\% \\
+\cline{2-8}
+& table & 0 & 1 & 5 & 0 & 6 & 17\% \\
+\cline{2-8}
+& math & 28 & 0 & 0 & 1 & 29 & 97\% \\
+\cline{2-8}
+& bit32 & 12 & 0 & 0 & 0 & 12 & 100\% \\
+\cline{2-8}
+& io & 9 & 0 & 0 & 2 & 11 & 82\% \\
+\cline{2-8}
+& os & 7 & 2 & 0 & 2 & 11 & 82\% \\
+\hline
+\multirow{1}{*}{MD5}
+& md5 & 7 & 0 & 0 & 0 & 7 & 100\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation of Typed Lua by module}
+\end{table}
