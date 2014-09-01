@@ -4007,7 +4007,7 @@ s = [=[
 zero,um = false,true
 ]=]
 e = [=[
-_ENV["zero"], _ENV["um"] = false, true
+zero, um = false, true
 ]=]
 
 r = generate(s)
@@ -4017,7 +4017,7 @@ s = [=[
 n,s = 1, "alo"
 ]=]
 e = [=[
-_ENV["n"], _ENV["s"] = 1, "alo"
+n, s = 1, "alo"
 ]=]
 
 r = generate(s)
@@ -4027,7 +4027,7 @@ s = [=[
 t = ...,nil
 ]=]
 e = [=[
-_ENV["t"] = ..., nil
+t = ..., nil
 ]=]
 
 r = generate(s)
@@ -4037,7 +4037,7 @@ s = [=[
 a = 2 * 3 + 5
 ]=]
 e = [=[
-_ENV["a"] = 2 * 3 + 5
+a = 2 * 3 + 5
 ]=]
 
 r = generate(s)
@@ -4047,7 +4047,7 @@ s = [=[
 a = (2 * 3) + 5
 ]=]
 e = [=[
-_ENV["a"] = (2 * 3) + 5
+a = (2 * 3) + 5
 ]=]
 
 r = generate(s)
@@ -4057,7 +4057,7 @@ s = [=[
 a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 e = [=[
-_ENV["a"] = 1 - 2 / 3 % 4 ^ 5
+a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 
 r = generate(s)
@@ -4067,7 +4067,7 @@ s = [=[
 c = "alo" .. "mundo" 
 ]=]
 e = [=[
-_ENV["c"] = "alo" .. "mundo"
+c = "alo" .. "mundo"
 ]=]
 
 r = generate(s)
@@ -4082,12 +4082,12 @@ e = 1 > 2
 f = 1 >= 2
 ]=]
 e = [=[
-_ENV["a"] = 1 == 2
-_ENV["b"] = not 1 == 2
-_ENV["c"] = 1 < 2
-_ENV["d"] = 1 <= 2
-_ENV["e"] = 2 < 1
-_ENV["f"] = 2 <= 1
+a = 1 == 2
+b = not 1 == 2
+c = 1 < 2
+d = 1 <= 2
+e = 2 < 1
+f = 2 <= 1
 ]=]
 
 r = generate(s)
@@ -4097,7 +4097,7 @@ s = [=[
 a = not 1 and 2 or 3
 ]=]
 e = [=[
-_ENV["a"] = not 1 and 2 or 3
+a = not 1 and 2 or 3
 ]=]
 
 r = generate(s)
@@ -4157,7 +4157,7 @@ s = [=[
 function f () end
 ]=]
 e = [=[
-_ENV["f"] = function ()
+f = function ()
 
 end
 ]=]
@@ -4169,7 +4169,7 @@ s = [=[
 function f (a) return a end
 ]=]
 e = [=[
-_ENV["f"] = function (a)
+f = function (a)
   return a
 end
 ]=]
@@ -4181,7 +4181,7 @@ s = [=[
 function f (a, b, c) end
 ]=]
 e = [=[
-_ENV["f"] = function (a, b, c)
+f = function (a, b, c)
 
 end
 ]=]
@@ -4193,7 +4193,7 @@ s = [=[
 function f (a, b, c, ...) end
 ]=]
 e = [=[
-_ENV["f"] = function (a, b, c, ...)
+f = function (a, b, c, ...)
 
 end
 ]=]
@@ -4205,7 +4205,7 @@ s = [=[
 function f (...) end
 ]=]
 e = [=[
-_ENV["f"] = function (...)
+f = function (...)
 
 end
 ]=]
@@ -4560,7 +4560,7 @@ e["next"] = insert_f(e["next"],v)
 end
 local function print_l (e)
   if e then
-_ENV["print"](e["info"])
+print(e["info"])
 print_l(e["next"])
   end
 end
@@ -4617,7 +4617,7 @@ local function create (v, l, r)
 end
 local function print_tree (t)
   if t then
-_ENV["print"](t["info"])
+print(t["info"])
 print_tree(t["left"])
 print_tree(t["right"])
   end

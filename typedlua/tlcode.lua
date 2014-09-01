@@ -84,7 +84,12 @@ function code_var (var, i)
   if tag == "Id" then
     return var[1]
   elseif tag == "Index" then
-    return code_exp(var[1], i) .. "[" .. code_exp(var[2], i) .. "]"
+    if var[1].tag == "Id" and var[1][1] == "_ENV" and var[2].tag == "String" then
+      local v = { tag = "Id", [1] = var[2][1] }
+      return code_exp(v, i)
+    else
+      return code_exp(var[1], i) .. "[" .. code_exp(var[2], i) .. "]"
+    end
   else
     error("trying to generate code for a variable, but got a " .. tag)
   end
