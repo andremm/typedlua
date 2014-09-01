@@ -88,11 +88,15 @@ if #arg < 1 then
   usage("no input file given")
 end
 
-package.path = package.path .. ";./typedlua/?.lua"
-
 local i = doargs()
 local filename = arg[i]
+if not filename then
+  usage("no input file given")
+end
+
 local subject = getcontents(filename)
+
+package.path = package.path .. ";./typedlua/?.lua"
 
 local ast, error_msg = tlparser.parse(subject, filename, STRICT)
 if not ast then
