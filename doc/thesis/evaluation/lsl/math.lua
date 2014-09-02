@@ -21,7 +21,7 @@ return {
   pi = 1,
   pow = 1,
   rad = 1,
-  random = 4,
+  random = 3,
   randomseed = 1,
   sin = 1,
   sinh = 1,

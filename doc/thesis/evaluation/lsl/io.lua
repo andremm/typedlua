@@ -1,8 +1,8 @@
 return {
-  close = 4,
+  close = 3,
   flush = 1,
   input = 1,
-  lines = 4,
+  lines = 3,
   open = 1,
   output = 1,
   popen = 1,

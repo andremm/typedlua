@@ -1,47 +1,76 @@
+We performed some case studies on existing Lua libraries
+to evaluate the design of our type system.
+For each library, we used Typed Lua to either rewrite its modules
+or to write statically typed interfaces to its modules through
+Typed Lua's description files.
+In this chapter we present our evaluation results and discuss
+some interesting cases.
+
+Tables \ref{tab:evalbylib} and \ref{tab:evalbymod} sumarizes our
+evaluation results:
+the first presents the results agruped by library while
+the second presents the results agruped by module.
+We split the members that we typed into three categories:
+\emph{easy}, \emph{poly}, and \emph{hard}.
+The \emph{easy} category represents the members that we could give
+a precise static type for them.
+The \emph{poly} category represents the members that we had to
+rely on the dynamic type, and we believe we could give a precise
+static type for them if our type system had parametric polymorphism.
+The \emph{hard} category represents the members that we could not
+give a precise static type for them, relying on the dynamic type
+in most of the cases, but with no hopes that parametric polymorphism
+would help us to give a precise static type for them.
+The last column of each table contains the actual evaluation result
+of each case study, that is basically the percentage of members
+that are under the \emph{easy} category.
+
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{easy} & \textbf{over} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua Standard Libraries & 79 & 8 & 12 & 24 & 123 & 71\% \\
+Lua Standard Libraries & 87 & 11 & 25 & 123 & 71\% \\
 \hline
-MD5 & 7 & 0 & 0 & 0 & 7 & 100\% \\
+MD5 & 7 & 0 & 0 & 7 & 100\% \\
 \hline
 \end{tabular}
 \end{center}
 \caption{Evaluation of Typed Lua by library}
+\label{tab:evalbylib}
 \end{table}
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{over} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
 \multirow{9}{*}{Lua Standard Libraries}
-& base & 8 & 2 & 5 & 11 & 26 & 38\% \\
-\cline{2-8}
-& coroutine & 0 & 0 & 0 & 6 & 6 & 0\% \\
-\cline{2-8}
-& package & 4 & 1 & 2 & 1 & 8 & 62\% \\
-\cline{2-8}
-& string & 11 & 2 & 0 & 1 & 14 & 93\% \\
-\cline{2-8}
-& table & 0 & 1 & 5 & 0 & 6 & 17\% \\
-\cline{2-8}
-& math & 28 & 0 & 0 & 1 & 29 & 97\% \\
-\cline{2-8}
-& bit32 & 12 & 0 & 0 & 0 & 12 & 100\% \\
-\cline{2-8}
-& io & 9 & 0 & 0 & 2 & 11 & 82\% \\
-\cline{2-8}
-& os & 7 & 2 & 0 & 2 & 11 & 82\% \\
+& base & 9 & 5 & 12 & 26 & 35\% \\
+\cline{2-7}
+& coroutine & 0 & 0 & 6 & 6 & 0\% \\
+\cline{2-7}
+& package & 5 & 2 & 1 & 8 & 62\% \\
+\cline{2-7}
+& string & 13 & 0 & 1 & 14 & 93\% \\
+\cline{2-7}
+& table & 1 & 4 & 1 & 6 & 17\% \\
+\cline{2-7}
+& math & 28 & 0 & 1 & 29 & 97\% \\
+\cline{2-7}
+& bit32 & 12 & 0 & 0 & 12 & 100\% \\
+\cline{2-7}
+& io & 9 & 0 & 2 & 11 & 82\% \\
+\cline{2-7}
+& os & 10 & 0 & 1 & 11 & 91\% \\
 \hline
 \multirow{1}{*}{MD5}
-& md5 & 7 & 0 & 0 & 0 & 7 & 100\% \\
+& md5 & 7 & 0 & 0 & 7 & 100\% \\
 \hline
 \end{tabular}
 \end{center}
 \caption{Evaluation of Typed Lua by module}
+\label{tab:evalbymod}
 \end{table}

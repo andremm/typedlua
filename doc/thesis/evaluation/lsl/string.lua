@@ -1,8 +1,8 @@
 return {
-  byte = 2,
+  byte = 1,
   char = 1,
-  dump = 4,
-  find = 2,
+  dump = 3,
+  find = 1,
   format = 1,
   gmatch = 1,
   gsub = 1,

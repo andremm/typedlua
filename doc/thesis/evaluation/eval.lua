@@ -22,7 +22,7 @@ local library_name = {
   md5 = "MD5",
 }
 
-local cat = { "easy", "over", "poly", "hard" }
+local cat = { "easy", "poly", "hard" }
 
 local function p (x, total)
   return string.format("%.0f\\%%", ((100 * x) / total))
@@ -47,7 +47,7 @@ local total_by_library = {}
 local function load_data ()
   for i, m in ipairs(module_list) do
     local mod = require(m)
-    result_by_module[i] = { 0, 0, 0, 0 }
+    result_by_module[i] = { 0, 0, 0 }
     total_by_module[i] = 0
     for k, c in pairs(mod) do
       result_by_module[i][c] = result_by_module[i][c] + 1
@@ -55,7 +55,7 @@ local function load_data ()
     end
     local l = string.match(m, "(%w+)[.]%w+")
     if not result_by_library[l] then
-      result_by_library[l] = { 0, 0, 0, 0 }
+      result_by_library[l] = { 0, 0, 0 }
       total_by_library[l] = 0
     end
     for j, v in ipairs(result_by_module[i]) do
@@ -72,7 +72,7 @@ local function log_by_library ()
     for j, v in ipairs(l) do
       print(cat[j], v)
     end
-    print("total", total_by_library[k], p(l[1] + l[2], total_by_library[k]))
+    print("total", total_by_library[k], p(l[1], total_by_library[k]))
     print("---")
   end
 end
@@ -83,7 +83,7 @@ local function log_by_module ()
     for j, v in ipairs(m) do
       print(cat[j], v)
     end
-    print("total", total_by_module[i], p(m[1] + m[2], total_by_module[i]))
+    print("total", total_by_module[i], p(m[1], total_by_module[i]))
     print("---")
   end
 end
@@ -91,9 +91,9 @@ end
 local function table_by_library ()
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
+  print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
   print("\\hline")
-  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{over} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
   print("\\hline")
   for i, k in ipairs(library_list) do
     local n = library_name[k]
@@ -102,12 +102,13 @@ local function table_by_library ()
     for j, v in ipairs(l) do
       io.write(string.format(" & %d", v))
     end
-    io.write(string.format(" & %d & %s \\\\", total_by_library[k], p(l[1] + l[2], total_by_library[k])))
+    io.write(string.format(" & %d & %s \\\\", total_by_library[k], p(l[1], total_by_library[k])))
     io.write("\n\\hline\n")
   end
   print("\\end{tabular}")
   print("\\end{center}")
   print("\\caption{Evaluation of Typed Lua by library}")
+  print("\\label{tab:evalbylib}")
   print("\\end{table}")
 end
 
@@ -115,9 +116,9 @@ local function table_by_module ()
   local t = {}
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
+  print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
   print("\\hline")
-  print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{over} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+  print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
   print("\\hline")
   for i, m in ipairs(result_by_module) do
     local l = string.match(module_list[i], "(%w+)[.]%w+")
@@ -131,9 +132,9 @@ local function table_by_module ()
     for j, v in ipairs(m) do
       io.write(string.format(" & %d", v))
     end
-    io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1] + m[2], total_by_module[i])))
+    io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
     if i ~= t[l] then
-      io.write("\n\\cline{2-8}\n")
+      io.write("\n\\cline{2-7}\n")
     else
       io.write("\n\\hline\n")
     end
@@ -141,6 +142,7 @@ local function table_by_module ()
   print("\\end{tabular}")
   print("\\end{center}")
   print("\\caption{Evaluation of Typed Lua by module}")
+  print("\\label{tab:evalbymod}")
   print("\\end{table}")
 end
 
