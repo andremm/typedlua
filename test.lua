@@ -4083,7 +4083,7 @@ f = 1 >= 2
 ]=]
 e = [=[
 a = 1 == 2
-b = not 1 == 2
+b = not (1 == 2)
 c = 1 < 2
 d = 1 <= 2
 e = 2 < 1
@@ -4097,7 +4097,7 @@ s = [=[
 a = not 1 and 2 or 3
 ]=]
 e = [=[
-a = not 1 and 2 or 3
+a = not (1) and 2 or 3
 ]=]
 
 r = generate(s)
@@ -4143,7 +4143,7 @@ s = [=[
 for i=1,10,-1 do break end
 ]=]
 e = [=[
-for i = 1, 10, -1 do
+for i = 1, 10, -(1) do
   break
 end
 ]=]

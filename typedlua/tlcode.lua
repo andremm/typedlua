@@ -134,7 +134,7 @@ function code_exp (exp, i)
     if exp[3] then
       str = code_exp(exp[2], i) .. op[exp[1]] .. code_exp(exp[3], i)
     else
-      str = op[exp[1]] .. code_exp(exp[2], i)
+      str = op[exp[1]] .. "(" .. code_exp(exp[2], i) .. ")"
     end
     return str
   elseif tag == "Paren" then
