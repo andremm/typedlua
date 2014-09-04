@@ -1,0 +1,565 @@
+\documentclass{paper}
+
+\usepackage[utf8]{inputenc}
+\usepackage[square,semicolon]{natbib}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{color}
+
+\newcommand{\Value}{\mathbf{value}}
+\newcommand{\Any}{\mathbf{any}}
+\newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\Self}{\mathbf{self}}
+\newcommand{\False}{\mathbf{false}}
+\newcommand{\True}{\mathbf{true}}
+\newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Number}{\mathbf{number}}
+\newcommand{\String}{\mathbf{string}}
+\newcommand{\Void}{\mathbf{void}}
+\newcommand{\Const}{\mathbf{const}}
+
+\newcommand{\mylabel}[1]{\; (\textsc{#1})}
+\newcommand{\env}{\Gamma}
+\newcommand{\senv}{\Sigma}
+\newcommand{\subtype}{<:}
+\newcommand{\ret}{\string_RET}
+
+\begin{document}
+
+\section{Typing rules}
+
+\begin{figure}[!ht]
+$$
+\begin{array}{rl}
+s ::= & \;\; \mathbf{skip} \; | \;
+s_{1} \; ; \; s_{2} \; | \;
+\vec{l} = \vec{e}  \; | \;
+\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
+\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
+& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
+\mathbf{return} \; \vec{e} \; | \;
+a\\
+e ::= & \;\; \mathbf{nil} \; | \;
+\mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{\it number} \; | \;
+{\it string} \; | \;
+{...} \; | \;
+f \; | \;
+\{ \; \vec{c}\; \} \\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
+e_{1} < e_{2} \; | \;
+e_{1} \; \mathbf{and} \; e_{2} \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \\
+& | \; \mathbf{not} \; e \; | \;
+- e \; | \;
+\# \; e \; | \;
+a \; | \;
+l \; | \;
+(e) \; | \;
+{<}t{>} \; e\\
+l ::= & \; n \; | \;
+e_{1}[e_{2}]\\
+a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
+e_{1}{:}n(\vec{e_{2}})\\
+f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
+\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
+c ::= & \; [e_{1}] = e_{2}\\
+n ::= & \; {\it name}\\
+\end{array}
+$$
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax}
+\end{figure}
+
+\[
+\env, N \vdash \mathbf{skip} : \env, N
+\mylabel{T-SKIP}
+\]
+
+\[
+\frac{\env_{1}, N_{1} \vdash s_{1} : \env_{2}, N_{2} \;\;\;
+      \env_{2}, N_{2} \vdash s_{2} : \env_{3}, N_{3}}
+     {\env_{1}, N_{1} \vdash s_{1} \;;\; s_{2} : \env_{3}, N_{3} }
+\mylabel{T-SEQ}
+\]
+
+\[
+\frac{\env \vdash \vec{l}:S_{1} \;\;\;
+      \env \vdash \vec{e}:S_{2} \;\;\;
+      \env \vdash S_{2} \lesssim S_{1}}
+     {\env \vdash \vec{l} = \vec{e}}
+\mylabel{T-ASSIGNMENT}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      close(\env, N), \varnothing \vdash s}
+     {\env, N \vdash \mathbf{while} \; e \; \mathbf{do} \; s : \env, N}
+\mylabel{T-WHILE}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env \vdash e:T\\
+      close(\env, N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env, N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env(n) = T\\
+      close(\env(n{:}filter(T, \Nil)), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}\Nil), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE1}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env(n) = T\\
+      close(\env(n{:}\Nil), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}filter(T, \Nil)), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \mathbf{if} \; \mathbf{not} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE2}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env \vdash(n) = T_{1} \;\;\; \env \vdash e:T_{2}\\
+      close(\env(n{:}T_{2}), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}filter(T_{1}, T_{2})), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \mathbf{if} \; \mathbf{type}(n) == e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE3}
+\]
+
+\[
+\frac{\begin{array}{c}
+      \env \vdash(n) = T_{1} \;\;\; \env \vdash e:T_{2}\\
+      close(\env(n{:}filter(T_{1}, T_{2})), N), \varnothing \vdash s_{1} : \env_{1}, N_{1}\\
+      close(\env(n{:}T_{2}), N), \varnothing \vdash s_{2} : \env_{2}, N_{2}
+      \end{array}}
+     {\env, N \vdash \mathbf{if} \; \mathbf{not} \; \mathbf{type}(n) == e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} : \env, N}
+\mylabel{T-IF-ELSE4}
+\]
+
+\[
+\frac{\env \vdash \vec{e}:S \;\;\; S \lesssim \vec{T} \;\;\;
+      \env(\vec{n}{:}\vec{T}), N \vdash s : \env_{1}, N_{1}}
+     {\env, N \vdash \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s : \env_{1}, N_{1}}
+\mylabel{T-LOCAL}
+\]
+
+\[
+\frac{\env(n{:}T) \vdash f:P \rightarrow R \;\;\; P \rightarrow R \lesssim T \;\;\;
+      \env(n{:}T) \vdash s}
+     {\env \vdash \mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s}
+\mylabel{T-LOCALREC}
+\]
+
+\[
+\frac{\env \vdash \vec{e}:S_{1} \;\;\;
+      \env(\ret) = S_{2} \;\;\;
+      S_{1} \lesssim S_{2}}
+     {\env \vdash \mathbf{return} \; \vec{e}}
+\mylabel{T-RETURN}
+\]
+
+\[
+\frac{\env \vdash e_{1}:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash \vec{e_{2}}:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e_{1}(\vec{e_{2}})}
+\mylabel{T-STMCALL1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash \vec{e_{2}}:S}
+     {\env \vdash e_{1}(\vec{e_{2}})}
+\mylabel{T-STMCALL2}
+\]
+
+\[
+\frac{|\vec{e}| = 0}
+     {\env \vdash \vec{e} : \Nil{*}}
+\mylabel{T-EXPLIST1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      |\vec{e}| = 1}
+     {\env \vdash \vec{e} : T \times \Nil{*}}
+\mylabel{T-EXPLIST2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:S \;\;\;
+      |\vec{e}| = 1}
+     {\env \vdash \vec{e} : S}
+\mylabel{T-EXPLIST3}
+\]
+
+\[
+\frac{\env \vdash e_{k}:T_{k} \;\;\;
+      \env \vdash e_{n+1}:T_{n+1} \;\;\;
+      |\vec{e}| = n + 1}
+     {\env \vdash \vec{e} : T_{1} \times ... \times T_{n+1} \times \Nil{*}}
+\mylabel{T-EXPLIST4}
+\]
+
+\[
+\frac{\env \vdash e_{k}:T_{k} \;\;\;
+      \env \vdash e_{n+1}:S \;\;\;
+      |\vec{e}| = n + 1}
+     {\env \vdash \vec{e} : T_{1} \times ... \times S}
+\mylabel{T-EXPLIST5}
+\]
+
+\[
+\env \vdash \mathbf{nil} : \Nil
+\mylabel{T-NIL}
+\]
+
+\[
+\env \vdash \mathbf{false} : \False
+\mylabel{T-FALSE}
+\]
+
+\[
+\env \vdash \mathbf{true} : \True
+\mylabel{T-TRUE}
+\]
+
+\[
+\env \vdash {<}{\it number}{>} : {<}{\it number}{>}
+\mylabel{T-NUMBER}
+\]
+
+\[
+\env \vdash {<}{\it string}{>} : {<}{\it string}{>}
+\mylabel{T-STRING}
+\]
+
+\[
+\frac{\env({...}) = T}
+     {\env \vdash {...} : T{*}}
+\mylabel{T-DOTS}
+\]
+
+\[
+\frac{\env, \ret:T_{1} \times ... \times T_{n}* \vdash b}
+     {\env \vdash \mathbf{fun} \; (){:}t \; b :
+      \Value{*} \rightarrow T_{1} \times ... \times T_{n}*}
+\mylabel{T-FUNCTION1}
+\]
+
+\[
+\frac{\env, \ret:T_{1} \times ... \times T_{n} \times \Nil{*} \vdash b}
+     {\env \vdash \mathbf{fun} \; (){:}t \; b :
+      \Value{*} \rightarrow T_{1} \times ... \times T_{n} \times \Nil{*}}
+\mylabel{T-FUNCTION2}
+\]
+
+\[
+\frac{\env, {...}:T_{1}, \ret:T_{2} \times ... \times T_{n}* \vdash b}
+     {\env \vdash \mathbf{fun} \; ({...}{:}t_{1}){:}t_{2} \; b :
+      T_{1}{*} \rightarrow T_{2} \times ... \times T_{n}*}
+\mylabel{T-FUNCTION3}
+\]
+
+\[
+\frac{\env, {...}:T_{1}, \ret:T_{2} \times ... \times T_{n} \times \Nil{*} \vdash b}
+     {\env \vdash \mathbf{fun} \; ({...}{:}t_{1}){:}t_{2} \; b :
+      T_{1}{*} \rightarrow T_{2} \times ... \times T_{n} \times \Nil{*}}
+\mylabel{T-FUNCTION4}
+\]
+
+\[
+\frac{\env, \vec{i}:\vec{t_{1}},
+      \ret:T_{2} \times ... \times T_{n}* \vdash b}
+     {\env \vdash \mathbf{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b :
+      S \times \Value{*} \rightarrow T_{2} \times ... \times T_{n}*}
+\mylabel{T-FUNCTION5}
+\]
+
+\[
+\frac{\env, \vec{i}:\vec{t_{1}},
+      \ret:T_{2} \times ... \times T_{n} \times \Nil{*} \vdash b}
+     {\env \vdash \mathbf{fun} \; (\vec{i}{:}\vec{t_{1}}){:}t_{2} \; b :
+      S \times \Value{*} \rightarrow T_{2} \times ... \times T_{n} \times \Nil{*}}
+\mylabel{T-FUNCTION6}
+\]
+
+\[
+\frac{\env, \vec{i}:\vec{t_{1}}, {...}:T_{2},
+      \ret:T_{3} \times ... \times T_{n}* \vdash b}
+     {\env \vdash \mathbf{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b :
+      S \times T_{2}* \rightarrow T_{3} \times ... \times T_{n}*}
+\mylabel{T-FUNCTION7}
+\]
+
+\[
+\frac{\env, \vec{i}:\vec{t_{1}}, {...}:T_{2},
+      \ret:T_{3} \times ... \times T_{n} \times \Nil{*} \vdash b}
+     {\env \vdash \mathbf{fun} \; (\vec{i}{:}\vec{t_{1}},{...}{:}t_{2}){:}t_{3} \; b :
+      S \times T_{2}* \rightarrow T_{3} \times ... \times T_{n} \times \Nil{*}}
+\mylabel{T-FUNCTION8}
+\]
+
+\[
+\frac{\env \vdash \vec{c} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \}}
+     {\env \vdash \{ \; \vec{c} \; \} : \{ T_{1}:T_{1}', ..., T_{n}:T_{n}' \}}
+\mylabel{T-TABLE}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \Number \;\;\;
+      T_{2} \subtype \Number}
+     {\env \vdash e_{1} + e_{2} : \Number}
+\mylabel{T-ARITH1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} + e_{2} : \Any}
+\mylabel{T-ARITH2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} + e_{2} : \Any}
+\mylabel{T-ARITH3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \String \;\;\;
+      T_{2} \subtype \String}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \String}
+\mylabel{T-CONCAT1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \Any}
+\mylabel{T-CONCAT2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} \; {..} \; e_{2} : \Any}
+\mylabel{T-CONCAT3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} == e_{2} : \Boolean}
+\mylabel{T-EQUAL}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \Number \;\;\;
+      T_{2} \subtype \Number}
+     {\env \vdash e_{1} < e_{2} : \Boolean}
+\mylabel{T-ORDER1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2} \;\;\;
+      T_{1} \subtype \String \;\;\;
+      T_{2} \subtype \String}
+     {\env \vdash e_{1} < e_{2} : \Boolean}
+\mylabel{T-ORDER2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} < e_{2} : \Any}
+\mylabel{T-ORDER3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T \;\;\;
+      \env \vdash e_{2}:\Any}
+     {\env \vdash e_{1} < e_{2} : \Any}
+\mylabel{T-ORDER4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Nil \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : \Nil}
+\mylabel{T-AND1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\False \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : \False}
+\mylabel{T-AND2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \Nil \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : T_{2} \cup \Nil}
+\mylabel{T-AND3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \False \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : T_{2} \cup \False}
+\mylabel{T-AND4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{and} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-AND5}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Nil \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T}
+\mylabel{T-OR1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\False \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T}
+\mylabel{T-OR2}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \Nil \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \cup \False \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR4}
+\]
+
+\[
+\frac{\env \vdash e_{1}:T_{1} \;\;\;
+      \env \vdash e_{2}:T_{2}}
+     {\env \vdash e_{1} \; \mathbf{or} \; e_{2} : T_{1} \cup T_{2}}
+\mylabel{T-OR5}
+\]
+
+\[
+\frac{\env \vdash e:T}
+     {\env \vdash \mathbf{not} \; e : \Boolean}
+\mylabel{T-NOT}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \Number}
+     {\env \vdash - e : \Number}
+\mylabel{T-MINUS1}
+\]
+
+\[
+\frac{\env \vdash e:\Any}
+     {\env \vdash - e : \Any}
+\mylabel{T-MINUS2}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \{\}}
+     {\env \vdash \# e : \Number}
+\mylabel{T-LEN1}
+\]
+
+\[
+\frac{\env \vdash e:T \;\;\;
+      T \subtype \String}
+     {\env \vdash \# e : \Number}
+\mylabel{T-LEN2}
+\]
+
+\[
+\frac{\env \vdash e:\Any}
+     {\env \vdash \# e : \Any}
+\mylabel{T-LEN3}
+\]
+
+\[
+\frac{\env \vdash e_{1}:S_{1} \rightarrow S_{2} \;\;\;
+      \env \vdash \vec{e_{2}}:S_{3} \;\;\;
+      S_{3} \lesssim S_{1}}
+     {\env \vdash e_{1}(\vec{e_{2}}) : S_{2}}
+\mylabel{T-EXPCALL1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash \vec{e_{2}}:S}
+     {\env \vdash e_{1}(\vec{e_{2}}) : \Any{*}}
+\mylabel{T-EXPCALL2}
+\]
+
+\[
+\frac{\env(i) = T}
+     {\env \vdash i : T}
+\mylabel{T-ID}
+\]
+
+\[
+\frac{\env \vdash e_{1} : \{ K_{1}:T_{1}, ..., K_{n}:T_{n} \} \;\;\;
+      \env \vdash e_{2} : T \;\;\;
+      \exists i \in 1..n \; T \lesssim K_{i}}
+     {\env \vdash e_{1}[e_{2}] : T_{i}}
+\mylabel{T-INDEX1}
+\]
+
+\[
+\frac{\env \vdash e_{1}:\Any \;\;\;
+      \env \vdash e_{2}:T}
+     {\env \vdash e_{1}[e_{2}] : \Any}
+\mylabel{T-INDEX2}
+\]
+
+\[
+\frac{\env \vdash e_{1} : K \;\;\;
+      \env \vdash e_{2} : T}
+     {\env \vdash e_{1} = e_{2} : K:T}
+\mylabel{T-PAIR}
+\]
+
+\end{document}

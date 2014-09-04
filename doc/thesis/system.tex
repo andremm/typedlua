@@ -15,8 +15,8 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; \Self & \textit{self type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; P \rightarrow R & \textit{function types}\\
-& | \; \{ \}_{o|c} & \textit{empty table type}\\
-& | \; \{F, ..., F\}_{o|c} & \textit{table types}\\
+& | \; \{ \}_{c|o|u} & \textit{empty table type}\\
+& | \; \{F, ..., F\}_{c|o|u} & \textit{table types}\\
 & | \; X & \textit{type variables}\\
 & | \; \mu X.T & \textit{recursive types}\\
 & | \; X_{i} & \textit{projection types}\\
@@ -482,7 +482,7 @@ e ::= & \;\; \mathbf{nil} \; | \;
 {\it string} \; | \;
 {...} \; | \;
 f \; | \;
-\{ \; \vec{c}\; \} \\
+\{ \; \vec{c} \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -498,7 +498,7 @@ l \; | \;
 {<}t{>} \; e\\
 l ::= & \; n \; | \;
 e_{1}[e_{2}]\\
-a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
+a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
 e_{1}{:}n(\vec{e_{2}})\\
 f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
 \mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
@@ -517,4 +517,5 @@ Rule for checking if a table type is well formed:
 \[
 \forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
 \]
+
 
