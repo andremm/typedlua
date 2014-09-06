@@ -709,11 +709,8 @@ end
 local function subtype_tuple (env, t1, t2, relation)
   if tltype.isTuple(t1) and tltype.isTuple(t2) then
     local len1, len2 = #t1, #t2
-    if not tltype.isVararg(t1[len1]) or
-       not tltype.isVararg(t2[len2]) then
-      return false
-    end
     if len1 < len2 then
+      if not tltype.isVararg(t1[len1]) then return false end
       local i = 1
       while i < len1 do
         if not subtype(env, t1[i], t2[i], relation) then
@@ -730,6 +727,7 @@ local function subtype_tuple (env, t1, t2, relation)
       end
       return true
     elseif len1 > len2 then
+      if not tltype.isVararg(t2[len2]) then return false end
       local i = 1
       while i < len2 do
         if not subtype(env, t1[i], t2[i], relation) then
