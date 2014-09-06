@@ -435,7 +435,7 @@ function tltype.checkTypeDec (t)
         if not namelist[name] then
           namelist[name] = true
         else
-          local msg = "attmept to redeclare field '%s'"
+          local msg = "attempt to redeclare field '%s'"
           return nil, string.format(msg, name)
         end
       end

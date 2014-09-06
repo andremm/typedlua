@@ -1951,7 +1951,7 @@ local interface X
 end
 ]=]
 e = [=[
-test.lua:1:7: syntax error, attmept to redeclare field 'x'
+test.lua:1:7: syntax error, attempt to redeclare field 'x'
 ]=]
 
 r = parse(s)
@@ -1963,7 +1963,7 @@ local interface X
 end
 ]=]
 e = [=[
-test.lua:1:7: syntax error, attmept to redeclare field 'x'
+test.lua:1:7: syntax error, attempt to redeclare field 'x'
 ]=]
 
 r = parse(s)
@@ -3880,6 +3880,25 @@ test.lua:4:3: type error, attempt to assign '(1, nil*)' to '(nil, nil*)'
 test.lua:5:3: type error, attempt to assign '({}, nil*)' to '({firstname:number}, nil*)'
 test.lua:8:3: type error, attempt to use 'firstname' to index closed table
 test.lua:8:3: type error, attempt to assign '(Lou, nil*)' to '(nil, nil*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t = {}
+c = { 1 }
+t.c = { 1 }
+local a = c[1]
+local b = t.c[1]
+local x = c[2]
+local y = t.c[2]
+local z = g
+]=]
+e = [=[
+test.lua:6:11: type error, attempt to index '{1:number}' with '2'
+test.lua:7:11: type error, attempt to index '{1:number}' with '2'
+test.lua:8:11: type error, attempt to access undeclared global 'g'
 ]=]
 
 r = typecheck(s)

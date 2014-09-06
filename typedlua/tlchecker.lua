@@ -923,6 +923,7 @@ local function check_assignment (env, varlist, explist)
       end
       l.assigned = true
     elseif tag == "Index" then
+      local t1, t2 = get_type(v[1]), get_type(v[2])
     end
   end
 end
@@ -1175,7 +1176,7 @@ function check_var (env, var, exp)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local t1, t2 = get_type(exp1), get_type(exp2)
-    local msg = "attmept to index '%s' with '%s'"
+    local msg = "attempt to index '%s' with '%s'"
     if tltype.isRecursive(t1) then t1 = t1[2] end
     if tltype.isSelf(t1) and env.self then t1 = env.self end
     if tltype.isTable(t1) then
@@ -1188,8 +1189,14 @@ function check_var (env, var, exp)
             local t3 = tltype.general(get_type(exp))
             local t = tltype.general(t1)
             table.insert(t, tltype.Field(var.const, t2, t3))
+            t = replace_names(env, t, var.pos)
+            t1 = replace_names(env, t1, var.pos)
             if tltype.subtype(t, t1) then
               table.insert(t1, tltype.Field(var.const, t2, t3))
+            else
+              msg = "could not include field '%s'"
+              msg = string.format(msg, tltype.tostring(t2))
+              typeerror(env, msg, var.pos)
             end
             if t3.open then t3.open = nil end
             set_type(var, t3)
