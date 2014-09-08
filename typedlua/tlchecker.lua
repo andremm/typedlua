@@ -605,6 +605,30 @@ local function explist2type (explist)
   end
 end
 
+local function arglist2type (explist, strict)
+  local len = #explist
+  if len == 0 then
+    if strict then
+      return tltype.Void()
+    else
+      return tltype.Tuple({ Nil }, true)
+    end
+  else
+    local l = {}
+    for i = 1, len do
+      l[i] = tltype.first(get_type(explist[i]))
+    end
+    if strict then
+      return tltype.Tuple(l)
+    else
+      if not tltype.isVararg(explist[len]) then
+        l[len + 1] = Nil
+      end
+      return tltype.Tuple(l, true)
+    end
+  end
+end
+
 local function check_arguments (env, func_name, dec_type, infer_type, pos)
   local msg = "attempt to pass '%s' to %s of input type '%s'"
   dec_type = replace_names(env, dec_type, pos)
@@ -632,7 +656,7 @@ local function replace_self (env, t)
         table.insert(l, v)
       end
     end
-    return tltype.Tuple(l, env.strict)
+    return tltype.Tuple(l)
   else
     return t
   end
@@ -684,7 +708,7 @@ local function check_call (env, exp)
     end
   else
     local t = get_type(exp1)
-    local inferred_type = explist2type(explist)
+    local inferred_type = arglist2type(explist, env.strict)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
       check_arguments(env, var2name(exp1), replace_self(env, t[1]), inferred_type, exp.pos)
@@ -714,7 +738,7 @@ local function check_invoke (env, exp)
   check_explist(env, explist)
   local t1, t2 = get_type(exp1), get_type(exp2)
   local t3 = tltype.getField(t2, t1)
-  local inferred_type = explist2type(explist)
+  local inferred_type = arglist2type(explist, env.strict)
   table.insert(inferred_type, 1, Self)
   local msg = "attempt to call method '%s' of type '%s'"
   if tltype.isFunction(t3) then

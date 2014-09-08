@@ -356,6 +356,9 @@ end
 local function traverse_forin (env, stm)
   tlst.begin_loop(env)
   tlst.begin_scope(env)
+  for k, v in ipairs(stm[1]) do
+    tlst.set_local(env, v)
+  end
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_block(env, stm[3])

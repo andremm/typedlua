@@ -670,7 +670,7 @@ s = [=[
 for k,v in pairs(t) do print (k,v) end
 ]=]
 e = [=[
-{ `Forin{ { `Id "k", `Id "v" }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Index{ `Id "_ENV", `String "t" } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "_ENV", `String "k" }, `Index{ `Id "_ENV", `String "v" } } } } }
+{ `Forin{ { `Id "k", `Id "v" }, { `Call{ `Index{ `Id "_ENV", `String "pairs" }, `Index{ `Id "_ENV", `String "t" } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Id "k", `Id "v" } } } }
 ]=]
 
 r = parse(s)
