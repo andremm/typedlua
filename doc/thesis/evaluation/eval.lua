@@ -9,16 +9,20 @@ local module_list = {
   "lsl.bit32",
   "lsl.io",
   "lsl.os",
+  "socket.core",
+  "socket.dns",
   "md5.md5",
 }
 
 local library_list = {
   "lsl",
-  "md5"
+  "socket",
+  "md5",
 }
 
 local library_name = {
   lsl = "Lua Standard Libraries",
+  socket = "Lua Socket",
   md5 = "MD5",
 }
 
