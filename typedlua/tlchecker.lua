@@ -907,7 +907,7 @@ local function check_assignment (env, varlist, explist)
   for k, v in ipairs(varlist) do
     if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
-      local t = get_type(l)
+      local t = l and get_type(l) or Nil
       if not env.self then
         env.self = t
       else
@@ -1144,7 +1144,7 @@ end
 local function check_id (env, exp)
   local name = exp[1]
   local l = tlst.get_local(env, name)
-  local t = get_type(l)
+  local t = l and get_type(l) or Nil
   if tltype.isUnionlist(t) and l.i then
     set_type(exp, tltype.unionlist2union(t, l.i))
   else
@@ -1192,7 +1192,7 @@ function check_var (env, var, exp)
   if tag == "Id" then
     local name = var[1]
     local l = tlst.get_local(env, name)
-    local t = get_type(l)
+    local t = l and get_type(l) or Nil
     if exp and exp.tag == "Id" and tltype.isTable(t) then t.open = nil end
     set_type(var, t)
   elseif tag == "Index" then
