@@ -9,8 +9,13 @@ local module_list = {
   "lsl.bit32",
   "lsl.io",
   "lsl.os",
-  "socket.core",
-  "socket.dns",
+  "socket.socket",
+  "socket.ftp",
+  "socket.http",
+  "socket.ltn12",
+  "socket.mime",
+  "socket.smtp",
+  "socket.url",
   "md5.md5",
 }
 
@@ -49,6 +54,7 @@ local result_by_library = {}
 local total_by_library = {}
 
 local function load_data ()
+  package.path = "./?.lua"
   for i, m in ipairs(module_list) do
     local mod = require(m)
     result_by_module[i] = { 0, 0, 0 }

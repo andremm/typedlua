@@ -1,5 +1,0 @@
-getaddrinfo : (string) -> ({{"family":string, "addr":string}})?,
-gethostname : () -> (string)?,
-tohostname : (string) -> (string, {"name":string, "alias":{string}, "ip":{string}})?,
-toip : (string) -> (string, {"name":string, "alias":{string}, "ip":{string}})?,
-getnameinfo : (string?, string?) -> ({string}, string?)?

@@ -65,20 +65,40 @@ userdata udp_connected
   settimeout : (self, number, string) -> (number)
 end
 
+__unload : () -> ()
+BLOCKSIZE : number
 bind : (string, string, number?) -> (tcp_server)?
+choose : ({string:any}) -> ((string, any, any) -> (any*))
 connect : (string, string, string?, string?, string?) -> (tcp_client)?
 connect4 : (string, string, string?, string?) -> (tcp_client)?
 connect6 : (string, string, string?, string?) -> (tcp_client)?
 _DEBUG : boolean?
+dns : {
+  "getaddrinfo" : (string) -> ({{"family":string, "addr":string}})?,
+  "gethostname" : () -> (string)?,
+  "tohostname" : (string) -> (string, {"name":string, "alias":{string}, "ip":{string}})?,
+  "toip" : (string) -> (string, {"name":string, "alias":{string}, "ip":{string}})?,
+  "getnameinfo" : (string?, string?) -> ({string}, string?)?
+}
 gettime : () -> (number)
 newtry : ((any*) -> (any*)) -> ((any*) -> (any*))
 protect : ((any*) -> (any*)) -> ((any*) -> (any*)?)
 select : ({}?, {}?, number?) -> ({}, {}, string)
 sink : (string, any) -> (any)
+sinkt : {
+  "close-when-done" : (any) -> ((value*) -> (value*)),
+  "default" : (any) -> ((value*) -> (value*)),
+  "keep-open" : (any) -> ((value*) -> (value*))
+}
 skip : (number, value*) -> (any*)
 sleep : (number) -> ()
 _SETSIZE : number
 source : (string, any, number?) -> (any)
+sourcet : {
+  "by-length" : (any) -> ((value*) -> (value*)),
+  "default" : (any) -> ((value*) -> (value*)),
+  "until-closed" : (any) -> ((value*) -> (value*))
+}
 tcp : () -> (tcp_master)?
 tcp6 : () -> (tcp_master)?
 try : ((any*) -> (any*)) -> ((any*) -> (any*))
