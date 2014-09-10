@@ -96,7 +96,7 @@ end
 
 local subject = getcontents(filename)
 
-package.path = package.path .. ";./typedlua/?.lua"
+package.path = "./typedlua/?.lua;" .. package.path
 
 local ast, error_msg = tlparser.parse(subject, filename, STRICT)
 if not ast then

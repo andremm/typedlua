@@ -405,7 +405,7 @@ end
 function tltype.getField (f, t)
   if tltype.isTable(t) then
     for k, v in ipairs(t) do
-      if tltype.subtype(f, v[1]) then
+      if tltype.consistent_subtype(f, v[1]) then
         return v[2]
       end
     end

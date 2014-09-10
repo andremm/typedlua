@@ -48,7 +48,7 @@ local function set_type (node, t)
 end
 
 local function get_type (node)
-  return node["type"] or Nil
+  return node and node["type"] or Nil
 end
 
 local function get_interface (env, name, pos)
@@ -210,10 +210,12 @@ local function check_require (env, name, pos)
       if filepath then
         env["loaded"][name] = check_tld(env, name, filepath)
       else
-        local msg = "could not load '%s'%s%s"
-        msg = string.format(msg, name, msg1, msg2)
-        typeerror(env, msg, pos)
         env["loaded"][name] = Any
+        if env.warnings then
+          local msg = "could not load '%s'%s%s"
+          msg = string.format(msg, name, msg1, msg2)
+          typeerror(env, msg, pos)
+        end
       end
     end
   end
@@ -714,15 +716,15 @@ local function check_call (env, exp)
       check_arguments(env, var2name(exp1), replace_self(env, t[1]), inferred_type, exp.pos)
       set_type(exp, replace_self(env, t[2]))
     elseif tltype.isAny(t) then
+      set_type(exp, Any)
       if env.warnings then
         msg = string.format(msg, var2name(exp1), tltype.tostring(t))
         typeerror(env, msg, exp.pos)
       end
-      set_type(exp, Any)
     else
+      set_type(exp, Nil)
       msg = string.format(msg, var2name(exp1), tltype.tostring(t))
       typeerror(env, msg, exp.pos)
-      set_type(exp, Nil)
     end
   end
 end
@@ -745,15 +747,15 @@ local function check_invoke (env, exp)
     check_arguments(env, "field", t3[1], inferred_type, exp.pos)
     set_type(exp, replace_self(env, t3[2]))
   elseif tltype.isAny(t3) then
+    set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, exp2[1], tltype.tostring(t3))
       typeerror(env, msg, exp.pos)
     end
-    set_type(exp, Any)
   else
+    set_type(exp, Nil)
     msg = string.format(msg, exp2[1], tltype.tostring(t3))
     typeerror(env, msg, exp.pos)
-    set_type(exp, Nil)
   end
 end
 
@@ -907,7 +909,7 @@ local function check_assignment (env, varlist, explist)
   for k, v in ipairs(varlist) do
     if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
-      local t = l and get_type(l) or Nil
+      local t = get_type(l)
       if not env.self then
         env.self = t
       else
@@ -1144,7 +1146,7 @@ end
 local function check_id (env, exp)
   local name = exp[1]
   local l = tlst.get_local(env, name)
-  local t = l and get_type(l) or Nil
+  local t = get_type(l)
   if tltype.isUnionlist(t) and l.i then
     set_type(exp, tltype.unionlist2union(t, l.i))
   else
@@ -1175,15 +1177,15 @@ local function check_index (env, exp)
       set_type(exp, Nil)
     end
   elseif tltype.isAny(t1) then
+    set_type(exp, Any)
     if env.warnings then
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
       typeerror(env, msg, exp.pos)
     end
-    set_type(exp, Nil)
   else
+    set_type(exp, Nil)
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, msg, exp.pos)
-    set_type(exp, Nil)
   end
 end
 
@@ -1192,7 +1194,7 @@ function check_var (env, var, exp)
   if tag == "Id" then
     local name = var[1]
     local l = tlst.get_local(env, name)
-    local t = l and get_type(l) or Nil
+    local t = get_type(l)
     if exp and exp.tag == "Id" and tltype.isTable(t) then t.open = nil end
     set_type(var, t)
   elseif tag == "Index" then
@@ -1240,15 +1242,15 @@ function check_var (env, var, exp)
         end
       end
     elseif tltype.isAny(t1) then
+      set_type(var, Any)
       if env.warnings then
         msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
         typeerror(env, msg, var.pos)
       end
-      set_type(var, Any)
     else
+      set_type(var, Nil)
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
       typeerror(env, msg, var.pos)
-      set_type(var, Nil)
     end
   else
     error("cannot type check variable " .. tag)
