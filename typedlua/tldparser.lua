@@ -110,7 +110,7 @@ local function traverse (ast, errorinfo, strict)
       table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
     elseif tag == "Interface" then
       local name, t = v[1], v[2]
-      local status, msg = tltype.checkTypeDec(t)
+      local status, msg = tltype.checkTypeDec(name, t)
       if not status then
         return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
       end
@@ -119,7 +119,7 @@ local function traverse (ast, errorinfo, strict)
       end
     elseif tag == "Userdata" then
       local name, t = v[1], v[2]
-      local status, msg = tltype.checkTypeDec(t)
+      local status, msg = tltype.checkTypeDec(name, t)
       if not status then
         return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
       end
@@ -131,7 +131,7 @@ local function traverse (ast, errorinfo, strict)
       error("trying to traverse a description item, but got a " .. tag)
     end
   end
-  local status, msg = tltype.checkTypeDec(t)
+  local status, msg = tltype.checkTypeDec("nil", t)
   if not status then
     return nil, tllexer.syntaxerror(env.subject, 1, env.filename, msg)
   else

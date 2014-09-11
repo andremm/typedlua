@@ -471,7 +471,7 @@ end
 
 local function traverse_interface (env, stm)
   local name, t = stm[1], stm[2]
-  local status, msg = tltype.checkTypeDec(t)
+  local status, msg = tltype.checkTypeDec(name, t)
   if not status then
     return nil, tllexer.syntaxerror(env.subject, stm.pos, env.filename, msg)
   end

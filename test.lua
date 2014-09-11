@@ -1969,6 +1969,76 @@ test.lua:1:7: syntax error, attempt to redeclare field 'x'
 r = parse(s)
 assert(r == e)
 
+s = [=[
+local interface boolean end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'boolean'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface number end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'number'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface string end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'string'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface value end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'value'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface any end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'any'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface self end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'self'
+]=]
+
+r = parse(s)
+assert(r == e)
+
+s = [=[
+local interface const end
+]=]
+e = [=[
+test.lua:1:7: syntax error, attempt to redeclare type 'const'
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- labels
 
 s = [=[

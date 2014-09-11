@@ -1338,7 +1338,7 @@ end
 
 local function load_lua_env (env)
   local t = check_require(env, "base", 0)
-  local l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os" }
+  local l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os", "debug" }
   for k, v in ipairs(l) do
     local t1 = tltype.Literal(v)
     local t2 = check_require(env, v, 0)

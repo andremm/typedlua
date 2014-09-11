@@ -424,25 +424,39 @@ function tltype.fieldlist (idlist, t)
   return table.unpack(l)
 end
 
--- checkTypeDec : (type) -> (true)?
-function tltype.checkTypeDec (t)
-  if tltype.isTable(t) then
-    local namelist = {}
-    for k, v in ipairs(t) do
-      local f1, f2 = v[1], v[2]
-      if tltype.isStr(f1) then
-        local name = f1[1]
-        if not namelist[name] then
-          namelist[name] = true
-        else
-          local msg = "attempt to redeclare field '%s'"
-          return nil, string.format(msg, name)
+-- checkTypeDec : (string, type) -> (true)?
+function tltype.checkTypeDec (n, t)
+  local predef_type = {
+    ["boolean"] = true,
+    ["number"] = true,
+    ["string"] = true,
+    ["value"] = true,
+    ["any"] = true,
+    ["self"] = true,
+    ["const"] = true,
+  }
+  if not predef_type[n] then
+    if tltype.isTable(t) then
+      local namelist = {}
+      for k, v in ipairs(t) do
+        local f1, f2 = v[1], v[2]
+        if tltype.isStr(f1) then
+          local name = f1[1]
+          if not namelist[name] then
+            namelist[name] = true
+          else
+            local msg = "attempt to redeclare field '%s'"
+            return nil, string.format(msg, name)
+          end
         end
       end
+      return true
+    else
+      return nil, "attempt to name a type that is not a table"
     end
-    return true
   else
-    return nil, "attempt to name a type that is not a table"
+    local msg = "attempt to redeclare type '%s'"
+    return nil, string.format(msg, n)
   end
 end
 

@@ -2,7 +2,7 @@ interface url_request
   url:string
   sink:any?
   method:string?
-  hearders:{string:string}?
+  headers:{string:string}?
   source:any?
   step:any?
   proxy:string?
