@@ -3757,6 +3757,56 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local t = { ... }
+for i = 1, #t do
+  print(t[i])
+end
+]=]
+e = [=[
+{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "len", `Id "t" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "t", `Id "i" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t = { ... }
+t[1] = 1
+]=]
+e = [=[
+test.lua:2:1: type error, attempt to assign '(1, nil*)' to '((string | nil), nil*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t = { ... }
+t[1] = "foo"
+t.foo = 1
+]=]
+e = [=[
+{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Set{ { `Index{ `Id "t", `Number "1" } }, { `String "foo" } }, `Set{ { `Index{ `Id "t", `String "foo" } }, { `Number "1" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t1:{"foo":number, number:string|nil} = { foo = 1, ... }
+local t2:{"foo":number, 2:string|nil, "bar":number} = { foo = 1, ..., bar = 2 }
+local t3:{1:string|nil, "foo":number} = { ..., foo = 1 }
+local t4:{"foo":number, "bar":number, number:string|nil} = { foo = 1, bar = 2, ... }
+local t5:{"foo":number, "bar":number, 3:string|nil, 2:number} = { foo = 1, bar = 2, ..., 3 }
+]=]
+e = [=[
+{ `Local{ { `Id "t1":`TTable{ `TLiteral foo:`TBase number, `TBase number:`TUnion{ `TBase string, `TNil } } }, { `Table{ `Pair{ `String "foo", `Number "1" }, `Dots } } }, `Local{ { `Id "t2":`TTable{ `TLiteral foo:`TBase number, `TLiteral 2:`TUnion{ `TBase string, `TNil }, `TLiteral bar:`TBase number } }, { `Table{ `Pair{ `String "foo", `Number "1" }, `Dots, `Pair{ `String "bar", `Number "2" } } } }, `Local{ { `Id "t3":`TTable{ `TLiteral 1:`TUnion{ `TBase string, `TNil }, `TLiteral foo:`TBase number } }, { `Table{ `Dots, `Pair{ `String "foo", `Number "1" } } } }, `Local{ { `Id "t4":`TTable{ `TLiteral foo:`TBase number, `TLiteral bar:`TBase number, `TBase number:`TUnion{ `TBase string, `TNil } } }, { `Table{ `Pair{ `String "foo", `Number "1" }, `Pair{ `String "bar", `Number "2" }, `Dots } } }, `Local{ { `Id "t5":`TTable{ `TLiteral foo:`TBase number, `TLiteral bar:`TBase number, `TLiteral 3:`TUnion{ `TBase string, `TNil }, `TLiteral 2:`TBase number } }, { `Table{ `Pair{ `String "foo", `Number "1" }, `Pair{ `String "bar", `Number "2" }, `Dots, `Number "3" } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local person:{"firstname":string, "lastname":string} =
   { firstname = "Lou", lastname = "Reed" }
 ]=]

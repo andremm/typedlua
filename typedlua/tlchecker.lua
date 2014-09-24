@@ -538,6 +538,7 @@ end
 local function check_table (env, exp)
   local l = {}
   local i = 1
+  local len = #exp
   for k, v in ipairs(exp) do
     local tag = v.tag
     local t1, t2
@@ -550,9 +551,13 @@ local function check_table (env, exp)
       local exp1 = v
       check_exp(env, exp1)
       t1, t2 = tltype.Literal(i), tltype.general(get_type(exp1))
+      if k == len and tltype.isVararg(t2) then
+        t1 = Number
+      end
       i = i + 1
     end
     if t2.open then t2.open = nil end
+    t2 = tltype.first(t2)
     l[k] = tltype.Field(v.const, t1, t2)
   end
   local t = tltype.Table(table.unpack(l))
