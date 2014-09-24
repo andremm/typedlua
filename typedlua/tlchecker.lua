@@ -775,7 +775,7 @@ local function check_invoke (env, exp)
       typeerror(env, msg, exp.pos)
     end
   else
-    set_type(exp, Any)
+    set_type(exp, Nil)
     local msg = "attempt to index '%s' with '%s'"
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, msg, exp.pos)
