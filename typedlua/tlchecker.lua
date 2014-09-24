@@ -739,22 +739,45 @@ local function check_invoke (env, exp)
   check_exp(env, exp2)
   check_explist(env, explist)
   local t1, t2 = get_type(exp1), get_type(exp2)
-  local t3 = tltype.getField(t2, t1)
-  local inferred_type = arglist2type(explist, env.strict)
-  table.insert(inferred_type, 1, Self)
-  local msg = "attempt to call method '%s' of type '%s'"
-  if tltype.isFunction(t3) then
-    check_arguments(env, "field", t3[1], inferred_type, exp.pos)
-    set_type(exp, replace_self(env, t3[2]))
-  elseif tltype.isAny(t3) then
-    set_type(exp, Any)
-    if env.warnings then
+  if tltype.isTable(t1) or
+     tltype.isString(t1) or
+     tltype.isStr(t1) then
+    local inferred_type = arglist2type(explist, env.strict)
+    local t3
+    if tltype.isTable(t1) then
+      t3 = tltype.getField(t2, t1)
+      table.insert(inferred_type, 1, Self)
+    else
+      local string_userdata = env["loaded"]["string"] or tltype.Table()
+      t3 = tltype.getField(t2, string_userdata)
+      table.insert(inferred_type, 1, String)
+    end
+    local msg = "attempt to call method '%s' of type '%s'"
+    if tltype.isFunction(t3) then
+      check_arguments(env, "field", t3[1], inferred_type, exp.pos)
+      set_type(exp, replace_self(env, t3[2]))
+    elseif tltype.isAny(t3) then
+      set_type(exp, Any)
+      if env.warnings then
+        msg = string.format(msg, exp2[1], tltype.tostring(t3))
+        typeerror(env, msg, exp.pos)
+      end
+    else
+      set_type(exp, Nil)
       msg = string.format(msg, exp2[1], tltype.tostring(t3))
       typeerror(env, msg, exp.pos)
     end
+  elseif tltype.isAny(t1) then
+    set_type(exp, Any)
+    if env.warnings then
+      local msg = "attempt to index '%s' with '%s'"
+      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      typeerror(env, msg, exp.pos)
+    end
   else
-    set_type(exp, Nil)
-    msg = string.format(msg, exp2[1], tltype.tostring(t3))
+    set_type(exp, Any)
+    local msg = "attempt to index '%s' with '%s'"
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, msg, exp.pos)
   end
 end

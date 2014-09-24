@@ -4034,6 +4034,31 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local str = "foo"
+print(str:byte())
+print(("foo"):byte())
+]=]
+e = [=[
+{ `Local{ { `Id "str" }, { `String "foo" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Invoke{ `Id "str", `String "byte" } }, `Call{ `Index{ `Id "_ENV", `String "print" }, `Invoke{ `Paren{ `String "foo" }, `String "byte" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local str = "foo"
+print(str:char())
+print(("foo"):dump())
+]=]
+e = [=[
+test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
+test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((any*) -> (any*), value*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 interface Shape
   x, y:number
   const new:(number, number) => (self)
