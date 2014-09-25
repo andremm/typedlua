@@ -26,14 +26,8 @@ local check_block, check_stm, check_exp, check_var
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
-  local l, lastline = 0, ""
-  s = s:sub(1, i) .. "\n"
-  for line in s:gmatch("[^\n]*[\n]") do
-    l = l + 1
-    lastline = line
-  end
-  local c = lastline:len() - 1
-  return l, c ~= 0 and c or 1
+  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+  return 1 + num, #rest
 end
 
 function typeerror (env, msg, pos)
