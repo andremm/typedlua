@@ -10,4 +10,12 @@ return {
   tmpfile = 1,
   ["type"] = 1,
   write = 1,
+  -- file methods
+  close_m = 3,
+  flush_m = 1,
+  lines_m = 3,
+  read_m = 1,
+  seek_m = 1,
+  setvbuf_m = 1,
+  write_m = 1,
 }
