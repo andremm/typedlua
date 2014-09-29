@@ -27,13 +27,13 @@ local check_block, check_stm, check_exp, check_var
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
   local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
-  return 1 + num, #rest
+  local r = #rest
+  return 1 + num, r ~= 0 and r or 1
 end
 
-function typeerror (env, msg, pos)
+local function typeerror (env, tag, msg, pos)
   local l, c = lineno(env.subject, pos)
-  local error_msg = "%s:%d:%d: type error, %s"
-  error_msg = string.format(error_msg, env.filename, l, c, msg)
+  local error_msg = { tag = tag, msg = msg, l = l, c = c }
   table.insert(env.messages, error_msg)
 end
 
@@ -50,7 +50,7 @@ local function get_interface (env, name, pos)
   if not t then
     local msg = "type alias '%s' is not defined"
     msg = string.format(msg, name)
-    typeerror(env, msg, pos)
+    typeerror(env, "alias", msg, pos)
     return Nil
   else
     return t
@@ -157,7 +157,7 @@ local function check_interface (env, stm)
   if tlst.get_interface(env, name) then
     local msg = "attempt to redeclare interface '%s'"
     msg = string.format(msg, name)
-    typeerror(env, msg, stm.pos)
+    typeerror(env, "alias", msg, stm.pos)
   else
     tlst.set_interface(env, name, t, is_local)
   end
@@ -168,7 +168,7 @@ local function check_userdata (env, stm)
   if tlst.get_userdata(env, name) then
     local msg = "attempt to redeclare userdata '%s'"
     msg = string.format(msg, name)
-    typeerror(env, msg, stm.pos)
+    typeerror(env, "alias", msg, stm.pos)
   else
     tlst.set_userdata(env, name, t, is_local)
   end
@@ -205,11 +205,9 @@ local function check_require (env, name, pos)
         env["loaded"][name] = check_tld(env, name, filepath)
       else
         env["loaded"][name] = Any
-        if env.warnings then
-          local msg = "could not load '%s'%s%s"
-          msg = string.format(msg, name, msg1, msg2)
-          typeerror(env, msg, pos)
-        end
+        local msg = "could not load '%s'%s%s"
+        msg = string.format(msg, name, msg1, msg2)
+        typeerror(env, "load", msg, pos)
       end
     end
   end
@@ -226,16 +224,12 @@ local function check_arith (env, exp)
     set_type(exp, Number)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1))
-      typeerror(env, msg, exp1.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t2))
-      typeerror(env, msg, exp2.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t2))
+    typeerror(env, "any", msg, exp2.pos)
   else
     set_type(exp, Any)
     local wrong_type, wrong_pos = tltype.general(t1), exp1.pos
@@ -243,7 +237,7 @@ local function check_arith (env, exp)
       wrong_type, wrong_pos = tltype.general(t2), exp2.pos
     end
     msg = string.format(msg, tltype.tostring(wrong_type))
-    typeerror(env, msg, wrong_pos)
+    typeerror(env, "arith", msg, wrong_pos)
   end
 end
 
@@ -257,16 +251,12 @@ local function check_concat (env, exp)
     set_type(exp, String)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1))
-      typeerror(env, msg, exp1.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t2))
-      typeerror(env, msg, exp2.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t2))
+    typeerror(env, "any", msg, exp2.pos)
   else
     set_type(exp, Any)
     local wrong_type, wrong_pos = tltype.general(t1), exp1.pos
@@ -274,7 +264,7 @@ local function check_concat (env, exp)
       wrong_type, wrong_pos = tltype.general(t2), exp2.pos
     end
     msg = string.format(msg, tltype.tostring(wrong_type))
-    typeerror(env, msg, wrong_pos)
+    typeerror(env, "concat", msg, wrong_pos)
   end
 end
 
@@ -297,21 +287,17 @@ local function check_order (env, exp)
     set_type(exp, Boolean)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, exp1.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    typeerror(env, "any", msg, exp1.pos)
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, exp2.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    typeerror(env, "any", msg, exp2.pos)
   else
     set_type(exp, Any)
     t1, t2 = tltype.general(t1), tltype.general(t2)
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-    typeerror(env, msg, exp.pos)
+    typeerror(env, "order", msg, exp.pos)
   end
 end
 
@@ -383,15 +369,13 @@ local function check_minus (env, exp)
     set_type(exp, Number)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1))
-      typeerror(env, msg, exp1.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
   else
     set_type(exp, Any)
     t1 = tltype.general(t1)
     msg = string.format(msg, tltype.tostring(t1))
-    typeerror(env, msg, exp1.pos)
+    typeerror(env, "arith", msg, exp1.pos)
   end
 end
 
@@ -405,15 +389,13 @@ local function check_len (env, exp)
     set_type(exp, Number)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1))
-      typeerror(env, msg, exp1.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
   else
     set_type(exp, Any)
     t1 = tltype.general(t1)
     msg = string.format(msg, tltype.tostring(t1))
-    typeerror(env, msg, exp1.pos)
+    typeerror(env, "len", msg, exp1.pos)
   end
 end
 
@@ -486,13 +468,11 @@ local function check_return_type (env, inf_type, dec_type, pos)
   dec_type = replace_names(env, dec_type, pos)
   if tltype.subtype(inf_type, dec_type) then
   elseif tltype.consistent_subtype(inf_type, dec_type) then
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
-      typeerror(env, msg, pos)
-    end
+    msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
+    typeerror(env, "any", msg, pos)
   else
     msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
-    typeerror(env, msg, pos)
+    typeerror(env, "ret", msg, pos)
   end
 end
 
@@ -636,13 +616,11 @@ local function check_arguments (env, func_name, dec_type, infer_type, pos)
   infer_type = replace_names(env, infer_type, pos)
   if tltype.subtype(infer_type, dec_type) then
   elseif tltype.consistent_subtype(infer_type, dec_type) then
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
-      typeerror(env, msg, pos)
-    end
+    msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
+    typeerror(env, "any", msg, pos)
   else
     msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
-    typeerror(env, msg, pos)
+    typeerror(env, "args", msg, pos)
   end
 end
 
@@ -682,12 +660,12 @@ local function check_call (env, exp)
         set_type(exp, t3)
       else
         local msg = "second argument of setmetatable must be { __index = e }"
-        typeerror(env, msg, exp.pos)
+        typeerror(env, "call", msg, exp.pos)
         set_type(exp, Any)
       end
     else
       local msg = "setmetatable must have two arguments"
-      typeerror(env, msg, exp.pos)
+      typeerror(env, "call", msg, exp.pos)
       set_type(exp, Any)
     end
   elseif exp1.tag == "Index" and
@@ -699,12 +677,12 @@ local function check_call (env, exp)
         set_type(exp, check_require(env, explist[1][1], exp.pos))
       else
         local msg = "the argument of require must be a literal string"
-        typeerror(env, msg, exp.pos)
+        typeerror(env, "call", msg, exp.pos)
         set_type(exp, Any)
       end
     else
       local msg = "require must have one argument"
-      typeerror(env, msg, exp.pos)
+      typeerror(env, "call", msg, exp.pos)
       set_type(exp, Any)
     end
   else
@@ -716,14 +694,12 @@ local function check_call (env, exp)
       set_type(exp, replace_self(env, t[2]))
     elseif tltype.isAny(t) then
       set_type(exp, Any)
-      if env.warnings then
-        msg = string.format(msg, var2name(exp1), tltype.tostring(t))
-        typeerror(env, msg, exp.pos)
-      end
+      msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+      typeerror(env, "any", msg, exp.pos)
     else
       set_type(exp, Nil)
       msg = string.format(msg, var2name(exp1), tltype.tostring(t))
-      typeerror(env, msg, exp.pos)
+      typeerror(env, "call", msg, exp.pos)
     end
   end
 end
@@ -757,27 +733,23 @@ local function check_invoke (env, exp)
       set_type(exp, replace_self(env, t3[2]))
     elseif tltype.isAny(t3) then
       set_type(exp, Any)
-      if env.warnings then
-        msg = string.format(msg, exp2[1], tltype.tostring(t3))
-        typeerror(env, msg, exp.pos)
-      end
+      msg = string.format(msg, exp2[1], tltype.tostring(t3))
+      typeerror(env, "any", msg, exp.pos)
     else
       set_type(exp, Nil)
       msg = string.format(msg, exp2[1], tltype.tostring(t3))
-      typeerror(env, msg, exp.pos)
+      typeerror(env, "invoke", msg, exp.pos)
     end
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      local msg = "attempt to index '%s' with '%s'"
-      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, exp.pos)
-    end
+    local msg = "attempt to index '%s' with '%s'"
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    typeerror(env, "any", msg, exp.pos)
   else
     set_type(exp, Nil)
     local msg = "attempt to index '%s' with '%s'"
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-    typeerror(env, msg, exp.pos)
+    typeerror(env, "index", msg, exp.pos)
   end
 end
 
@@ -786,7 +758,7 @@ local function check_local_var (env, id, inferred_type, close_local)
   inferred_type = replace_names(env, inferred_type, pos)
   if tltype.isMethod(inferred_type) then
     local msg = "attempt to create a method reference"
-    typeerror(env, msg, pos)
+    typeerror(env, "local", msg, pos)
     inferred_type = Nil
   end
   if not local_type then
@@ -806,11 +778,9 @@ local function check_local_var (env, id, inferred_type, close_local)
     msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
     if tltype.subtype(inferred_type, local_type) then
     elseif tltype.consistent_subtype(inferred_type, local_type) then
-      if env.warnings then
-       typeerror(env, msg, pos)
-      end
+      typeerror(env, "any", msg, pos)
     else
-      typeerror(env, msg, pos)
+      typeerror(env, "local", msg, pos)
     end
   end
   set_type(id, local_type)
@@ -947,13 +917,11 @@ local function check_assignment (env, varlist, explist)
   local msg = "attempt to assign '%s' to '%s'"
   if tltype.subtype(exp_type, var_type) then
   elseif tltype.consistent_subtype(exp_type, var_type) then
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
-      typeerror(env, msg, varlist[1].pos)
-    end
+    msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
+    typeerror(env, "any", msg, varlist[1].pos)
   else
     msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
-    typeerror(env, msg, varlist[1].pos)
+    typeerror(env, "set", msg, varlist[1].pos)
   end
   for k, v in ipairs(varlist) do
     local tag = v.tag
@@ -1128,18 +1096,18 @@ local function check_fornum (env, stm)
   local msg = "'for' initial value must be a number"
   if tltype.subtype(t, Number) then
   elseif tltype.consistent_subtype(t, Number) then
-    if env.warnings then typeerror(env, msg, exp1.pos) end
+    typeerror(env, "any", msg, exp1.pos)
   else
-    typeerror(env, msg, exp1.pos)
+    typeerror(env, "fornum", msg, exp1.pos)
   end
   check_exp(env, exp2)
   t = get_type(exp2)
   msg = "'for' limit must be a number"
   if tltype.subtype(t, Number) then
   elseif tltype.consistent_subtype(t, Number) then
-    if env.warnings then typeerror(env, msg, exp2.pos) end
+    typeerror(env, "any", msg, exp2.pos)
   else
-    typeerror(env, msg, exp2.pos)
+    typeerror(env, "fornum", msg, exp2.pos)
   end
   if block then
     check_exp(env, exp3)
@@ -1147,9 +1115,9 @@ local function check_fornum (env, stm)
     msg = "'for' step must be a number"
     if tltype.subtype(t, Number) then
     elseif tltype.consistent_subtype(t, Number) then
-      if env.warnings then typeerror(env, msg, exp3.pos) end
+      typeerror(env, "any", msg, exp3.pos)
     else
-      typeerror(env, msg, exp3.pos)
+      typeerror(env, "fornum", msg, exp3.pos)
     end
   else
     block = exp3
@@ -1195,19 +1163,17 @@ local function check_index (env, exp)
       else
         msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
       end
-      typeerror(env, msg, exp.pos)
+      typeerror(env, "index", msg, exp.pos)
       set_type(exp, Nil)
     end
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    if env.warnings then
-      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, exp.pos)
-    end
+    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    typeerror(env, "any", msg, exp.pos)
   else
     set_type(exp, Nil)
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-    typeerror(env, msg, exp.pos)
+    typeerror(env, "index", msg, exp.pos)
   end
 end
 
@@ -1244,7 +1210,7 @@ function check_var (env, var, exp)
             else
               msg = "could not include field '%s'"
               msg = string.format(msg, tltype.tostring(t2))
-              typeerror(env, msg, var.pos)
+              typeerror(env, "open", msg, var.pos)
             end
             if t3.open then t3.open = nil end
             set_type(var, t3)
@@ -1259,20 +1225,18 @@ function check_var (env, var, exp)
             msg = "attempt to use '%s' to index closed table"
             msg = string.format(msg, tltype.tostring(t2))
           end
-          typeerror(env, msg, var.pos)
+          typeerror(env, "open", msg, var.pos)
           set_type(var, Nil)
         end
       end
     elseif tltype.isAny(t1) then
       set_type(var, Any)
-      if env.warnings then
-        msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-        typeerror(env, msg, var.pos)
-      end
+      msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+      typeerror(env, "any", msg, var.pos)
     else
       set_type(var, Nil)
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-      typeerror(env, msg, var.pos)
+      typeerror(env, "index", msg, var.pos)
     end
   else
     error("cannot type check variable " .. tag)
@@ -1373,13 +1337,11 @@ local function load_lua_env (env)
   tlst.set_local(env, lua_env)
 end
 
-function tlchecker.typecheck (ast, subject, filename, strict, warnings)
+function tlchecker.typecheck (ast, subject, strict)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
-  assert(type(filename) == "string")
   assert(type(strict) == "boolean")
-  assert(type(warnings) == "boolean")
-  local env = tlst.new_env(subject, filename, strict, warnings)
+  local env = tlst.new_env(subject, strict)
   tlst.begin_function(env)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
@@ -1389,10 +1351,25 @@ function tlchecker.typecheck (ast, subject, filename, strict, warnings)
   end
   tlst.end_scope(env)
   tlst.end_function(env)
-  if #env.messages > 0 then
-    return ast, table.concat(env.messages, "\n")
+  return env.messages
+end
+
+function tlchecker.error_msgs (messages, filename, warnings)
+  local l = {}
+  local error_msg = filename .. ":%d:%d: type error, %s"
+  for k, v in ipairs(messages) do
+    if v.tag == "any" then
+      if warnings then
+        table.insert(l, string.format(error_msg, v.l, v.c, v.msg))
+      end
+    else
+      table.insert(l, string.format(error_msg, v.l, v.c, v.msg))
+    end
+  end
+  if #l == 0 then
+    return nil
   else
-    return ast
+    return table.concat(l, "\n")
   end
 end
 

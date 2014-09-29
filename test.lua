@@ -31,7 +31,8 @@ local function typecheck (s)
     error(m)
     os.exit(1)
   end
-  t,m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,s,false)
+  m = tlchecker.error_msgs(m,filename,false)
   if m then
     r = m
   else
@@ -46,7 +47,8 @@ local function generate (s)
     error(m)
     os.exit(1)
   end
-  t,m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,s,false)
+  m = tlchecker.error_msgs(m,filename,false)
   if m then
     return m .. "\n"
   else

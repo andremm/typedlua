@@ -113,14 +113,9 @@ local OneWord = tllexer.Name + tllexer.Number + tllexer.String + tllexer.Reserve
 
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
-  local l, lastline = 0, ""
-  s = s:sub(1, i) .. "\n"
-  for line in s:gmatch("[^\n]*[\n]") do
-    l = l + 1
-    lastline = line
-  end
-  local c = lastline:len() - 1
-  return l, c ~= 0 and c or 1
+  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+  local r = #rest
+  return 1 + num, r ~= 0 and r or 1
 end
 
 function tllexer.syntaxerror (subject, pos, filename, msg)

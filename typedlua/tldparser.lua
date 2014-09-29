@@ -112,7 +112,7 @@ local function traverse (ast, errorinfo, strict)
       local name, t = v[1], v[2]
       local status, msg = tltype.checkTypeDec(name, t)
       if not status then
-        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+        return nil, tllexer.syntaxerror(errorinfo.subject, v.pos, errorinfo.filename, msg)
       end
       if tltype.checkRecursive(t, name) then
         v[2] = tltype.Recursive(name, t)
@@ -121,11 +121,11 @@ local function traverse (ast, errorinfo, strict)
       local name, t = v[1], v[2]
       local status, msg = tltype.checkTypeDec(name, t)
       if not status then
-        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+        return nil, tllexer.syntaxerror(errorinfo.subject, v.pos, errorinfo.filename, msg)
       end
       if tltype.checkRecursive(t, name) then
         local msg = string.format("userdata '%s' is recursive", name)
-        return nil, tllexer.syntaxerror(env.subject, v.pos, env.filename, msg)
+        return nil, tllexer.syntaxerror(errorinfo.subject, v.pos, errorinfo.filename, msg)
       end
     else
       error("trying to traverse a description item, but got a " .. tag)
@@ -133,7 +133,7 @@ local function traverse (ast, errorinfo, strict)
   end
   local status, msg = tltype.checkTypeDec("nil", t)
   if not status then
-    return nil, tllexer.syntaxerror(env.subject, 1, env.filename, msg)
+    return nil, tllexer.syntaxerror(errorinfo.subject, 1, errorinfo.filename, msg)
   else
     return ast
   end
