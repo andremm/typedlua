@@ -1,5 +1,13 @@
 
-\section{Type Language}
+In the previous chapter we presented an informal overview of Typed Lua.
+We showed that programmers can use Typed Lua to combine static and dynamic
+typing in the same code.
+
+In this chapter we present the formalization of Typed Lua.
+We use typing rules to show how we implemented the features that we
+discussed in the previous chapter.
+
+\section{Types}
 
 \begin{figure}[!ht]
 \textbf{Type Language}\\
@@ -7,30 +15,29 @@
 $$
 \begin{array}{rlr}
 \multicolumn{3}{c}{\textbf{First-level types}}\\
-T ::= & \;\; L & \textit{literal types}\\
-& | \; B & \textit{base types}\\
+t ::= & \;\; l & \textit{literal types}\\
+& | \; b & \textit{base types}\\
 & | \; \Nil & \textit{nil type}\\
 & | \; \Value & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; \Self & \textit{self type}\\
-& | \; T \cup T & \textit{disjoint union types}\\
-& | \; P \rightarrow R & \textit{function types}\\
-& | \; \{ \}_{c|o|u} & \textit{empty table type}\\
-& | \; \{F, ..., F\}_{c|o|u} & \textit{table types}\\
-& | \; X & \textit{type variables}\\
-& | \; \mu X.T & \textit{recursive types}\\
-& | \; X_{i} & \textit{projection types}\\
-L ::= & \False \; | \; \True \; | \; {\it number} \; | \; {\it string} & \\
-B ::= & \Boolean \; | \; \Number \; | \; \String & \\
-F ::= & K:T \; | \; \Const \; K:T & \textit{field types}\\ 
-K ::= & L \; | \; B \; | \; \Value \; | \; \Any & \textit{key types}\\
+& | \; t \cup t & \textit{disjoint union types}\\
+& | \; p \rightarrow r & \textit{function types}\\
+& | \; \{f_{i}, ..., f_{n}\}_{c|o|u} & \textit{table types}\\
+& | \; x & \textit{type variables}\\
+& | \; \mu x.t & \textit{recursive types}\\
+& | \; x_{i} & \textit{projection types}\\
+l ::= & \False \; | \; \True \; | \; {\it number} \; | \; {\it string} & \\
+b ::= & \Boolean \; | \; \Number \; | \; \String & \\
+f ::= & k:t \; | \; \Const \; k:t & \textit{field types}\\ 
+k ::= & l \; | \; b \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
-S ::= & \;\; T &\\
-& | \; T* & \textit{vararg types}\\
-& | \; T \times S & \textit{tuple types}\\
-P ::= & \Void \; | \; S & \textit{parameters list type}\\
-R ::= & \Void \; | \; S \; | \; S \cup R & \textit{return types}\\
+s ::= & \;\; t &\\
+& | \; t* & \textit{variadic types}\\
+& | \; t \times s & \textit{tuple types}\\
+p ::= & \Void \; | \; s & \textit{parameters list type}\\
+r ::= & \Void \; | \; s \; | \; s \cup r & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -40,13 +47,17 @@ $$
 
 Figure \ref{fig:typelang} presents the abstract syntax of the
 Typed Lua types.
-We split Typed Lua types into two categories:
+Typed Lua splits types into two categories:
 \emph{first-level types} and \emph{second-level types}.
-We use first-level types to represent Lua values and
-second-level types to type expression lists, multiple assignments,
-and function applications.
-
-\section{Subtyping}
+Typed Lua uses first-level types to represent Lua values and
+second-level types to represent expression lists, and it also
+uses them to type multiple assignments and function applications.
+First-level types include literal types, base types, the type $\Nil$,
+the top type $\Value$, the dynamic type $\Any$, the type $\Self$,
+union types, function types, table types, recursive types, and
+projection types.
+Second-level types include the type $\Void$, tuples of first-level
+types optionally ending in a variadic type, and union of these tuples.
 
 \begin{figure}[!ht]
 \textbf{Subtyping}\\
@@ -249,8 +260,6 @@ $$
 \caption{The subtyping relation}
 \label{fig:subtyping}
 \end{figure}
-
-\section{Consistent-Subtyping}
 
 \begin{figure}[!ht]
 \textbf{Consistent-Subtyping}\\
@@ -471,8 +480,8 @@ s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = \vec{e}  \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n}{:}\vec{T} = \vec{e} \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n}{:}\vec{t} = \vec{e} \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
 \mathbf{return} \; \vec{e} \; | \;
 a\\
 e ::= & \;\; \mathbf{nil} \; | \;
@@ -500,10 +509,10 @@ l ::= & \; n \; | \;
 e_{1}[e_{2}]\\
 a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
 e_{1}{:}n(\vec{e_{2}})\\
-f ::= & \; \mathbf{fun} \; (){:}R \; s \; | \;
-\mathbf{fun} \; ({...}{:}T){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s\\
+f ::= & \; \mathbf{fun} \; (){:}r \; s \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{t}){:}r \; s \; | \;
+\mathbf{fun} \; (\vec{n}{:}\vec{t},{...}{:}t){:}r \; s\\
 c ::= & \; [e_{1}] = e_{2}\\
 n ::= & \; {\it name}\\
 \end{array}

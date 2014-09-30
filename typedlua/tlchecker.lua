@@ -1148,7 +1148,7 @@ local function check_index (env, exp)
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
-  local t1, t2 = get_type(exp1), get_type(exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local msg = "attempt to index '%s' with '%s'"
   if tltype.isRecursive(t1) then t1 = t1[2] end
   if tltype.isSelf(t1) and env.self then t1 = env.self end
@@ -1189,7 +1189,7 @@ function check_var (env, var, exp)
     local exp1, exp2 = var[1], var[2]
     check_exp(env, exp1)
     check_exp(env, exp2)
-    local t1, t2 = get_type(exp1), get_type(exp2)
+    local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
     local msg = "attempt to index '%s' with '%s'"
     if tltype.isRecursive(t1) then t1 = t1[2] end
     if tltype.isSelf(t1) and env.self then t1 = env.self end
