@@ -480,7 +480,7 @@ s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = \vec{e}  \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n}{:}\vec{t} = \vec{e} \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n{:}t} = \vec{e} \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
 \mathbf{return} \; \vec{e} \; | \;
 a\\
@@ -511,8 +511,8 @@ a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
 e_{1}{:}n(\vec{e_{2}})\\
 f ::= & \; \mathbf{fun} \; (){:}r \; s \; | \;
 \mathbf{fun} \; ({...}{:}t){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{t}){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n}{:}\vec{t},{...}{:}t){:}r \; s\\
+\mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s\\
 c ::= & \; [e_{1}] = e_{2}\\
 n ::= & \; {\it name}\\
 \end{array}

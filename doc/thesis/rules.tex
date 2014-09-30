@@ -1,6 +1,84 @@
 This appendix presents the complete set of typing rules of Typed Lua.
 \\
 
+\mylabel{T-SKIP}
+\[
+\env \vdash \mathbf{skip}
+\]
+
+\mylabel{T-SEQ}
+\[
+\dfrac{\env \vdash s_{1} \;\;\;
+       \env \vdash s_{2}}
+      {\env \vdash s_{1} \; ; \; s_{2}}
+\]
+
+\mylabel{T-ASSIGNMENT}
+\[
+\dfrac{\env \vdash \vec{l}:s_{1} \;\;\;
+       \env \vdash \vec{e}:s_{2} \;\;\;
+       s_{2} \lesssim s_{1}}
+      {\env \vdash \vec{l} = \vec{e}}
+\]
+
+\mylabel{T-WHILE}
+\[
+\dfrac{\env \vdash e:t \;\;\;
+       \env \vdash s}
+      {\env \vdash \mathbf{while} \; e \; \mathbf{do} \; s}
+\]
+
+\mylabel{T-IF}
+\[
+\dfrac{\env \vdash e:t \;\;\;
+       \env \vdash s_{1} \;\;\;
+       \env \vdash s_{2}}
+      {\env \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}}
+\]
+
+\mylabel{T-LOCAL}
+\[
+\dfrac{\env \vdash \vec{e}:s \;\;\;
+       s \lesssim \vec{t} \;\;\;
+       \env[\vec{n} \mapsto \vec{t}] \vdash s}
+      {\env \vdash \mathbf{local} \; \vec{n{:}t} = \vec{e} \; \mathbf{in} \; s}
+\]
+
+\mylabel{T-LOCALREC}
+\[
+\dfrac{\env[n \mapsto t] \vdash f \;\;\;
+       \env[n \mapsto t] \vdash s}
+      {\env \vdash \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s}
+\]
+
+\mylabel{T-RETURN}
+\[
+\dfrac{\env \vdash \vec{e}:s \;\;\;
+       \env(\ret) = r \;\;\;
+       s \lesssim r}
+      {\env \vdash \mathbf{return} \; \vec{e}}
+\]
+
+\mylabel{T-EXPLIST1}
+\[
+\dfrac{|\vec{e}| = 0}
+      {\env \vdash \vec{e}:\Nil{*}}
+\]
+
+\mylabel{T-EXPLIST2}
+\[
+\dfrac{|\vec{e}| > 0 \;\;\;
+       \env \vdash \vec{e}:t_{1} \times ... \times t_{n}}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}}
+\]
+
+\mylabel{T-EXPLIST3}
+\[
+\dfrac{|\vec{e}| > 0 \;\;\;
+       \env \vdash \vec{e}:t_{1} \times ... \times t_{n}{*}}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n}{*}}
+\]
+
 \mylabel{T-NIL}
 \[
 \env \vdash \mathbf{nil}:\Nil
@@ -34,39 +112,65 @@ This appendix presents the complete set of typing rules of Typed Lua.
 
 \mylabel{T-FUNCTION1}
 \[
-\dfrac{\env, \ret:R \vdash s}
-      {\env \vdash \mathbf{fun} \; (){:}R \; s:\Value{*} \rightarrow R}
+\dfrac{\env[\ret \mapsto r] \vdash s}
+      {\env \vdash \mathbf{fun} \; (){:}r \; s:\Value{*} \rightarrow r}
 \]
 
 \mylabel{T-FUNCTION2}
 \[
-\dfrac{\env, {...}:T, \ret:R \vdash s}
-      {\env \vdash \mathbf{fun} \; ({...}{:}T){:}R \; s:T{*} \rightarrow R}
+\dfrac{\env[{...} \mapsto t, \ret \mapsto r] \vdash s}
+      {\env \vdash \mathbf{fun} \; ({...}{:}t){:}r \; s:t{*} \rightarrow r}
 \]
 
 \mylabel{T-FUNCTION3}
 \[
-\dfrac{\env, \vec{n}:\vec{T}, \ret:R \vdash s}
-      {\env \vdash \mathbf{fun} \; (\vec{n}{:}\vec{T}){:}R \; s:P \times \Value{*} \rightarrow R}
+\dfrac{\env[\vec{n} \mapsto \vec{t}, \ret \mapsto r] \vdash s}
+      {\env \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \times \Value{*} \rightarrow r}
 \]
 
 \mylabel{T-FUNCTION4}
 \[
-\dfrac{\env, \vec{n}:\vec{T}, {...}:T, \ret:R \vdash s}
-      {\env \vdash \mathbf{fun} \; (\vec{n}{:}\vec{T},{...}{:}T){:}R \; s:P \rightarrow R}
+\dfrac{\env[\vec{n} \mapsto \vec{t}, {...} \mapsto t, \ret \mapsto r] \vdash s}
+      {\env \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s: \vec{t} \times t{*} \rightarrow r}
 \]
 
-\mylabel{T-FIELD}
+\mylabel{T-FIELD1}
 \[
-\dfrac{\env \vdash e_{1}:T_{1} \;\;\;
-       \env \vdash e_{2}:T_{2}}
-      {\env \vdash [e_{1}] = e_{2}:T_{1}:T_{2}}
+\dfrac{\env \vdash e_{1}:t_{1} \;\;\;
+       \env \vdash e_{2}:t_{2} \;\;\;
+       t_{1} \subtype \Boolean}
+      {\env \vdash [e_{1}] = e_{2}:t_{1}:t_{2}}
+\]
+
+\mylabel{T-FIELD2}
+\[
+\dfrac{\env \vdash e_{1}:t_{1} \;\;\;
+       \env \vdash e_{2}:t_{2} \;\;\;
+       t_{1} \subtype \Number}
+      {\env \vdash [e_{1}] = e_{2}:t_{1}:t_{2}}
+\]
+
+\mylabel{T-FIELD3}
+\[
+\dfrac{\env \vdash e_{1}:t_{1} \;\;\;
+       \env \vdash e_{2}:t_{2} \;\;\;
+       t_{1} \subtype \String}
+      {\env \vdash [e_{1}] = e_{2}:t_{1}:t_{2}}
+\]
+
+\mylabel{T-FIELD4}
+\[
+\dfrac{\env \vdash e_{1}:t_{1} \;\;\;
+       \env \vdash e_{2}:t_{2} \;\;\;
+       t_{1} \lesssim \Any \;\;\;
+       t_{1} \not\subtype \Nil}
+      {\env \vdash [e_{1}] = e_{2}:\Any:t_{2}}
 \]
 
 \mylabel{T-CONSTRUCTOR}
 \[
-\dfrac{\env \vdash \vec{c}:\{ F_{1}, ..., F_{n} \}_{u}}
-      {\env \vdash \{ \; \vec{c} \; \}:\{ F_{1}, ..., F_{n} \}_{u}}
+\dfrac{\env \vdash \vec{c}:\{ f_{i}, ..., f_{n} \}_{u}}
+      {\env \vdash \{ \; \vec{c} \; \}:\{ f_{i}, ..., f_{n} \}_{u}}
 \]
 
 \mylabel{T-ARITH1}
@@ -265,32 +369,31 @@ This appendix presents the complete set of typing rules of Typed Lua.
 
 \mylabel{T-APPLY1}
 \[
-\dfrac{\env \vdash e_{1}:P \rightarrow R \;\;\;
-       \env \vdash \vec{e_{2}}:A \;\;\;
-       A \lesssim P}
-      {\env \vdash e_{1}(\vec{e_{2}}):R}
+\dfrac{\env \vdash e_{1}:p_{1} \rightarrow r \;\;\;
+       \env \vdash \vec{e_{2}}:p_{2} \;\;\;
+       p_{2} \lesssim p_{1}}
+      {\env \vdash e_{1}(\vec{e_{2}}):r}
 \]
 
 \mylabel{T-APPLY2}
 \[
 \dfrac{\env \vdash e_{1}:\Any \;\;\;
-       \env \vdash \vec{e_{2}}:A}
+       \env \vdash \vec{e_{2}}:p}
       {\env \vdash e_{1}(\vec{e_{2}}):\Any{*}}
 \]
 
 \mylabel{T-INVOKE1}
 \[
-\dfrac{\env \vdash e_{1}:\{F_{1}, ..., F_{n}\} \;\;\;
-       \env \vdash n:P \rightarrow R \;\;\;
-       \env \vdash \vec{e_{2}}:A \;\;\;
-       A \lesssim P}
-      {\env \vdash e_{1}{:}n(\vec{e_{2}}):R}
+\dfrac{\env \vdash e_{1}[n]:p_{1} \rightarrow r \;\;\;
+       \env \vdash \vec{e_{2}}:p_{2} \;\;\;
+       p_{2} \lesssim p_{1}}
+      {\env \vdash e_{1}{:}n(\vec{e_{2}}):r}
 \]
 
 \mylabel{T-INVOKE2}
 \[
-\dfrac{\env \vdash e_{1}:\Any \;\;\;
-       \env \vdash \vec{e_{2}}:R}
+\dfrac{\env \vdash e_{1}[n]:\Any \;\;\;
+       \env \vdash \vec{e_{2}}:p}
       {\env \vdash e_{1}{:}n(\vec{e_{2}}):\Any{*}}
 \]
 
@@ -302,30 +405,56 @@ This appendix presents the complete set of typing rules of Typed Lua.
 
 \mylabel{T-INDEX1}
 \[
-\dfrac{\env \vdash e_{1}:\{K_{1}:T_{1}, ..., K_{n}:T_{n}\} \;\;\;
-       \env \vdash e_{2}:T \;\;\;
-       \exists i \in 1{..}n \; T \lesssim K_{i}}
-      {\env \vdash e_{1}[e_{2}]:T_{i}}
+\dfrac{\env \vdash e_{1}:\{k_{1}{:}t_{1}, ..., k_{n}{:}t_{n}\} \;\;\;
+       \env \vdash e_{2}:t \;\;\;
+       \exists i \in 1{..}n \; t \lesssim k_{i}}
+      {\env \vdash e_{1}[e_{2}]:t_{i}}
 \]
 
 \mylabel{T-INDEX2}
 \[
 \dfrac{\env \vdash e_{1}:\Any \;\;\;
-       \env \vdash e_{2}:T}
-      {\env \vdash e_{1}[e_{2}]:T}
+       \env \vdash e_{2}:t}
+      {\env \vdash e_{1}[e_{2}]:\Any}
 \]
 
-\mylabel{T-PAREN}
+\mylabel{T-PAREN1}
 \[
-\dfrac{\env \vdash e:T}
-      {\env \vdash (e):T}
+\dfrac{\env \vdash e:t}
+      {\env \vdash (e):t}
+\]
+
+\mylabel{T-PAREN2}
+\[
+\dfrac{\env \vdash e:s}
+      {\env \vdash (e):first(s)}
 \]
 
 \mylabel{T-CAST}
 \[
-\dfrac{\env \vdash t:T_{1} \;\;\;
-       \env \vdash e:T_{2} \;\;\;
-       T_{2} \subtype T_{1}}
-      {\env \vdash {<}t{>} \; e:T}
+\dfrac{\env \vdash e:t_{1} \;\;\;
+       t_{1} \subtype t}
+      {\env \vdash {<}t{>} \; e:t}
+\]
+
+\mylabel{T-SELF}
+\[
+\dfrac{\env \vdash e:\Self \;\;\;
+       \env(\Self) = t}
+      {\env \vdash e:t}
+\]
+
+\mylabel{T-RECURSIVE}
+\[
+\dfrac{\env \vdash e:\mu x.t}
+      {\env \vdash e:t[x \mapsto \mu x.t]}
+\]
+
+\mylabel{T-TERNARY}
+\[
+\dfrac{\env \vdash e_{1}:t_{1} \;\;\;
+       \env \vdash e_{2}:t_{2} \;\;\;
+       \env \vdash e_{3}:t_{2}}
+      {\env \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:t_{2}}
 \]
 
