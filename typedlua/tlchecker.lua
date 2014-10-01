@@ -521,6 +521,17 @@ local function check_table (env, exp)
       check_exp(env, exp1)
       check_exp(env, exp2)
       t1, t2 = get_type(exp1), tltype.general(get_type(exp2))
+      if tltype.subtype(t1, Nil) then
+        t1 = Any
+        local msg = "table index can be nil"
+        typeerror(env, "table", msg, exp1.pos)
+      elseif not (tltype.subtype(t1, Boolean) or
+                  tltype.subtype(t1, Number) or
+                  tltype.subtype(t1, String)) then
+        t1 = Any
+        local msg = "table index is dynamic"
+        typeerror(env, "any", msg, exp1.pos)
+      end
     else
       local exp1 = v
       check_exp(env, exp1)
@@ -549,6 +560,8 @@ local function var2name (var)
     else
       return string.format("field '%s'", var[2][1])
     end
+  else
+    return "value"
   end
 end
 
@@ -686,7 +699,7 @@ local function check_call (env, exp)
       set_type(exp, Any)
     end
   else
-    local t = get_type(exp1)
+    local t = tltype.first(get_type(exp1))
     local inferred_type = arglist2type(explist, env.strict)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
@@ -1128,7 +1141,28 @@ end
 
 local function check_forin (env, idlist, explist, block)
   tlst.begin_scope(env)
-  check_local(env, idlist, explist)
+  check_explist(env, explist)
+  local t = tltype.first(get_type(explist[1]))
+  local tuple = explist2typegen({})
+  local msg = "attempt to iterate over %s"
+  if tltype.isFunction(t) then
+    local l = {}
+    for k, v in ipairs(t[2]) do
+      l[k] = {}
+      set_type(l[k], v)
+    end
+    tuple = explist2typegen(l)
+  elseif tltype.isAny(t) then
+    msg = string.format(msg, tltype.tostring(t))
+    typeerror(env, "any", msg, idlist.pos)
+  else
+    msg = string.format(msg, tltype.tostring(t))
+    typeerror(env, "forin", msg, idlist.pos)
+  end
+  for k, v in ipairs(idlist) do
+    local t = tuple(k)
+    check_local_var(env, v, t, false)
+  end
   check_block(env, block)
   tlst.end_scope(env)
 end

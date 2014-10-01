@@ -3481,6 +3481,45 @@ e = [=[
 r = typecheck(s)
 assert(r == e)
 
+s = [=[
+for i,j,k in 1,2,3 do
+end
+
+for w in string.gmatch("foo bar", "(%w+)") do
+  if w then w = w .. "foo" end
+end
+
+for w in ("foo bar"):gmatch("(%w+)") do
+  if w then w = w .. "foo" end
+end
+]=]
+e = [=[
+test.lua:1:5: type error, attempt to iterate over 1
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+for k, v in pairs({ foo = 1, bar = 2}) do
+  print(k .. "1", v)
+end
+
+for k, v in ipairs({1,2,3}) do
+  print(k + 1, v)
+end
+
+for k, v in ipairs({ foo = 1, bar = 2}) do
+  print(k .. "1", v)
+end
+]=]
+e = [=[
+test.lua:10:9: type error, attempt to concatenate a 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
 -- paper dyla
 
 s = [=[
