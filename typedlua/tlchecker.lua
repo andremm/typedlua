@@ -214,6 +214,16 @@ local function check_require (env, name, pos)
   return env["loaded"][name]
 end
 
+local function check_masking (env, local_name, pos)
+  local masked_local = tlst.masking(env, local_name)
+  if masked_local then
+    local l, c = lineno(env.subject, masked_local.pos)
+    msg = "masking previous declaration of local %s on line %d"
+    msg = string.format(msg, local_name, l)
+    typeerror(env, "mask", msg, pos)
+  end
+end
+
 local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
@@ -493,6 +503,7 @@ local function check_function (env, exp)
   for k = 1, len do
     local v = idlist[k]
     set_type(v, v[2])
+    check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
   check_block(env, block)
@@ -797,6 +808,7 @@ local function check_local_var (env, id, inferred_type, close_local)
     end
   end
   set_type(id, local_type)
+  check_masking(env, id[1], id.pos)
   tlst.set_local(env, id)
 end
 
@@ -825,6 +837,7 @@ local function check_local (env, idlist, explist)
     for k, v in ipairs(idlist) do
       set_type(v, t)
       v.i = k
+      check_masking(env, v[1], v.pos)
       tlst.set_local(env, v)
     end
   else
@@ -851,6 +864,7 @@ local function check_localrec (env, id, exp)
   t = replace_names(env, t, exp.pos)
   id[2] = t
   set_type(id, t)
+  check_masking(env, id[1], id.pos)
   tlst.set_local(env, id)
   tlst.begin_scope(env)
   local len = #idlist
@@ -859,6 +873,7 @@ local function check_localrec (env, id, exp)
     local v = idlist[k]
     v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
+    check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
   check_block(env, block)
@@ -1160,7 +1175,7 @@ local function check_forin (env, idlist, explist, block)
     typeerror(env, "forin", msg, idlist.pos)
   end
   for k, v in ipairs(idlist) do
-    local t = tuple(k)
+    local t = tltype.filterUnion(tuple(k), Nil)
     check_local_var(env, v, t, false)
   end
   check_block(env, block)

@@ -3486,11 +3486,11 @@ for i,j,k in 1,2,3 do
 end
 
 for w in string.gmatch("foo bar", "(%w+)") do
-  if w then w = w .. "foo" end
+  w = w .. "foo"
 end
 
 for w in ("foo bar"):gmatch("(%w+)") do
-  if w then w = w .. "foo" end
+  w = w .. "foo"
 end
 ]=]
 e = [=[

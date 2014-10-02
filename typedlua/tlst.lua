@@ -117,6 +117,12 @@ function tlst.get_local (env, local_name)
   return nil
 end
 
+-- masking : (env, string) -> (id|nil)
+function tlst.masking (env, local_name)
+  local scope = env.scope
+  return env[scope]["local"][local_name]
+end
+
 -- set_interface : (env, string, type, boolean?) -> ()
 function tlst.set_interface (env, name, t, is_local)
   if is_local then

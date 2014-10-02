@@ -428,11 +428,11 @@ local function traverse_label (env, stm)
 end
 
 local function traverse_local (env, stm)
+  local status, msg = traverse_explist(env, stm[2])
+  if not status then return status, msg end
   for k, v in ipairs(stm[1]) do
     tlst.set_local(env, v)
   end
-  local status, msg = traverse_explist(env, stm[2])
-  if not status then return status, msg end
   return true
 end
 
