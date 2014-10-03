@@ -27,6 +27,7 @@ local function new_scope ()
   senv["goto"] = {}
   senv["label"] = {}
   senv["local"] = {}
+  senv["unused"] = {}
   senv["interface"] = {}
   senv["userdata"] = {}
   return senv
@@ -105,6 +106,7 @@ function tlst.set_local (env, id)
   local scope = env.scope
   local local_name = id[1]
   env[scope]["local"][local_name] = id
+  env[scope]["unused"][local_name] = id
 end
 
 -- get_local : (env, string) -> (id)
@@ -112,7 +114,10 @@ function tlst.get_local (env, local_name)
   local scope = env.scope
   for s = scope, 1, -1 do
     local l = env[s]["local"][local_name]
-    if l then return l end
+    if l then
+      env[s]["unused"][local_name] = nil
+      return l
+    end
   end
   return nil
 end
@@ -121,6 +126,12 @@ end
 function tlst.masking (env, local_name)
   local scope = env.scope
   return env[scope]["local"][local_name]
+end
+
+-- unused : (env) -> ({string:id})
+function tlst.unused (env)
+  local scope = env.scope
+  return env[scope]["unused"]
 end
 
 -- set_interface : (env, string, type, boolean?) -> ()

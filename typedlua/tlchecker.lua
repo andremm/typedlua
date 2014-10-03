@@ -224,6 +224,14 @@ local function check_masking (env, local_name, pos)
   end
 end
 
+local function check_unused_locals (env)
+  local l = tlst.unused(env)
+  for k, v in pairs(l) do
+    local msg = "unused local " .. k
+    typeerror(env, "unused", msg, v.pos)
+  end
+end
+
 local function check_arith (env, exp)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
@@ -507,6 +515,7 @@ local function check_function (env, exp)
     tlst.set_local(env, v)
   end
   check_block(env, block)
+  check_unused_locals(env)
   tlst.end_scope(env)
   local inferred_type = infer_return_type(env)
   if infer_return then
@@ -877,6 +886,7 @@ local function check_localrec (env, id, exp)
     tlst.set_local(env, v)
   end
   check_block(env, block)
+  check_unused_locals(env)
   tlst.end_scope(env)
   local inferred_type = infer_return_type(env)
   if infer_return then
@@ -1151,6 +1161,7 @@ local function check_fornum (env, stm)
     block = exp3
   end
   check_block(env, block)
+  check_unused_locals(env)
   tlst.end_scope(env)
 end
 
@@ -1179,6 +1190,7 @@ local function check_forin (env, idlist, explist, block)
     check_local_var(env, v, t, false)
   end
   check_block(env, block)
+  check_unused_locals(env)
   tlst.end_scope(env)
 end
 
@@ -1368,6 +1380,7 @@ function check_block (env, block)
   for k, v in ipairs(block) do
     check_stm(env, v)
   end
+  check_unused_locals(env)
   tlst.end_scope(env)
 end
 
@@ -1398,6 +1411,7 @@ function tlchecker.typecheck (ast, subject, strict)
   for k, v in ipairs(ast) do
     check_stm(env, v)
   end
+  check_unused_locals(env)
   tlst.end_scope(env)
   tlst.end_function(env)
   return env.messages
@@ -1406,8 +1420,13 @@ end
 function tlchecker.error_msgs (messages, filename, warnings)
   local l = {}
   local error_msg = filename .. ":%d:%d: type error, %s"
+  local skip_error = { any = true,
+    mask = true,
+    unused = true,
+  }
   for k, v in ipairs(messages) do
-    if v.tag == "any" then
+    local tag = v.tag
+    if skip_error[tag] then
       if warnings then
         table.insert(l, string.format(error_msg, v.l, v.c, v.msg))
       end
