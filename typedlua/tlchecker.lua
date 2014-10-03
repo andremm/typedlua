@@ -1397,6 +1397,7 @@ local function load_lua_env (env)
   local lua_env = tlast.ident(0, "_ENV", t)
   set_type(lua_env, t)
   tlst.set_local(env, lua_env)
+  tlst.get_local(env, "_ENV")
 end
 
 function tlchecker.typecheck (ast, subject, strict)
