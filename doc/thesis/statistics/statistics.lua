@@ -14,6 +14,28 @@ local check_exp, check_var
 local check_explist, check_varlist
 local check_fieldlist
 
+local metamethods = {
+  __add = true,
+  __sub = true,
+  __mul = true,
+  __div = true,
+  __mod = true,
+  __pow = true,
+  __unm = true,
+  __concat = true,
+  __len = true,
+  __eq = true,
+  __lt = true,
+  __le = true,
+  __index = true,
+  __newindex = true,
+  __call = true,
+  __gc = true,
+  __tostring = true,
+  __metatable = true,
+  __mode = true,
+}
+
 local function new_func_def (func_type, is_vararg)
   result.number_of_functions = result.number_of_functions + 1
   local n = result.number_of_functions
@@ -65,6 +87,9 @@ local function new_func_def (func_type, is_vararg)
   result[n].varindex_write_number = 0
   result[n].varindex_write_string = 0
   result[n].varindex_write_non_literal = 0
+  for k, v in pairs(metamethods) do
+    result[n][k] = 0
+  end
   result[n].assignments = 0
   result[n].simple_assignments = 0
   result[n].multiple_assignments = 0
@@ -102,6 +127,8 @@ function check_fieldlist (fieldlist, func_name, func_id)
       elseif v[1].tag == "ExpStr" then
         only_dynamic = false
         record = true
+        local m = v[1][1]
+        if metamethods[m] then result[func_id][m] = result[func_id][m] + 1 end
       elseif v[1].tag == "ExpTrue" or
              v[1].tag == "ExpFalse" then
         only_dynamic = false
@@ -138,6 +165,8 @@ function check_fieldlist (fieldlist, func_name, func_id)
       elseif v[1].tag == "ExpStr" then
         only_dynamic = false
         record = true
+        local m = v[1][1]
+        if metamethods[m] then result[func_id][m] = result[func_id][m] + 1 end
       elseif v[1].tag == "ExpTrue" or
              v[1].tag == "ExpFalse" then
         only_dynamic = false
@@ -236,6 +265,8 @@ function check_var (var, func_name, func_id, read_or_write)
           result[func_id].varindex_write_number = result[func_id].varindex_write_number + 1
         elseif tag == "ExpStr" then
           result[func_id].varindex_write_string = result[func_id].varindex_write_string + 1
+          local m = var[2][1]
+          if metamethods[m] then result[func_id][m] = result[func_id][m] + 1 end
         end
       else
         result[func_id].varindex_write_non_literal = result[func_id].varindex_write_non_literal + 1
@@ -372,12 +403,23 @@ function check_stm (stm, func_name, func_id)
   elseif stm.tag == "StmFunction" then -- StmFunction FuncName [Name] Stm
     new_func_def("global", stm[2].is_vararg)
     local id = result.number_of_functions
+    local len = #stm[1]
     if stm[1].tag == "Method" then
       -- statistics of the use of method definition
       result[id].is_method = 1
       result[id].method_colon = 1
       -- statistics of the use of function declaration as table field
       result[id].table_field = 1
+      local read = len - 2
+      result[id].varindex = result[id].varindex + read + 1
+      result[id].varindex_read = result[id].varindex_read + read
+      result[id].varindex_read_literal = result[id].varindex_read_literal + read
+      result[id].varindex_read_string = result[id].varindex_read_string + read
+      result[id].varindex_write = result[id].varindex_write + 1
+      result[id].varindex_write_literal = result[id].varindex_write_literal + 1
+      result[id].varindex_write_string = result[id].varindex_write_string + 1
+      local m = stm[1][len]
+      if metamethods[m] then result[id][m] = result[id][m] + 1 end
     elseif stm[1].tag == "Function" then
       -- statistics of the use of method definition
       if #stm[2] > 0 then
@@ -392,8 +434,18 @@ function check_stm (stm, func_name, func_id)
         end
      end
       -- statistics of the use of function declaration as table field
-      if #stm[1] > 1  then
+      if len > 1  then
         result[id].table_field = 1
+        local read = len - 2
+        result[id].varindex = result[id].varindex + read + 1
+        result[id].varindex_read = result[id].varindex_read + read
+        result[id].varindex_read_literal = result[id].varindex_read_literal + read
+        result[id].varindex_read_string = result[id].varindex_read_string + read
+        result[id].varindex_write = result[id].varindex_write + 1
+        result[id].varindex_write_literal = result[id].varindex_write_literal + 1
+        result[id].varindex_write_string = result[id].varindex_write_string + 1
+        local m = stm[1][len]
+        if metamethods[m] then result[id][m] = result[id][m] + 1 end
       end
     end
     check_stm(stm[3], func_name, result.number_of_functions)
@@ -499,6 +551,9 @@ local function result_recon ()
   result.varindex_write_number = 0
   result.varindex_write_string = 0
   result.varindex_write_non_literal = 0
+  for k, v in pairs(metamethods) do
+    result[k] = 0
+  end
   result.number_of_constructs = 0
   result.assignments = 0
   result.simple_assignments = 0
@@ -567,6 +622,9 @@ local function result_recon ()
     result.varindex_write_number = result.varindex_write_number + result[i].varindex_write_number
     result.varindex_write_string = result.varindex_write_string + result[i].varindex_write_string
     result.varindex_write_non_literal = result.varindex_write_non_literal + result[i].varindex_write_non_literal
+    for k, v in pairs(metamethods) do
+      result[k] = result[k] + result[i][k]
+    end
     result.assignments = result.assignments + result[i].assignments
     result.simple_assignments = result.simple_assignments + result[i].simple_assignments
     result.multiple_assignments = result.multiple_assignments + result[i].multiple_assignments
@@ -691,6 +749,9 @@ function statistics.log_result (filename, result)
   print("varindex_write_number", result.varindex_write_number)
   print("varindex_write_string", result.varindex_write_string)
   print("varindex_write_non_literal", result.varindex_write_non_literal)
+  for k, v in pairs(metamethods) do
+    print(k, result[k])
+  end
   print("returning_module", result.returning_module)
   print("calling_module", result.calling_module)
   print("assignments", result.assignments)
@@ -762,6 +823,9 @@ function statistics.init_merge ()
   merge.varindex_write_number = 0
   merge.varindex_write_string = 0
   merge.varindex_write_non_literal = 0
+  for k, v in pairs(metamethods) do
+    merge[k] = 0
+  end
   merge.returning_module = 0
   merge.calling_module = 0
   merge.module_and_return = 0
@@ -887,6 +951,14 @@ function statistics.merge (result, merge, project)
   merge.varindex_write_number = merge.varindex_write_number + result.varindex_write_number
   merge.varindex_write_string = merge.varindex_write_string + result.varindex_write_string
   merge.varindex_write_non_literal = merge.varindex_write_non_literal + result.varindex_write_non_literal
+  for k, v in pairs(metamethods) do
+    if result[k] > 0 then
+      if not merge.project[project][k] then
+        merge.project[project][k] = true
+        merge[k] = merge[k] + 1
+      end
+    end
+  end
   merge.assignments = merge.assignments + result.assignments
   merge.simple_assignments = merge.simple_assignments + result.simple_assignments
   merge.multiple_assignments = merge.multiple_assignments + result.multiple_assignments
@@ -966,6 +1038,9 @@ function statistics.log_merge (merge)
   print("varindex_write_number", merge.varindex_write_number)
   print("varindex_write_string", merge.varindex_write_string)
   print("varindex_write_non_literal", merge.varindex_write_non_literal)
+  for k, v in pairs(metamethods) do
+    print(k, merge[k])
+  end
   print("returning_module", merge.returning_module)
   print("calling_module", merge.calling_module)
   print("module_and_return", merge.module_and_return)
@@ -1036,6 +1111,10 @@ function statistics.print_merge (merge)
   print("colon", p(prj_set_colon, merge.number_of_projects))
   print("self", p(prj_set_self, merge.number_of_projects))
   print("both", p(prj_set_meth - (prj_set_colon + prj_set_self), merge.number_of_projects))
+  print("---")
+  for k, v in pairs(metamethods) do
+    print(k, p(merge[k], merge.number_of_projects))
+  end
   print("---")
   print("return module", p(merge.returning_module, merge.number_of_files))
   print("call module", p(merge.calling_module, merge.number_of_files))
