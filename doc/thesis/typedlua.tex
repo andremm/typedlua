@@ -878,7 +878,7 @@ loaded or not.
 When the module is not loaded, Lua executes its source file as a
 function, and the value returned by this function is the module.
 Thus, Lua modules can be any Lua value.
-However, our survey from Chapter \ref{chap:statistics} confirms that
+However, our survey from Section \ref{sec:statistics} confirms that
 the convention among Lua programmers is to use tables for defining modules. 
 In this case, the fields of the table are the functions and other
 values that the module exports.
@@ -954,7 +954,7 @@ so the module can end with \texttt{return \string_M},
 but this explicit return is not necessary.
 
 Even though this style has been deprecated, our survey from
-Chapter \ref{chap:statistics} indicated that around a third of the
+Section \ref{sec:statistics} indicated that around a third of the
 Lua modules that are in LuaRocks still use this style.
 Thus, Typed Lua also supports this style:
 \begin{verbatim}

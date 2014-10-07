@@ -495,3 +495,201 @@ and type annotations are mandatory.
 So, what makes it gradual is a type system with a dynamic type
 that handles the interaction between Racket and Typed Racket modules.
 
+\section{Statistics about the usage of Lua}
+\label{sec:statistics}
+
+In this section we present statistics about the usage of Lua
+features and idioms.
+We collected statistics about how programmers use tables, functions,
+dynamic type checking, object-oriented programming, and modules.
+We shall see that these statistics informed important design decisions
+on our optional type system.
+
+We used the LuaRocks repository to build our statistics database;
+LuaRocks \citep{hisham2013luarocks} is a package manager for Lua
+modules.
+We downloaded the 3928 \texttt{.lua} files that were available in
+the LuaRocks repository at February 1st 2014.
+However, we ignored files that are not compatible with Lua 5.2,
+the latest version of Lua.
+We also ignored \emph{machine-generated} files and test files,
+because these files may not represent idiomatic Lua code,
+and might skew our statistics towards non-typical uses of Lua.
+This left 2598 \texttt{.lua} files from 262 different projects for
+our statistics database;
+we parsed these files and processed their abstract syntax tree
+to gather the statistics that we show in this section.
+
+To verify how programmers use tables, we measured how they
+initialize, index, and iterate tables.
+We present these statistics in the next three paragraphs to discuss
+their influence on our type system.
+
+The table constructor appears 23185 times.
+In 36\% of the occurrences it is a constructor that initializes a
+record (e.g., \texttt{\{ x = 120, y = 121 \}});
+in 29\% of the occurrences it is a constructor that initializes a
+list (e.g., \texttt{\{ "one", "two", "three", "four" \}});
+in 8\% of the occurrences it is a constructor that initializes a
+record with a list part;
+and in less than 1\% of the occurrences (4 times) it is a constructor
+that uses only the booleans \texttt{true} and \texttt{false} as indexes.
+At all, in 73\% of the occurrences it is a constructor that uses
+only literal keys;
+in 26\% of the occurrences it is the empty constructor;
+in 1\% of the occurrences it is a constructor with non-literal keys
+only, that is, a constructor that uses variables and function calls
+to create the indexes of a table;
+and in less than 1\% of the occurrences (19 times) it is a constructor
+that mixes literal keys and non-literal keys.
+
+The indexing of tables appears 130448 times:
+86\% of them are for reading a table field while
+14\% of them are for writing into a table field.
+We can classify the indexing operations that are reads as follows:
+89\% of the reads use a literal string key,
+4\% of the reads use a literal number key,
+and less than 1\% of the reads (10 times) use a literal boolean key.
+At all, 93\% of the reads use literals to index a table while
+7\% of the reads use non-literal expressions to index a table.
+It also worth mentioning that 45\% of the reads are actually
+function calls.
+More precisely, 25\% of the reads use literals to call a function,
+20\% of the reads use literals to call a method, that is,
+a function call that uses the colon syntactic sugar, 
+and less than 1\% of the reads (195 times) use non-literal expressions
+to call a function.
+We can also classify the indexing operations that are writes as follows: 
+69\% of the writes use a literal string key,
+2\% of the writes use a literal number key,
+and less than 1\% of the writes (1 time) uses a literal boolean key.
+At all, 71\% of the writes use literals to index a table while
+29\% of the writes use non-literal expressions to index a table.
+
+We also measured how many files have code that iterate over tables to
+observe how frequently iteration is used.
+We observed that 23\% of the files have code that iterate over keys
+of any value, that is, the call to \texttt{pairs} appears at least
+once in these files (the median is twice per file);
+21\% of the files have code that iterate over integer keys, that is,
+the call to \texttt{ipairs} appears at least once in these files
+(the median is also twice per file);
+and 10\% of the files have code that use the numeric \texttt{for}
+along with the length operator (the median is once per file).
+
+The numbers about table initialization, indexing, and iteration
+show us that tables are mostly used to represent records, lists,
+and associative arrays.
+Therefore, Typed Lua should include a table type for handling
+these uses of Lua tables.
+Even though the statistics show that programmers initialize tables
+more often than they use the empty constructor to
+dynamically initialize tables, the statistics of the empty
+constructor are still expressive and indicate that Typed Lua should
+also include a way to handle this style of defining table types.
+
+We found a total of 24858 function declarations in our database
+(the median is six per file).
+Next, we discuss how frequently programmers use dynamic type
+checking and multiple return values inside these functions.
+
+We observed that 9\% of the functions perform dynamic type checking
+on their input parameters, that is, these functions use \texttt{type}
+to inspect the tags of Lua values (the median is once per function).
+We randomly selected 20 functions to sample how programmers are
+using \texttt{type}, and we got the following data:
+50\% of these functions use \texttt{type} for asserting the tags of
+their input parameters, that is, they raise an error when the tag of a
+certain parameter does not match the expected tag, and
+50\% of these functions use \texttt{type} for overloading, that is,
+they execute different code according to the inspected tag.
+
+These numbers show us that Typed Lua should include union types,
+because the use of the \texttt{type} idiom shows that disjoint unions
+will help programmers define data structures that can hold a value of
+several different, but fixed types.
+Typed Lua should also use \texttt{type} as a mechanism for decomposing
+unions, though it may be restricted to base types only.
+
+We observed that 10\% of the functions explicitly return multiple
+values.
+We also observed that 5\% of the functions return \texttt{nil} plus
+something else, for signaling an unexpected behavior;
+and 1\% of the functions return \texttt{false} plus something else,
+also for signaling an unexpected behavior.
+
+Typed Lua should include function types to represent Lua functions,
+and tuple types to represent the signatures of Lua functions,
+multiple return values, and multiple assignments.
+Tuple types will require some special attention, because Typed Lua
+should be able to adjust tuple types during compile-time, in a
+similar way to what Lua does with function calls and multiple
+assignments during run-time.
+In addition, the number of functions that return \texttt{nil} and
+\texttt{false} plus something else show us that overloading on the
+return type will be useful to the type system.
+
+We also measured how frequently programmers use the object-oriented
+paradigm in Lua.
+We observed that 23\% of the function declarations are actually
+method declarations.
+More precisely, 14\% of them use the colon syntactic sugar while
+9\% of them use \texttt{self} as their first parameter.
+We also observed that 63\% of the projects extend tables with
+metatables, that is, they call \texttt{setmetatable} at least once,
+and 27\% of the projects access the metatable of a given table,
+that is, they call \texttt{getmetatable} at least once.
+In fact, 45\% of the projects extend tables with metatables and
+declare methods:
+13\% using the colon syntactic sugar, 14\% using \texttt{self}, and
+18\% using both.
+
+Based on these observations, Typed Lua should include interfaces and
+classes as syntactic sugar for table types that encode objects.
+Proposing an optional type system for Lua that includes classes may
+sound unusual at first glance, because Lua does not have standard
+policies for object-oriented programming.
+However, Lua provides mechanisms that allow programmers to abstract
+their code in terms of objects, and our statistics confirm that
+an expressive number of programmers are relying on these mechanisms to
+use the object-oriented paradigm in Lua.
+Typed Lua should include interfaces and classes as merely syntactic
+mechanisms that help the compiler type check object-oriented code,
+and they should not influence the semantics of Lua.
+
+We also measured how programmers are defining modules.
+We observed that 38\% of the files use the current way of defining
+modules, that is, these files return a table that contains the
+exported members of the module at the end of the file;
+22\% of the files still use the deprecated way of defining modules,
+that is, these files call the function \texttt{module};
+and 1\% of the files use both ways.
+At all, 61\% of the files are modules while 39\% of the files are
+plain scripts.
+The number of plain scripts is high considering the origin of
+our database.
+However, we did not ignore sample scripts, which usually serve to
+help the users of a given module on how to use this module, and
+that is the reason why we have a high number of plain scripts.
+
+Based on these observations, Typed Lua should also use interfaces as
+syntactic sugar for table types that define modules.
+Typed Lua should also support the deprecated style of module
+definition, using global names as exported members of the module.
+
+Besides using interfaces for encoding objects and defining modules,
+Typed Lua should also use interfaces for defining the types of
+userdata, as programmers often use userdata in an object-oriented
+style.
+
+The last statistics that we collected were about variadic functions
+and vararg expressions.
+We observed that 8\% of the functions are variadic, that is,
+their last parameter is the vararg expression.
+We also observed that 5\% of the initialization of lists
+(or 2\% of the occurrences of the table constructor) use solely the
+vararg expression.
+Typed Lua should include a \emph{vararg type} to handle variadic
+functions and vararg expressions.
+
+

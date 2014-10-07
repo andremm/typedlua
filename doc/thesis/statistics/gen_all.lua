@@ -16,4 +16,6 @@ end
 
 statistics.log_merge(merge)
 
+statistics.print_merge(merge)
+
 os.exit(0)
