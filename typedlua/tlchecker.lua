@@ -455,9 +455,11 @@ local function check_parameters (env, parlist)
     end
   else
     local l = {}
+    if parlist[1][1] == "self" and not parlist[1][2] then
+      parlist[1][2] = Self
+    end
     for i = 1, len do
       if not parlist[i][2] then parlist[i][2] = Any end
-      if parlist[i][1] == "self" then parlist[i][2] = Self end
       l[i] = parlist[i][2]
     end
     if parlist[len].tag == "Dots" then
