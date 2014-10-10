@@ -14,6 +14,7 @@
 \newcommand{\False}{\mathbf{false}}
 \newcommand{\True}{\mathbf{true}}
 \newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Integer}{\mathbf{integer}}
 \newcommand{\Number}{\mathbf{number}}
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
@@ -50,8 +51,8 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
 & | \; x_{i} & \textit{projection types}\\
-l ::= & \False \; | \; \True \; | \; {\it number} \; | \; {\it string} & \\
-b ::= & \Boolean \; | \; \Number \; | \; \String & \\
+l ::= & \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
+b ::= & \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
 v ::= & k:t \; | \; \Const \; k:t & \textit{field types}\\ 
 k ::= & l \; | \; b \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
@@ -87,9 +88,19 @@ $$
 \senv \vdash \True \subtype \Boolean
 \]
 
-\mylabel{S-NUMBER}
+\mylabel{S-INT1}
 \[
-\senv \vdash {\it number} \subtype \Number
+\senv \vdash {\it int} \subtype \Integer
+\]
+
+\mylabel{S-INT2}
+\[
+\senv \vdash {\it int} \subtype \Number
+\]
+
+\mylabel{S-FLOAT}
+\[
+\senv \vdash {\it float} \subtype \Number
 \]
 
 \mylabel{S-STRING}
@@ -100,6 +111,11 @@ $$
 \mylabel{S-BASE}
 \[
 \senv \vdash b \subtype b
+\]
+
+\mylabel{S-NUMBER}
+\[
+\senv \vdash \Integer \subtype \Number
 \]
 
 \mylabel{S-NIL}
@@ -195,37 +211,21 @@ $$
       {\senv \vdash x_{1} \subtype x_{2}}
 \]
 
-\mylabel{S-RECURSIVE1}
+\mylabel{S-AMBER}
 \[
 \dfrac{\senv, x_{1} \subtype x_{2} \vdash t_{1} \subtype t_{2}}
       {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
 \]
 
-\mylabel{S-RECURSIVE2}
+\mylabel{S-AMBERL}
 \[
-\dfrac{x \subtype x \not\in \senv \;\;\;
-      \senv, x \subtype x \vdash t_{1} \subtype t_{2}}
+\dfrac{\senv \vdash t_{1}[x \mapsto \mu x.t_{1}] \subtype t_{2}}
       {\senv \vdash \mu x.t_{1} \subtype t_{2}}
 \]
 
-\mylabel{S-RECURSIVE3}
+\mylabel{S-AMBERR}
 \[
-\dfrac{x \subtype x \in \senv \;\;\;
-       \senv \vdash x \subtype t_{2}}
-      {\senv \vdash \mu s.t_{1} \subtype t_{2}}
-\]
-
-\mylabel{S-RECURSIVE4}
-\[
-\dfrac{x \subtype x \not\in \senv \;\;\;
-       \senv, x \subtype x \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
-\]
-
-\mylabel{S-RECURSIVE5}
-\[
-\dfrac{x \subtype x \in \senv \;\;\;
-       \senv \vdash t_{1} \subtype x}
+\dfrac{\senv \vdash t_{1} \subtype t_{2}[x \mapsto \mu x.t_{2}]}
       {\senv \vdash t_{1} \subtype \mu x.t_{2}}
 \]
 
@@ -294,7 +294,8 @@ a\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
 \mathbf{true} \; | \;
-{\it number} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
 {\it string} \; | \;
 {...} \; | \;
 f \; | \;
@@ -427,9 +428,14 @@ $$
 \env_{1} \vdash \mathbf{true}:\True, \env_{1}
 \]
 
-\mylabel{T-NUM}
+\mylabel{T-INT}
 \[
-\env_{1} \vdash {\it number}:{\it number}, \env_{1}
+\env_{1} \vdash {\it int}:{\it int}, \env_{1}
+\]
+
+\mylabel{T-FLOAT}
+\[
+\env_{1} \vdash {\it float}:{\it float}, \env_{1}
 \]
 
 \mylabel{T-STR}
@@ -510,19 +516,46 @@ $$
 \[
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Integer \;\;\;
+       t_{2} \subtype \Integer}
+      {\env_{1} \vdash e_{1} + e_{2}:\Integer, \env_{3}}
+\]
+
+\mylabel{T-ARITH2}
+\[
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Integer \;\;\;
+       t_{2} \subtype \Number}
+      {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
+\]
+
+\mylabel{T-ARITH3}
+\[
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Number \;\;\;
+       t_{2} \subtype \Integer}
+      {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
+\]
+
+\mylabel{T-ARITH4}
+\[
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Number \;\;\;
        t_{2} \subtype \Number}
       {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
 \]
 
-\mylabel{T-ARITH2}
+\mylabel{T-ARITH5}
 \[
 \dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t, \env_{3}}
       {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
 \]
 
-\mylabel{T-ARITH3}
+\mylabel{T-ARITH6}
 \[
 \dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:\Any, \env_{3}}
@@ -670,11 +703,18 @@ $$
 \mylabel{T-MINUS1}
 \[
 \dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+       t \subtype \Integer}
+      {\env_{1} \vdash - e:\Integer, \env_{2}}
+\]
+
+\mylabel{T-MINUS2}
+\[
+\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
        t \subtype \Number}
       {\env_{1} \vdash - e:\Number, \env_{2}}
 \]
 
-\mylabel{T-MINUS2}
+\mylabel{T-MINUS3}
 \[
 \dfrac{\env_{1} \vdash e:\Any, \env_{2}}
       {\env_{1} \vdash - e:\Any, \env_{2}}
@@ -684,14 +724,14 @@ $$
 \[
 \dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
        t \subtype \String}
-      {\env_{1} \vdash \# \; e:\Number, \env_{2}}
+      {\env_{1} \vdash \# \; e:\Integer, \env_{2}}
 \]
 
 \mylabel{T-LEN2}
 \[
 \dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
        t \subtype \{\}_{c}}
-      {\env_{1} \vdash \# \; e:\Number, \env_{2}}
+      {\env_{1} \vdash \# \; e:\Integer, \env_{2}}
 \]
 
 \mylabel{T-LEN3}
