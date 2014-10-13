@@ -816,10 +816,16 @@ $$
       {\env_{1} \vdash e:t, \env_{2}}
 \]
 
-\mylabel{T-RECURSIVE}
+\mylabel{T-UNFOLD}
 \[
 \dfrac{\env_{1} \vdash e:\mu x.t, \env_{2}}
-      {\env_{1} \vdash e:t[x \mapsto \mu x.t], \env_{2}}
+      {\env_{1} \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
+\]
+
+\mylabel{T-FOLD}
+\[
+\dfrac{\env_{1} \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
+      {\env_{1} \vdash e:\mu x.t, \env_{2}}
 \]
 
 \mylabel{T-TERNARY}
@@ -829,6 +835,5 @@ $$
        \env_{3} \vdash e_{3}:t_{2}, \env_{4}}
       {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:t_{2}, \env_{4}}
 \]
-
 
 \end{document}
