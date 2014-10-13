@@ -289,19 +289,58 @@ types $\Value$ and $\Nil$ allow our type system to reflect
 the semantics of Lua on discarding extra parameters and
 replacing missing parameters.
 
+In our type system function types have the form $p \rightarrow r$,
+where $p$ is the type of the parameters list and $r$ is the
+return type.
+The type of the parameters list can be $\Void$ or a tuple type,
+while the return type can be $\Void$, a tuple type, or a union of tuples.
+The type $\Void$ means an empty tuple.
+Our type system includes union of tuples on the return type because
+in Lua it is common to overload the return type to denote error,
+as we mentioned on Section \ref{sec:statistics}.
+
+The type $\Void$ and union of tuple types are also second-level types.
+The type $\Void$ is subtype only of itself.
+The subtyping rules for union of tuple types are similar to the
+subtyping rules for union of first-level types.
+Next we show the subtyping rules for these second-level types:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-VOID}\\
+\senv \vdash \Void \subtype \Void
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-UNION4}\\
+\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
+       \senv \vdash s_{2} \subtype s}
+      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-UNION5}\\
+\dfrac{\senv \vdash s \subtype s_{1}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-UNION6}\\
+\dfrac{\senv \vdash s \subtype s_{2}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\end{array}
+\end{array}
+\]
+
+The subtyping rule for function types is standard, that is, it is
+contravariant on the type of the parameters list and
+covariant on the return type:
 \[
 \begin{array}{c}
 \mylabel{S-FUNCTION}\\
 \dfrac{\senv \vdash p_{2} \subtype p_{1} \;\;\;
        \senv \vdash r_{1} \subtype r_{2}}
       {\senv \vdash p_{1} \rightarrow r_{1} \subtype p_{2} \rightarrow r_{2}}
-\end{array}
-\]
-
-\[
-\begin{array}{c}
-\mylabel{S-VOID}\\
-\senv \vdash \Void \subtype \Void
 \end{array}
 \]
 
@@ -350,6 +389,13 @@ replacing missing parameters.
 \end{array}
 \]
 
+Our type system also includes recursive types: $\mu x.t$,
+where $t$ is a function of table type with $x$ appearing anywhere
+a function of table type could appear.
+For instance, $\mu x.\{``info":\Number, ``next":x \cup \Nil\}$
+represents the type of single linked lists of numbers.
+We introduce the following subtyping rules for recursive types:
+
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -377,6 +423,12 @@ replacing missing parameters.
 \end{array}
 \end{array}
 \]
+
+Our type system also introduces projection types.
+We shall see in the next section that our type system uses
+projection types to handle union of typle types when they
+appear on the right-hand side of the declaration of local variables.
+For this reason, they do not have subtyping rules.
 
 \[
 \begin{array}{c}

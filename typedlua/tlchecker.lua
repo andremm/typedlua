@@ -227,7 +227,7 @@ end
 local function check_unused_locals (env)
   local l = tlst.unused(env)
   for k, v in pairs(l) do
-    local msg = "unused local " .. k
+    local msg = string.format("unused local '%s'", k)
     typeerror(env, "unused", msg, v.pos)
   end
 end
@@ -919,7 +919,7 @@ local function explist2typelist (explist)
     end
     if tltype.isTuple(last_type) then
       for k, v in ipairs(last_type) do
-        table.insert(l, v)
+        table.insert(l, tltype.first(v))
       end
     else
       table.insert(l, last_type)
@@ -950,10 +950,13 @@ local function check_assignment (env, varlist, explist)
     end
   end
   check_explist(env, explist)
+  local l = {}
   for k, v in ipairs(varlist) do
     check_var(env, v, explist[k])
+    table.insert(l, get_type(v))
   end
-  local var_type, exp_type = explist2typelist(varlist), explist2typelist(explist)
+  table.insert(l, tltype.Vararg(Value))
+  local var_type, exp_type = tltype.Tuple(l), explist2typelist(explist)
   local msg = "attempt to assign '%s' to '%s'"
   if tltype.subtype(exp_type, var_type) then
   elseif tltype.consistent_subtype(exp_type, var_type) then
