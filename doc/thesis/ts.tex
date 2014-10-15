@@ -284,12 +284,12 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = \vec{e}  \; | \;
+\vec{l} = el  \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = \vec{e} \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; \vec{e} \; | \;
+\mathbf{return} \; el \; | \;
 a\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
@@ -299,7 +299,7 @@ e ::= & \;\; \mathbf{nil} \; | \;
 {\it string} \; | \;
 {...} \; | \;
 f \; | \;
-\{ \; \vec{c} \; \} \\
+\{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -311,18 +311,31 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 \# \; e \; | \;
 a \; | \;
 l \; | \;
-(e) \; | \;
 {<}t{>} \; n\\
-l ::= & \; n \; | \;
+l ::= & \;\; n \; | \;
 e_{1}[e_{2}]\\
-a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
+el ::= & \;\; \mathbf{nothing} \; | \;
+\vec{e} \; | \;
+me \; | \;
+\vec{e}, me\\
+cl ::= & \;\; \mathbf{nothing} \; | \;
+\vec{c} \; | \;
+\vec{e} \; | \;
+me \; | \;
+\vec{c}, \vec{e} \; | \;
+\vec{c}, me \; | \;
+\vec{c}, \vec{e}, me \; | \;
+\vec{e}, me\\
+me ::= & \;\; a \; | \;
+{...}\\
+a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
 e_{1}{:}n(\vec{e_{2}})\\
-f ::= & \; \mathbf{fun} \; (){:}r \; s \; | \;
-\mathbf{fun} \; ({...}{:}t){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s\\
-c ::= & \; [e_{1}] = e_{2}\\
-n ::= & \; {\it name}\\
+f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+c ::= & \;\; [e_{1}] = e_{2}\\
+n ::= & \;\; {\it name}\\
 \end{array}
 $$
 \dend

@@ -48,17 +48,17 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
 & | \; \pi_{i} & \textit{projection types}\\
-l ::= & \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
-b ::= & \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
-v ::= & k:t \; | \; \Const \; k:t & \textit{field types}\\ 
-k ::= & l \; | \; b \; | \; \Any & \textit{key types}\\
+l ::= & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
+b ::= & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
+v ::= & \;\; k:t \; | \; \Const \; k:t & \textit{field types}\\ 
+k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
 s ::= & \;\; t &\\
 & | \; t* & \textit{variadic types}\\
 & | \; t \times s & \textit{tuple types}\\
-p ::= & \Void \; | \; s & \textit{parameters list type}\\
-r ::= & \Void \; | \; s \; | \; s \sqcup r & \textit{return types}\\
+p ::= & \;\; \Void \; | \; s & \textit{parameters list type}\\
+r ::= & \;\; \Void \; | \; s \; | \; s \sqcup r & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -688,6 +688,12 @@ We will see projection types in more detail in the next section.
 
 \section{Typing rules}
 
+In this section we will use a reduced core of Typed Lua to present
+its typing rules in an easier way.
+It is a reduced core of the Lua language with explicit type annotations,
+without syntactic sugar, with only if and while control flow statements,
+and making variable scope explicit.
+
 \begin{figure}[!ht]
 \textbf{Abstract Syntax}\\
 \dstart
@@ -695,21 +701,22 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = \vec{e}  \; | \;
+\vec{l} = el  \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = \vec{e} \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; \vec{e} \; | \;
+\mathbf{return} \; el \; | \;
 a\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
 \mathbf{true} \; | \;
-{\it number} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
 {\it string} \; | \;
 {...} \; | \;
 f \; | \;
-\{ \; \vec{c} \; \} \\
+\{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -721,18 +728,31 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 \# \; e \; | \;
 a \; | \;
 l \; | \;
-(e) \; | \;
-{<}t{>} \; e\\
-l ::= & \; n \; | \;
+{<}t{>} \; n\\
+l ::= & \;\; n \; | \;
 e_{1}[e_{2}]\\
-a ::= & \; e_{1}(\vec{e_{2}}) \; | \;
+el ::= & \;\; \mathbf{nothing} \; | \;
+\vec{e} \; | \;
+me \; | \;
+\vec{e}, me\\
+cl ::= & \;\; \mathbf{nothing} \; | \;
+\vec{c} \; | \;
+\vec{e} \; | \;
+me \; | \;
+\vec{c}, \vec{e} \; | \;
+\vec{c}, me \; | \;
+\vec{c}, \vec{e}, me \; | \;
+\vec{e}, me\\
+me ::= & \;\; a \; | \;
+{...}\\
+a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
 e_{1}{:}n(\vec{e_{2}})\\
-f ::= & \; \mathbf{fun} \; (){:}r \; s \; | \;
-\mathbf{fun} \; ({...}{:}t){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; | \;
-\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s\\
-c ::= & \; [e_{1}] = e_{2}\\
-n ::= & \; {\it name}\\
+f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+c ::= & \;\; [e_{1}] = e_{2}\\
+n ::= & \;\; {\it name}\\
 \end{array}
 $$
 \dend
@@ -740,4 +760,27 @@ $$
 \label{fig:syntax}
 \end{figure}
 
+Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
+It splits the syntactic categories as follows:
+$s$ are statements, $e$ are expressions, $l$ are left-hand values,
+$el$ are expression lists, $c$ are constructor fields, $cl$ are lists of
+constructor fields, $me$ are multiple expressions, $a$ are function
+applications, $f$ are function declarations, $n$ are variable names,
+$t$ are first-level types, and $r$ are second-level types.
+The notation $\vec{n{:}t}$ denotes the non-empty list
+$n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
 
+We will present the typing rules as a deduction system for the typing
+relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
+We will use the first one for typing statements, and the sencond one
+for typing expressions. 
+The first relation means that given the type environment $\env_{1}$,
+typing the statement $s$ produces the new type environment $\env_{2}$. 
+The sencond relation means that given the type environment $\env_{1}$,
+the expression $e$ has type $t$, and produces the new type environment $\env_{2}$.
+We need two typing relations because only expressions have types,
+though both expressions and statements can modify the environment.
+The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
+for meaning that we extended the environment $\env_{1}$ with the
+variable $n$ that maps to type $t$, and this mapping does not affect
+the other mappings that extisted before.

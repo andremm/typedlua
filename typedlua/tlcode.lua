@@ -14,6 +14,39 @@ local function ident (s, n)
   return spaces(n) .. s
 end
 
+local function iscntrl (x)
+  if (x >= 0 and x <= 31) or (x == 127) then return true end
+  return false
+end
+
+local function isprint (x)
+  return not iscntrl(x)
+end
+
+local function fix_str (str)
+  local new_str = ""
+  for i=1,string.len(str) do
+    char = string.byte(str, i)
+    if char == 34 then new_str = new_str .. string.format("\\\"")
+    elseif char == 92 then new_str = new_str .. string.format("\\\\")
+    elseif char == 7 then new_str = new_str .. string.format("\\a")
+    elseif char == 8 then new_str = new_str .. string.format("\\b")
+    elseif char == 12 then new_str = new_str .. string.format("\\f")
+    elseif char == 10 then new_str = new_str .. string.format("\\n")
+    elseif char == 13 then new_str = new_str .. string.format("\\r")
+    elseif char == 9 then new_str = new_str .. string.format("\\t")
+    elseif char == 11 then new_str = new_str .. string.format("\\v")
+    else
+      if isprint(char) then
+        new_str = new_str .. string.format("%c", char)
+      else
+        new_str = new_str .. string.format("\\%03d", char)
+      end
+    end
+  end
+  return new_str
+end
+
 local op = { add = " + ",
              sub = " - ",
              mul = " * ",
@@ -116,7 +149,7 @@ function code_exp (exp, i)
   elseif tag == "Number" then
     return tostring(exp[1])
   elseif tag == "String" then
-    return '"' .. exp[1] .. '"'
+    return '"' .. fix_str(exp[1]) .. '"'
   elseif tag == "Function" then
     local str = "function ("
     str = str .. code_parlist(exp[1], i) .. ")\n"
@@ -167,7 +200,7 @@ function code_stm (stm, i)
     return str
   elseif tag == "Set" then
     local str = spaces(i)
-    str = code_varlist(stm[1], i) .. " = " .. code_explist(stm[2], i)
+    str = str .. code_varlist(stm[1], i) .. " = " .. code_explist(stm[2], i)
     return str
   elseif tag == "While" then
     local str = ident("while ", i) .. code_exp(stm[1], 0) .. " do\n"
@@ -244,9 +277,9 @@ function code_stm (stm, i)
   elseif tag == "Break" then
     return ident("break", i)
   elseif tag == "Call" then
-    return code_call(stm, i)
+    return ident(code_call(stm, i), i)
   elseif tag == "Invoke" then
-    return code_invoke(stm, i)
+    return ident(code_invoke(stm, i), i)
   elseif tag == "Interface" then
     return ""
   else

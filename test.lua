@@ -4758,15 +4758,15 @@ local function insert_s (e, v)
 end
 local function insert_f (e, v)
   if e then
-e["next"] = insert_f(e["next"],v)
+    e["next"] = insert_f(e["next"],v)
     return e
   end
   return {["info"] = v, ["next"] = e}
 end
 local function print_l (e)
   if e then
-print(e["info"])
-print_l(e["next"])
+    print(e["info"])
+    print_l(e["next"])
   end
 end
 local e
@@ -4822,9 +4822,9 @@ local function create (v, l, r)
 end
 local function print_tree (t)
   if t then
-print(t["info"])
-print_tree(t["left"])
-print_tree(t["right"])
+    print(t["info"])
+    print_tree(t["left"])
+    print_tree(t["right"])
   end
 end
 local a1 = create("d")

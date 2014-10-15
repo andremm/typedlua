@@ -205,9 +205,12 @@ local function check_require (env, name, pos)
         env["loaded"][name] = check_tld(env, name, filepath)
       else
         env["loaded"][name] = Any
-        local msg = "could not load '%s'%s%s"
-        msg = string.format(msg, name, msg1, msg2)
-        typeerror(env, "load", msg, pos)
+        local m = require(name)
+        if not m then
+          local msg = "could not load '%s'%s%s"
+          msg = string.format(msg, name, msg1, msg2)
+          typeerror(env, "load", msg, pos)
+        end
       end
     end
   end
