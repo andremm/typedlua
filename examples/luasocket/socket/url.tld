@@ -1,16 +1,16 @@
 interface parsed_url
-  url:string
-  scheme:string
-  authority:string
-  path:string
-  params:string
-  query:string
-  fragment:string
-  userinfo:string
-  host:string
-  port:string
-  user:string
-  password:string
+  url:string?
+  scheme:string?
+  authority:string?
+  path:string?
+  params:string?
+  query:string?
+  fragment:string?
+  userinfo:string?
+  host:string?
+  port:string?
+  user:string?
+  password:string?
 end
 
 _VERSION : string

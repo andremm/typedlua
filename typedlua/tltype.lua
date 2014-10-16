@@ -193,14 +193,16 @@ function tltype.Union (...)
   for i = 1, #l3 do
     local enter = true
     for j = 1, #l3 do
-      if i ~= j and tltype.subtype(l3[i], l3[j]) then
+      if i ~= j and tltype.consistent_subtype(l3[i], l3[j]) then
         enter = false
         break
       end
     end
     if enter then table.insert(t, l3[i]) end
   end
-  if #t == 1 then
+  if #t == 0 then
+    return tltype.Any()
+  elseif #t == 1 then
     return t[1]
   else
     return t
@@ -631,42 +633,60 @@ end
 local function subtype_table (env, t1, t2, relation)
   if tltype.isTable(t1) and tltype.isTable(t2) then
     if t1.unique then
-      local m, n = #t2, #t1
+      local m, n = #t1, #t2
+      local k, l = 0, {}
       for i = 1, m do
-        local subtype_key, subtype_value = false, false
         for j = 1, n do
-          if subtype(env, t1[j][1], t2[i][1], relation) then
-            subtype_key = true
-            if subtype(env, t1[j][2], t2[i][2], relation) then
-              subtype_value = true
-              break
+          if subtype(env, t1[i][1], t2[j][1], relation) then
+            if subtype(env, t1[i][2], t2[j][2], relation) then
+              if not l[j] then
+                k = k + 1
+                l[j] = true
+              end
+            else
+              return false
             end
           end
         end
-        if subtype_key then
-          if not subtype_value then return false end
-        else
-          if not subtype(env, tltype.Nil(), t2[i][2], relation) then return false end
+      end
+      if k == n then
+        return true
+      else
+        for j = 1, n do
+          if not l[j] then
+            if not subtype(env, tltype.Nil(), t2[j][2], relation) then
+              return false
+            end
+          end
         end
       end
       return true
     elseif t1.open then
-      local m, n = #t2, #t1
+      local m, n = #t1, #t2
+      local k, l = 0, {}
       for i = 1, m do
-        local subtype_key, subtype_value = false, false
         for j = 1, n do
-          if subtype(env, t1[j][1], t2[i][1], relation) then
-            subtype_key = true
-            if subtype_field(env, t2[i], t1[j], relation) then
-              subtype_value = true
-              break
+          if subtype(env, t1[i][1], t2[j][1], relation) then
+            if subtype_field(env, t2[j], t1[i], relation) then
+              if not l[j] then
+                k = k + 1
+                l[j] = true
+              end
+            else
+              return false
             end
           end
         end
-        if subtype_key then
-          if not subtype_value then return false end
-        else
-          if not subtype(env, tltype.Nil(), t2[i][2], relation) then return false end
+      end
+      if k == n then
+        return true
+      else
+        for j = 1, n do
+          if not l[j] then
+            if not subtype(env, tltype.Nil(), t2[j][2], relation) then
+              return false
+            end
+          end
         end
       end
       return true

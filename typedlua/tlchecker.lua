@@ -466,7 +466,8 @@ local function check_parameters (env, parlist)
       l[i] = parlist[i][2]
     end
     if parlist[len].tag == "Dots" then
-      tlst.set_vararg(env, parlist[len][2])
+      local t = parlist[len][1] or Any
+      tlst.set_vararg(env, t)
       return tltype.Tuple(l, true)
     else
       if env.strict then
@@ -504,7 +505,7 @@ local function check_function (env, exp)
   local infer_return = false
   if not block then
     block = ret_type
-    ret_type = tltype.Tuple({ Any }, true)
+    ret_type = tltype.Tuple({ Nil }, true)
     infer_return = true
   end
   tlst.begin_function(env)
@@ -869,7 +870,7 @@ local function check_localrec (env, id, exp)
   local infer_return = false
   if not block then
     block = ret_type
-    ret_type = tltype.Tuple({ Any }, true)
+    ret_type = tltype.Tuple({ Nil }, true)
     infer_return = true
   end
   tlst.begin_function(env)
@@ -1218,6 +1219,7 @@ local function check_index (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  t1 = replace_names(env, t1, exp1.pos)
   local msg = "attempt to index '%s' with '%s'"
   if tltype.isRecursive(t1) then t1 = t1[2] end
   if tltype.isSelf(t1) and env.self then t1 = env.self end
@@ -1259,6 +1261,7 @@ function check_var (env, var, exp)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+    t1 = replace_names(env, t1, exp1.pos)
     local msg = "attempt to index '%s' with '%s'"
     if tltype.isRecursive(t1) then t1 = t1[2] end
     if tltype.isSelf(t1) and env.self then t1 = env.self end

@@ -2555,13 +2555,12 @@ assert(not tltype.subtype(t,Nil))
 
 t = tltype.Union(Number,Any)
 
-assert(tltype.subtype(Number,t))
 assert(tltype.subtype(Any,t))
+assert(tltype.subtype(t,Any))
 assert(tltype.subtype(t,t))
 
 assert(not tltype.subtype(String,t))
-assert(not tltype.subtype(t,Any))
-assert(not tltype.subtype(t,Any))
+assert(not tltype.subtype(Number,t))
 
 t1 = tltype.Recursive("Element",
   tltype.Table(tltype.Field(false, tltype.Literal("info"), tltype.Number()),
@@ -2713,8 +2712,7 @@ assert(tltype.consistent_subtype(Any,t))
 assert(tltype.consistent_subtype(t,t))
 assert(tltype.consistent_subtype(String,t))
 assert(tltype.consistent_subtype(t,Any))
-
-assert(not tltype.consistent_subtype(t,String))
+assert(tltype.consistent_subtype(t,String))
 
 t1 = tltype.Tuple({ Any }, true)
 t2 = tltype.Tuple({ Nil }, true)
@@ -3457,7 +3455,7 @@ local function fib (n:number)
 end
 ]=]
 e = [=[
-test.lua:7:12: type error, attempt to perform arithmetic on a '(any | nil)'
+test.lua:7:12: type error, attempt to perform arithmetic on a 'nil'
 ]=]
 
 r = typecheck(s)
@@ -3776,6 +3774,20 @@ t2 = t1
 e = [=[
 test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
 test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t1:{{string}} = { { "foo", "bar", "z" }, { "z", "bar", "foo" }, 4 }
+local t2:{string} = { "foo", "bar", "z", function () end }
+local t3:{"foo":number, number:string} = { foo = 1, [1] = true }
+]=]
+e = [=[
+test.lua:1:7: type error, attempt to assign '{1:{1:string, 2:string, 3:string}, 2:{1:string, 2:string, 3:string}, 3:number}' to '{number:({number:(string | nil)} | nil)}'
+test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> (nil*)}' to '{number:(string | nil)}'
+test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:number, number:(string | nil)}'
 ]=]
 
 r = typecheck(s)
@@ -4144,6 +4156,23 @@ print(("foo"):dump())
 e = [=[
 test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
 test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((any*) -> (any*), value*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f (...:{1:string})
+  local t:{string} = {...}
+end
+f = function (...:number):(string*)
+  return ...
+end
+]=]
+e = [=[
+test.lua:2:9: type error, attempt to assign '{number:({1:string} | nil)}' to '{number:(string | nil)}'
+test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
+test.lua:4:1: type error, attempt to assign '((any*) -> (string*), nil*)' to '((any*) -> (nil*), value*)'
 ]=]
 
 r = typecheck(s)
