@@ -14,7 +14,7 @@ languages.
 Namely, it is a simple type system that covers several Lua idioms
 and features, such as the refinement of tables, multiple return values,
 and optional parameters.
-We use typing rules to explain how we implemented the features of Typed Lua.
+We will use typing rules to explain how we implemented the features of Typed Lua.
 
 \section{Types}
 
@@ -24,8 +24,8 @@ to allow the interaction between statically and dynamically typed code.
 We will explain the subtyping and consistent-subtyping rules along this
 section while we introduce each type from our type system.
 We will focus the discussion on the definition of subtyping because,
-as we mentioned in Chapter \ref{chap:review}, we achieve the definition of
-consistent-subtyping combining consistency and subtyping.
+as we mentioned in Chapter \ref{chap:review}, we can combine the
+consistency and subtyping relations to achieve consistent-subtyping.
 The differences between subtyping and consistent-subtyping are the way
 they handle the dynamic type, and the fact that subtyping is transitive,
 but consistent-subtyping is not.
@@ -44,14 +44,14 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; \Self & \textit{self type}\\
 & | \; t \cup t & \textit{disjoint union types}\\
 & | \; p \rightarrow r & \textit{function types}\\
-& | \; \{v_{i}, ..., v_{n}\}_{closed|open|unique} & \textit{table types}\\
+& | \; \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
 & | \; \pi_{i} & \textit{projection types}\\
 l ::= & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
 b ::= & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
-v ::= & \;\; k:t \; | \; \Const \; k:t & \textit{field types}\\ 
 k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
+v ::= & \;\; t \; | \; \Const \; t & \textit{field types}\\ 
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
 s ::= & \;\; t &\\
@@ -80,25 +80,26 @@ projection types.
 Second-level types include the type $\Void$, tuples of first-level
 types optionally ending in a variadic type, and union of these tuples.
 
-Literal types represent the type of literal constants.
+Literal types represent the type of literal values.
 They can be the boolean values $\False$ and $\True$,
 any integer value, any floating point value, and any string value.
-We shall see that literal types are important to type tables as records.
+We shall see that literal types are important to represet table types
+as records.
 
 Our type system also includes the following base types: $\Boolean$,
 $\Integer$, $\Number$, and $\String$.
 The base types $\Boolean$ and $\String$ represent the values that
 during run-time Lua tags as \texttt{boolean} and \texttt{string},
 respectively;
-while the base types $\Integer$ and $\Number$ represent the values
+the base types $\Integer$ and $\Number$ represent the values
 that during run-time Lua tags as \texttt{number}.
 We introduced two different base types to represent Lua numbers
-because Lua introduced integers recently.
+because Lua introduced integers in version 5.3.
 
-The subtyping rules for literal types include a reflexive rule
+The subtyping rules for literal types include a reflexive rule,
 and the rules for defining that literal types are subtypes of
 their respective base types;
-the subtyping rules for base types include a reflexive rule
+the subtyping rules for base types include a reflexive rule,
 and another rule for defining that $\Integer$ is subtype of
 $\Number$.
 We defined these subtyping rules as follows:
@@ -154,13 +155,14 @@ The variable $\senv$ is a set of pairs of recursion variables.
 We shall notice that we need this set to record the pairs of valid
 recursive types.
 
-Since subtyping is reflexive and transitive,
-we could have omitted the reflexive rules \textsc{S-LITERAL} and
-\textsc{S-BASE}, as well as the rule \textsc{S-INT2}.
-More precisely, we could have used subsumption rules that define
-the reflexiveness and transitiveness of subtyping.
-In the case of \textsc{S-INT2}, we would not need this rule because
-we could use the transitive subsumption rule to derive that
+We could have omitted the rules \textsc{S-LITERAL}, \textsc{S-BASE},
+and \textsc{S-INT2}, because the first two are reflexive and we
+could achieve the third one trhough transitivity.
+More precisely, we could have defined subsumption rules that
+specify the reflexive and trasitive behavior of subtyping,
+and use these rules instead of the ones we defined.
+For instance, we would not need \textsc{S-INT2} because we could
+use the transisitive subsumption rule to derive that
 \[
 \dfrac{\senv \vdash 1 \subtype \Integer \;\;\;
        \senv \vdash \Integer \subtype \Number}
@@ -192,11 +194,11 @@ The next subtyping rule shows this behavior:
 \end{array}
 \]
 
-The type $\Value$ is the top type, so any first-level type is a
+The type $\Value$ is the top type, so any first-level type is
 subtype of $\Value$.
 We shall see that this type along with variadic types help to
-preserve the semantics of Lua to drop extra values on multiple
-assignments, and function calls.
+drop extra values on multiple assignments, and function calls,
+thus preserving the semantics of Lua in these cases.
 Following we show its subtyping rule:
 \[
 \begin{array}{c}
@@ -208,7 +210,7 @@ Following we show its subtyping rule:
 The dynamic type $\Any$ is the type that allows programmers to mix
 static and dynamic typing.
 The type $\Any$ is neither the bottom nor the top type, but a
-separated typed that is a subtype only of itself:
+separated typed that is subtype only of itself:
 \[
 \begin{array}{c}
 \mylabel{S-ANY}\\
@@ -244,9 +246,7 @@ not be a problem, the rules \textsc{C-ANY1} and \textsc{C-ANY2}
 are the rules that allow the dynamic type to interact with other
 first-level types, and thus allow dynamically typed code coexist
 with statically typed code.
-Consistent-subtyping cannot be transitive because of these rules,
-as transitivity combined with them would make all programs compile
-without type errors.
+Because of these two rules consistent-subtyping cannot be transitive.
 
 Typed Lua uses the type $\Self$ to represent \emph{objects}.
 As we mentioned in Chapter \ref{chap:typedlua}, we need the type
@@ -296,15 +296,15 @@ $t_{1}$ or if $t$ is subtype of $t_{2}$.
 Union types are disjoint, that is, the types in the union are not
 consistent-subtype of any other type in the same union.
 For instance, the union type $\Boolean \;\cup\; \Any$ results the
-type $\Any$, because $\Boolean$ is consistent-subtype of $\Any$.
-The union type $\Number \;\cup\; \Nil \;\cup\; 1$ results the union
-type $\Number \;\cup\; \Nil$ because $1 \subtype \Number$.
+type $\Any$, because $\Boolean \lesssim \Any$;
+and the union type $\Number \;\cup\; \Nil \;\cup\; 1$ results the union
+type $\Number \;\cup\; \Nil$ because $1 \lesssim \Number$.
 
-\emph{/* Explain how Typed Lua refine union types */}
+\emph{/* Do we need to show how Typed Lua simplifies union types? */}
 
 To introduce function types we first need to introduce
 second-level types, as they appear on both sides of function types.
-Basically, second-level types are tuples of first-level types
+Second-level types are tuples of first-level types
 that can optionally end with a variadic type.
 Our type system needs second-level types because tuples are
 not first-class values in Lua, though they may appear on
@@ -354,15 +354,14 @@ The first rule for tuple types shows that a tuple type
 $t_{1} \times s_{1}$ is subtype of another tuple type
 $t_{2} \times s_{2}$ if $t_{1}$ is subtype of $t_{2}$
 and $s_{1}$ is subtype of $s_{2}$.
-As we mentioned, a tuple can optionally end with a variadic
-type, and the second and third rules for tuple types handle
-this case.
-The second rule shows that a variadic type is subtype of
-a tuple whenever the type of the value that it generates is subtype
-of all the elements of the tuple.
-The third rule shows that a tuple is subtype of a variadic
-type whenever all the elements of the tuple are subtype of the
-type of the value that it generates.
+A tuple type can optionally end with a variadic type, and
+the rules \textsc{S-TUPLE2} and \textsc{S-TUPLE3} handle this case.
+The rule \textsc{S-TUPLE2} shows that a variadic type is subtype of
+a tuple type whenever the type of the value that it generates is
+subtype of all the elements of the tuple.
+The rule \textsc{S-TUPLE3} shows that a tuple type is subtype of a
+variadic type whenever all the elements of the tuple are subtype of
+the type of the value that it generates.
 We shall see that these subtyping relations along with the
 types $\Value$ and $\Nil$ allow our type system to reflect
 the semantics of Lua on discarding extra parameters and
@@ -372,7 +371,8 @@ In our type system function types have the form $p \rightarrow r$,
 where $p$ is the type of the parameters list and $r$ is the
 return type.
 The type of the parameters list can be $\Void$ or a tuple type,
-while the return type can be $\Void$, a tuple type, or a union of tuples.
+while the return type can be $\Void$, a tuple type, or a union of
+tuple types.
 The type $\Void$ means an empty tuple.
 Our type system includes union of tuples on the return type because
 in Lua it is common to overload the return type to denote error,
@@ -424,14 +424,14 @@ covariant on the return type:
 \]
 
 Our type system includes table types to represent Lua tables.
-The syntactical form of table types is $\{ v_{i}, ..., v_{n} \}_{tag}$.
+The syntactical form of table types is $\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{tag}$.
 When $n = 0$, then $i = 0$ and it represents the type of an empty table.
-When $n > 0$, then $i$ varies from 1 to $n$, and each $v_{i}$
-represents the type of a table field.
-Table fields represent maps from keys to values, and we restricted
-the type of keys to literal types, base types, and the dynamic type;
-but we can use any first-level type to represent the type of values.
-We made this restriction to the type of keys because the statistics
+When $n > 0$, then $i$ varies from 1 to $n$, each $k_{i}$ represents
+the type of a table key, and each $v_{i}$ represents the type of the
+value that the table key $k_{i}$ maps to.
+We restricted the type of keys to literal types, base types, and the dynamic type,
+but we can use any first-level type to represent the type of values they map to.
+We made this restriction to the type of the keys because the statistics
 that we discussed in Section \ref{sec:statistics} showed that most
 of the tables are records, lists, and hashes.
 The dynamic type is an option when we need a more loosen table type.
@@ -448,167 +448,175 @@ tags.
 We will discuss these subtyping rules in the next paragraphs to
 explain why we needed different tags.
 
-The following subtyping rules show that \emph{closed} table types
-have width subtyping, and depth subtyping on $\Const$ fields:
+The following subtyping rule shows that \emph{closed} table types
+have width subtyping, and depth subtyping on $\Const$ fields;
+it resembles the subtyping rule for record types.
 
 \[
 \begin{array}{c}
-\begin{array}{c}
 \mylabel{S-TABLE1}\\
 \dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash v_{j} \subtype v_{i}}
-      {\senv \vdash \{v_{1}, ..., v_{m}\}_{closed} \subtype \{v_{1}, ..., v_{n}\}_{closed}}
+       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
+       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
+       \senv \vdash v_{j} \subtype_{c} v_{i}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
 \end{array}
-\\ \\
+\]
+
+The rule \textsc{S-TABLE1} introduced the relation $\subtype_{c}$.
+It is just an auxiliary relation that defines the subtyping of the
+type of the values stored in table fields.
+We needed an auxiliary relation because the subtyping of the type
+of the values stored in the table fields change according to the
+tag of the table type.
+For closed tables, subtyping handles mutable fields invariantly,
+and imutable fields covariantly.
+The following rules define this behavior.
+\[
+\begin{array}{c}
 \begin{array}{c}
 \mylabel{S-FIELD1}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2} \;\;\;
-       \senv \vdash t_{2} \subtype t_{1}}
-      {\senv \vdash k_{1}:t_{1} \subtype k_{2}:t_{2}}
+\dfrac{\senv \vdash v_{1} \subtype v_{2} \;\;\;
+       \senv \vdash v_{2} \subtype v_{1}}
+      {\senv \vdash v_{1} \subtype_{c} v_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{S-FIELD2}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash \Const \; k_{1}:t_{1} \subtype \Const \; k_{2}:t_{2}}
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{c} \Const \; v_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-FIELD3}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash k_{1}:t_{1} \subtype \Const \; k_{2}:t_{2}}
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{c} \Const \; v_{2}}
 \end{array}
 \end{array}
 \]
 
-First, we had only \emph{closed} table types.
-However, programmers often define tables that include optional fields,
-and the subtyping rules we introduced do not let programmers to use
-the table constructor to initialize table types that include optional
-fields.
-For instance, consider the table type we introduced in
-Chapter 3:
+There are two limitations on \emph{closed} table types that led us to
+introduce \emph{open} and \emph{unique} table types.
+First, they do not allow programmers to use the table constructor to
+initialize table types that include optional fields.
+For instance,
 \begin{align*}
-\{ & ``firstname":\String, \\
-   & ``middlename":\String \cup \Nil,\\
-   & ``lastname":\String \}_{closed}
+\{ & ``firstname":\String, ``lastname":\String \}_{closed} \not \subtype\\
+\{ & ``firstname":\String,\\
+  &  ``middlename":\String \cup \Nil, ``lastname":\String \}_{closed}
 \end{align*}
-Following we show a table type that Typed Lua could assign to a
-table constructor that does not include the field $``middlename"$,
-but such table type is not subtype of the above table type:
+Second, they do not allow programmers to use the table construtor to
+initialize table types that represent hashes.
+For instance,
 \begin{align*}
-\{ ``firstname":\String, ``lastname":\String \}_{closed}
+\{ & ``x":\Number, ``y":\Number, ``z":\Number \}_{closed} \not \subtype\\
+\{ & \String:\Number \cup \Nil\}_{closed}
 \end{align*}
 
 We introduced \emph{open} table types to allow the refinement
 of table types, and also to allow programmers to omit optional
 fields in the initialization of table types.
-To do that, we defined new subtyping rules that allow \emph{open}
-table types to omit fields when $\Nil$ is subtype of the of type
-of the value of the omitted key.
-The following subtyping rules show this behavior:
-
+To do that, we defined a subtyping rule that allow \emph{open}
+table types to omit fields when $\Nil$ is subtype of the type of
+the value of the ommited key.
+The following subtyping rule show this behavior:
 \[
 \begin{array}{c}
-\begin{array}{c}
 \mylabel{S-TABLE2}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash v_{i}' \subtype v_{i}}
-      {\senv \vdash \{v_{1}, ..., v_{m}\}_{open} \subtype \{v_{1}', ..., v_{m}', ..., v_{n}'\}_{open|closed}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-TABLE3}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash v \subtype v_{i}}
-      {\senv \vdash \{v_{1}, ..., v_{m}\}_{open} \subtype \{v\}_{open|closed}} 
-\end{array}
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
 \end{array}
 \]
 
-However, we still had the that
-\begin{align*}
-\{ & ``firstname":\String, \\
-   & ``middlename":\String,\\
-   & ``lastname":\String \}_{open} \not \subtype \\
-\{ & ``firstname":\String, \\
-   & ``middlename":\String \cup \Nil,\\
-   & ``lastname":\String \}_{closed}
-\end{align*}
-
-We introduced \emph{unique} table types to solve this problem.
-We use \emph{unique} table types only to denote the type of the
-table constructor.
-The following subtyping rules allow us to use table constructors
-that initialize optional fields:
-
+The rule \textsc{S-TABLE2} introduced the relation $\subtype_{o}$.
+It is an auxiliary relation that defines the subtyping relation
+on optional fields, and we defined it as follows:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{S-TABLE4}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash v_{i}' \subtype_{n} v_{i}}
-      {\senv \vdash \{v_{1}, ..., v_{m}\}_{unique} \subtype \{v_{1}', ..., v_{m}', ..., v_{n}'\}_{unique|open|closed}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-TABLE5}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash v \subtype_{n} v_{i}}
-      {\senv \vdash \{v_{1}, ..., v_{m}\}_{unique} \subtype \{v\}_{unique|open|closed}} 
-\end{array}
-\\ \\
-\begin{array}{c}
 \mylabel{S-FIELD4}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash k_{1}:t_{1} \subtype_{n} k_{2}:t_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD5}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash \Const \; k_{1}:t_{1} \subtype_{n} \Const \; k_{2}:t_{2}}
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} v}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-FIELD6}\\
-\dfrac{\senv \vdash k_{2} \subtype k_{1} \;\;\;
-       \senv \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash k_{1}:t_{1} \subtype_{n} \Const \; k_{2}:t_{2}}
+\mylabel{S-FIELD5}\\
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} \Const \; v}
 \end{array}
 \end{array}
 \]
 
-Notice that we introduced a special subtyping rule to check the
-subtyping of \emph{unique} table fields.
-The difference is that \emph{unique} table types have width and
-depth subtyping on all fields.
+Although \emph{open} table types let programmers omit optional fields,
+they do not let programmers initialize optional fields that are
+mutable, unless they use the same type of the field in the initialization.
+For instance,
+\begin{align*}
+\{ & ``firstname":\String,\\
+   & ``middlename":\String, ``lastname":\String \}_{open} \not \subtype \\
+\{ & ``firstname":\String, \\
+   & ``middlename":\String \cup \Nil, ``lastname":\String \}_{closed}
+\end{align*}
 
-Even though \emph{unique} table types solve the problem of using
-table constructors to initialize tables that contain optional fields,
-we still have the problem when we try to use a local variable that
-holds an \emph{open} table to initialize another table that contains
-optional fields.
+We introduced \emph{unique} table types to solve this problem.
+We use \emph{unique} table types to denote the type of the
+table constructor.
+The following subtyping rule allow programmers to use table constructors
+to initialize and omit optional fields:
+\[
+\begin{array}{c}
+\mylabel{S-TABLE3}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+\end{array}
+\]
 
-\emph{/* Do we really need closed, open, and unique? */}
-
-\emph{/* Also, can we make these subtyping rules for tables more clear? */}
+The rule \textsc{S-TABLE3} introduced the relation $\subtype_{u}$.
+It is an auxiliary relation that makes \emph{unique} table types
+have width and depth subtyping on all fields, and we defined it
+as follows:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-FIELD6}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} v_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD7}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD8}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
+\end{array}
+\end{array}
+\]
 
 Table types can be ambiguous.
-For instance, $\{1:\Number, \Number:\String\}$ is an ambiguous
+For instance, $\{1:\Number, \Integer:\String\}$ is an ambiguous
 table type because the type of the value stored by key $1$ can be
 $\Number$ or $\String$, as $1 \subtype 1$ and
-$1 \subtype \Number$.
+$1 \subtype \Integer$.
 Table types can get even more ambiguous when we use the dynamic
 type in the type of table keys.
-For instance, the table type $\{1:\Number, \Number:\String, \Any:\Boolean\}$
+For instance, the table type $\{1:\Number, \Integer:\String, \Any:\Boolean\}$
 is ambiguous because the type of the value stored by key $1$ can be
 $\Number$, or $\String$, or $\Boolean$, as $1 \subtype 1$,
-$1 \subtype \Number$, and $1 \lesssim \Any$.
-The type of the value stored by a key of type $\Number$,
+$1 \subtype \Integer$, and $1 \lesssim \Any$.
+Moreover, the type of the value stored by a key of type $\Integer$,
 which is not the literal type $1$, can be $\Number$ or $\Boolean$,
-as $\Number \subtype \Number$, and $\Number \lesssim \Any$.
+as $\Integer \subtype \Integer$, and $\Integer \lesssim \Any$.
 
 To avoid ambiguous table types we use the following rule to check
 whether a table type is well formed:
@@ -621,8 +629,8 @@ whether a table type is well formed:
 Our type system also includes recursive types: $\mu x.t$,
 where $t$ is a function or table type with $x$ appearing anywhere
 a function or table type could appear.
-For instance, $\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}$
-represents the type of single linked lists of numbers.
+For instance, $\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed}$
+represents the type of single linked list of numbers.
 
 We use the \emph{Amber rule} from the Amber language
 \citep{cardelli1986amber} to define the subtyping rule for
@@ -651,14 +659,9 @@ The rule \textsc{S-AMBER} extends the set of assumptions
 with the assumption $x_{1} \subtype x_{2}$ to check whether
 $t_{1} \subtype t_{2}$ or not.
 
-\emph{/* Where should we handle the following case? */}
-\begin{align*}
-\{ & ``info":\Number, \\
-   & ``next":\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\} \cup \Nil \} \subtype \\
-& \mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}
-\end{align*}
-
-\emph{/* Should we also have the following subtyping rules? */}
+Our type system does not infer recursive types, so we defined two
+extra subtyping rules that handle the cases where they may
+appear inside a table or function type:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -675,7 +678,14 @@ $t_{1} \subtype t_{2}$ or not.
 \end{array}
 \]
 
-\emph{/* Or having the unfolding typing rule is enough? */}
+For instance, the rule \textsc{S-AMBERR} allows our type system
+check whether the type of a table constructor is subtype of
+a recursive type or not, as we show in the following example:
+\begin{align*}
+\{ & ``info":\Number, \\
+   & ``next":\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed} \cup \Nil \}_{unique} \subtype \\
+& \mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed}
+\end{align*}
 
 Our type system also introduces projection types, but they do not
 appear on the subtyping and consistent-subtyping rules.
