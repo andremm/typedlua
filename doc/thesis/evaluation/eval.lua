@@ -9,6 +9,7 @@ local module_list = {
   "lsl.bit32",
   "lsl.io",
   "lsl.os",
+  "md5.md5",
   "socket.socket",
   "socket.ftp",
   "socket.http",
@@ -16,19 +17,18 @@ local module_list = {
   "socket.mime",
   "socket.smtp",
   "socket.url",
-  "md5.md5",
 }
 
 local library_list = {
   "lsl",
-  "socket",
   "md5",
+  "socket",
 }
 
 local library_name = {
   lsl = "Lua Standard Libraries",
-  socket = "Lua Socket",
   md5 = "MD5",
+  socket = "Lua Socket",
 }
 
 local cat = { "easy", "poly", "hard" }
@@ -117,8 +117,8 @@ local function table_by_library ()
   end
   print("\\end{tabular}")
   print("\\end{center}")
-  print("\\caption{Evaluation of Typed Lua by library}")
-  print("\\label{tab:evalbylib}")
+  print("\\caption{Evaluation results for each case study}")
+  print("\\label{tab:evalbycase}")
   print("\\end{table}")
 end
 
@@ -151,9 +151,44 @@ local function table_by_module ()
   end
   print("\\end{tabular}")
   print("\\end{center}")
-  print("\\caption{Evaluation of Typed Lua by module}")
+  print("\\caption{Evaluation results for each module}")
   print("\\label{tab:evalbymod}")
   print("\\end{table}")
+end
+
+local function table_split_by_module ()
+  local t = {}
+  for i, m in ipairs(result_by_module) do
+    local l = string.match(module_list[i], "(%w+)[.]%w+")
+    if not t[l] then
+      print("---")
+      print("\\begin{table}[!ht]")
+      print("\\begin{center}")
+      print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
+      print("\\hline")
+      print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+      print("\\hline")
+      local r = rows(l)
+      t[l] = i - 1 + r
+      io.write(string.format("\\multirow{%d}{*}{%s}\n", r, library_name[l]))
+    end
+    local module_name = string.match(module_list[i], "%w+[.](%w+)")
+    io.write(string.format("& %s", module_name))
+    for j, v in ipairs(m) do
+      io.write(string.format(" & %d", v))
+    end
+    io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
+    if i ~= t[l] then
+      io.write("\n\\cline{2-7}\n")
+    else
+      io.write("\n\\hline\n")
+      print("\\end{tabular}")
+      print("\\end{center}")
+      print(string.format("\\caption{Evaluation results for %s}", library_name[l]))
+      print(string.format("\\label{tab:eval%s}", l))
+      print("\\end{table}")
+    end
+  end
 end
 
 local usage = [[usage: lua eval.lua <option>
@@ -161,7 +196,8 @@ Available options are:
 -ll	generate log by library
 -lm	generate log by module
 -tl	generate table by library
--tm	generate table by module]]
+-tm	generate table by module
+-ts	generate table split by module]]
 
 if #arg ~= 1 then
   print(usage)
@@ -180,6 +216,8 @@ elseif opt == "-tl" then
   table_by_library()
 elseif opt == "-tm" then
   table_by_module()
+elseif opt == "-ts" then
+  table_split_by_module()
 else
   print(usage)
   os.exit(1)

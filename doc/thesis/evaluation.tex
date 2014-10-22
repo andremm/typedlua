@@ -8,25 +8,6 @@ In this chapter we present our evaluation results, discuss
 some interesting cases, and compare our type system to
 related work.
 
-Tables \ref{tab:evalbylib} and \ref{tab:evalbymod} sumarizes our
-evaluation results:
-the first presents the results agruped by library while
-the second presents the results agruped by module.
-We split the members that we typed into three categories:
-\emph{easy}, \emph{poly}, and \emph{hard}.
-The \emph{easy} category represents the members that we could give
-a precise static type for them.
-The \emph{poly} category represents the members that we had to
-rely on the dynamic type, and we believe we could give a precise
-static type for them if our type system had parametric polymorphism.
-The \emph{hard} category represents the members that we could not
-give a precise static type for them, relying on the dynamic type
-in most of the cases, but with no hopes that parametric polymorphism
-would help us to give a precise static type for them.
-The last column of each table contains the actual evaluation result
-of each case study, that is basically the percentage of members
-that are under the \emph{easy} category.
-
 \begin{table}[!ht]
 \begin{center}
 \begin{tabular}{|l|c|c|c|c|c|c|}
@@ -35,15 +16,45 @@ that are under the \emph{easy} category.
 \hline
 Lua Standard Libraries & 92 & 11 & 27 & 130 & 71\% \\
 \hline
-Lua Socket & 85 & 22 & 19 & 126 & 67\% \\
-\hline
 MD5 & 13 & 0 & 0 & 13 & 100\% \\
+\hline
+Lua Socket & 85 & 22 & 19 & 126 & 67\% \\
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation of Typed Lua by library}
-\label{tab:evalbylib}
+\caption{Evaluation results for each case study}
+\label{tab:evalbycase}
 \end{table}
+
+Table \ref{tab:evalbycase} sumarizes our evaluation results for each
+case study that we used Typed Lua for typing their members.
+We split the members that we typed into three categories:
+\emph{easy}, \emph{poly}, and \emph{hard}.
+The \emph{easy} category represents the members that we could give
+a precise static type for them.
+The \emph{poly} category represents the members that we believe that
+parametric polymorphism would help give a precise static type for them,
+and we had to rely on the dynamic type to type them because our
+type system does not support parametric polymorphism.
+The \emph{hard} category represents the members that even parametric
+polymorphism would not help give a precise static type for them,
+and we also had to rely on the dynamic type to type them;
+for instance, this category includes functions that require
+intersection types to describe their precise static type.
+The last column of the table shows the percentage of members that
+are under the \emph{easy} category for each case study.
+This percentage is our evaluation of Typed Lua, as it
+represents how much static typing we could introduce to each one of
+our case studies.
+
+Before comparing our type system to related work, we will discuss
+each case study in more detail.
+For each case study, we will split the evaluation results according
+to the modules that each one of them include.
+This shall allow us to better discuss the contributions and limitations
+of our type system.
+
+\section{Lua Standard Libraries}
 
 \begin{table}[!ht]
 \begin{center}
@@ -70,6 +81,64 @@ MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \cline{2-7}
 & os & 10 & 0 & 1 & 11 & 91\% \\
 \hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Lua Standard Libraries}
+\label{tab:evallsl}
+\end{table}
+
+\section{MD5}
+
+The MD5 library \citep{lmd5} is the case study that we used to
+introduce Typed Lua's description files.
+We chose this case study because it is simple and contains just
+one module, being a good example for introducing how we can use
+Typed Lua's description files for giving a statically typed
+interface to a Lua library that is written in C, and to 
+introduce how we can type an \emph{userdata}.
+Table \ref{tab:evalmd5} sumarizes the evaluation results for MD5.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{1}{*}{MD5}
+& md5 & 13 & 0 & 0 & 13 & 100\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for MD5}
+\label{tab:evalmd5}
+\end{table}
+
+Even tough the MD5 library is quite simple and it was quite easy to type,
+we found a little discrepancy between its documentation and its static
+typing.
+The documentation suggested that the typing of the function \texttt{update}
+should be \texttt{(md5\string_context, string) -> (md5\string_context)},
+and a comment in the source code suggested that it should be
+should be \texttt{(md5\string_context, string, string*) -> (md5\string_context)}.
+However, while testing it and reading its source code, we noticed that
+its actual type is \texttt{(md5\string_context, string*) -> (md5\string_context)},
+that is, we can pass zero or more strings to \texttt{update}.
+
+This case study shows a connection between documentation and software testing.
+Even though type annotations are a good source of documentation, this case
+study shows that identifying what functions discard extra parameters can be
+not so obvious for someone that is typing an external library.
+Reading the source code and the library's test script was essential to confirm
+the typing of \texttt{update}.
+
+\section{Lua Socket}
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
 \multirow{7}{*}{Lua Socket}
 & socket & 50 & 3 & 7 & 60 & 83\% \\
 \cline{2-7}
@@ -85,19 +154,10 @@ MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \cline{2-7}
 & url & 8 & 0 & 0 & 8 & 100\% \\
 \hline
-\multirow{1}{*}{MD5}
-& md5 & 13 & 0 & 0 & 13 & 100\% \\
-\hline
 \end{tabular}
 \end{center}
-\caption{Evaluation of Typed Lua by module}
-\label{tab:evalbymod}
+\caption{Evaluation results for Lua Socket}
+\label{tab:evalsocket}
 \end{table}
-
-\section{Lua Standard Libraries}
-
-\section{Lua Socket}
-
-\section{MD5}
 
 \section{Related Work}
