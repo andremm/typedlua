@@ -1,7 +1,7 @@
 return {
   byte = 1,
   char = 1,
-  dump = 3,
+  dump = 1,
   find = 1,
   format = 1,
   gmatch = 1,

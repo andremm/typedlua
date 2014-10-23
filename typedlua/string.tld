@@ -4,7 +4,7 @@ Typed Lua description file for string manipulation
 
 byte : (string, number?, number?) -> (number*)
 char : (number*) -> (string)
-dump : ((any*) -> (any*)) -> (string)
+dump : ((value*) -> (value*)) -> (string)
 find : (string, string, number?, boolean?) -> (number, number) | (nil)
 format : (string, value*) -> (string)
 gmatch : (string, string) -> (() -> (string*))
