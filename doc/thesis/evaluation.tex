@@ -14,11 +14,11 @@ related work.
 \hline
 \textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua Standard Libraries & 92 & 4 & 34 & 130 & 71\% \\
+Lua Standard Libraries & 94 & 5 & 34 & 133 & 71\% \\
 \hline
 MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \hline
-Lua Socket & 85 & 22 & 19 & 126 & 67\% \\
+LuaSocket & 85 & 22 & 19 & 126 & 67\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -80,7 +80,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
 \multirow{9}{*}{Lua Standard Libraries}
-& base & 8 & 0 & 18 & 26 & 31\% \\
+& base & 9 & 1 & 16 & 26 & 35\% \\
 \cline{2-7}
 & coroutine & 0 & 0 & 6 & 6 & 0\% \\
 \cline{2-7}
@@ -94,7 +94,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \cline{2-7}
 & bit32 & 12 & 0 & 0 & 12 & 100\% \\
 \cline{2-7}
-& io & 14 & 0 & 4 & 18 & 78\% \\
+& io & 15 & 0 & 6 & 21 & 71\% \\
 \cline{2-7}
 & os & 10 & 0 & 1 & 11 & 91\% \\
 \hline
@@ -107,39 +107,49 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 We could give precise static types to most of the modules,
 but some of them are still hard to type with the current type
 system.
-The only modules that we could type all their members are
-\texttt{string} and \texttt{bit32}.
-Now we will discuss in more detail the particularities that
-we found on each module, and the limitations that we found
-on our type system.
+Now, we will discuss why some modules are difficult to type,
+and what kind of limitations they represent on our type system.
 
 The \texttt{base} module was quite hard to type because it
 includes several functions that have dynamic behavior.
-For instance, the function \texttt{next} traverses all
+For instance, the function \texttt{next} traverses all the
 fields of a table, but the order that the indices are
 enumerated is not specified.
-The function \texttt{pairs} is also difficult to type, as
-our type system cannot garantee that it will no try to
-access a field that does not exist.
-The functions \texttt{rawget} and \texttt{rawset} are also
-examples of functions that their behavior depend on the
-C implementation.
+For this reason, it is also difficult to type the function
+\texttt{pairs}.
+The functions \texttt{getmetatable},  \texttt{rawget}, and
+\texttt{rawset} are also examples of functions that their
+behavior depend on the C implementation.
 
-There are some functions that have a dynamic behavior and
-the return type depend on the input type.
-For instance, \texttt{assert} and \texttt{select}.
+There are also some functions that have a dynamic behavior and
+their return type depend on their input type.
+For instance, the functions \texttt{assert} and \texttt{select}
+can return all the values that they received as their arguments.
 
-Moreover, the \texttt{base} module also include some functions
-that the type of one input parameter depends on the type of
-another.
+We could give a more precise type to \texttt{ipairs} if our
+type system had parametric polymorphism, as this function
+returns an iterator function that operates over a list of
+elements.
+
+Furthermore, the \texttt{base} module also includes two very
+special cases: the functions \texttt{tonumber} and \texttt{collectgarbage}.
+
+The function \texttt{tonumber} is a special case because the
+type of one input parameter depends on the type of another.
 For instance, there are two static types that we can
 assign to the function \texttt{tonumber}:
 \texttt{(value) -> (number?)} and
 \texttt{(string, number) -> (number?)}.
-More precisely, the first argument of \texttt{tostring} can be
+More precisely, the first argument of \texttt{tonumber} can be
 a value of any type if it is the only argument, but it must
 be a value of type string if there is a second argument,
 which must be a value of type number.
+
+The function \texttt{collectgarbage} is a special case because
+its return type depends on the value of the first parameter,
+which should be a string.
+This function can return one number, one boolean, or two numbers
+depending on the literal string that was given as its first argument.
 
 We could not type the \texttt{coroutine} module because our
 type system does not include the type \emph{thread}.
@@ -147,17 +157,26 @@ Lua has one-shot delimited continuations \citep{james2011yield}
 in the form of \emph{coroutines} \citep{moura2009rc}, and
 effect systems \citep{nielson1999type} are an approach that we
 could use to describe control transfers with continuations.
-However, for now coroutines are out of the scope of our type
+However, for now, coroutines are out of the scope of our type
 system, and we use an empty \emph{userdata} declaration
 to represent the type \emph{thread}.
 
-We could type most the members of the \texttt{package} module,
-but we could not type any member that is a table.
-More precisely, we could not type the table \texttt{loaded}
-that stores loaded modules, and the tables \texttt{preload}
-and \texttt{searchers} that store module \emph{loaders}.
-They are difficult to type because their type depend on the
-modules a program loads.
+We could type most of the members of the \texttt{package} module,
+but we could not type the following tables: \texttt{package.loaded},
+\texttt{package.preload}, and \texttt{package.loaders}.
+The first stores loaded modules, while the others store module \emph{loaders}.
+They are difficult to type because their types are dynamic and
+depend on the modules a program loads.
+
+We could type all the members of the \texttt{string} module.
+Even though we can use the \texttt{string} functions in object-oriented style,
+we did not use an \emph{userdata} declaration to handle this feature,
+as it would complicate the subtyping rules because the type \texttt{string}
+would become a table type instead of a base type.
+It was simpler and more starightforward to handle this feature as a
+special case in the implementation.
+For this reason, we did not include the typing of the \texttt{string} methods
+in our evaluation results.
 
 The \texttt{table} module is specially difficult to type because
 all of its members require parametric polymorphism.
@@ -166,68 +185,97 @@ of elements, and parametric polymorphism would help us to describe
 them with a generic type.
 
 However, the lack of parametric polymorphism did not prevent us from
-giving a precise type to \texttt{concat}, as it operates over lists
-where all elements are strings or numbers.
+giving a precise type to \texttt{table.concat}, as it operates over lists
+where all elements are strings or numbers, and we can use the table type
+\texttt{\{string|number\}} to express this type on our type system.
 
 Even if our type system had parametric polymorphism, it would
-be difficult to type \texttt{insert}, as its type depends on
+be difficult to type \texttt{table.insert}, as its type depends on
 the calling arity.
-We can call \texttt{insert} passing two or three parameters.
+We can call \texttt{table.insert} passing two or three parameters.
 The first parameter is always a list.
 If we call it with two arguments, then the second parameter
-is the value to be inserted in the end of the list.
+is the value to be inserted at the end of the list.
 If we call it with three arguments, then the third parameter
 is the value to be inserted in the list, and the second
 parameter is the position where it should be inserted.
 This function also does not follow the semantics of Lua on
-discarding extra arguments.
-Lua generates a run-time error whenever we pass more than three
-arguments to \texttt{insert}, even if the first three parameters
-match its definition.
+discarding extra arguments, and generates a run-time error whenever
+we pass more than three arguments, even if the first three arguments
+match its signature.
 
 Even though the \texttt{math} module is straightforward to type,
-it includes a special case that is hard to type: the function \texttt{random}.
+it includes a special case that is hard to type: the function \texttt{math.random}.
 This function is difficult to type because its type also depends
 on the calling arity.
-We can call \texttt{random} passing zero, one, or three parameters.
-If we pass no parameter, then it returns a float number.
+We can call \texttt{math.random} passing zero, one, or two parameters.
+If we pass no parameter, then it returns a random floating point
+number between \texttt{0} and \texttt{1}.
 If we pass one or two parameters, then all the parameters should be
 integers and it returns an integer number.
 Another problem with this function is that it also does not follow
 the semantics of Lua on discarding extra arguments, and generates
 a run-time error whenever we pass more than three arguments.
 There is also a problem on its documentation, as it suggests that
-the two integers are optional parameters, but, for \texttt{random},
+the two integers are optional parameters, but, for \texttt{math.random},
 optional parameters behave in a different way.
 Usually, Lua functions replace optional parameters with a default value
-when they are \texttt{nil}, but \texttt{random} generates a run-time
+when they are \texttt{nil}, but \texttt{math.random} generates a run-time
 error instead.
 
-We could type most members from \texttt{io} module, but we could not
-precisely type \texttt{close} and \texttt{lines}.
-The function and the method \texttt{close} are difficult to type
-because their return type depend whether the file handle that is
-being closed was created with \texttt{popen} or not.
-If it was created with \texttt{popen}, then \texttt{close}
-returns \texttt{(boolean) | (nil, string, number)};
-otwerwise \texttt{close} returns \texttt{(boolean) | (nil, string)}.
-The function and the method \texttt{lines} are difficult to type
-because they number or string depending on the type of the argument.
+The \texttt{bit32} module was quite straightforward to type,
+as its members are only bitwise operations over numbers.
 
-The function \texttt{execute} is the only member from \texttt{os}
+The \texttt{io} module provides operations for manipulating files,
+and these operations can use implicit or explicit file descriptors.
+The implicit operations are functions in the \texttt{io} table,
+while the explicit operations are methods of a file descriptor.
+We used an \emph{userdata} declaration to introduce the type
+\texttt{file} for representing the type of a file descriptor
+and its methods.
+For this reason, we included the typing of the \texttt{file}
+methods in our evaluation results.
+
+We could type most of members of the \texttt{io} module,
+but we could not precisely type the functions \texttt{io.close},
+\texttt{io.read}, and \texttt{io.lines}.
+We also could not type the methods \texttt{file:close},
+\texttt{file:read}, and \texttt{file:lines}.
+
+The function \texttt{io.close} is difficult to type
+because its return type depends on whether the file handle that is
+being closed was created with \texttt{popen} or not.
+If it was created with \texttt{popen}, then \texttt{io.close}
+has type \texttt{(file?) -> (boolean?, string, number)};
+otwerwise \texttt{io.close} has type \texttt{(file?) -> (boolean)?}.
+The method \texttt{file:close} is difficult to type for the same reason.
+
+The functions \texttt{io.read} and \texttt{io.lines} are difficult
+to type because their return types depend on their input types.
+The type of \texttt{io.read} can be either \texttt{() -> (string*)}
+or \texttt{(string|number*) -> (string|number*)}, and
+the type of \texttt{io.lines} can be either \texttt{(string?) -> (string*)}
+or \texttt{(string, string|number*) -> (string|number*)}.
+Returning \texttt{(string|number*)} is also painful to programmers, as
+they need to constrain the value of the return type among three
+different types before cocatenating it, for example.
+The methods \texttt{file:read} and \texttt{file:lines} are difficult
+to type for the same reason.
+
+The function \texttt{os.execute} is the only member of the \texttt{os}
 module that we could not give a precise type.
-It is difficult to type because its return type depend on the
-input type.
+This function is difficult to type because its return type depend on
+the input type.
 Its type can be either \texttt{() -> (boolean)} or
 \texttt{(string) -> (boolean?, string, number)}.
 
-To increase the static typing of the Lua Standard Libraries
-we need to include effect types, parametric polymorphism,
-and intersection types.
-The first will allow us to type coroutines, the second will
-improve static typing of table types, and the third is
-important to describe functions that return different types
-according to their input types.
+The evaluation results show that our type system should include effect
+types, parametric polymorphism, and intersection types, as these
+features would help to increase the static typing of the Lua Standard Libraries.
+Effect types would allow us to type coroutines.
+Parametric polymorphism would allow us to define generic function and table types.
+Intersection types would allow us to define function types that have
+different return types according to their input types.
 
 \section{MD5}
 
@@ -255,25 +303,35 @@ Table \ref{tab:evalmd5} sumarizes the evaluation results for MD5.
 \label{tab:evalmd5}
 \end{table}
 
-Even tough the MD5 library is quite simple and it was quite easy to type,
-we found a little discrepancy between its documentation and its static
-typing.
+Even tough it was quite straightforward to type the MD5 library,
+we found a little difference between its documentation and its static typing.
 The documentation suggested that the typing of the function \texttt{update}
 should be \texttt{(md5\string_context, string) -> (md5\string_context)},
-and a comment in the source code suggested that it should be
-should be \texttt{(md5\string_context, string, string*) -> (md5\string_context)}.
+while a comment in the source code suggested that it should be
+\texttt{(md5\string_context, string, string*) -> (md5\string_context)}.
 However, while testing it and reading its source code, we noticed that
 its actual type is \texttt{(md5\string_context, string*) -> (md5\string_context)},
 that is, we can pass zero or more strings to \texttt{update}.
 
-This case study shows a connection between documentation and software testing.
-Even though type annotations are a good source of documentation, this case
-study shows that identifying what functions discard extra parameters can be
-not so obvious for someone that is typing an external library.
+This case study shows that type annotations are a good source of documentation,
+tough it might be not so obious to identify which functions discard extra
+parameters when we are typing an external library.
 Reading the source code and the library's test script was essential to confirm
 the typing of \texttt{update}.
 
-\section{Lua Socket}
+\section{LuaSocket}
+
+LuaSocket \citep{luasocket} is a library that adds network support to Lua,
+and it is split into two parts: a core that is written in C and a set of
+Lua modules.
+The C core provides TCP and UDP support, while the Lua modules provide
+support for SMTP, HTTP, and FTP client protocols, MIME encoding,
+URL manipulation, and LTN012 filters \citep{nehab2008ltn012}.
+We chose LuaSocket as a case study because it is the most popular Lua library.
+We used Typed Lua's description files to type both parts.
+This is the only case study that we test description files to statically type
+a Lua module instead of rewriting it.
+Table \ref{tab:evalsocket} sumarizes the evaluation results for LuaSocket.
 
 \begin{table}[!ht]
 \begin{center}
@@ -281,7 +339,7 @@ the typing of \texttt{update}.
 \hline
 \textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{7}{*}{Lua Socket}
+\multirow{7}{*}{LuaSocket}
 & socket & 50 & 3 & 7 & 60 & 83\% \\
 \cline{2-7}
 & ftp & 6 & 1 & 1 & 8 & 75\% \\
@@ -298,8 +356,11 @@ the typing of \texttt{update}.
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation results for Lua Socket}
+\caption{Evaluation results for LuaSocket}
 \label{tab:evalsocket}
 \end{table}
+
+We could type most of the members in the \texttt{socket} module,
+which is the C core.
 
 \section{Related Work}

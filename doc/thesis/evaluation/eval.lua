@@ -28,7 +28,7 @@ local library_list = {
 local library_name = {
   lsl = "Lua Standard Libraries",
   md5 = "MD5",
-  socket = "Lua Socket",
+  socket = "LuaSocket",
 }
 
 local cat = { "easy", "poly", "hard" }
