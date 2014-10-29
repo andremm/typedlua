@@ -279,13 +279,12 @@ different return types according to their input types.
 
 \section{MD5}
 
-The MD5 library \citep{lmd5} is the case study that we used to
-introduce Typed Lua's description files.
-We chose this case study because it is simple and contains just
-one module, being a good example for introducing how we can use
-Typed Lua's description files for giving a statically typed
-interface to a Lua library that is written in C, and to 
-introduce how we can type an \emph{userdata}.
+We chose the MD5 library \citep{lmd5} as a case study because it is
+simple and contains just one module.
+We needed a simple case study to introduce Typed Lua's description
+files and \texttt{userdata} declarations.
+These Typed Lua's mechanims allow programmers to give statically typed
+interfaces to Lua libraries that are written in C.
 Table \ref{tab:evalmd5} sumarizes the evaluation results for MD5.
 
 \begin{table}[!ht]
@@ -313,11 +312,10 @@ However, while testing it and reading its source code, we noticed that
 its actual type is \texttt{(md5\string_context, string*) -> (md5\string_context)},
 that is, we can pass zero or more strings to \texttt{update}.
 
-This case study shows that type annotations are a good source of documentation,
-tough it might be not so obious to identify which functions discard extra
-parameters when we are typing an external library.
-Reading the source code and the library's test script was essential to confirm
-the typing of \texttt{update}.
+This case study shows that it might be not so obvious to identify which
+functions discard extra arguments when we are typing an external library.
+In this case study, reading its source code and test script was essential
+to confirm the typing of \texttt{update}.
 
 \section{LuaSocket}
 
@@ -364,3 +362,13 @@ We could type most of the members in the \texttt{socket} module,
 which is the C core.
 
 \section{Related Work}
+
+\begin{itemize}
+\item Tidal Lock
+\item Typed Clojure
+\item Gradual Python
+\item Gradualtalk
+\item Typed Racket
+\item Dart
+\item TypeScript
+\end{itemize}
