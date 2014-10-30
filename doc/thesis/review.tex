@@ -192,7 +192,7 @@ lambda calculus with the dynamic type $?$, as we shall see in
 Figure \ref{fig:gtlc}.
 In gradual typing, type annotations are optional, so an untyped
 variable is syntactic sugar for a variable whose declared type is
-the dynamic type $?$, that is, $\lambda x.e \equiv \lambda x{:}?.e$.
+the dynamic type $?$, that is, $\lambda x.e$ is equivalent to $\lambda x{:}?.e$.
 Under these circumstances, we view gradual typing as a way to add
 a dynamic type to statically typed languages.
 
@@ -232,14 +232,24 @@ it is neither commutative nor transitive.
 \begin{figure}[!ht]
 \dstart
 $$
-\begin{matrix}
-\Number \sim \Number \mylabel{C-NUM} \;\;\; \String \sim \String \mylabel{C-STR}
+\begin{array}{c}
+\begin{array}{c}
+T \sim T \mylabel{C-REFL}
+\end{array}
+\;
+\begin{array}{c}
+T \sim \;? \mylabel{C-DYNR}
+\end{array}
+\;
+\begin{array}{c}
+? \sim T \mylabel{C-DYNL}
+\end{array}
 \\ \\
-T \sim \;? \mylabel{C-ANY1} \;\;\; ? \sim T \mylabel{C-ANY2}
-\\ \\
+\begin{array}{c}
 \dfrac{T_{3} \sim T_{1} \;\;\; T_{2} \sim T_{4}}
-      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUN}
-\end{matrix}
+      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUNC}
+\end{array}
+\end{array}
 $$
 \dend
 \caption{The consistency relation}
@@ -247,10 +257,10 @@ $$
 \end{figure}
 
 Figure \ref{fig:consistency} defines the consistency relation.
-Rules \textsc{C-NUM} and \textsc{C-STR} are reflexive. 
-Rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that allow
+The rule \textsc{C-REFL} is the reflexive rule.
+Rules \textsc{C-DYNR} and \textsc{C-DYNL} are the rules that allow
 conversions to and from the dynamic type $?$.
-The rule \textsc{C-FUN} resembles the subtyping of functions
+The rule \textsc{C-FUNC} resembles the subtyping of functions
 because it is contravariant on the argument type and covariant on the
 return type.
 
@@ -323,19 +333,99 @@ Subtyping is transitive, so we have that
 Therefore, downcasts combined with the transitivity of subtyping
 accepts programs that should be rejected.
 
-Later, \citet{siek2007objects} reported that the consistency relation
-is orthogonal to subtyping, so we can combine the two relations to
-achieve both consistency and subtyping.
-The \emph{consistent-subtyping} relation,
-written $T_{1} \lesssim T_{2}$,
-is the foundation to design object-oriented languages that have a
-gradual type system.
+Later, \citet{siek2007objects} reported that the consistency relation is
+orthogonal to the subtyping relation, so we can combine them to achieve
+the \emph{consistent-subtyping} relation, written $T_{1} \lesssim T_{2}$.
+This relation is essential for designing gradual type systems for
+object-oriented languages.
 Like the consistency relation, and unlike the subtyping relation,
 the consistent-subtyping relation is not transitive.
 Therefore, $\Number \lesssim \;?$, $? \lesssim \Number$,
 $\String \lesssim \;?$, and $? \lesssim \String$,
 but $\Number \not\lesssim \String$, and
 $\String \not\lesssim \Number$.
+
+Now, we will show how we can combine consistency and subtyping
+to compose a consistent-subtyping relation for the simply typed
+lambda calculus extended with the dynamic type $?$.
+
+\begin{figure}[!ht]
+\dstart
+$$
+\begin{array}{c}
+\begin{array}{c}
+\Number \subtype \Number \mylabel{S-NUM}
+\end{array}
+\;
+\begin{array}{c}
+\String \subtype \String \mylabel{S-STR}
+\end{array}
+\\ \\
+\begin{array}{c}
+? \subtype \;? \mylabel{S-ANY}
+\end{array}
+\;
+\begin{array}{c}
+\dfrac{T_{3} \subtype T_{1} \;\;\; T_{2} \subtype T_{4}}
+      {T_{1} \rightarrow T_{2} \subtype T_{3} \rightarrow T_{4}} \mylabel{S-FUN}
+\end{array}
+\end{array}
+$$
+\dend
+\caption{The subtyping relation}
+\label{fig:subtyping}
+\end{figure}
+
+Figure \ref{fig:subtyping} presents the subtyping relation for the simply
+typed lambda calculus extended with the dynamic type $?$.
+Even though we could have used the reflexive rule $T \subtype T$ to express
+the rules \textsc{S-NUM}, \textsc{S-STR}, and \textsc{S-ANY},
+we did not combine these rules in a single one to make explicit the
+neutrality of the dynamic type $?$ to the subtyping rules.
+The dynamic type $?$ must be neutral to subtyping to avoid the pitfall
+from Thatte's quasi-static typing.
+The rule \textsc{S-FUN} defines the subtyping relation for function types,
+which are contravariant on the argument type and covariant on the return type.
+
+\begin{figure}[!ht]
+\dstart
+$$
+\begin{array}{c}
+\begin{array}{c}
+\Number \lesssim \Number \mylabel{C-NUM}
+\end{array}
+\;
+\begin{array}{c}
+\String \lesssim \String \mylabel{C-STR}
+\end{array}
+\\ \\
+\begin{array}{c}
+T \lesssim \;? \mylabel{C-ANY1}
+\end{array}
+\;
+\begin{array}{c}
+? \lesssim T \mylabel{C-ANY2}
+\end{array}
+\\ \\
+\begin{array}{c}
+\dfrac{T_{3} \lesssim T_{1} \;\;\; T_{2} \lesssim T_{4}}
+      {T_{1} \rightarrow T_{2} \lesssim T_{3} \rightarrow T_{4}} \mylabel{C-FUN}
+\end{array}
+\end{array}
+$$
+\dend
+\caption{The consistent-subtyping relation}
+\label{fig:consistent-subtyping}
+\end{figure}
+
+Figure \ref{fig:consistent-subtyping} combines consistency and subtyping to
+compose the consistent-subtyping relation for the simply typed
+lambda calculus extended with the dynamic type $?$.
+When we combine consistency and subtyping, we are making subtyping handle
+what casts are safe among static types, and we are making consistency
+handle the casts that involve the dynamic type $?$.
+The consistent-subtyping relation is not transitive, and that is the
+reason why the dynamic type $?$ is not neutral to this relation.
 
 So far, gradual typing looks like a mere formalization to optional
 type systems, as a gradual type system uses the consistency or
