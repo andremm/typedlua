@@ -20,7 +20,7 @@ structure the development of programs.
 Thus, early error detection and better program structure are two
 advantages of static type checking that can lead programmers to
 migrate their code from a dynamically typed to a statically
-typed language, when their simple scripts become complex programs
+typed language, when their simple scripts evolve into complex programs
 \citep{tobin-hochstadt2006ims}.
 Dynamically typed languages certainly help programmers during the
 beginning of a project, because their simplicity and flexibility
@@ -62,20 +62,20 @@ together.
 We use the term gradual typing for referring to the work of
 \citet{siek2006gradual}.
 
-In this work we present the design and implementation of Typed Lua:
+In this work we present the design and evaluation of Typed Lua:
 an optional type system for Lua that is rich enough to
 preserve some of the Lua idioms that programmers are already used to,
 but that also includes new constructs that help programmers
 structure Lua programs.
 
 Lua is a small scripting language, so designing an optional type
-system for Lua should shed some light on optional type systems for
+system for Lua may shed some light on optional type systems for
 scripting languages in general.
 Lua provides mechanisms for organizing a program in modules and
 writing object-oriented programs, but it does not set policy on how
 these features should behave, due to its use as an embedded and
 extension language.
-Thus, implementing an optional type system for Lua should offer Lua
+Thus, implementing an optional type system for Lua offers Lua
 programmers one way to obtain most of the advantages of static typing
 without compromising the simplicity and flexibility of dynamic typing.
 
@@ -89,7 +89,7 @@ constructions for structuring Lua code.
 The compiler uses static types to perform compile-time type
 checking, but also allows Lua code to coexist with Typed Lua code,
 and generates Lua code that runs in unmodified Lua implementations.
-We have an ongoing implementation of the Typed Lua compiler that is
+We have an implementation of the Typed Lua compiler that is
 available online\footnote{https://github.com/andremm/typedlua}.
 
 Typed Lua intended use is as an application language, and we view
@@ -100,7 +100,7 @@ An application language is a programming language that helps
 programmers develop applications from scratch until these
 applications evolve to complex systems rather than just scripts.
 
-We also believe that Typed Lua will help programmers give a more
+We also believe that Typed Lua help programmers give a more
 formal documentation to already existing Lua code, as static types
 are also a useful source of documentation in languages that provide
 type annotations, because type annotations are always validated by
@@ -138,9 +138,11 @@ In Chapter \ref{chap:review} we review the literature about static and
 dynamic typing in the same language, which includes the discussion
 about the particularities between optional type systems and gradual
 typing.
-In Chapter \ref{chap:typedlua} we present the design and implementation
-of Typed Lua along with the reasons why it includes features of
-object-oriented programming.
-In Chapter \ref{chap:cases} we present some case studies.
+In Chapter \ref{chap:typedlua} we use code examples to present the
+design of Typed Lua.
+In Chapther \ref{chap:system} we use typing rules to present the
+formalization of Typed Lua.
+In Chapter \ref{chap:evaluation} we discuss some case studies that
+we used to evaluate our design.
 In Chapter \ref{chap:conc} we outline our contributions.
 
