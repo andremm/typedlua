@@ -161,6 +161,7 @@ local function check_interface (env, stm)
   else
     tlst.set_interface(env, name, t, is_local)
   end
+  return false
 end
 
 local function check_userdata (env, stm)
@@ -521,7 +522,8 @@ local function check_function (env, exp)
     check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
-  check_block(env, block)
+  local r = check_block(env, block)
+  if not r then tlst.set_return_type(env, tltype.Tuple({ Nil }, true)) end
   check_unused_locals(env)
   tlst.end_scope(env)
   local inferred_type = infer_return_type(env)
@@ -742,6 +744,7 @@ local function check_call (env, exp)
       typeerror(env, "call", msg, exp.pos)
     end
   end
+  return false
 end
 
 local function check_invoke (env, exp)
@@ -791,6 +794,7 @@ local function check_invoke (env, exp)
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, "index", msg, exp.pos)
   end
+  return false
 end
 
 local function check_local_var (env, id, inferred_type, close_local)
@@ -864,6 +868,7 @@ local function check_local (env, idlist, explist)
       check_local_var(env, v, t, close_local)
     end
   end
+  return false
 end
 
 local function check_localrec (env, id, exp)
@@ -892,7 +897,8 @@ local function check_localrec (env, id, exp)
     check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
-  check_block(env, block)
+  local r = check_block(env, block)
+  if not r then tlst.set_return_type(env, tltype.Tuple({ Nil }, true)) end
   check_unused_locals(env)
   tlst.end_scope(env)
   local inferred_type = infer_return_type(env)
@@ -907,6 +913,7 @@ local function check_localrec (env, id, exp)
   t = replace_names(env, t, exp.pos)
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
+  return false
 end
 
 local function explist2typelist (explist)
@@ -940,6 +947,7 @@ local function check_return (env, stm)
   check_explist(env, stm)
   local t = explist2typelist(stm)
   tlst.set_return_type(env, tltype.general(t))
+  return true
 end
 
 local function check_assignment (env, varlist, explist)
@@ -990,18 +998,21 @@ local function check_assignment (env, varlist, explist)
       local t1, t2 = get_type(v[1]), get_type(v[2])
     end
   end
+  return false
 end
 
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
   check_exp(env, exp1)
-  check_block(env, stm1)
+  local r = check_block(env, stm1)
+  return r
 end
 
 local function check_repeat (env, stm)
   local stm1, exp1 = stm[1], stm[2]
-  check_block(env, stm1)
+  local r = check_block(env, stm1)
   check_exp(env, exp1)
+  return r
 end
 
 local function tag2type (t)
@@ -1035,6 +1046,7 @@ end
 
 local function check_if (env, stm)
   local l = {}
+  local rl = {}
   for i = 1, #stm, 2 do
     local exp, block = stm[i], stm[i + 1]
     if block then
@@ -1112,7 +1124,8 @@ local function check_if (env, stm)
     else
       block = exp
     end
-    check_block(env, block)
+    local r = check_block(env, block)
+    table.insert(rl, r)
     for k, v in pairs(l) do
       if not tltype.isTuple(v.filter) then
         set_type(v, v.filter)
@@ -1131,6 +1144,12 @@ local function check_if (env, stm)
       table.insert(get_type(v), v.filter)
     end
   end
+  if #stm % 2 == 0 then table.insert(rl, false) end
+  local r = true
+  for k, v in ipairs(rl) do
+    r = r and v
+  end
+  return r
 end
 
 local function check_fornum (env, stm)
@@ -1170,9 +1189,10 @@ local function check_fornum (env, stm)
   else
     block = exp3
   end
-  check_block(env, block)
+  local r = check_block(env, block)
   check_unused_locals(env)
   tlst.end_scope(env)
+  return r
 end
 
 local function check_forin (env, idlist, explist, block)
@@ -1199,9 +1219,10 @@ local function check_forin (env, idlist, explist, block)
     local t = tltype.filterUnion(tuple(k), Nil)
     check_local_var(env, v, t, false)
   end
-  check_block(env, block)
+  local r = check_block(env, block)
   check_unused_locals(env)
   tlst.end_scope(env)
+  return r
 end
 
 local function check_id (env, exp)
@@ -1354,34 +1375,37 @@ end
 function check_stm (env, stm)
   local tag = stm.tag
   if tag == "Do" then
-    check_block(env, stm)
+    return check_block(env, stm)
   elseif tag == "Set" then
-    check_assignment(env, stm[1], stm[2])
+    return check_assignment(env, stm[1], stm[2])
   elseif tag == "While" then
-    check_while(env, stm)
+    return check_while(env, stm)
   elseif tag == "Repeat" then
-    check_repeat(env, stm)
+    return check_repeat(env, stm)
   elseif tag == "If" then
-    check_if(env, stm)
+    return check_if(env, stm)
   elseif tag == "Fornum" then
-    check_fornum(env, stm)
+    return check_fornum(env, stm)
   elseif tag == "Forin" then
-    check_forin(env, stm[1], stm[2], stm[3])
+    return check_forin(env, stm[1], stm[2], stm[3])
   elseif tag == "Local" then
-    check_local(env, stm[1], stm[2])
+    return check_local(env, stm[1], stm[2])
   elseif tag == "Localrec" then
-    check_localrec(env, stm[1][1], stm[2][1])
+    return check_localrec(env, stm[1][1], stm[2][1])
   elseif tag == "Goto" then
+    return false
   elseif tag == "Label" then
+    return false
   elseif tag == "Return" then
-    check_return(env, stm)
+    return check_return(env, stm)
   elseif tag == "Break" then
+    return false
   elseif tag == "Call" then
-    check_call(env, stm)
+    return check_call(env, stm)
   elseif tag == "Invoke" then
-    check_invoke(env, stm)
+    return check_invoke(env, stm)
   elseif tag == "Interface" then
-    check_interface(env, stm)
+    return check_interface(env, stm)
   else
     error("cannot type check statement " .. tag)
   end
@@ -1389,11 +1413,13 @@ end
 
 function check_block (env, block)
   tlst.begin_scope(env)
+  local r = false
   for k, v in ipairs(block) do
-    check_stm(env, v)
+    r = check_stm(env, v)
   end
   check_unused_locals(env)
   tlst.end_scope(env)
+  return r
 end
 
 local function load_lua_env (env)
