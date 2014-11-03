@@ -5,6 +5,5 @@ return {
   TIMEOUT = 1,
   ZONE = 1,
   message = 3,
-  open = 3,
   send = 1,
 }

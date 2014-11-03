@@ -100,7 +100,7 @@ local f1 = 1.
 local f2 = 1.1
 ]=]
 e = [=[
-{ `Local{ { `Id "f1" }, { `Number "1" } }, `Local{ { `Id "f2" }, { `Number "1.1" } } }
+{ `Local{ { `Id "f1" }, { `Number "1.0" } }, `Local{ { `Id "f2" }, { `Number "1.1" } } }
 ]=]
 
 r = parse(s)
@@ -111,7 +111,7 @@ local f1 = 1.e-1
 local f2 = 1.e1
 ]=]
 e = [=[
-{ `Local{ { `Id "f1" }, { `Number "0.1" } }, `Local{ { `Id "f2" }, { `Number "10" } } }
+{ `Local{ { `Id "f1" }, { `Number "0.1" } }, `Local{ { `Id "f2" }, { `Number "10.0" } } }
 ]=]
 
 r = parse(s)
@@ -122,7 +122,7 @@ local f1 = 1.1e+1
 local f2 = 1.1e1
 ]=]
 e = [=[
-{ `Local{ { `Id "f1" }, { `Number "11" } }, `Local{ { `Id "f2" }, { `Number "11" } } }
+{ `Local{ { `Id "f1" }, { `Number "11.0" } }, `Local{ { `Id "f2" }, { `Number "11.0" } } }
 ]=]
 
 r = parse(s)
@@ -133,7 +133,7 @@ local f1 = .1
 local f2 = .1e1
 ]=]
 e = [=[
-{ `Local{ { `Id "f1" }, { `Number "0.1" } }, `Local{ { `Id "f2" }, { `Number "1" } } }
+{ `Local{ { `Id "f1" }, { `Number "0.1" } }, `Local{ { `Id "f2" }, { `Number "1.0" } } }
 ]=]
 
 r = parse(s)
@@ -144,7 +144,7 @@ local f1 = 1E1
 local f2 = 1e-1
 ]=]
 e = [=[
-{ `Local{ { `Id "f1" }, { `Number "10" } }, `Local{ { `Id "f2" }, { `Number "0.1" } } }
+{ `Local{ { `Id "f1" }, { `Number "10.0" } }, `Local{ { `Id "f2" }, { `Number "0.1" } } }
 ]=]
 
 r = parse(s)
@@ -4155,7 +4155,7 @@ print(("foo"):dump())
 ]=]
 e = [=[
 test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
-test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((any*) -> (any*), value*)'
+test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((value*) -> (value*), value*)'
 ]=]
 
 r = typecheck(s)
@@ -4172,7 +4172,7 @@ end
 e = [=[
 test.lua:2:9: type error, attempt to assign '{number:({1:string} | nil)}' to '{number:(string | nil)}'
 test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
-test.lua:4:1: type error, attempt to assign '((any*) -> (string*), nil*)' to '((any*) -> (nil*), value*)'
+test.lua:4:1: type error, attempt to assign '((number*) -> (string*), nil*)' to '(({1:string}*) -> (nil*), value*)'
 ]=]
 
 r = typecheck(s)

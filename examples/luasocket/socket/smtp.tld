@@ -1,18 +1,18 @@
 interface mesgt
   headers:{string:string}
-  body:any
+  body:string|{"preamble":string?, "epilogue":string?, number:mesgt}|() -> (string?)
 end
 
 interface send
   from:string
   rcpt:string
-  source:any
+  source:() -> (string?)
   user:string?
   password:string?
   server:string?
   port:number?
   domain:string?
-  step:any?
+  step:nil|(() -> (string?), (string, string) -> (number)?) -> (number)?
   create:nil|(any*) -> (any*)
 end
 
@@ -21,6 +21,5 @@ PORT : number
 SERVER : string
 TIMEOUT : number
 ZONE : string
-message : (mesgt) -> (() -> (thread)?)
-open : (string, number, (any*) -> (any*)) -> ({any:any})
+message : (mesgt) -> (() -> (string, nil)?)
 send : (send) -> (number)?

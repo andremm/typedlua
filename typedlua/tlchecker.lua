@@ -467,6 +467,7 @@ local function check_parameters (env, parlist)
     end
     if parlist[len].tag == "Dots" then
       local t = parlist[len][1] or Any
+      l[len] = t
       tlst.set_vararg(env, t)
       return tltype.Tuple(l, true)
     else

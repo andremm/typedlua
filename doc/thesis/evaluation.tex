@@ -18,7 +18,7 @@ Lua Standard Libraries & 94 & 5 & 34 & 133 & 71\% \\
 \hline
 MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \hline
-LuaSocket & 85 & 22 & 19 & 126 & 67\% \\
+LuaSocket & 109 & 1 & 13 & 123 & 89\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -324,7 +324,7 @@ and it is split into two parts: a core that is written in C and a set of
 Lua modules.
 The C core provides TCP and UDP support, while the Lua modules provide
 support for SMTP, HTTP, and FTP client protocols, MIME encoding,
-URL manipulation, and LTN012 filters \citep{nehab2008ltn012}.
+URL manipulation, and LTN12 filters \citep{nehab2008ltn012}.
 We chose LuaSocket as a case study because it is the most popular Lua library.
 We used Typed Lua's description files to type both parts.
 This is the only case study that we test description files to statically type
@@ -338,17 +338,17 @@ Table \ref{tab:evalsocket} sumarizes the evaluation results for LuaSocket.
 \textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
 \multirow{7}{*}{LuaSocket}
-& socket & 50 & 3 & 7 & 60 & 83\% \\
+& socket & 50 & 0 & 10 & 60 & 83\% \\
 \cline{2-7}
-& ftp & 6 & 1 & 1 & 8 & 75\% \\
+& ftp & 5 & 0 & 1 & 6 & 83\% \\
 \cline{2-7}
-& http & 3 & 0 & 2 & 5 & 60\% \\
+& http & 4 & 0 & 1 & 5 & 80\% \\
 \cline{2-7}
-& ltn12 & 10 & 10 & 0 & 20 & 50\% \\
+& smtp & 6 & 0 & 1 & 7 & 86\% \\
 \cline{2-7}
-& mime & 2 & 8 & 7 & 17 & 12\% \\
+& mime & 17 & 0 & 0 & 17 & 100\% \\
 \cline{2-7}
-& smtp & 6 & 0 & 2 & 8 & 75\% \\
+& ltn12 & 19 & 1 & 0 & 20 & 95\% \\
 \cline{2-7}
 & url & 8 & 0 & 0 & 8 & 100\% \\
 \hline
@@ -360,6 +360,66 @@ Table \ref{tab:evalsocket} sumarizes the evaluation results for LuaSocket.
 
 We could type most of the members in the \texttt{socket} module,
 which is the C core.
+However, this module includes some functions such as
+\texttt{socket.try}, \texttt{socket.protect}, and \texttt{socket.skip}
+that have a dynamic behavior.
+This means that the return type of these functions depend on the
+type of the values that we use to call them.
+
+We could type most of the members of the modules \texttt{ftp},
+\texttt{http}, and \texttt{smtp}, but we could not precisely type
+the functions \texttt{ftp.get}, \texttt{http.request}, and
+\texttt{smtp.message}.
+
+The function \texttt{ftp.get} downloads data from a given URL,
+and it is difficult to type because its return type depend on
+the type of its parameters.
+Its type is either \texttt{(string) -> (string)?} or
+\texttt{(url\string_argument|url\string_path) -> (number)?}.
+The types \texttt{url\string_argument} and \texttt{url\string_path}
+are table types that describe the URL that should be used to
+download data.
+Both table types include the same fields, except one:
+while the first includes the mandatory field \texttt{argument},
+of type \texttt{string}, the latter includes the mandatory field
+\texttt{path}, also of type \texttt{string}.
+
+The function \texttt{http.request} downloads data from a given URL,
+and it is difficult to type because its return type depend on
+the type of its parameters.
+Its type is either
+\texttt{(string, string?) -> (string, number, \{string : string\}, number)?} or
+\texttt{(url\string_request) -> (number, number, \{string : string\}, number)?}.
+The type \texttt{url\string_request} is a table type containing
+details about the downloading URL.
+
+The function \texttt{smtp.message} creates a function that sends
+an SMTP message body, and it is difficult to type because of the
+type of the message body, which is recursive and makes harder
+its initialization.
+
+The modules \texttt{mime} and \texttt{ltn12} have a strong connection.
+The \texttt{mime} module offers low-level and high-level filters
+that apply and remove some text encodings.
+The low-level filters are written in C, while the high-level filters
+use the function \texttt{ltn12.filter.cycle} along with the low level
+filters to create standard filters.
+Even though we could type all the members of the \texttt{mime} module,
+the function \texttt{ltn12.filter.cycle} is the only member of the
+\texttt{ltn12} module that we could not give a precise type.
+This function is difficult to type because the \texttt{mime} low-level
+filters do not have a standard API.
+
+The \texttt{url} module provides functions that manipulate URLs.
+It is straightforward to type, although it defines a table type for
+parsed URLs that is not precise enough. 
+This type is problematic because it is a record type where all
+fields are optional, and makes any table type that does not include
+the optional fields statically type check.
+
+This case study shows that abusing of dynamic typing usually impacts
+the users of a module, as they have to keep on checking each return
+value before using it to prevent API misuses.
 
 \section{Related Work}
 

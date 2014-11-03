@@ -9,21 +9,21 @@ unb64 : (string?, string?) -> (string?, string?)
 unqp : (string?, string?) -> (string?, string?)
 wrp : (number, string?, number?) -> (string?, number)
 -- high-level
-decode : (string) -> ((any*) -> (any*))
+decode : (string?) -> ((string?) -> (string?))
 decodet : {
-  "base64" : () -> ((any*) -> (any*)),
-  "quoted-printable" : () -> ((any*) -> (any*))
+  "base64" : () -> ((string?) -> (string?)),
+  "quoted-printable" : () -> ((string?) -> (string?))
 }
-encode : (string, string?) -> ((any*) -> (any*))
+encode : (string?, string?) -> ((string?) -> (string?))
 encodet : {
-  "base64" : () -> ((any*) -> (any*)),
-  "quoted-printable" : (number?) -> ((any*) -> (any*))
+  "base64" : () -> ((string?) -> (string?)),
+  "quoted-printable" : (string?) -> ((string?) -> (string?))
 }
-normalize : (string?) -> ((any*) -> (any*))
-stuff : () -> ((any*) -> (any*))
-wrap : (string, number?) -> ((any*) -> (any*))
+normalize : (string?) -> ((string?) -> (string?))
+stuff : () -> ((string?) -> (string?))
+wrap : (string, number?) -> ((string?) -> (string?))
 wrapt : {
-  "text" : (number?) -> ((any*) -> (any*)),
-  "base64" : () -> ((any*) -> (any*)),
-  "quoted-printable" : () -> ((any*) -> (any*))
+  "text" : (number?) -> ((string?) -> (string?)),
+  "base64" : (number?) -> ((string?) -> (string?)),
+  "quoted-printable" : () -> ((string?) -> (string?))
 }

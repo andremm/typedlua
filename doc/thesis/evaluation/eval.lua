@@ -13,9 +13,9 @@ local module_list = {
   "socket.socket",
   "socket.ftp",
   "socket.http",
-  "socket.ltn12",
-  "socket.mime",
   "socket.smtp",
+  "socket.mime",
+  "socket.ltn12",
   "socket.url",
 }
 

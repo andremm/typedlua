@@ -1,28 +1,28 @@
 BLOCKSIZE : number
 _VERSION : string
 filter : {
-  "cycle" : ((any*) -> (any*), number|string, string?) -> ((any*) -> (any*)),
-  "chain" : ((any*) -> (any*)*) -> ((any*) -> (any*))
+  "cycle" : ((any, string?, any) -> (string?, any), number|string, string?) -> ((string?) -> (string?)),
+  "chain" : ((string?) -> (string?), (string?) -> (string?)*) -> ((string?) -> (string?))
 }
 pump : {
-  "all" : ((any*) -> (any*), (any*) -> (any*), nil|(any*) -> (any*)) -> (number)?,
-  "step" : ((any*) -> (any*), (any*) -> (any*)) -> (number)?
+  "all" : (() -> (string?), (string, string) -> (number)?, nil|(() -> (string?), (string, string) -> (number)?) -> (number)?) -> (number)?,
+  "step" : (() -> (string?), (string, string) -> (number)?) -> (number)?
 }
 sink : {
-  "chain" : ((any*) -> (any*), (any*) -> (any*), value*) -> ((any*) -> (number)?),
+  "chain" : ((string?) -> (string?), (string, string) -> (number)?, (string?) -> (string?)*) -> ((string, string) -> (number)?),
   "error" : (string) -> (() -> (nil, string)),
   "file" : (file, string?) -> ((string, string) -> (number)?)?,
   "null" : () -> (() -> (number)),
-  "simplify" : ((any*) -> (any*)) -> ((string, string) -> (number)?),
-  "table" : ({}) -> ((string, string) -> (number), {string})
+  "simplify" : ((string, string) -> (number)?) -> ((string, string) -> (number)?),
+  "table" : ({string}) -> ((string, string) -> (number), {string})
 }
 source : {
-  "cat" : ((any*) -> (any*)*) -> (() -> (string)?),
-  "chain" : ((any*) -> (any*), (any*) -> (any*), value*) -> (() -> (string?)),
+  "cat" : (() -> (string?), () -> (string?)*) -> (() -> (string)?),
+  "chain" : (() -> (string?), (string?) -> (string?), (string?) -> (string?)*) -> (() -> (string?)),
   "empty" : () -> (() -> (nil)),
   "error" : (string) -> (() -> (nil, string)),
   "file" : (file, string?) -> (() -> (string)?)?,
-  "rewind" : ((any*) -> (any*)) -> (({string}) -> (any)),
-  "simplify" : ((any*) -> (any*)) -> (() -> (string?)),
+  "rewind" : (() -> (string?)) -> ((string) -> (string?)),
+  "simplify" : (() -> (string?)) -> (() -> (string)?),
   "string" : (string) -> (() -> (string?))
 }
