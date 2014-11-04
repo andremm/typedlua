@@ -20,6 +20,12 @@ MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \hline
 LuaSocket & 109 & 1 & 13 & 123 & 89\% \\
 \hline
+HTTP Digest & 0 & 0 & 1 & 1 & 0\% \\
+\hline
+Typical & 1 & 0 & 0 & 1 & 100\% \\
+\hline
+Modulo 11 & 7 & 0 & 2 & 9 & 78\% \\
+\hline
 \end{tabular}
 \end{center}
 \caption{Evaluation results for each case study}
@@ -412,7 +418,7 @@ filters do not have a standard API.
 
 The \texttt{url} module provides functions that manipulate URLs.
 It is straightforward to type, although it defines a table type for
-parsed URLs that is not precise enough. 
+parsed URLs that is not precise enough.
 This type is problematic because it is a record type where all
 fields are optional, and makes any table type that does not include
 the optional fields statically type check.
@@ -420,6 +426,138 @@ the optional fields statically type check.
 This case study shows that abusing of dynamic typing usually impacts
 the users of a module, as they have to keep on checking each return
 value before using it to prevent API misuses.
+
+\section{HTTP Digest}
+
+The HTTP Digest library \citep{luahttpdigest} implements client side
+HTTP digest authentication for Lua.
+We randonly chose this library as a case study to evaluate Typed Lua
+for rewriting an existing Lua module.
+Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{1}{*}{HTTP Digest}
+& http-digest & 0 & 0 & 1 & 1 & 0\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for HTTP Digest}
+\label{tab:evalhttpdigest}
+\end{table}
+
+It is difficul to type the interface of the \texttt{http-digest} module
+because it is an extension to the \texttt{http} module from LuaSocket.
+The \texttt{http-digest} module only exports the function
+\texttt{http-digest.request}, which extends the function
+\texttt{http.request} with MD5 authentication.
+Like \texttt{http.request}, the return type of \texttt{http-digest.request}
+also depends on the type of its parameters.
+Its type is either
+\texttt{(string) -> (string, number, \{string : string\})?} or
+\texttt{(url\string_request) -> (number, number, \{string : string\})?}.
+
+Even though we could not precisely type the interface that \texttt{http-digest}
+exports, we could use only static types to rewrite it, and they pointed a bug
+in the code.
+The problem was related to the way the library was loading the MD5 library
+that should be used. 
+This part of the code checks the existence of three different MD5 libraries
+in the system, and uses the first one that is available, or generates an
+error when none is available.
+The code that loads the first option was fine, but the code that loads the
+second and third options were trying to access an undefined global variable.
+
+\section{Typical}
+
+Typical \citep{luatypical} is a library that extends the behavior of the
+function \texttt{type}. 
+We randonly chose this library as a case study to evaluate Typed Lua
+for rewriting an existing Lua module.
+Table \ref{tab:evaltypical} summarizes the evaluation results for Typical.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{1}{*}{Typical}
+& typical & 1 & 0 & 0 & 1 & 100\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Typical}
+\label{tab:evaltypical}
+\end{table}
+
+The interface of the \texttt{typical} module is straightforward to type,
+as it contains only the function \texttt{typical.type},
+which has the same type of the function \texttt{type}: \texttt{(value) -> (string)}.
+
+However, we hit some limitations of our type system to rewrite this module.
+First, it uses the function \texttt{getmetatable} to get a table and
+checks whether this table has the field \texttt{\string_\string_type} or not.
+We could not give a precise type to \texttt{getmetatable}, so we used the dynamic
+type \texttt{any} as its return type, and this generates a warning that we could not
+remove.
+Second, the module returns a metatable that extends \texttt{\string_\string_call}
+with \texttt{typical.type}, that is, we can use the module itself as a function,
+though it is a table.
+Our type system still does not support metatables, so we did not extend our version
+of the \texttt{typical} module to support \texttt{\string_\string_call}.
+Third, the module uses \texttt{ipairs} to iterate over an array of functions,
+but our type system also has limited support to \texttt{ipairs}, and generates
+a warning when we try to use the indexed value inside the \texttt{for} body.
+We removed this warning using the numeric \texttt{for} to perform the same loop.
+
+\section{Modulo 11}
+
+Modulo 11 \citep{luamod11} is a library that generates and verifies
+modulo 11 numbers.
+We randonly chose this library as a case study to evaluate Typed Lua
+for rewriting an existing Lua module.
+Table \ref{tab:evalmod11} summarizes the evaluation results for Typical.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{1}{*}{Modulo 11}
+& mod11 & 7 & 0 & 2 & 9 & 78\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Modulo 11}
+\label{tab:evalmod11}
+\end{table}
+
+The \texttt{mod11} module was written using an object-oriented idiom that
+our type system does not support, and that is the reason why we could not
+type all the members of its interface.
+More precisely, the original code uses \texttt{setmetatable} to hide
+two attributes, which our type system cannot hide.
+
+In addition, it returns a metatable that extends \texttt{\string_\string_call}
+with the class constructor.
+This allows us to use the module itself to create new instances of a
+Modulo 11 number.
+However, our type system does not support this feature, and we need to
+make explicit calls to the constructor whenever we want to create a
+new instance.
+
+Even though we had these two issues to rewrite the \texttt{mod11} module,
+we could use only static types to rewrite it, and found some interesting
+points.
+The code relies a lot on implicit conversions between strings and numbers,
+and some parts of the code keep on changing the type of local variables.
+These are two practices that may hide bugs.
 
 \section{Related Work}
 

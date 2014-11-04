@@ -17,18 +17,27 @@ local module_list = {
   "socket.mime",
   "socket.ltn12",
   "socket.url",
+  "httpdigest.httpdigest",
+  "typical.typical",
+  "mod11.mod11",
 }
 
 local library_list = {
   "lsl",
   "md5",
   "socket",
+  "httpdigest",
+  "typical",
+  "mod11",
 }
 
 local library_name = {
   lsl = "Lua Standard Libraries",
   md5 = "MD5",
   socket = "LuaSocket",
+  httpdigest = "HTTP Digest",
+  typical = "Typical",
+  mod11 = "Modulo 11"
 }
 
 local cat = { "easy", "poly", "hard" }

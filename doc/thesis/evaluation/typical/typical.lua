@@ -1,0 +1,3 @@
+return {
+  typical = 1,
+}

@@ -732,7 +732,7 @@ local function check_call (env, exp)
     local inferred_type = arglist2type(explist, env.strict)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
-      check_arguments(env, var2name(exp1), replace_self(env, t[1]), inferred_type, exp.pos)
+      check_arguments(env, var2name(exp1), replace_self(env, t[1]), replace_self(env, inferred_type), exp.pos)
       set_type(exp, replace_self(env, t[2]))
     elseif tltype.isAny(t) then
       set_type(exp, Any)
@@ -757,6 +757,8 @@ local function check_invoke (env, exp)
   check_exp(env, exp2)
   check_explist(env, explist)
   local t1, t2 = get_type(exp1), get_type(exp2)
+  if tltype.isRecursive(t1) then t1 = t1[2] end
+  if tltype.isSelf(t1) and env.self then t1 = env.self end
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
