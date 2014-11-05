@@ -14,7 +14,9 @@ related work.
 \hline
 \textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua Standard Libraries & 94 & 5 & 34 & 133 & 71\% \\
+Lua Standard Libraries 5.2 & 94 & 5 & 34 & 133 & 71\% \\
+\hline
+Lua Standard Libraries 5.3 & 87 & 6 & 36 & 129 & 67\% \\
 \hline
 MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \hline
@@ -25,6 +27,8 @@ HTTP Digest & 0 & 0 & 1 & 1 & 0\% \\
 Typical & 1 & 0 & 0 & 1 & 100\% \\
 \hline
 Modulo 11 & 7 & 0 & 2 & 9 & 78\% \\
+\hline
+Typed Lua Compiler & 144 & 0 & 10 & 154 & 94\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -106,8 +110,39 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation results for Lua Standard Libraries}
+\caption{Evaluation results for Lua Standard Libraries 5.2}
 \label{tab:evallsl}
+\end{table}
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{9}{*}{Lua Standard Libraries}
+& base & 9 & 1 & 16 & 26 & 35\% \\
+\cline{2-7}
+& coroutine & 1 & 0 & 6 & 7 & 14\% \\
+\cline{2-7}
+& package & 5 & 0 & 3 & 8 & 62\% \\
+\cline{2-7}
+& string & 14 & 0 & 2 & 16 & 88\% \\
+\cline{2-7}
+& utf8 & 6 & 0 & 0 & 6 & 100\% \\
+\cline{2-7}
+& table & 1 & 5 & 1 & 7 & 14\% \\
+\cline{2-7}
+& math & 26 & 0 & 1 & 27 & 96\% \\
+\cline{2-7}
+& io & 15 & 0 & 6 & 21 & 71\% \\
+\cline{2-7}
+& os & 10 & 0 & 1 & 11 & 91\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Lua Standard Libraries 5.3}
+\label{tab:evallsl53}
 \end{table}
 
 We could give precise static types to most of the modules,
@@ -559,6 +594,76 @@ The code relies a lot on implicit conversions between strings and numbers,
 and some parts of the code keep on changing the type of local variables.
 These are two practices that may hide bugs.
 
+\section{Typed Lua Compiler}
+
+The Typed Lua compiler is the last case study that we evaluated, and the
+Table \ref{tab:evaltlc} summarizes the evaluation results.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+\multirow{8}{*}{Typed Lua Compiler}
+& tlast & 46 & 0 & 1 & 47 & 98\% \\
+\cline{2-7}
+& tltype & 65 & 0 & 0 & 65 & 100\% \\
+\cline{2-7}
+& tlst & 26 & 0 & 0 & 26 & 100\% \\
+\cline{2-7}
+& tllexer & 2 & 0 & 9 & 11 & 18\% \\
+\cline{2-7}
+& tlparser & 1 & 0 & 0 & 1 & 100\% \\
+\cline{2-7}
+& tldparser & 1 & 0 & 0 & 1 & 100\% \\
+\cline{2-7}
+& tlchecker & 2 & 0 & 0 & 2 & 100\% \\
+\cline{2-7}
+& tlcode & 1 & 0 & 0 & 1 & 100\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Typed Lua Compiler}
+\label{tab:evaltlc}
+\end{table}
+
+The \texttt{tlast} module implements the abstract syntax tree that
+the compiler uses to perform the type checking.
+We could not precisely type just one function because its return
+type depend on the type of its input parameter.
+
+The \texttt{tltype} module implements the types introduced by
+Typed Lua and the subtyping and consistent-subtyping relationsr;
+it was straightforward to type.
+
+The \texttt{tlst} module implements the environment that the
+compiler uses during the type checking, and it was also straightforward
+to type.
+
+The \texttt{tllexer} module defines common lexical rules for
+the Typed Lua parser and the parser of the description files.
+This module is hard to type because it exports LPeg \citep{lpeg,ierusalimschy2009lpeg}
+patterns, which our type system cannot precisely type because it does
+not support operator overloading.
+
+The \texttt{tlparser} and \texttt{tldparser} implement the Typed Lua
+parser and the parser of the description files, respectively.
+Even though they use LPeg to implement the grammar rules,
+they only export a parsing function that uses LPeg to parse a
+string and return the corresponding AST.
+
+The \texttt{tlchecker} and \texttt{tlcode} modules are also
+straightforward to type.
+The first traverses the AST to perform type checking,
+while the latter traverses the AST to perform code generation.
+
+Even though we could precisely type the interface of most of
+the modules, we had some issues to write mutually recursive
+functions that traverses the AST.
+In this case we had to rely on the dynamic type to defer the
+function declarations.
+
 \section{Related Work}
 
 \begin{itemize}
@@ -569,5 +674,6 @@ These are two practices that may hide bugs.
 \item \citep{tobin-hochstadt2008ts} 
 \item \citep{dart}
 \item \citep{typescript}
+\item \citep{bierman2014typescript}
 \item \citep{politz2012semantics}
 \end{itemize}

@@ -9,6 +9,15 @@ local module_list = {
   "lsl.bit32",
   "lsl.io",
   "lsl.os",
+  "lsl53.base",
+  "lsl53.coroutine",
+  "lsl53.package",
+  "lsl53.string",
+  "lsl53.utf8",
+  "lsl53.table",
+  "lsl53.math",
+  "lsl53.io",
+  "lsl53.os",
   "md5.md5",
   "socket.socket",
   "socket.ftp",
@@ -20,24 +29,36 @@ local module_list = {
   "httpdigest.httpdigest",
   "typical.typical",
   "mod11.mod11",
+  "tlc.tlast",
+  "tlc.tltype",
+  "tlc.tlst",
+  "tlc.tllexer",
+  "tlc.tlparser",
+  "tlc.tldparser",
+  "tlc.tlchecker",
+  "tlc.tlcode",
 }
 
 local library_list = {
   "lsl",
+  "lsl53",
   "md5",
   "socket",
   "httpdigest",
   "typical",
   "mod11",
+  "tlc",
 }
 
 local library_name = {
   lsl = "Lua Standard Libraries",
+  lsl53 = "Lua Standard Libraries",
   md5 = "MD5",
   socket = "LuaSocket",
   httpdigest = "HTTP Digest",
   typical = "Typical",
-  mod11 = "Modulo 11"
+  mod11 = "Modulo 11",
+  tlc = "Typed Lua Compiler",
 }
 
 local cat = { "easy", "poly", "hard" }
@@ -142,7 +163,7 @@ local function table_by_module ()
   for i, m in ipairs(result_by_module) do
     local l = string.match(module_list[i], "(%w+)[.]%w+")
     if not t[l] then
-      local r = rows(l)
+      local r = rows(l .. "[.]")
       t[l] = i - 1 + r
       io.write(string.format("\\multirow{%d}{*}{%s}\n", r, library_name[l]))
     end
@@ -177,7 +198,7 @@ local function table_split_by_module ()
       print("\\hline")
       print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
       print("\\hline")
-      local r = rows(l)
+      local r = rows(l .. "[.]")
       t[l] = i - 1 + r
       io.write(string.format("\\multirow{%d}{*}{%s}\n", r, library_name[l]))
     end
