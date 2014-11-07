@@ -1,12 +1,61 @@
 
 We performed some case studies on existing Lua libraries
-to evaluate the design of our type system.
+to evaluate the applicability of our type system.
 For each library, we used Typed Lua to either rewrite its modules
 or to write statically typed interfaces to its modules through
 Typed Lua's description files.
-In this chapter we present our evaluation results, discuss
-some interesting cases, and compare our type system to
-related work.
+In Section \ref{sec:cases} we present our evaluation results
+and discuss some interesting cases.
+
+We also compared our type system to other type systems,
+as a way to evaluate our contributions.
+In Section \ref{sec:relatedwork} we discuss what are the novel
+features introduced by our type system,
+what are the features that it shares with other type systems,
+and whether we can incorporate some interesting features from
+other type systems.
+
+\section{Case Studies}
+\label{sec:cases}
+
+We selected seven case studies to evaluate two aspects of Typed Lua:
+\begin{enumerate}
+\item how precisely it can describe the type of the interface of a module;
+\item if it provides guarantees that the code corresponds to the interface.
+\end{enumerate}
+
+The Lua Standard Library \citep{luamanual} was our first case study.
+We started to think about how we would type its modules at the same time
+that we started to design our type system, as it could give us some
+hints on our type system.
+And it did: optional parameters and overloading on the return type
+are two Lua features that our type system should handle to allow us
+typing some of the functions that the standard library implements.
+
+The second case study that we chose was the MD5 library \citep{lmd5},
+because it is simple and contains just one module.
+We needed a simple case study to introduce Typed Lua's description
+files and \texttt{userdata} declarations.
+These Typed Lua's mechanisms allow programmers to give statically typed
+interfaces to Lua libraries that are written in C.
+
+LuaSocket \citep{luasocket} was the third case study that we used to
+evaluate Typed Lua.
+We chose LuaSocket as a case study because it is the most popular Lua library.
+
+There are three case studies that we randomly selected from the LuaRocks
+repository, they are: HTTP Digest \citep{luahttpdigest},
+Typical \citep{luatypical}, and Mod 11 \citep{luamod11}.
+The first provides client side HTTP digest authentication for Lua.
+The second is an extension to the primitive function \texttt{type}.
+The third is a generator and checker of modulo 11 numbers.
+We randomly selected these libraries to evaluate Typed Lua for
+rewriting existing Lua modules.
+
+The Typed Lua compiler is the last case study that we evaluated.
+We chose it as a case study because it is a large application.
+In addition, bootstrapping the compiler also provides some
+confidence on the type system.
 
 \begin{table}[!ht]
 \begin{center}
@@ -14,9 +63,9 @@ related work.
 \hline
 \textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua Standard Libraries 5.2 & 94 & 5 & 34 & 133 & 71\% \\
+Lua 5.2 Standard Library & 94 & 5 & 34 & 133 & 71\% \\
 \hline
-Lua Standard Libraries 5.3 & 87 & 6 & 36 & 129 & 67\% \\
+Lua 5.3 Standard Library & 87 & 6 & 36 & 129 & 67\% \\
 \hline
 MD5 & 13 & 0 & 0 & 13 & 100\% \\
 \hline
@@ -36,52 +85,40 @@ Typed Lua Compiler & 144 & 0 & 10 & 154 & 94\% \\
 \label{tab:evalbycase}
 \end{table}
 
-Table \ref{tab:evalbycase} sumarizes our evaluation results for each
-case study that we used Typed Lua for typing their members.
-We split the members that we typed into three categories:
+Table \ref{tab:evalbycase} summarizes our evaluation results for each
+of the case studies that we used Typed Lua for typing their members.
+We split the members of each case study into three categories:
 \emph{easy}, \emph{poly}, and \emph{hard}.
-The \emph{easy} category represents the members that we could give
-a precise static type for them.
-The \emph{poly} category represents the members that we believe that
-parametric polymorphism would help give a precise static type for them,
-and we had to rely on the dynamic type to type them because our
-type system does not support parametric polymorphism.
-The \emph{hard} category represents the members that even parametric
-polymorphism would not help give a precise static type for them,
-and we also had to rely on the dynamic type to type them;
+The \emph{easy} category groups the members that we could give
+a precise static type.
+The \emph{poly} category groups the members that we made minimal
+use of the dynamic type as a replacement for the lack of type parameters.
+The \emph{hard} category represents the members that either we
+had to rely on the dynamic type to type them or we used a static
+type that is not precise enough;
 for instance, this category includes functions that require
 intersection types to describe their precise static type.
 The last column of the table shows the percentage of members that
 are under the \emph{easy} category for each case study.
-This percentage is our evaluation of Typed Lua, as it
-represents how much static typing we could introduce to each one of
-our case studies.
+This percentage gives a lower bound on how much static type safety
+we could add to each one of our case studies.
 
-Before comparing our type system to related work, we will discuss
-each case study in more detail.
-For each case study, we will split the evaluation results according
-to the modules that each one of them include.
-This shall allow us to better discuss the contributions and limitations
-of our type system.
+In the following sections we discuss each case study in more detail.
+For each case study, we split the evaluation results according
+to the modules that each one of them includes.
+This separation by case study allows us to better discuss the
+contributions and limitations of our type system.
 
-\section{Lua Standard Libraries}
+\subsection{Lua Standard Library}
 
-The Lua Standard Libraries \citep{luamanual} were our first case study.
-We started to think about how we would type them at the same time that
-we started to design our type system, as they could give us some hints
-on our type system.
-And they did: optional parameters and overloading on the return type
-are two Lua features that our type system should handle to allow us
-typing some of the functions that the standard libraries provide.
-
-All libraries are separated C modules, and we used Typed Lua's description
-files to give a statically typed interface to each module.
+All of the modules in the standard library are implemented in C, so
+we used Typed Lua to type just the interface of each module.
 The \texttt{debug} module is the only one that we did not include in our
 evaluation results, because it provides several functions that violate
 basic assumptions about Lua code \citep{luamanual}.
 For instance, we can use its function \texttt{setlocal} to change the value
-of a local variable that is outside of the scope.
-Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Libraries.
+of a local variable that is not visible in the current scope.
+Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard Library.
 
 \begin{table}[!ht]
 \begin{center}
@@ -89,7 +126,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \hline
 \textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{9}{*}{Lua Standard Libraries}
+\multirow{9}{*}{Lua Standard Library}
 & base & 9 & 1 & 16 & 26 & 35\% \\
 \cline{2-7}
 & coroutine & 0 & 0 & 6 & 6 & 0\% \\
@@ -110,7 +147,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation results for Lua Standard Libraries 5.2}
+\caption{Evaluation results for Lua 5.2 Standard Library}
 \label{tab:evallsl}
 \end{table}
 
@@ -120,7 +157,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \hline
 \textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{9}{*}{Lua Standard Libraries}
+\multirow{9}{*}{Lua Standard Library}
 & base & 9 & 1 & 16 & 26 & 35\% \\
 \cline{2-7}
 & coroutine & 1 & 0 & 6 & 7 & 14\% \\
@@ -141,7 +178,7 @@ Table \ref{tab:evallsl} sumarizes the evaluation results for the Lua Standard Li
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation results for Lua Standard Libraries 5.3}
+\caption{Evaluation results for Lua 5.3 Standard Library}
 \label{tab:evallsl53}
 \end{table}
 
@@ -152,13 +189,13 @@ Now, we will discuss why some modules are difficult to type,
 and what kind of limitations they represent on our type system.
 
 The \texttt{base} module was quite hard to type because it
-includes several functions that have dynamic behavior.
+includes several functions that have a dynamic behavior.
 For instance, the function \texttt{next} traverses all the
 fields of a table, but the order that the indices are
 enumerated is not specified.
 For this reason, it is also difficult to type the function
 \texttt{pairs}.
-The functions \texttt{getmetatable},  \texttt{rawget}, and
+The functions \texttt{getmetatable}, \texttt{rawget}, and
 \texttt{rawset} are also examples of functions that their
 behavior depend on the C implementation.
 
@@ -193,7 +230,7 @@ This function can return one number, one boolean, or two numbers
 depending on the literal string that was given as its first argument.
 
 We could not type the \texttt{coroutine} module because our
-type system does not include the type \emph{thread}.
+type system cannot describe the computational effects of a program.
 Lua has one-shot delimited continuations \citep{james2011yield}
 in the form of \emph{coroutines} \citep{moura2009rc}, and
 effect systems \citep{nielson1999type} are an approach that we
@@ -210,17 +247,14 @@ They are difficult to type because their types are dynamic and
 depend on the modules a program loads.
 
 We could type all the members of the \texttt{string} module.
-Even though we can use the \texttt{string} functions in object-oriented style,
-we did not use an \emph{userdata} declaration to handle this feature,
-as it would complicate the subtyping rules because the type \texttt{string}
-would become a table type instead of a base type.
-It was simpler and more starightforward to handle this feature as a
+Lua programmers often use the functions of the \texttt{string} module
+in an object-oriented style, and we treat this feature as a
 special case in the implementation.
-For this reason, we did not include the typing of the \texttt{string} methods
-in our evaluation results.
+For this reason, we did not include the typing of the \texttt{string}
+methods in our evaluation results.
 
 The \texttt{table} module is specially difficult to type because
-all of its members require parametric polymorphism.
+almost all of its members require parametric polymorphism.
 All the functions of this module either receive or return a list
 of elements, and parametric polymorphism would help us to describe
 them with a generic type.
@@ -310,23 +344,20 @@ the input type.
 Its type can be either \texttt{() -> (boolean)} or
 \texttt{(string) -> (boolean?, string, number)}.
 
-The evaluation results show that our type system should include effect
-types, parametric polymorphism, and intersection types, as these
-features would help to increase the static typing of the Lua Standard Libraries.
-Effect types would allow us to type coroutines.
+The evaluation results show that our type system should include
+parametric polymorphism, intersection types, and effect types,
+as these features would help us increase the static typing of the
+Lua Standard Library.
 Parametric polymorphism would allow us to define generic function and table types.
-Intersection types would allow us to define function types that have
-different return types according to their input types.
+Intersection types would allow us to define overloaded function types.
+Effect types would allow us to type coroutines.
 
-\section{MD5}
+\subsection{MD5}
 
-We chose the MD5 library \citep{lmd5} as a case study because it is
-simple and contains just one module.
-We needed a simple case study to introduce Typed Lua's description
-files and \texttt{userdata} declarations.
-These Typed Lua's mechanims allow programmers to give statically typed
-interfaces to Lua libraries that are written in C.
-Table \ref{tab:evalmd5} sumarizes the evaluation results for MD5.
+The MD5 library is an OpenSSL based message digest library for Lua.
+It contains just the \texttt{md5} module that is written in C,
+so we used Typed Lua's description file to type it.
+Table \ref{tab:evalmd5} summarizes the evaluation results for MD5.
 
 \begin{table}[!ht]
 \begin{center}
@@ -344,33 +375,32 @@ Table \ref{tab:evalmd5} sumarizes the evaluation results for MD5.
 \end{table}
 
 Even tough it was quite straightforward to type the MD5 library,
-we found a little difference between its documentation and its static typing.
-The documentation suggested that the typing of the function \texttt{update}
+we found a little difference between its documentation and its behavior.
+The documentation suggested that the typing of the function \texttt{md5.update}
 should be \texttt{(md5\string_context, string) -> (md5\string_context)},
 while a comment in the source code suggested that it should be
 \texttt{(md5\string_context, string, string*) -> (md5\string_context)}.
 However, while testing it and reading its source code, we noticed that
 its actual type is \texttt{(md5\string_context, string*) -> (md5\string_context)},
-that is, we can pass zero or more strings to \texttt{update}.
+that is, we can pass zero or more strings to \texttt{md5.update}.
 
 This case study shows that it might be not so obvious to identify which
 functions discard extra arguments when we are typing an external library.
 In this case study, reading its source code and test script was essential
-to confirm the typing of \texttt{update}.
+to confirm the typing of \texttt{md5.update}.
 
-\section{LuaSocket}
+\subsection{LuaSocket}
 
-LuaSocket \citep{luasocket} is a library that adds network support to Lua,
+LuaSocket is a library that adds network support to Lua,
 and it is split into two parts: a core that is written in C and a set of
 Lua modules.
 The C core provides TCP and UDP support, while the Lua modules provide
 support for SMTP, HTTP, and FTP client protocols, MIME encoding,
 URL manipulation, and LTN12 filters \citep{nehab2008ltn012}.
-We chose LuaSocket as a case study because it is the most popular Lua library.
 We used Typed Lua's description files to type both parts.
 This is the only case study that we test description files to statically type
 a Lua module instead of rewriting it.
-Table \ref{tab:evalsocket} sumarizes the evaluation results for LuaSocket.
+Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
 
 \begin{table}[!ht]
 \begin{center}
@@ -462,12 +492,9 @@ This case study shows that abusing of dynamic typing usually impacts
 the users of a module, as they have to keep on checking each return
 value before using it to prevent API misuses.
 
-\section{HTTP Digest}
+\subsection{HTTP Digest}
 
-The HTTP Digest library \citep{luahttpdigest} implements client side
-HTTP digest authentication for Lua.
-We randonly chose this library as a case study to evaluate Typed Lua
-for rewriting an existing Lua module.
+The HTTP Digest library implements client side HTTP digest authentication for Lua.
 Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest.
 
 \begin{table}[!ht]
@@ -485,7 +512,7 @@ Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest
 \label{tab:evalhttpdigest}
 \end{table}
 
-It is difficul to type the interface of the \texttt{http-digest} module
+It is difficult to type the interface of the \texttt{http-digest} module
 because it is an extension to the \texttt{http} module from LuaSocket.
 The \texttt{http-digest} module only exports the function
 \texttt{http-digest.request}, which extends the function
@@ -507,12 +534,9 @@ error when none is available.
 The code that loads the first option was fine, but the code that loads the
 second and third options were trying to access an undefined global variable.
 
-\section{Typical}
+\subsection{Typical}
 
-Typical \citep{luatypical} is a library that extends the behavior of the
-function \texttt{type}. 
-We randonly chose this library as a case study to evaluate Typed Lua
-for rewriting an existing Lua module.
+Typical is a library that extends the behavior of the function \texttt{type}. 
 Table \ref{tab:evaltypical} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
@@ -550,12 +574,9 @@ but our type system also has limited support to \texttt{ipairs}, and generates
 a warning when we try to use the indexed value inside the \texttt{for} body.
 We removed this warning using the numeric \texttt{for} to perform the same loop.
 
-\section{Modulo 11}
+\subsection{Modulo 11}
 
-Modulo 11 \citep{luamod11} is a library that generates and verifies
-modulo 11 numbers.
-We randonly chose this library as a case study to evaluate Typed Lua
-for rewriting an existing Lua module.
+Modulo 11 is a library that generates and verifies modulo 11 numbers.
 Table \ref{tab:evalmod11} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
@@ -594,7 +615,7 @@ The code relies a lot on implicit conversions between strings and numbers,
 and some parts of the code keep on changing the type of local variables.
 These are two practices that may hide bugs.
 
-\section{Typed Lua Compiler}
+\subsection{Typed Lua Compiler}
 
 The Typed Lua compiler is the last case study that we evaluated, and the
 Table \ref{tab:evaltlc} summarizes the evaluation results.
@@ -634,7 +655,7 @@ We could not precisely type just one function because its return
 type depend on the type of its input parameter.
 
 The \texttt{tltype} module implements the types introduced by
-Typed Lua and the subtyping and consistent-subtyping relationsr;
+Typed Lua and the subtyping and consistent-subtyping relations;
 it was straightforward to type.
 
 The \texttt{tlst} module implements the environment that the
@@ -665,6 +686,7 @@ In this case we had to rely on the dynamic type to defer the
 function declarations.
 
 \section{Related Work}
+\label{sec:relatedwork}
 
 \begin{itemize}
 \item \citep{tidallock}

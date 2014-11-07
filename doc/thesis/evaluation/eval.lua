@@ -51,8 +51,8 @@ local library_list = {
 }
 
 local library_name = {
-  lsl = "Lua Standard Libraries",
-  lsl53 = "Lua Standard Libraries",
+  lsl = "Lua Standard Library",
+  lsl53 = "Lua Standard Library",
   md5 = "MD5",
   socket = "LuaSocket",
   httpdigest = "HTTP Digest",

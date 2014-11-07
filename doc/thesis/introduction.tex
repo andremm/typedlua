@@ -68,27 +68,51 @@ preserve some of the Lua idioms that programmers are already used to,
 but that also includes new constructs that help programmers
 structure Lua programs.
 
-Lua is a small scripting language, so designing an optional type
-system for Lua may shed some light on optional type systems for
-scripting languages in general.
-Lua provides mechanisms for organizing a program in modules and
-writing object-oriented programs, but it does not set policy on how
-these features should behave, due to its use as an embedded and
-extension language.
+Lua is a small imperative language with first-class functions
+(with proper lexical scoping) where the only data structure
+mechanism is the \emph{table}, an associative array that can
+represent arrays, records, maps, modules, objects, etc.
+Tables also have syntactic sugar and metaprogramming support
+through operator overloading built into the language.
+Unlike other scripting languages, Lua has very limited coercion
+among different data types.
+We believe that designing an optional type system for Lua may
+shed some light on optional type systems for scripting languages
+in general, as Lua is a small scripting language that shares
+some features with other scripting languages such as JavaScript.
+
+Lua prefers to provide mechanisms instead of fixed policies due
+to its primary use that has always been as an embedded language
+for configuration and extension of other applications.
+This means that even features such as a module system and
+object orientation are a matter of convention instead of built
+into the language.
+The result is a fragmented ecosystem of libraries, and different
+ideas among Lua programmers on how they should use the language
+features, and how they should structure programs.
+
+The lack of standard policies is a challenge for the design of
+an optional type system for Lua.
+For this reason, we are not relying just on the semantics of
+the language to design our type system.
+We also run a mostly automated survey of Lua idioms used in a
+large corpus of Lua libraries, and it also helped us on the
+design of Typed Lua.
+
+So far, Typed Lua is a Lua extension that allows statically typed
+code to coexist and interact with dynamically typed code
+through optional type annotations, and it also adds standard
+constructions for structuring Lua code.
+The Typed Lua compiler warns programmers about type errors,
+but always generates Lua code that runs in unmodified Lua implementations.
+Programmers can enjoy some of the benefits of static types
+even without converting existing Lua modules to Typed Lua:
+they can export a statically typed interface to a dynamically typed module,
+and statically typed users of the module can use the Typed Lua compiler
+to check their use of the module.
 Thus, implementing an optional type system for Lua offers Lua
 programmers one way to obtain most of the advantages of static typing
 without compromising the simplicity and flexibility of dynamic typing.
-
-So far, Typed Lua is a strict superset of Lua that
-provides optional type annotations, compile-time type checking, and
-class-based object-oriented programming through the definition of
-classes, interfaces, and modules.
-In practice, we implement Typed Lua as a programming language that
-extends Lua syntax to add optional type annotations and standard
-constructions for structuring Lua code.
-The compiler uses static types to perform compile-time type
-checking, but also allows Lua code to coexist with Typed Lua code,
-and generates Lua code that runs in unmodified Lua implementations.
 We have an implementation of the Typed Lua compiler that is
 available online\footnote{https://github.com/andremm/typedlua}.
 
@@ -99,6 +123,9 @@ enforced by its optional type system.
 An application language is a programming language that helps
 programmers develop applications from scratch until these
 applications evolve to complex systems rather than just scripts.
+We shall see that Typed Lua introduces the refinement of
+tables to support the common way that Lua programmers use
+them to represent both modules and objects.
 
 We also believe that Typed Lua help programmers give a more
 formal documentation to already existing Lua code, as static types
@@ -134,15 +161,16 @@ code, we believe that using the foundations of gradual typing to
 formalize our optional type system will allow us to include run-time
 checks in the future.
 
-In Chapter \ref{chap:review} we review the literature about static and
-dynamic typing in the same language, which includes the discussion
-about the particularities between optional type systems and gradual
-typing.
+In Chapter \ref{chap:review} we review the literature about static
+and dynamic typing in the same language, we discuss the differences
+between optional type systems and gradual typing, and we also
+present the results of our survey on Lua idioms.
 In Chapter \ref{chap:typedlua} we use code examples to present the
 design of Typed Lua.
-In Chapther \ref{chap:system} we use typing rules to present the
+In Chapter \ref{chap:system} we use typing rules to present the
 formalization of Typed Lua.
 In Chapter \ref{chap:evaluation} we discuss some case studies that
-we used to evaluate our design.
+we used to evaluate our design, and we also compare our design
+to related work.
 In Chapter \ref{chap:conc} we outline our contributions.
 
