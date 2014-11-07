@@ -3,5 +3,5 @@ return {
   PROXY = 1,
   TIMEOUT = 1,
   USERAGENT = 1,
-  request = 3,
+  request = 4,
 }

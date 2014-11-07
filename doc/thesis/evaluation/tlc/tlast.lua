@@ -26,7 +26,7 @@ return {
   parList0 = 1,
   parList1 = 1,
   parList2 = 1,
-  setConst = 3,
+  setConst = 4,
   statApply = 1,
   statBreak = 1,
   statDo = 1,

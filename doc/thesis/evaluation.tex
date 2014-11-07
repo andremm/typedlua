@@ -59,25 +59,23 @@ confidence on the type system.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua 5.2 Standard Library & 94 & 5 & 34 & 133 & 71\% \\
+Lua Standard Library & 87 & 6 & 0 & 36 & 129 & 67\% \\
 \hline
-Lua 5.3 Standard Library & 87 & 6 & 36 & 129 & 67\% \\
+MD5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \hline
-MD5 & 13 & 0 & 0 & 13 & 100\% \\
+LuaSocket & 109 & 1 & 0 & 13 & 123 & 89\% \\
 \hline
-LuaSocket & 109 & 1 & 13 & 123 & 89\% \\
+HTTP Digest & 0 & 0 & 0 & 1 & 1 & 0\% \\
 \hline
-HTTP Digest & 0 & 0 & 1 & 1 & 0\% \\
+Typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
 \hline
-Typical & 1 & 0 & 0 & 1 & 100\% \\
+Modulo 11 & 7 & 0 & 0 & 2 & 9 & 78\% \\
 \hline
-Modulo 11 & 7 & 0 & 2 & 9 & 78\% \\
-\hline
-Typed Lua Compiler & 144 & 0 & 10 & 154 & 94\% \\
+Typed Lua Compiler & 144 & 0 & 0 & 10 & 154 & 94\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -87,17 +85,18 @@ Typed Lua Compiler & 144 & 0 & 10 & 154 & 94\% \\
 
 Table \ref{tab:evalbycase} summarizes our evaluation results for each
 of the case studies that we used Typed Lua for typing their members.
-We split the members of each case study into three categories:
-\emph{easy}, \emph{poly}, and \emph{hard}.
+We split the members of each case study into four categories:
+\emph{easy}, \emph{poly}, \emph{inter}, and \emph{hard}.
 The \emph{easy} category groups the members that we could give
 a precise static type.
 The \emph{poly} category groups the members that we made minimal
 use of the dynamic type as a replacement for the lack of type parameters.
-The \emph{hard} category represents the members that either we
-had to rely on the dynamic type to type them or we used a static
-type that is not precise enough;
-for instance, this category includes functions that require
-intersection types to describe their precise static type.
+The \emph{inter} category groups the members that we could give
+a static type that is not precise enough because they require
+intersection types.
+The \emph{hard} category groups the members that we had to rely
+on the dynamic type because our type system cannot give a precise
+static type to them.
 The last column of the table shows the percentage of members that
 are under the \emph{easy} category for each case study.
 This percentage gives a lower bound on how much static type safety
@@ -122,64 +121,32 @@ Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard L
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{9}{*}{Lua Standard Library}
-& base & 9 & 1 & 16 & 26 & 35\% \\
-\cline{2-7}
-& coroutine & 0 & 0 & 6 & 6 & 0\% \\
-\cline{2-7}
-& package & 5 & 0 & 3 & 8 & 62\% \\
-\cline{2-7}
-& string & 14 & 0 & 0 & 14 & 100\% \\
-\cline{2-7}
-& table & 1 & 4 & 1 & 6 & 17\% \\
-\cline{2-7}
-& math & 28 & 0 & 1 & 29 & 97\% \\
-\cline{2-7}
-& bit32 & 12 & 0 & 0 & 12 & 100\% \\
-\cline{2-7}
-& io & 15 & 0 & 6 & 21 & 71\% \\
-\cline{2-7}
-& os & 10 & 0 & 1 & 11 & 91\% \\
+base & 9 & 1 & 0 & 16 & 26 & 35\% \\
+\hline
+coroutine & 1 & 0 & 0 & 6 & 7 & 14\% \\
+\hline
+package & 5 & 0 & 0 & 3 & 8 & 62\% \\
+\hline
+string & 14 & 0 & 0 & 2 & 16 & 88\% \\
+\hline
+utf8 & 6 & 0 & 0 & 0 & 6 & 100\% \\
+\hline
+table & 1 & 5 & 0 & 1 & 7 & 14\% \\
+\hline
+math & 26 & 0 & 0 & 1 & 27 & 96\% \\
+\hline
+io & 15 & 0 & 0 & 6 & 21 & 71\% \\
+\hline
+os & 10 & 0 & 0 & 1 & 11 & 91\% \\
 \hline
 \end{tabular}
 \end{center}
-\caption{Evaluation results for Lua 5.2 Standard Library}
+\caption{Evaluation results for Lua Standard Library}
 \label{tab:evallsl}
-\end{table}
-
-\begin{table}[!ht]
-\begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
-\hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
-\hline
-\multirow{9}{*}{Lua Standard Library}
-& base & 9 & 1 & 16 & 26 & 35\% \\
-\cline{2-7}
-& coroutine & 1 & 0 & 6 & 7 & 14\% \\
-\cline{2-7}
-& package & 5 & 0 & 3 & 8 & 62\% \\
-\cline{2-7}
-& string & 14 & 0 & 2 & 16 & 88\% \\
-\cline{2-7}
-& utf8 & 6 & 0 & 0 & 6 & 100\% \\
-\cline{2-7}
-& table & 1 & 5 & 1 & 7 & 14\% \\
-\cline{2-7}
-& math & 26 & 0 & 1 & 27 & 96\% \\
-\cline{2-7}
-& io & 15 & 0 & 6 & 21 & 71\% \\
-\cline{2-7}
-& os & 10 & 0 & 1 & 11 & 91\% \\
-\hline
-\end{tabular}
-\end{center}
-\caption{Evaluation results for Lua 5.3 Standard Library}
-\label{tab:evallsl53}
 \end{table}
 
 We could give precise static types to most of the modules,
@@ -361,12 +328,11 @@ Table \ref{tab:evalmd5} summarizes the evaluation results for MD5.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{1}{*}{MD5}
-& md5 & 13 & 0 & 0 & 13 & 100\% \\
+md5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -404,24 +370,23 @@ Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{7}{*}{LuaSocket}
-& socket & 50 & 0 & 10 & 60 & 83\% \\
-\cline{2-7}
-& ftp & 5 & 0 & 1 & 6 & 83\% \\
-\cline{2-7}
-& http & 4 & 0 & 1 & 5 & 80\% \\
-\cline{2-7}
-& smtp & 6 & 0 & 1 & 7 & 86\% \\
-\cline{2-7}
-& mime & 17 & 0 & 0 & 17 & 100\% \\
-\cline{2-7}
-& ltn12 & 19 & 1 & 0 & 20 & 95\% \\
-\cline{2-7}
-& url & 8 & 0 & 0 & 8 & 100\% \\
+socket & 50 & 0 & 0 & 10 & 60 & 83\% \\
+\hline
+ftp & 5 & 0 & 0 & 1 & 6 & 83\% \\
+\hline
+http & 4 & 0 & 0 & 1 & 5 & 80\% \\
+\hline
+smtp & 6 & 0 & 0 & 1 & 7 & 86\% \\
+\hline
+mime & 17 & 0 & 0 & 0 & 17 & 100\% \\
+\hline
+ltn12 & 19 & 1 & 0 & 0 & 20 & 95\% \\
+\hline
+url & 8 & 0 & 0 & 0 & 8 & 100\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -499,12 +464,11 @@ Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{1}{*}{HTTP Digest}
-& http-digest & 0 & 0 & 1 & 1 & 0\% \\
+http-digest & 0 & 0 & 0 & 1 & 1 & 0\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -541,12 +505,11 @@ Table \ref{tab:evaltypical} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{1}{*}{Typical}
-& typical & 1 & 0 & 0 & 1 & 100\% \\
+typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -581,12 +544,11 @@ Table \ref{tab:evalmod11} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{1}{*}{Modulo 11}
-& mod11 & 7 & 0 & 2 & 9 & 78\% \\
+mod11 & 7 & 0 & 0 & 2 & 9 & 78\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -622,26 +584,25 @@ Table \ref{tab:evaltlc} summarizes the evaluation results.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-\multirow{8}{*}{Typed Lua Compiler}
-& tlast & 46 & 0 & 1 & 47 & 98\% \\
-\cline{2-7}
-& tltype & 65 & 0 & 0 & 65 & 100\% \\
-\cline{2-7}
-& tlst & 26 & 0 & 0 & 26 & 100\% \\
-\cline{2-7}
-& tllexer & 2 & 0 & 9 & 11 & 18\% \\
-\cline{2-7}
-& tlparser & 1 & 0 & 0 & 1 & 100\% \\
-\cline{2-7}
-& tldparser & 1 & 0 & 0 & 1 & 100\% \\
-\cline{2-7}
-& tlchecker & 2 & 0 & 0 & 2 & 100\% \\
-\cline{2-7}
-& tlcode & 1 & 0 & 0 & 1 & 100\% \\
+tlast & 46 & 0 & 0 & 1 & 47 & 98\% \\
+\hline
+tltype & 65 & 0 & 0 & 0 & 65 & 100\% \\
+\hline
+tlst & 26 & 0 & 0 & 0 & 26 & 100\% \\
+\hline
+tllexer & 2 & 0 & 0 & 9 & 11 & 18\% \\
+\hline
+tlparser & 1 & 0 & 0 & 0 & 1 & 100\% \\
+\hline
+tldparser & 1 & 0 & 0 & 0 & 1 & 100\% \\
+\hline
+tlchecker & 2 & 0 & 0 & 0 & 2 & 100\% \\
+\hline
+tlcode & 1 & 0 & 0 & 0 & 1 & 100\% \\
 \hline
 \end{tabular}
 \end{center}

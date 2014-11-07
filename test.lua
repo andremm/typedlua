@@ -6,7 +6,7 @@ local tltype = require "typedlua.tltype"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
 
-package.path = package.path .. ";./typedlua/?.lua"
+package.path = "./typedlua/?.lua;" .. package.path
 
 -- expected result, result, subject
 local e, r, s
@@ -54,6 +54,10 @@ local function generate (s)
   else
     return tlcode.generate(t)
   end
+end
+
+local function fixint (s)
+  return _VERSION < "Lua 5.3" and s:gsub("%.0","") or s
 end
 
 print("> testing lexer...")
@@ -104,7 +108,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+assert(r == fixint(e))
 
 s = [=[
 local f1 = 1.e-1
@@ -115,7 +119,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+assert(r == fixint(e))
 
 s = [=[
 local f1 = 1.1e+1
@@ -126,7 +130,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+assert(r == fixint(e))
 
 s = [=[
 local f1 = .1
@@ -137,7 +141,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+assert(r == fixint(e))
 
 s = [=[
 local f1 = 1E1
@@ -148,7 +152,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+assert(r == fixint(e))
 
 -- integers
 

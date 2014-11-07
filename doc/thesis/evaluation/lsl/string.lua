@@ -9,8 +9,10 @@ return {
   len = 1,
   lower = 1,
   match = 1,
+  pack = 4,
   rep = 1,
   reverse = 1,
   sub = 1,
+  unpack = 4,
   upper = 1,
 }

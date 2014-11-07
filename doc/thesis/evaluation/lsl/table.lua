@@ -1,6 +1,7 @@
 return {
   concat = 1,
-  insert = 3,
+  insert = 4,
+  move = 2,
   pack = 2,
   remove = 2,
   sort = 2,

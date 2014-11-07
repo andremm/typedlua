@@ -2,7 +2,7 @@ return {
   clock = 1,
   date = 1,
   difftime = 1,
-  execute = 3,
+  execute = 4,
   exit = 1,
   getenv = 1,
   remove = 1,

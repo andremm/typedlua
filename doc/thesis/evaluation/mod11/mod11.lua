@@ -1,6 +1,6 @@
 return {
-  verify = 3,
-  allowed = 3,
+  verify = 4,
+  allowed = 4,
   new = 1,
   getverify = 1,
   getallowed = 1,

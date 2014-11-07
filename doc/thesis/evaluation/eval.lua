@@ -4,20 +4,11 @@ local module_list = {
   "lsl.coroutine",
   "lsl.package",
   "lsl.string",
+  "lsl.utf8",
   "lsl.table",
   "lsl.math",
-  "lsl.bit32",
   "lsl.io",
   "lsl.os",
-  "lsl53.base",
-  "lsl53.coroutine",
-  "lsl53.package",
-  "lsl53.string",
-  "lsl53.utf8",
-  "lsl53.table",
-  "lsl53.math",
-  "lsl53.io",
-  "lsl53.os",
   "md5.md5",
   "socket.socket",
   "socket.ftp",
@@ -41,7 +32,6 @@ local module_list = {
 
 local library_list = {
   "lsl",
-  "lsl53",
   "md5",
   "socket",
   "httpdigest",
@@ -52,7 +42,6 @@ local library_list = {
 
 local library_name = {
   lsl = "Lua Standard Library",
-  lsl53 = "Lua Standard Library",
   md5 = "MD5",
   socket = "LuaSocket",
   httpdigest = "HTTP Digest",
@@ -61,7 +50,7 @@ local library_name = {
   tlc = "Typed Lua Compiler",
 }
 
-local cat = { "easy", "poly", "hard" }
+local cat = { "easy", "poly", "inter", "hard" }
 
 local function p (x, total)
   return string.format("%.0f\\%%", ((100 * x) / total))
@@ -87,7 +76,7 @@ local function load_data ()
   package.path = "./?.lua"
   for i, m in ipairs(module_list) do
     local mod = require(m)
-    result_by_module[i] = { 0, 0, 0 }
+    result_by_module[i] = { 0, 0, 0, 0 }
     total_by_module[i] = 0
     for k, c in pairs(mod) do
       result_by_module[i][c] = result_by_module[i][c] + 1
@@ -95,7 +84,7 @@ local function load_data ()
     end
     local l = string.match(m, "(%w+)[.]%w+")
     if not result_by_library[l] then
-      result_by_library[l] = { 0, 0, 0 }
+      result_by_library[l] = { 0, 0, 0, 0 }
       total_by_library[l] = 0
     end
     for j, v in ipairs(result_by_module[i]) do
@@ -131,9 +120,9 @@ end
 local function table_by_library ()
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
+  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
   print("\\hline")
-  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
   print("\\hline")
   for i, k in ipairs(library_list) do
     local n = library_name[k]
@@ -156,9 +145,9 @@ local function table_by_module ()
   local t = {}
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
+  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
   print("\\hline")
-  print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+  print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
   print("\\hline")
   for i, m in ipairs(result_by_module) do
     local l = string.match(module_list[i], "(%w+)[.]%w+")
@@ -174,7 +163,7 @@ local function table_by_module ()
     end
     io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
     if i ~= t[l] then
-      io.write("\n\\cline{2-7}\n")
+      io.write("\n\\cline{2-8}\n")
     else
       io.write("\n\\hline\n")
     end
@@ -194,24 +183,21 @@ local function table_split_by_module ()
       print("---")
       print("\\begin{table}[!ht]")
       print("\\begin{center}")
-      print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
+      print("\\begin{tabular}{|c|c|c|c|c|c|c|}")
       print("\\hline")
-      print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+      print("\\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
       print("\\hline")
       local r = rows(l .. "[.]")
       t[l] = i - 1 + r
-      io.write(string.format("\\multirow{%d}{*}{%s}\n", r, library_name[l]))
     end
     local module_name = string.match(module_list[i], "%w+[.](%w+)")
-    io.write(string.format("& %s", module_name))
+    io.write(string.format("%s", module_name))
     for j, v in ipairs(m) do
       io.write(string.format(" & %d", v))
     end
     io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
-    if i ~= t[l] then
-      io.write("\n\\cline{2-7}\n")
-    else
-      io.write("\n\\hline\n")
+    io.write("\n\\hline\n")
+    if i == t[l] then
       print("\\end{tabular}")
       print("\\end{center}")
       print(string.format("\\caption{Evaluation results for %s}", library_name[l]))

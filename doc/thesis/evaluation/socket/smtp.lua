@@ -4,6 +4,6 @@ return {
   SERVER = 1,
   TIMEOUT = 1,
   ZONE = 1,
-  message = 3,
+  message = 4,
   send = 1,
 }
