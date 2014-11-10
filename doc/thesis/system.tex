@@ -794,3 +794,198 @@ The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
 for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that extisted before.
+
+Função recursiva (another example?).
+
+\begin{verbatim}
+    rec f:(number) -> (number) =
+      fun (x:number)
+        if n == 0 then
+          return 1
+        else
+          return n * f(n - 1)
+    in f(5)
+\end{verbatim}
+
+Dynamic typing and static typing in the same code (another example?).
+
+\begin{verbatim}
+    local a:(number) -> (number) =
+      fun (x:number)
+        if n < 0 then return -n else return n
+    in local d:(any, any) -> (number) =
+         fun (x:any, y:any)
+           skip ; return a(x - y)
+       in d(1, 1)
+\end{verbatim}
+
+Another example:
+
+\begin{verbatim}
+    local x:any = 1 in x = x + 1
+\end{verbatim}
+
+This example is safe, but the following is not:
+
+\begin{verbatim}
+    local x:any, y:any = 1 in x = x + y
+\end{verbatim}
+
+Functions and multiple return.
+
+%\begin{center}
+%\begin{tabular}{llll}
+%\multicolumn{4}{l}{$\mathbf{local} \; m:\Void \rightarrow \Number \times \String =$} \\
+%& \multicolumn{3}{l}{$\mathbf{fun} \; ():\Number \times \String$} \\
+%& & \multicolumn{2}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; 2, ``foo"$} \\
+%\multicolumn{4}{l}{$\mathbf{in}$} \\
+%& \multicolumn{3}{l}{$\mathbf{local} \; s:\Number \times \Number \rightarrow \Number =$} \\
+%& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Number, y:\Number):\Number$} \\
+%& & & \multicolumn{1}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; x + y$} \\
+%& \multicolumn{3}{l}{$\mathbf{in}$} \\
+%& & \multicolumn{2}{l}{$\mathbf{local} \; x:\Number, y:\Number, z:\String = m(), m()$} \\
+%& & \multicolumn{2}{l}{$\mathbf{in} \; s(m(), m())$}
+%\end{tabular}
+%\end{center}
+
+\begin{verbatim}
+  local m:() -> (number, string) =
+    fun () skip ; return 2, "foo"
+  in local s:(number, number) -> (number)
+       fun (x:number, y:number) skip ; return x + y
+     in local x:number, y:number, z:string = m(), m()
+        in s(m(), m())
+\end{verbatim}
+
+Optional parameters.
+
+\begin{verbatim}
+    local m:(string, string|nil) -> (string) =
+      fun (n:string, g:string|nil)
+        g = g or "Hello" ; return g .. n
+    in m("Lua")
+\end{verbatim}
+
+Overloading on the input parameter (another example?).
+
+\begin{verbatim}
+  local o:(string, string|integer) -> (string) =
+    fun (a:string, b:string|integer)
+      if type(b) == "string" then
+        return a .. b
+      else
+        return string["rep"](a, b)
+  in o("foo", 2) 
+\end{verbatim}
+
+Overloading on the return type (another example?).
+
+\begin{verbatim}
+  local d:(integer, integer) -> (integer, integer) | (nil, string) =
+    fun (a:integer, b:integer):(integer, integer) | (nil, string)
+      if b == 0 then
+        return nil, "division by zero"
+      else
+        local r:integer = a \% b
+        in local q:integer = (a - r) / b
+           in skip ; return q, r
+  in local q:X1, r:X2 = d(2, 2)
+     in if q then
+          print(a == b * q + r)
+        else
+          print("ERROR " .. r)
+\end{verbatim}
+
+Table type as hash.
+
+\begin{verbatim}
+    local t:{string:number|nil} = { ["foo"] = 1 } in
+      local x:number|nil = t["foo"] in x = t["bar"]
+\end{verbatim}
+
+Table type as array.
+
+\begin{verbatim}
+    local d:{integer:string|nil} =
+      { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
+    in local x:number|nil = d[1] in x = d[8]
+\end{verbatim}
+
+Table type as record (first example).
+
+\begin{verbatim}
+    local p:{"firstname":string, "lastname":string} =
+      { ["lastname"] = "Reed", ["firstname"] = "Lou" }
+    in skip
+\end{verbatim}
+
+Table type as record (second example).
+
+\begin{verbatim}
+    local p:{"firstname":string,
+             "middlename":string|nil,
+             "lastname":string} =
+      { ["firstname"] = "Lewis",
+        ["middlename"] = "Allan",
+        ["lastname"] = "Reed" }
+    in skip
+\end{verbatim}
+
+Table type as record (third example).
+
+\begin{verbatim}
+    local p:{"firstname":string,
+             "middlename":string|nil,
+             "lastname":string} =
+      { ["firstname"] = "Lou",
+        ["lastname"] = "Reed" }
+    in skip
+\end{verbatim}
+
+Refinement of table types (first example).
+
+\begin{verbatim}
+    local p:{} = {}
+    in p["firstname"] <string> = "Lou" ;
+       p["lastname"] <string> = "Reed"
+\end{verbatim}
+
+Refinement of table types (second example).
+
+\begin{verbatim}
+    local p:{} = {}
+    in local b:{} = p
+       in p["firstname"] <string> = "Lou" ;
+          p["lastname"] <string> = "Reed"
+\end{verbatim}
+
+Modules (another example?).
+
+\begin{verbatim}
+    local m:{} = {}
+    in local r:number = 3.14 / 180.0
+       in m["deg"] <(number) -> (number)> =
+          fun (x:number):(number)
+            skip ; return x / r
+        ; m["rad"] <(number) -> (number)> =
+          fun (x:number):(number)
+            skip ; return x * r
+        ; m["pow"] <(number, number) -> (number)> =
+          fun (x:number, y:number):(number)
+            skip ; return x ^ y
+\end{verbatim}
+
+Objects.
+
+\begin{verbatim}
+    local s:{"x":number, "y":number} = { x = 0, y = 0 }
+    in s["new"] <(self, number, number) -> (self)> =
+       fun (self:self, x:number, y:number):(self)
+         local s:{"x":number, "y":number} =
+           setmetatable({}, { __index = self })
+         in s["x"] = x ; s["y"] = y ; return s
+     ; s["move"] <(self, number, number) -> ()> =
+       fun (self:self, x:number, y:number):()
+         self["x"] = self["x"] + x ;
+         self["y"] = self["y"] + y 
+\end{verbatim}
