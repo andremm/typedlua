@@ -1,8 +1,8 @@
 return {
   clock = 1,
-  date = 1,
+  date = 3,
   difftime = 1,
-  execute = 4,
+  execute = 3,
   exit = 1,
   getenv = 1,
   remove = 1,

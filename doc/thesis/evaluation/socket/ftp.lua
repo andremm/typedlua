@@ -3,6 +3,6 @@ return {
   PORT = 1,
   TIMEOUT = 1,
   USER = 1,
-  get = 4,
+  get = 3,
   put = 1,
 }

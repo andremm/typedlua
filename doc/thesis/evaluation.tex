@@ -63,19 +63,19 @@ confidence on the type system.
 \hline
 \textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-Lua Standard Library & 87 & 6 & 0 & 36 & 129 & 67\% \\
+Lua Standard Library & 80 & 6 & 9 & 34 & 129 & 62\% \\
 \hline
 MD5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \hline
-LuaSocket & 109 & 1 & 0 & 13 & 123 & 89\% \\
+LuaSocket & 109 & 1 & 2 & 11 & 123 & 89\% \\
 \hline
-HTTP Digest & 0 & 0 & 0 & 1 & 1 & 0\% \\
+HTTP Digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
 \hline
 Typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
 \hline
 Modulo 11 & 7 & 0 & 0 & 2 & 9 & 78\% \\
 \hline
-Typed Lua Compiler & 144 & 0 & 0 & 10 & 154 & 94\% \\
+Typed Lua Compiler & 144 & 0 & 1 & 9 & 154 & 94\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -125,23 +125,23 @@ Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard L
 \hline
 \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-base & 9 & 1 & 0 & 16 & 26 & 35\% \\
+base & 9 & 1 & 3 & 13 & 26 & 35\% \\
 \hline
 coroutine & 1 & 0 & 0 & 6 & 7 & 14\% \\
 \hline
 package & 5 & 0 & 0 & 3 & 8 & 62\% \\
 \hline
-string & 14 & 0 & 0 & 2 & 16 & 88\% \\
+string & 12 & 0 & 0 & 4 & 16 & 75\% \\
 \hline
 utf8 & 6 & 0 & 0 & 0 & 6 & 100\% \\
 \hline
 table & 1 & 5 & 0 & 1 & 7 & 14\% \\
 \hline
-math & 26 & 0 & 0 & 1 & 27 & 96\% \\
+math & 22 & 0 & 4 & 1 & 27 & 81\% \\
 \hline
 io & 15 & 0 & 0 & 6 & 21 & 71\% \\
 \hline
-os & 10 & 0 & 0 & 1 & 11 & 91\% \\
+os & 9 & 0 & 2 & 0 & 11 & 82\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -376,9 +376,9 @@ Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
 \hline
 socket & 50 & 0 & 0 & 10 & 60 & 83\% \\
 \hline
-ftp & 5 & 0 & 0 & 1 & 6 & 83\% \\
+ftp & 5 & 0 & 1 & 0 & 6 & 83\% \\
 \hline
-http & 4 & 0 & 0 & 1 & 5 & 80\% \\
+http & 4 & 0 & 1 & 0 & 5 & 80\% \\
 \hline
 smtp & 6 & 0 & 0 & 1 & 7 & 86\% \\
 \hline
@@ -468,7 +468,7 @@ Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest
 \hline
 \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-http-digest & 0 & 0 & 0 & 1 & 1 & 0\% \\
+http-digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
 \hline
 \end{tabular}
 \end{center}
@@ -588,7 +588,7 @@ Table \ref{tab:evaltlc} summarizes the evaluation results.
 \hline
 \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
 \hline
-tlast & 46 & 0 & 0 & 1 & 47 & 98\% \\
+tlast & 46 & 0 & 1 & 0 & 47 & 98\% \\
 \hline
 tltype & 65 & 0 & 0 & 0 & 65 & 100\% \\
 \hline
