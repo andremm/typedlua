@@ -265,20 +265,21 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = el  \; | \;
+\vec{l} = el \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
 & | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
 \mathbf{return} \; el \; | \;
-a\\
+e(el)_{s} \; | \;
+e{:}n(el)_{s}\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
 \mathbf{true} \; | \;
 {\it int} \; | \;
 {\it float} \; | \;
 {\it string} \; | \;
-{...} \; | \;
+{...}_{e} \; | \;
 f \; | \;
 \{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
@@ -290,13 +291,14 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 & | \; \mathbf{not} \; e \; | \;
 - e \; | \;
 \# \; e \; | \;
-a \; | \;
+e(el)_{e} \; | \;
+e{:}n(el)_{e} \; | \;
 n \; | \;
-{<}t{>} \; n \; | \;
-e_{1}[e_{2}]\\
+e_{1}[e_{2}] \; | \;
+{<}t{>} \; n\\
 l ::= & \;\; n \; | \;
-n[e] \; {<}t{>} \; | \;
-e_{1}[e_{2}]\\
+e_{1}[e_{2}] \; | \;
+n[e] \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
@@ -309,10 +311,9 @@ me \; | \;
 \vec{c}, me \; | \;
 \vec{c}, \vec{e}, me \; | \;
 \vec{e}, me\\
-me ::= & \;\; a \; | \;
+me ::= & \;\; e(el) \; | \;
+e{:}n(el) \; | \;
 {...}\\
-a ::= & \;\; e(el) \; | \;
-e{:}n(el)\\
 f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
 \mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
 & | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
@@ -368,11 +369,11 @@ $$
 \mylabel{T-IF2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1} \vdash type(n) = ``string":\Boolean, \env_{2} \\
+       \env_{1} \vdash type(n) == ``string":\Boolean, \env_{2} \\
        closeall(\env_{2}[n \mapsto \String]) \vdash s_{1}:\env_{3} \\
        closeall(\env_{2}[n \mapsto filter(\env_{2}(n), \String)) \vdash s_{2}:\env_{4}
       \end{array}}
-      {\env_{1} \vdash \mathbf{if} \; type(n) = ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
 \]
 
 \mylabel{T-LOCAL}
@@ -404,14 +405,14 @@ $$
 \dfrac{\env_{1} \vdash e:p_{1} \rightarrow r_{1}, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el):\env_{3}}
+      {\env_{1} \vdash e(el)_{s}:\env_{3}}
 \]
 
 \mylabel{T-STMCALL2}
 \[
 \dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e(el):\env_{3}}
+      {\env_{1} \vdash e(el)_{s}:\env_{3}}
 \]
 
 \mylabel{T-STMINVOKE1}
@@ -419,14 +420,14 @@ $$
 \dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r_{1}, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el):\env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{s}:\env_{3}}
 \]
 
 \mylabel{T-STMINVOKE2}
 \[
 \dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el):\env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{s}:\env_{3}}
 \]
 
 \subsection{Expressions}
@@ -463,37 +464,42 @@ $$
 \env_{1} \vdash {\it string}:{\it string}, \env_{1}
 \]
 
-\mylabel{T-DOTS}
+\mylabel{T-EXPDOTS}
 \[
 \dfrac{\env_{1}({...}) = t}
-      {\env_{1} \vdash {...}:t, \env_{1}}
+      {\env_{1} \vdash {...}_{e}:t, \env_{1}}
 \]
 
 \mylabel{T-FUNCTION1}
 \[
 \dfrac{closeall(\env_{1}[\ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (){:}r \; s:\Void \rightarrow r, closeset(\env_{1}, fav(s))}
+      {\env_{1} \vdash \mathbf{fun} \; (){:}r \; s:\Void \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (){:}r \; s))}
 \]
 
 \mylabel{T-FUNCTION2}
 \[
 \dfrac{closeall(\env_{1}[{...} \mapsto t, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; ({...}{:}t){:}r \; s:t{*} \rightarrow r, closeset(\env_{1}, fav(s))}
+      {\env_{1} \vdash \mathbf{fun} \; ({...}{:}t){:}r \; s:t{*} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; ({...}{:}t){:}r \; s))}
 \]
 
 \mylabel{T-FUNCTION3}
 \[
 \dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \rightarrow r, closeset(\env_{1}, fav(s))}
+      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))}
 \]
 
 \mylabel{T-FUNCTION4}
 \[
 \dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, {...} \mapsto t, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s: \vec{t} \times t{*} \rightarrow r, closeset(\env_{1}, fav(s))}
+      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s: \vec{t} \times t{*} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s))}
 \]
 
-\mylabel{T-CONSTRUCTOR}
+\mylabel{T-CONSTRUCTOR1}
+\[
+\env \vdash \{ \mathbf{nothing} \}:\{ \}_{u}, \env 
+\]
+
+\mylabel{T-CONSTRUCTOR2}
 \[
 \dfrac{\env_{1} \vdash cl:k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, \env_{2}}
       {\env_{1} \vdash \{ \; cl \; \}:\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{u}, \env_{2}}
@@ -681,7 +687,19 @@ $$
       {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
 \]
 
-\mylabel{T-NOT}
+\mylabel{T-NOT1}
+\[
+\dfrac{\env_{1} \vdash e:\Nil, \env_{2}}
+      {\env_{1} \vdash \mathbf{not} \; e:\True, \env_{2}}
+\]
+
+\mylabel{T-NOT2}
+\[
+\dfrac{\env_{1} \vdash e:\False, \env_{2}}
+      {\env_{1} \vdash \mathbf{not} \; e:\True, \env_{2}}
+\]
+
+\mylabel{T-NOT3}
 \[
 \dfrac{\env_{1} \vdash e:t, \env_{2}}
       {\env_{1} \vdash \mathbf{not} \; e:\Boolean, \env_{2}}
@@ -727,55 +745,34 @@ $$
       {\env_{1} \vdash \# \; e:\Any, \env_{2}}
 \]
 
-\mylabel{T-APPLY1}
+\mylabel{T-EXPAPPLY1}
 \[
 \dfrac{\env_{1} \vdash e:p_{1} \rightarrow r, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el):first(r), \env_{3}}
+      {\env_{1} \vdash e(el)_{e}:first(r), \env_{3}}
 \]
 
-\mylabel{T-APPLY2}
+\mylabel{T-EXPAPPLY2}
 \[
 \dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e_{1}(\vec{e_{2}}):\Any, \env_{3}}
+      {\env_{1} \vdash e_{1}(\vec{e_{2}})_{e}:\Any, \env_{3}}
 \]
 
-\mylabel{T-INVOKE1}
+\mylabel{T-EXPINVOKE1}
 \[
 \dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el):first(r), \env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{e}:first(r), \env_{3}}
 \]
 
-\mylabel{T-INVOKE2}
+\mylabel{T-EXPINVOKE2}
 \[
 \dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el):\Any, \env_{3}}
-\]
-
-\mylabel{T-ID}
-\[
-\dfrac{\env_{1}(n) = t}
-      {\env_{1} \vdash n:t, \env_{1}}
-\]
-
-\mylabel{T-INDEX1}
-\[
-\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{1} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
-       \exists i \in 1{..}n \; t \lesssim k_{i}}
-      {\env_{1} \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
-\]
-
-\mylabel{T-INDEX2}
-\[
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1}[e_{2}]:\Any, \env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{e}:\Any, \env_{3}}
 \]
 
 \mylabel{T-CAST}
@@ -815,7 +812,28 @@ $$
 
 \noindent
 
-\mylabel{T-ADDFIELD}
+\mylabel{T-ID}
+\[
+\dfrac{\env_{1}(n) = t}
+      {\env_{1} \vdash n:t, \env_{1}}
+\]
+
+\mylabel{T-INDEX1}
+\[
+\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{1} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; t \lesssim k_{i}}
+      {\env_{1} \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
+\]
+
+\mylabel{T-INDEX2}
+\[
+\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1}[e_{2}]:\Any, \env_{3}}
+\]
+
+\mylabel{T-REFINE}
 \[
 \dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{o|u} \;\;\;
        \env_{1} \vdash e:t_{1}, \env_{2} \;\;\;
@@ -829,13 +847,14 @@ $$
 
 \mylabel{T-EXPLIST1}
 \[
-\env \vdash \mathbf{nothing}:\Nil{*}, \env_{1}
+\env \vdash \mathbf{nothing}:\Nil{*}, \env
 \]
 
 \mylabel{T-EXPLIST2}
 \[
-\dfrac{\env \vdash e_{1}:t_{1}, \env_{1}, ..., \env \vdash e_{n}:t_{n}, \env_{n}}
-      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, merge(\env_{1}, ..., \env_{n})}
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       n = |\vec{e}|}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n}, merge(\env_{1}, ..., \env_{n})}
 \]
 
 \mylabel{T-EXPLIST3}
@@ -844,18 +863,52 @@ $$
       {\env \vdash me:r, \env_{1}}
 \]
 
-\mylabel{T-EXPLIST4}
+\mylabel{T-EXPLIST2}
 \[
-\dfrac{\env \vdash e_{1}:t_{1}, \env_{1}, ..., \env \vdash e_{n}:t_{n}, \env_{n}, \env \vdash me:r, \env_{n+1}}
-      {\env \vdash \vec{e},me:t_{1} \times ... \times t_{n} \times r, merge(\env_{1}, ..., \env_{n+1})}
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       \env \vdash me:r, \env_{n + 1} \;\;\;
+       n = |\vec{e}|}
+      {\env \vdash \vec{e}, me:t_{1} \times ... \times t_{n} \times r, merge(\env_{1}, ..., \env_{n+1})}
 \]
-
-\subsection{Constructor list}
-
-\noindent
 
 \subsection{Multiple expressions}
 
 \noindent
+
+\mylabel{T-APPLY1}
+\[
+\dfrac{\env_{1} \vdash e:p_{1} \rightarrow r, \env_{2} \;\;\;
+       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
+       p_{2} \lesssim p_{1}}
+      {\env_{1} \vdash e(el):r, \env_{3}}
+\]
+
+\mylabel{T-APPLY2}
+\[
+\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
+       \env_{2} \vdash el:p, \env_{3}}
+      {\env_{1} \vdash e_{1}(\vec{e_{2}}):\Any{*}, \env_{3}}
+\]
+
+\mylabel{T-INVOKE1}
+\[
+\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
+       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
+       p_{2} \lesssim p_{1}}
+      {\env_{1} \vdash e{:}n(el):r, \env_{3}}
+\]
+
+\mylabel{T-INVOKE2}
+\[
+\dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
+       \env_{2} \vdash el:p, \env_{3}}
+      {\env_{1} \vdash e{:}n(el):\Any{*}, \env_{3}}
+\]
+
+\mylabel{T-DOTS}
+\[
+\dfrac{\env_{1}({...}) = t}
+      {\env_{1} \vdash {...}:t{*}, \env_{1}}
+\]
 
 \end{document}

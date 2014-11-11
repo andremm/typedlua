@@ -711,20 +711,21 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = el  \; | \;
+\vec{l} = el \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
 & | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
 \mathbf{return} \; el \; | \;
-a\\
+e(el)_{s} \; | \;
+e{:}n(el)_{s}\\
 e ::= & \;\; \mathbf{nil} \; | \;
 \mathbf{false} \; | \;
 \mathbf{true} \; | \;
 {\it int} \; | \;
 {\it float} \; | \;
 {\it string} \; | \;
-{...} \; | \;
+{...}_{e} \; | \;
 f \; | \;
 \{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
@@ -736,11 +737,14 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 & | \; \mathbf{not} \; e \; | \;
 - e \; | \;
 \# \; e \; | \;
-a \; | \;
-l \; | \;
+e(el)_{e} \; | \;
+e{:}n(el)_{e} \; | \;
+n \; | \;
+e_{1}[e_{2}] \; | \;
 {<}t{>} \; n\\
 l ::= & \;\; n \; | \;
-e_{1}[e_{2}]\\
+e_{1}[e_{2}] \; | \;
+n[e] \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
@@ -753,10 +757,9 @@ me \; | \;
 \vec{c}, me \; | \;
 \vec{c}, \vec{e}, me \; | \;
 \vec{e}, me\\
-me ::= & \;\; a \; | \;
+me ::= & \;\; e(el) \; | \;
+e{:}n(el) \; | \;
 {...}\\
-a ::= & \;\; e_{1}(\vec{e_{2}}) \; | \;
-e_{1}{:}n(\vec{e_{2}})\\
 f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
 \mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
 & | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
