@@ -47,21 +47,21 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; \Self & \textit{self type}\\
 & | \; t \cup t & \textit{disjoint union types}\\
 & | \; p \rightarrow r & \textit{function types}\\
-& | \; \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{c|o|u} & \textit{table types}\\
+& | \; \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
-& | \; x_{i} & \textit{projection types}\\
-l ::= & \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
-b ::= & \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
-v ::= & t \; | \; \Const \; t & \textit{field types}\\ 
-k ::= & l \; | \; b \; | \; \Any & \textit{key types}\\
+& | \; \pi_{i} & \textit{projection types}\\
+l ::= & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
+b ::= & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
+k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
+v ::= & \;\; t \; | \; \Const \; t & \textit{field types}\\ 
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
 s ::= & \;\; t &\\
 & | \; t* & \textit{variadic types}\\
 & | \; t \times s & \textit{tuple types}\\
-p ::= & \Void \; | \; s & \textit{parameters list type}\\
-r ::= & \Void \; | \; s \; | \; s \sqcup r & \textit{return types}\\
+p ::= & \;\; \Void \; | \; s & \textit{parameters list type}\\
+r ::= & \;\; \Void \; | \; s \; | \; s \sqcup r & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -167,26 +167,80 @@ $$
 \mylabel{S-TABLE1}
 \[
 \dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash k_{j} \subtype k_{i} \;\;\;
-       \senv \vdash k_{i} \subtype k_{j} \;\;\;
-       \senv \vdash v_{j} \subtype v_{i}}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\} \subtype \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}}
+       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
+       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
+       \senv \vdash v_{j} \subtype_{c} v_{i}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
 \]
 
 \mylabel{S-FIELD1}
 \[
 \dfrac{\senv \vdash v_{1} \subtype v_{2} \;\;\;
        \senv \vdash v_{2} \subtype v_{1}}
-      {\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{c} v_{2}}
 \]
 
 \mylabel{S-FIELD2}
 \[
 \dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash \Const v_{1} \subtype \Const v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{c} \Const \; v_{2}}
 \]
 
-\mylabel{S-VARIABLE}
+\mylabel{S-FIELD3}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{c} \Const \; v_{2}}
+\]
+
+\mylabel{S-TABLE2}
+\[
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
+\]
+
+\mylabel{S-FIELD4}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} v}
+\]
+
+\mylabel{S-FIELD5}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} \Const \; v}
+\]
+
+\mylabel{S-TABLE3}
+\[
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+\]
+
+\mylabel{S-FIELD6}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} v_{2}}
+\]
+
+\mylabel{S-FIELD7}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
+\]
+
+\mylabel{S-FIELD8}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
+\]
+
+\mylabel{S-ASSUMPTION}
 \[
 \dfrac{x_{1} \subtype x_{2} \in \senv}
       {\senv \vdash x_{1} \subtype x_{2}}
@@ -194,20 +248,8 @@ $$
 
 \mylabel{S-AMBER}
 \[
-\dfrac{\senv, x_{1} \subtype x_{2} \vdash t_{1} \subtype t_{2}}
+\dfrac{\senv[x_{1} \subtype x_{2}] \vdash t_{1} \subtype t_{2}}
       {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
-\]
-
-\mylabel{S-AMBERL}
-\[
-\dfrac{\senv \vdash t_{1}[x \mapsto \mu x.t_{1}] \subtype t_{2}}
-      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
-\]
-
-\mylabel{S-AMBERR}
-\[
-\dfrac{\senv \vdash t_{1} \subtype t_{2}[x \mapsto \mu x.t_{2}]}
-      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
 \]
 
 \mylabel{S-VOID}
@@ -298,7 +340,8 @@ e_{1}[e_{2}] \; | \;
 {<}t{>} \; n\\
 l ::= & \;\; n \; | \;
 e_{1}[e_{2}] \; | \;
-n[e] \; {<}t{>}\\
+n[e] \; {<}t{>} \; | \;
+n_{1}{:}n_{2} \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
@@ -600,7 +643,7 @@ $$
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \String \;\;\;
        t_{2} \subtype \String}
-      {\env_{1} \vdash e_{1} < e_{2}:\Boolean}
+      {\env_{1} \vdash e_{1} < e_{2}:\Boolean, \env_{3}}
 \]
 
 \mylabel{T-ORDER3}

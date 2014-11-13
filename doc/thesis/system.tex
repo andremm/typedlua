@@ -744,7 +744,8 @@ e_{1}[e_{2}] \; | \;
 {<}t{>} \; n\\
 l ::= & \;\; n \; | \;
 e_{1}[e_{2}] \; | \;
-n[e] \; {<}t{>}\\
+n[e] \; {<}t{>} \; | \;
+n_{1}{:}n_{2} \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
@@ -801,8 +802,8 @@ the other mappings that extisted before.
 Função recursiva (another example?).
 
 \begin{verbatim}
-    rec f:(number) -> (number) =
-      fun (x:number)
+    rec f:(integer) -> (integer) =
+      fun (x:integer)
         if n == 0 then
           return 1
         else
@@ -813,10 +814,10 @@ Função recursiva (another example?).
 Dynamic typing and static typing in the same code (another example?).
 
 \begin{verbatim}
-    local a:(number) -> (number) =
-      fun (x:number)
+    local a:(integer) -> (integer) =
+      fun (x:integer)
         if n < 0 then return -n else return n
-    in local d:(any, any) -> (number) =
+    in local d:(any, any) -> (integer) =
          fun (x:any, y:any)
            skip ; return a(x - y)
        in d(1, 1)
@@ -852,11 +853,11 @@ Functions and multiple return.
 %\end{center}
 
 \begin{verbatim}
-  local m:() -> (number, string) =
+  local m:() -> (integer, string) =
     fun () skip ; return 2, "foo"
-  in local s:(number, number) -> (number)
-       fun (x:number, y:number) skip ; return x + y
-     in local x:number, y:number, z:string = m(), m()
+  in local s:(integer, integer) -> (integer)
+       fun (x:integer, y:integer) skip ; return x + y
+     in local x:integer, y:integer, z:string = m(), m()
         in s(m(), m())
 \end{verbatim}
 
@@ -902,8 +903,8 @@ Overloading on the return type (another example?).
 Table type as hash.
 
 \begin{verbatim}
-    local t:{string:number|nil} = { ["foo"] = 1 } in
-      local x:number|nil = t["foo"] in x = t["bar"]
+    local t:{string:integer|nil} = { ["foo"] = 1 } in
+      local x:integer|nil = t["foo"] in x = t["bar"]
 \end{verbatim}
 
 Table type as array.
@@ -911,7 +912,7 @@ Table type as array.
 \begin{verbatim}
     local d:{integer:string|nil} =
       { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
-    in local x:number|nil = d[1] in x = d[8]
+    in local x:string|nil = d[1] in x = d[8]
 \end{verbatim}
 
 Table type as record (first example).
@@ -981,7 +982,7 @@ Modules (another example?).
 Objects.
 
 \begin{verbatim}
-    local s:{"x":number, "y":number} = { x = 0, y = 0 }
+    local s:{"x":number, "y":number} = { x = 0., y = 0.0 }
     in s["new"] <(self, number, number) -> (self)> =
        fun (self:self, x:number, y:number):(self)
          local s:{"x":number, "y":number} =
