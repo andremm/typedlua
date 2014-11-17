@@ -33,7 +33,7 @@ local function usage (msg)
   if msg ~= nil then
     io.stderr:write(string.format("%s: %s\n", progname, msg))
   end
-  io.stderr:write(string.format(USAGE, progname, OUTPUT))
+  io.stderr:write(string.format(USAGE, progname, "tlc.lua"))
   os.exit(1)
 end
 

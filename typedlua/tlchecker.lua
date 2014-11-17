@@ -756,6 +756,7 @@ local function check_invoke (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   check_explist(env, explist)
+  table.insert(explist, 1, { type = Self })
   local t1, t2 = get_type(exp1), get_type(exp2)
   if tltype.isRecursive(t1) then t1 = t1[2] end
   if tltype.isSelf(t1) and env.self then t1 = env.self end
@@ -766,11 +767,10 @@ local function check_invoke (env, exp)
     local t3
     if tltype.isTable(t1) then
       t3 = tltype.getField(t2, t1)
-      table.insert(inferred_type, 1, Self)
     else
       local string_userdata = env["loaded"]["string"] or tltype.Table()
       t3 = tltype.getField(t2, string_userdata)
-      table.insert(inferred_type, 1, String)
+      inferred_type[1] = String
     end
     local msg = "attempt to call method '%s' of type '%s'"
     if tltype.isFunction(t3) then
