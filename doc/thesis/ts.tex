@@ -308,6 +308,7 @@ $$
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = el \; | \;
+m \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
 & | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
@@ -323,6 +324,7 @@ e ::= & \;\; \mathbf{nil} \; | \;
 {\it string} \; | \;
 {...}_{e} \; | \;
 f \; | \;
+\{ \} \; | \;
 \{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
@@ -340,14 +342,12 @@ e_{1}[e_{2}] \; | \;
 {<}t{>} \; n\\
 l ::= & \;\; n \; | \;
 e_{1}[e_{2}] \; | \;
-n[e] \; {<}t{>} \; | \;
-n_{1}{:}n_{2} \; {<}t{>}\\
+n[e] \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
 \vec{e}, me\\
-cl ::= & \;\; \mathbf{nothing} \; | \;
-\vec{c} \; | \;
+cl ::= & \;\; \vec{c} \; | \;
 \vec{e} \; | \;
 me \; | \;
 \vec{c}, \vec{e} \; | \;
@@ -357,6 +357,10 @@ me \; | \;
 me ::= & \;\; e(el) \; | \;
 e{:}n(el) \; | \;
 {...}\\
+m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
 f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
 \mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
 & | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;

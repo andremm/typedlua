@@ -698,11 +698,15 @@ We will see projection types in more detail in the next section.
 
 \section{Typing rules}
 
-In this section we will use a reduced core of Typed Lua to present
-its typing rules in an easier way.
-It is a reduced core of the Lua language with explicit type annotations,
-without syntactic sugar, with only if and while control flow statements,
-and making variable scope explicit.
+In this section we use a reduced core of Typed Lua to present the
+most interesting typing rules of our type system.
+It is also a reduced core of the Lua language with only if and while
+control flow statements, without syntactic sugar, with explicit
+type annotations, with explicit scope of local variables, and
+with explicit declaration of methods.
+We use this reduced core because it simplifies the presentation
+of our type system.
+Appendix \ref{app:rules} presents the full set of typing rules.
 
 \begin{figure}[!ht]
 \textbf{Abstract Syntax}\\
@@ -712,6 +716,7 @@ $$
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
 \vec{l} = el \; | \;
+m \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
 & | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
@@ -727,6 +732,7 @@ e ::= & \;\; \mathbf{nil} \; | \;
 {\it string} \; | \;
 {...}_{e} \; | \;
 f \; | \;
+\{ \} \; | \;
 \{ \; cl \; \} \\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
@@ -744,27 +750,29 @@ e_{1}[e_{2}] \; | \;
 {<}t{>} \; n\\
 l ::= & \;\; n \; | \;
 e_{1}[e_{2}] \; | \;
-n[e] \; {<}t{>} \; | \;
-n_{1}{:}n_{2} \; {<}t{>}\\
+n[e] \; {<}t{>}\\
 el ::= & \;\; \mathbf{nothing} \; | \;
 \vec{e} \; | \;
 me \; | \;
 \vec{e}, me\\
-cl ::= & \;\; \mathbf{nothing} \; | \;
-\vec{c} \; | \;
+cl ::= & \;\; \vec{c} \; | \;
 \vec{e} \; | \;
 me \; | \;
 \vec{c}, \vec{e} \; | \;
 \vec{c}, me \; | \;
 \vec{c}, \vec{e}, me \; | \;
 \vec{e}, me\\
-me ::= & \;\; e(el) \; | \;
-e{:}n(el) \; | \;
-{...}\\
-f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
-\mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el \; | \;
-\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+me ::= & \;\; e(el)_{m} \; | \;
+e{:}n(el)_{m} \; | \;
+{...}_{m}\\
+m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el\\
+& | \; \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
 c ::= & \;\; [e_{1}] = e_{2}\\
 n ::= & \;\; {\it name}\\
 \end{array}
@@ -778,16 +786,26 @@ Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
 It splits the syntactic categories as follows:
 $s$ are statements, $e$ are expressions, $l$ are left-hand values,
 $el$ are expression lists, $c$ are constructor fields, $cl$ are lists of
-constructor fields, $me$ are multiple expressions, $a$ are function
-applications, $f$ are function declarations, $n$ are variable names,
+constructor fields, $me$ are expressions with multiple results,
+$f$ are function declarations, $m$ are method declarations, $n$ are variable names,
 $t$ are first-level types, and $r$ are second-level types.
 The notation $\vec{n{:}t}$ denotes the non-empty list
 $n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
 
+Our reduced code also splits function application, method application, and
+the vararg expression (${...}$) into different categories.
+It uses $e(el)_{s}$ to denote function applications that return no value
+because they appear as statements,
+$e(el)_{e}$ to denote function applications that return only one value,
+and $e(el)_{m}$ to denote function applications that return multiple values.
+It uses the same categories for method applications, but only ${...}_{e}$
+and ${...}_{m}$, as the vararg expression cannot appear as a statement.
+
+
 We will present the typing rules as a deduction system for the typing
 relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
 We will use the first one for typing statements, and the sencond one
-for typing expressions. 
+for typing expressions.
 The first relation means that given the type environment $\env_{1}$,
 typing the statement $s$ produces the new type environment $\env_{2}$. 
 The sencond relation means that given the type environment $\env_{1}$,
@@ -799,197 +817,197 @@ for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that extisted before.
 
-Função recursiva (another example?).
+Lua has operator overloading, and allows the programmers to redefine
+the behavior of some operations.
+For instance, programmers can use metatables to redefine the
+behavior of arithmetic operations.
+Even though Typed Lua does not support operator overloading yet,
+it includes typing rules that allow programmers to use the
+dynamic type when they are using overloaded operations.
+The following typing rules show how Typed Lua uses the dynamic type
+to handle the overloading of arithmetic operations:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-ARITH5}\\
+\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-ARITH6}\\
+\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:\Any, \env_{3}}
+      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\end{array}
+\end{array}
+\]
 
-\begin{verbatim}
-    rec f:(integer) -> (integer) =
-      fun (x:integer)
-        if n == 0 then
-          return 1
-        else
-          return n * f(n - 1)
-    in f(5)
-\end{verbatim}
+The rule \textsc{T-ARITH5} allows type checking the following
+example:
+\begin{center}
+\begin{tabular}{l}
+$\mathbf{local} \; x{:}\Any = 1 \; \mathbf{in} \; x = x + 1$
+\end{tabular}
+\end{center}
 
-Dynamic typing and static typing in the same code (another example?).
+This example is safe, but the following it is not:
+\begin{center}
+\begin{tabular}{l}
+$\mathbf{local} \; x{:}\Integer, \;y{:}\Any = 1 \; \mathbf{in} \; x = x + y$
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-    local a:(integer) -> (integer) =
-      fun (x:integer)
-        if n < 0 then return -n else return n
-    in local d:(any, any) -> (integer) =
-         fun (x:any, y:any)
-           skip ; return a(x - y)
-       in d(1, 1)
-\end{verbatim}
+\textit{/* Expression list rules. Where should we describe the
+discarding/replacement of tuple elements? */}
 
-Another example:
+Even though Lua has multiple assignments, the rule \textsc{T-ASSIGNMENT}
+shows that tuples types and consistent-subtyping make straightforward
+to type check them.
+\[
+\begin{array}{c}
+\mylabel{T-ASSIGNMENT}\\
+\begin{array}{c}
+\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
+       r_{1} \lesssim r_{2}}
+      {\env_{1} \vdash \vec{l} = el:\env_{3}}
+\end{array}
+\end{array}
+\]
 
-\begin{verbatim}
-    local x:any = 1 in x = x + 1
-\end{verbatim}
+Multiple assignments and multiple return values can also appear in
+function applications, as the following example shows:
+\begin{center}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; m:\Void \rightarrow \Integer \times \String =$} \\
+& \multicolumn{3}{l}{$\mathbf{fun} \; ():\Integer \times \String$} \\
+& & \multicolumn{2}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; 2, ``foo"$} \\
+\multicolumn{4}{l}{$\mathbf{in}$} \\
+& \multicolumn{3}{l}{$\mathbf{local} \; s:\Integer \times \Integer \rightarrow \Integer =$} \\
+& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer, y:\Integer):\Integer$} \\
+& & & \multicolumn{1}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; x + y$} \\
+& \multicolumn{3}{l}{$\mathbf{in} \; s(m()_{e}, m()_{m})_{s}$}
+\end{tabular}
+\end{center}
 
-This example is safe, but the following is not:
+The $\mathbf{or}$ idiom.
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; x:\String \cup \Nil = \mathbf{nothing} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; y:\String = x \; \mathbf{or} \; ``Hello"$}
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-    local x:any, y:any = 1 in x = x + y
-\end{verbatim}
+Overloading on the input parameter.
+\begin{center}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; o:\String \times \String \cup \Integer \rightarrow \String =$}\\
+& \multicolumn{3}{l}{$\mathbf{fun} \; (a:\String, b:\String \cup \Integer):\String$}\\
+& & \multicolumn{2}{l}{$\mathbf{if} \; type(b) == ``string" \; \mathbf{then}$}\\
+& & & \multicolumn{1}{l}{$\mathbf{return} \; a \; {..} \; b$}\\
+& & \multicolumn{2}{l}{$\mathbf{else}$}\\
+& & & \multicolumn{1}{l}{$\mathbf{return} \; rep(a, b)_{e}$}\\
+\multicolumn{4}{l}{$\mathbf{in} \; o(``foo", 2)_{s}$}
+\end{tabular}
+\end{center}
 
-Functions and multiple return.
+We are assuming that the function \emph{rep} is in the environment and has type
+$\String \times \Integer \times \String \cup \Nil \rightarrow \String$.
 
-%\begin{center}
-%\begin{tabular}{llll}
-%\multicolumn{4}{l}{$\mathbf{local} \; m:\Void \rightarrow \Number \times \String =$} \\
-%& \multicolumn{3}{l}{$\mathbf{fun} \; ():\Number \times \String$} \\
-%& & \multicolumn{2}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; 2, ``foo"$} \\
-%\multicolumn{4}{l}{$\mathbf{in}$} \\
-%& \multicolumn{3}{l}{$\mathbf{local} \; s:\Number \times \Number \rightarrow \Number =$} \\
-%& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Number, y:\Number):\Number$} \\
-%& & & \multicolumn{1}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; x + y$} \\
-%& \multicolumn{3}{l}{$\mathbf{in}$} \\
-%& & \multicolumn{2}{l}{$\mathbf{local} \; x:\Number, y:\Number, z:\String = m(), m()$} \\
-%& & \multicolumn{2}{l}{$\mathbf{in} \; s(m(), m())$}
-%\end{tabular}
-%\end{center}
+Overloading on the return type.
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; q:\pi_{1}, r:\pi_{2} = idiv(1, 2) \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{if} \; type(r) == ``string" \; \mathbf{then}$}\\
+& & \multicolumn{1}{l}{$print(``ERROR: " \; .. \; r)_{s}$}\\
+& \multicolumn{2}{l}{$\mathbf{else}$}\\
+& & \multicolumn{1}{l}{$print(q + r)_{s}$}
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-  local m:() -> (integer, string) =
-    fun () skip ; return 2, "foo"
-  in local s:(integer, integer) -> (integer)
-       fun (x:integer, y:integer) skip ; return x + y
-     in local x:integer, y:integer, z:string = m(), m()
-        in s(m(), m())
-\end{verbatim}
-
-Optional parameters.
-
-\begin{verbatim}
-    local m:(string, string|nil) -> (string) =
-      fun (n:string, g:string|nil)
-        g = g or "Hello" ; return g .. n
-    in m("Lua")
-\end{verbatim}
-
-Overloading on the input parameter (another example?).
-
-\begin{verbatim}
-  local o:(string, string|integer) -> (string) =
-    fun (a:string, b:string|integer)
-      if type(b) == "string" then
-        return a .. b
-      else
-        return string["rep"](a, b)
-  in o("foo", 2) 
-\end{verbatim}
-
-Overloading on the return type (another example?).
-
-\begin{verbatim}
-  local d:(integer, integer) -> (integer, integer) | (nil, string) =
-    fun (a:integer, b:integer):(integer, integer) | (nil, string)
-      if b == 0 then
-        return nil, "division by zero"
-      else
-        local r:integer = a \% b
-        in local q:integer = (a - r) / b
-           in skip ; return q, r
-  in local q:X1, r:X2 = d(2, 2)
-     in if q then
-          print(a == b * q + r)
-        else
-          print("ERROR " .. r)
-\end{verbatim}
+We are assuming that functions \emph{idiv} and \emph{print} are in
+the environment with the respective types
+$\Integer \times \Integer \rightarrow \Integer \times \Integer \sqcup \Nil \times \String$
+and
+$\Value{*} \rightarrow \Void$.
 
 Table type as hash.
-
-\begin{verbatim}
-    local t:{string:integer|nil} = { ["foo"] = 1 } in
-      local x:integer|nil = t["foo"] in x = t["bar"]
-\end{verbatim}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{\String:\Integer \cup \Nil\}_{closed} = \{ [``foo"] = 1 \} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; x:\Integer \cup \Nil = t[``foo"] \; \mathbf{in} \; x = t[``bar"]$}
+\end{tabular}
+\end{center}
 
 Table type as array.
-
-\begin{verbatim}
-    local d:{integer:string|nil} =
-      { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
-    in local x:string|nil = d[1] in x = d[8]
-\end{verbatim}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{\Integer:\String \cup \Nil\}_{closed} = \{ ``a", ``b", ``c" \} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; x:\String \cup \Nil = t[1] \; \mathbf{in} \; x = t[4]$}
+\end{tabular}
+\end{center}
 
 Table type as record (first example).
-
-\begin{verbatim}
-    local p:{"firstname":string, "lastname":string} =
-      { ["lastname"] = "Reed", ["firstname"] = "Lou" }
-    in skip
-\end{verbatim}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``l":\String\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``l"] = ``Reed", [``f"] = ``Lou" \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
+\end{tabular}
+\end{center}
 
 Table type as record (second example).
-
-\begin{verbatim}
-    local p:{"firstname":string,
-             "middlename":string|nil,
-             "lastname":string} =
-      { ["firstname"] = "Lewis",
-        ["middlename"] = "Allan",
-        ["lastname"] = "Reed" }
-    in skip
-\end{verbatim}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``m":\String \cup \Nil, ``l":\String\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``f"] = ``Lewis", [``m"] = ``Allan", [``l"] = ``Reed" \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
+\end{tabular}
+\end{center}
 
 Table type as record (third example).
-
-\begin{verbatim}
-    local p:{"firstname":string,
-             "middlename":string|nil,
-             "lastname":string} =
-      { ["firstname"] = "Lou",
-        ["lastname"] = "Reed" }
-    in skip
-\end{verbatim}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``m":\String \cup \Nil, ``l":\String\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``f"] = ``Lou", [``l"] = ``Reed" \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
+\end{tabular}
+\end{center}
 
 Refinement of table types (first example).
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{open} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$t[``f"] \; {<}\String{>} = ``Lou";$}\\
+& \multicolumn{1}{l}{$t[``l"] \; {<}\String{>} = ``Reed";$}\\
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-    local p:{} = {}
-    in p["firstname"] <string> = "Lou" ;
-       p["lastname"] <string> = "Reed"
-\end{verbatim}
 
 Refinement of table types (second example).
-
-\begin{verbatim}
-    local p:{} = {}
-    in local b:{} = p
-       in p["firstname"] <string> = "Lou" ;
-          p["lastname"] <string> = "Reed"
-\end{verbatim}
-
-Modules (another example?).
-
-\begin{verbatim}
-    local m:{} = {}
-    in local r:number = 3.14 / 180.0
-       in m["deg"] <(number) -> (number)> =
-          fun (x:number):(number)
-            skip ; return x / r
-        ; m["rad"] <(number) -> (number)> =
-          fun (x:number):(number)
-            skip ; return x * r
-        ; m["pow"] <(number, number) -> (number)> =
-          fun (x:number, y:number):(number)
-            skip ; return x ^ y
-\end{verbatim}
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; t:\{\}_{open} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{open} = p \; \mathbf{in}$}\\
+& & \multicolumn{1}{l}{$t[``f"] \; {<}\String{>} = ``Lou";$}\\
+& & \multicolumn{1}{l}{$t[``l"] \; {<}\String{>} = ``Reed";$}\\
+\end{tabular}
+\end{center}
 
 Objects.
+\begin{center}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; s:\{``x:"\Number, ``y":\Number\}_{open} = \{ [``x"] = 0.0, [``y"] = 0.0 \}$}\\
+\multicolumn{4}{l}{$\mathbf{in}$}\\
+& \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:number, y:number):\Self$}\\
+& & \multicolumn{2}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{closed} =$}\\
+& & & \multicolumn{1}{l}{$setmetatable(\{\}, \{ [``\string_\string_index"] = self \}$}\\
+& & \multicolumn{2}{l}{$\mathbf{in} \; s[``x"] = x; \; s[``y"] = y; \; \mathbf{return} \; s$}\\
+; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:number, y:number):\Void$}\\
+& & \multicolumn{2}{l}{$self[``x"] = self[``x"] + x;$}\\
+& & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y$}
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-    local s:{"x":number, "y":number} = { x = 0., y = 0.0 }
-    in s["new"] <(self, number, number) -> (self)> =
-       fun (self:self, x:number, y:number):(self)
-         local s:{"x":number, "y":number} =
-           setmetatable({}, { __index = self })
-         in s["x"] = x ; s["y"] = y ; return s
-     ; s["move"] <(self, number, number) -> ()> =
-       fun (self:self, x:number, y:number):()
-         self["x"] = self["x"] + x ;
-         self["y"] = self["y"] + y 
-\end{verbatim}

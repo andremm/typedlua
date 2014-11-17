@@ -1,5 +1,262 @@
-This appendix presents the complete set of typing rules of Typed Lua.
-\\
+This appendix presents the complete type system of Typed Lua.
+
+\section{Subtyping rules}
+
+\noindent
+
+\mylabel{S-LITERAL}
+\[
+\senv \vdash l \subtype l
+\]
+
+\mylabel{S-FALSE}
+\[
+\senv \vdash \False \subtype \Boolean
+\]
+
+\mylabel{S-TRUE}
+\[
+\senv \vdash \True \subtype \Boolean
+\]
+
+\mylabel{S-INT1}
+\[
+\senv \vdash {\it int} \subtype \Integer
+\]
+
+\mylabel{S-INT2}
+\[
+\senv \vdash {\it int} \subtype \Number
+\]
+
+\mylabel{S-FLOAT}
+\[
+\senv \vdash {\it float} \subtype \Number
+\]
+
+\mylabel{S-STRING}
+\[
+\senv \vdash {\it string} \subtype \String
+\]
+
+\mylabel{S-BASE}
+\[
+\senv \vdash b \subtype b
+\]
+
+\mylabel{S-NUMBER}
+\[
+\senv \vdash \Integer \subtype \Number
+\]
+
+\mylabel{S-NIL}
+\[
+\senv \vdash \Nil \subtype \Nil
+\]
+
+\mylabel{S-VALUE}
+\[
+\senv \vdash t \subtype \Value
+\]
+
+\mylabel{S-ANY}
+\[
+\senv \vdash \Any \subtype \Any
+\]
+
+\mylabel{S-SELF}
+\[
+\senv \vdash \Self \subtype \Self
+\]
+
+\mylabel{S-UNION1}
+\[
+\dfrac{\senv \vdash t_{1} \subtype t \;\;\;
+       \senv \vdash t_{2} \subtype t}
+      {\senv \vdash t_{1} \cup t_{2} \subtype t}
+\]
+
+\mylabel{S-UNION2}
+\[
+\dfrac{\senv \vdash t \subtype t_{1}}
+      {\senv \vdash t \subtype t_{1} \cup t_{2}}
+\]
+
+\mylabel{S-UNION3}
+\[
+\dfrac{\senv \vdash t \subtype t_{2}}
+      {\senv \vdash t \subtype t_{1} \cup t_{2}}
+\]
+
+\mylabel{S-FUNCTION}
+\[
+\dfrac{\senv \vdash p_{2} \subtype p_{1} \;\;\;
+       \senv \vdash r_{1} \subtype r_{2}}
+      {\senv \vdash p_{1} \rightarrow r_{1} \subtype p_{2} \rightarrow r_{2}}
+\]
+
+\mylabel{S-TABLE1}
+\[
+\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
+       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
+       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
+       \senv \vdash v_{j} \subtype_{c} v_{i}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
+\]
+
+\mylabel{S-TABLE2}
+\[
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
+\]
+
+\mylabel{S-TABLE3}
+\[
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+\]
+
+\mylabel{S-FIELD1}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2} \;\;\;
+       \senv \vdash v_{2} \subtype v_{1}}
+      {\senv \vdash v_{1} \subtype_{c} v_{2}}
+\]
+
+\mylabel{S-FIELD2}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{c} \Const \; v_{2}}
+\]
+
+\mylabel{S-FIELD3}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{c} \Const \; v_{2}}
+\]
+
+\mylabel{S-FIELD4}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} v}
+\]
+
+\mylabel{S-FIELD5}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} \Const \; v}
+\]
+
+\mylabel{S-FIELD6}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} v_{2}}
+\]
+
+\mylabel{S-FIELD7}
+\[
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
+\]
+
+\mylabel{S-ASSUMPTION}
+\[
+\dfrac{x_{1} \subtype x_{2} \in \senv}
+      {\senv \vdash x_{1} \subtype x_{2}}
+\]
+
+\mylabel{S-AMBER}
+\[
+\dfrac{\senv[x_{1} \subtype x_{2}] \vdash t_{1} \subtype t_{2}}
+      {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
+\]
+
+\mylabel{S-AMBERL}
+\[
+\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
+      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
+\]
+
+\mylabel{S-AMBERR}
+\[
+\dfrac{\senv \vdash t_{1} \subtype [x \mapsto \mu x.t_{2}]t_{2}}
+      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
+\]
+
+\mylabel{S-VOID}
+\[
+\senv \vdash \Void \subtype \Void
+\]
+
+\mylabel{S-VARARG}
+\[
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1}* \subtype t_{2}*}
+\]
+
+\mylabel{S-TUPLE1}
+\[
+\dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
+       \senv \vdash s_{1} \subtype s_{2}}
+      {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
+\]
+
+\mylabel{S-TUPLE2}
+\[
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \;\;\;
+       \senv \vdash t_{1}* \subtype s_{2}}
+      {\senv \vdash t_{1}* \subtype t_{2} \times s_{2}}
+\]
+
+\mylabel{S-TUPLE3}
+\[
+\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil \;\;\;
+       \senv \vdash s_{1} \subtype t_{2}*}
+      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}*}
+\]
+
+\mylabel{S-UNION4}
+\[
+\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
+       \senv \vdash s_{2} \subtype s}
+      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
+\]
+
+\mylabel{S-UNION5}
+\[
+\dfrac{\senv \vdash s \subtype s_{1}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\]
+
+\mylabel{S-UNION6}
+\[
+\dfrac{\senv \vdash s \subtype s_{2}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\]
+
+\section{Consistent-subtyping rules}
+
+\noindent
+
+\mylabel{C-ANY1}
+\[
+\senv \vdash t \lesssim \Any
+\]
+
+\mylabel{C-ANY2}
+\[
+\senv \vdash \Any \lesssim t
+\]
+
+\section{Typing rules}
+
+\noindent
 
 \mylabel{T-SKIP}
 \[
@@ -162,7 +419,7 @@ This appendix presents the complete set of typing rules of Typed Lua.
 
 \mylabel{T-CONSTRUCTOR1}
 \[
-\env \vdash \{ \mathbf{nothing} \}:\{ \}_{u}, \env 
+\env \vdash \{ \mathbf{nothing} \}:\{ \}_{u}, \env
 \]
 
 \mylabel{T-CONSTRUCTOR2}
@@ -521,7 +778,7 @@ This appendix presents the complete set of typing rules of Typed Lua.
       {\env \vdash me:r, \env_{1}}
 \]
 
-\mylabel{T-EXPLIST2}
+\mylabel{T-EXPLIST4}
 \[
 \dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
        \env \vdash me:r, \env_{n + 1} \;\;\;
