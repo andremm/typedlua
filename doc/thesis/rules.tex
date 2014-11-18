@@ -296,9 +296,8 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-IF2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1} \vdash type(n) == ``string":\Boolean, \env_{2} \\
-       closeall(\env_{2}[n \mapsto \String]) \vdash s_{1}:\env_{3} \\
-       closeall(\env_{2}[n \mapsto filter(\env_{2}(n), \String)) \vdash s_{2}:\env_{4}
+       closeall(\env_{1}[n \mapsto \String]) \vdash s_{1}:\env_{2} \\
+       closeall(\env_{1}[n \mapsto filter(\env_{2}(n), \String)) \vdash s_{2}:\env_{3}
       \end{array}}
       {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
 \]
@@ -417,15 +416,55 @@ This appendix presents the complete type system of Typed Lua.
       {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s: \vec{t} \times t{*} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s))}
 \]
 
+\mylabel{T-FIELD1}
+\[
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Boolean \cup \Number \cup \String}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}:super(t_{2}), \env_{3}}
+\]
+
+\mylabel{T-FIELD2}
+\[
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\subtype t_{1}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: \Any:super(t_{2}), \env_{3}}
+\]
+
 \mylabel{T-CONSTRUCTOR1}
 \[
-\env \vdash \{ \mathbf{nothing} \}:\{ \}_{u}, \env
+\env \vdash \{\}:\{\}_{unique}, \env
 \]
 
 \mylabel{T-CONSTRUCTOR2}
 \[
-\dfrac{\env_{1} \vdash cl:k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, \env_{2}}
-      {\env_{1} \vdash \{ \; cl \; \}:\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{u}, \env_{2}}
+\dfrac{\env \vdash c:t_{k}:v_{k}, \env_{k} \;\;\;
+       n = |\;\vec{c}\;| \;\;\;
+       wf(\{t_{1}:v_{1}, ..., t_{n}:v_{n}\}_{unique})}
+      {\env \vdash \{\;\vec{c}\;\}:\{t_{1}:v_{1}, ..., t_{n}:v_{n}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR3}
+\[
+\dfrac{\env \vdash e:v_{k}, \env_{k} \;\;\;
+       n = |\;\vec{e}\;| \;\;\;
+       wf(\{1:v_{1}, ..., n:v_{n}\}_{unique})}
+      {\env \vdash \{\;\vec{e}\;\}:\{1:v_{1}, ..., n:v_{n}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR4}
+\[
+\dfrac{\env \vdash me:v_{1} \times ... \times v_{n}, \env \;\;\;
+       wf(\{1:v_{1}, ..., n:v_{n}\}_{unique})}
+      {\env \vdash \{me\}:\{1:v_{1}, ..., n:v_{n}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR5}
+\[
+\dfrac{\env \vdash me:v{*}, \env \;\;\;
+       wf(\{\Integer:v \cup \Nil\}_{unique})}
+      {\env \vdash \{me\}:\{\Integer:v \cup \Nil\}_{unique}, \env}
 \]
 
 \mylabel{T-ARITH1}
@@ -542,33 +581,26 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-AND1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil, \env_{3}}
+\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2}}
+      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil, \env_{2}}
 \]
 
 \mylabel{T-AND2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\False, \env_{3}}
+\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2}}
+      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\False, \env_{2}}
 \]
 
 \mylabel{T-AND3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1} \cup \Nil, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil \cup t_{2}, \env_{3}}
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\lesssim t_{1} \;\;\;
+       \False \not\lesssim t_{1}}
+      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:t_{2}, \env_{3}}
 \]
 
 \mylabel{T-AND4}
-\[
-\dfrac{\env_{1} \vdash e_{1}:t_{1} \cup \False, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\False \cup t_{2}, \env_{3}}
-\]
-
-\mylabel{T-AND5}
 \[
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
@@ -577,37 +609,31 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-OR1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
+       \Nil \not\lesssim t \;\;\;
+       \False \not\lesssim t}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{2}}
 \]
 
 \mylabel{T-OR2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2} \;\;\;
+\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t, \env_{3}}
       {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
 \]
 
 \mylabel{T-OR3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1} \cup \Nil, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
+\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
 \]
 
 \mylabel{T-OR4}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1} \cup \False, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
-\]
-
-\mylabel{T-OR5}
-\[
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
 \]
 
 \mylabel{T-NOT1}
@@ -623,6 +649,14 @@ This appendix presents the complete type system of Typed Lua.
 \]
 
 \mylabel{T-NOT3}
+\[
+\dfrac{\env_{1} \vdash e:t \;\;\;
+       \Nil \not\lesssim t \;\;\;
+       \False \not\lesssim t}
+      {\env_{1} \vdash \mathbf{not} \; e:\False, \env_{2}}
+\]
+
+\mylabel{T-NOT4}
 \[
 \dfrac{\env_{1} \vdash e:t, \env_{2}}
       {\env_{1} \vdash \mathbf{not} \; e:\Boolean, \env_{2}}

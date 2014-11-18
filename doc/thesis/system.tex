@@ -892,7 +892,65 @@ function applications, as the following example shows:
 \end{tabular}
 \end{center}
 
-The $\mathbf{or}$ idiom.
+Typed Lua includes four typing rules to handle the $\mathbf{or}$
+logical operator and its common idioms:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-OR1}\\
+\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
+       \Nil \not\lesssim t \;\;\;
+       \False \not\lesssim t}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR2}\\
+\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-OR3}\\
+\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR4}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{T-OR1} is the rule that implements the short circuit.
+We use the consistent-subtyping in this relation to guarantee that
+the type system avaliates the second expression when the first one
+has the dynamic type, as it can be hiding a false value.
+
+The rules \textsc{T-OR2} and \textsc{T-OR3} guarantee that the final
+result is the type of the second expression, because the first one
+is certainly a false value.
+
+The rule \textsc{T-OR4} is the most general rule, but it is also
+the rule that handles the common $\mathbf{or}$ idioms.
+It uses the predicate \emph{filter} to filter possible false values
+that might be part of the type of the first expression.
+We can use pattern matching to the define the recursive predicate
+\emph{filter} as follows:
+\begin{align*}
+fu(t_{1} \cup t_{2}, t_{3}) & = fu(t_{1}, t_{3}) \cup fu(t_{2}, t_{3})\\
+fu(t_{1} \cup t_{2}, t_{1}) & = fu(t_{2}, t_{1})\\
+fu(t_{1} \cup t_{2}, t_{2}) & = fu(t_{1}, t_{2})\\
+fu(t_{1}, t_{2}) & = t_{1}
+\end{align*}
+
+Using these typing rules our type system can type check the following
+example:
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; x:\String \cup \Nil = \mathbf{nothing} \; \mathbf{in}$}\\
@@ -900,7 +958,30 @@ The $\mathbf{or}$ idiom.
 \end{tabular}
 \end{center}
 
-Overloading on the input parameter.
+Without the \emph{filter} predicate,
+the expression $x \; \mathbf{or} \; ``Hello"$ would have type
+$\String \cup \Nil \cup ``Hello"$.
+The \emph{filter} predicate removes the type $\Nil$ from the result,
+leaving type $\String \cup ``Hello"$.
+At the end of the evaluation, the expression has type $\String$
+because unions are disjoint and $``Hello" \subtype \String$.
+
+Another common idiom that programmers use in Lua is to overload
+the input parameter of functions, and use the function \texttt{type}
+to execute different actions according to their types.
+\[
+\begin{array}{c}
+\mylabel{T-IF2}\\
+\dfrac{\begin{array}{c}
+       closeall(\env_{1}[n \mapsto \String]) \vdash s_{1}:\env_{2} \\
+       closeall(\env_{1}[n \mapsto filter(\env_{1}(n), \String)) \vdash s_{2}:\env_{3}
+      \end{array}}
+      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+
+\end{array}
+\]
+
+Using the rule \textsc{T-IF2}, Typed Lua can type check the following example:
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; o:\String \times \String \cup \Integer \rightarrow \String =$}\\
@@ -915,6 +996,9 @@ Overloading on the input parameter.
 
 We are assuming that the function \emph{rep} is in the environment and has type
 $\String \times \Integer \times \String \cup \Nil \rightarrow \String$.
+
+Typed Lua also includes similar rules to handle the tags \texttt{nil},
+\texttt{boolean}, and \texttt{number}.
 
 Overloading on the return type.
 \begin{center}
