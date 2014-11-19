@@ -439,32 +439,114 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-CONSTRUCTOR2}
 \[
-\dfrac{\env \vdash c:t_{k}:v_{k}, \env_{k} \;\;\;
+\dfrac{\env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
        n = |\;\vec{c}\;| \;\;\;
-       wf(\{t_{1}:v_{1}, ..., t_{n}:v_{n}\}_{unique})}
-      {\env \vdash \{\;\vec{c}\;\}:\{t_{1}:v_{1}, ..., t_{n}:v_{n}\}_{unique}, \env}
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique})}
+      {\env \vdash \{\;\vec{c}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}, \env}
 \]
 
 \mylabel{T-CONSTRUCTOR3}
 \[
-\dfrac{\env \vdash e:v_{k}, \env_{k} \;\;\;
+\dfrac{\env \vdash e:v_{i}, \env_{i} \;\;\;
        n = |\;\vec{e}\;| \;\;\;
-       wf(\{1:v_{1}, ..., n:v_{n}\}_{unique})}
-      {\env \vdash \{\;\vec{e}\;\}:\{1:v_{1}, ..., n:v_{n}\}_{unique}, \env}
+       wf(\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique})}
+      {\env \vdash \{\;\vec{e}\;\}:\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique}, \env}
 \]
 
 \mylabel{T-CONSTRUCTOR4}
 \[
 \dfrac{\env \vdash me:v_{1} \times ... \times v_{n}, \env \;\;\;
-       wf(\{1:v_{1}, ..., n:v_{n}\}_{unique})}
-      {\env \vdash \{me\}:\{1:v_{1}, ..., n:v_{n}\}_{unique}, \env}
+       wf(\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique})}
+      {\env \vdash \{me\}:\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique}, \env}
 \]
 
 \mylabel{T-CONSTRUCTOR5}
 \[
 \dfrac{\env \vdash me:v{*}, \env \;\;\;
-       wf(\{\Integer:v \cup \Nil\}_{unique})}
-      {\env \vdash \{me\}:\{\Integer:v \cup \Nil\}_{unique}, \env}
+       wf(\{\Integer{:}v \cup \Nil\}_{unique})}
+      {\env \vdash \{me\}:\{\Integer{:}v \cup \Nil\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR6}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash e:v_{i}, \env_{i} \;\;\;
+       n = |\;\vec{c}\;| \;\;\;
+       m = |\;\vec{e}\;|\\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;\vec{e}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR7}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v_{n+1} \times ... \times v_{m}, \env \;\;\;
+       n = |\;\vec{c}\;| \\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR8}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v{*}, \env \;\;\;
+       n = |\;\vec{c}\;| \\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR9}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash e:v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v_{m+1} \times ... \times v_{o}, \env \;\;\;
+       n = |\;\vec{c}\;| \;\;\;
+       m = |\;\vec{e}\;|\\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, m+1{:}v_{m+1}, ..., o{:}v_{o}\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;\vec{e}\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, m+1{:}v_{m+1}, ..., o{:}v_{o}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR10}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash e:v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v{*}, \env \;\;\;
+       n = |\;\vec{c}\;| \;\;\;
+       m = |\;\vec{e}\;|\\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, \Integer{:}v \cup \Nil\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;\vec{e}\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR11}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash e:v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v_{n+1} \times ... \times v_{m}, \env \;\;\;
+       n = |\;\vec{e}\;| \\
+       wf(\{1{:}v_{1}, ..., n{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{e},\;me\;\}:\{1{:}v_{1}, ..., n{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
+\]
+
+\mylabel{T-CONSTRUCTOR12}
+\[
+\dfrac{\begin{array}{c}
+       \env \vdash e:v_{i}, \env_{i} \;\;\;
+       \env \vdash me:v{*}, \env \;\;\;
+       n = |\;\vec{e}\;| \\
+       wf(\{1{:}v_{1}, ..., n{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{e},\;me\;\}:\{1{:}v_{1}, ..., n{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
 \]
 
 \mylabel{T-ARITH1}

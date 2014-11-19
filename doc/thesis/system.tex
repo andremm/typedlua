@@ -966,6 +966,66 @@ leaving type $\String \cup ``Hello"$.
 At the end of the evaluation, the expression has type $\String$
 because unions are disjoint and $``Hello" \subtype \String$.
 
+\textit{/* The following example does not type check */}
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; x:\Nil \cup \False = \mathbf{false} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; y:\String = x \; \mathbf{or} \; ``Hello"$}
+\end{tabular}
+\end{center}
+
+\textit{/* Should we define the following rules? */}
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-OR4}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \cup \False \subtype t_{1} \;\;\;
+       t_{1} \subtype \Nil \cup \False}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{2}, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR5}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \subtype t_{1} \;\;\;
+       \False \subtype t_{1}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR6}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \subtype t_{1} \;\;\;
+       \False \not\subtype t_{1}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(t_{1}, \Nil) \cup t_{2}, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR7}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\subtype t_{1} \;\;\;
+       \False \subtype t_{1}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(t_{1}, \False) \cup t_{2}, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-OR8}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\subtype t_{1} \;\;\;
+       \False \not\subtype t_{1}}
+      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
+\end{array}
+\end{array}
+\]
+
+\textit{/* Or who writes this kind of code deserves a type error? */}
+
 Another common idiom that programmers use in Lua is to overload
 the input parameter of functions, and use the function \texttt{type}
 to execute different actions according to their types.
