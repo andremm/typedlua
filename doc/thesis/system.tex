@@ -1046,10 +1046,9 @@ Using the rule \textsc{T-IF2}, Typed Lua can type check the following example:
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; o:\String \times \String \cup \Integer \rightarrow \String =$}\\
 & \multicolumn{3}{l}{$\mathbf{fun} \; (a:\String, b:\String \cup \Integer):\String$}\\
-& & \multicolumn{2}{l}{$\mathbf{if} \; type(b) == ``string" \; \mathbf{then}$}\\
-& & & \multicolumn{1}{l}{$\mathbf{return} \; a \; {..} \; b$}\\
-& & \multicolumn{2}{l}{$\mathbf{else}$}\\
-& & & \multicolumn{1}{l}{$\mathbf{return} \; rep(a, b)_{e}$}\\
+& & \multicolumn{2}{l}{$\mathbf{local} \; r:\String = ``" \; \mathbf{in}$}\\
+& & & \multicolumn{1}{l}{$\mathbf{if} \; type(b) == ``string" \; \mathbf{then} \; r = a \;{..}\;b \; \mathbf{else} \; r = rep(a, b)_{e}\; ;$}\\
+& & & \multicolumn{1}{l}{$\mathbf{return} \; r$}\\
 \multicolumn{4}{l}{$\mathbf{in} \; o(``foo", 2)_{s}$}
 \end{tabular}
 \end{center}
@@ -1061,15 +1060,29 @@ Typed Lua also includes similar rules to handle the tags \texttt{nil},
 \texttt{boolean}, and \texttt{number}.
 
 Overloading on the return type.
+\[
+\begin{array}{c}
+\mylabel{T-IF3}\\
+\dfrac{\begin{array}{c}
+       \env_{1}(n) = \pi_{i}\\
+       closeall(\env_{1}[\pi \mapsto fpt(\env_{1}(\pi), \Nil, i)]) \vdash s_{1}:\env_{2} \\
+       closeall(\env_{1}[\pi \mapsto gpt(\env_{1}(\pi), \Nil, i)) \vdash s_{2}:\env_{3}
+      \end{array}}
+      {\env_{1} \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+
+\end{array}
+\]
+
 \begin{center}
-\begin{tabular}{lll}
-\multicolumn{3}{l}{$\mathbf{local} \; q:\pi_{1}, r:\pi_{2} = idiv(1, 2) \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{if} \; type(r) == ``string" \; \mathbf{then}$}\\
-& & \multicolumn{1}{l}{$print(``ERROR: " \; .. \; r)_{s}$}\\
-& \multicolumn{2}{l}{$\mathbf{else}$}\\
-& & \multicolumn{1}{l}{$print(q + r)_{s}$}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; q:\pi_{1}, r:\pi_{2} = idiv(1, 2)_{m} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; print(q + r)_{s} \; \mathbf{else} \; print(``ERROR: " \; .. \; r)_{s}$}
 \end{tabular}
 \end{center}
+
+\textit{/* How should we write the typing rule of the local declaration? */}
+
+\textit{/* How this is valid if projection types do not have subtyping rules? */}
 
 We are assuming that functions \emph{idiv} and \emph{print} are in
 the environment with the respective types
