@@ -715,22 +715,21 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = el \; | \;
+ll = el_{1} \; | \;
 m \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n{:}t} = el_{0} \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; el \; | \;
-e(el)_{s} \; | \;
+\mathbf{return} \; el\\
+& | \; e(el)_{s} \; | \;
 e{:}n(el)_{s}\\
 e ::= & \;\; \mathbf{nil} \; | \;
-\mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{\it int} \; | \;
-{\it float} \; | \;
-{\it string} \; | \;
+x \; | \;
 {...}_{e} \; | \;
+n \; | \;
+e_{1}[e_{2}] \; | \;
+{<}t{>} \; n \; | \;
 f \; | \;
 \{ \} \; | \;
 \{ \; cl \; \} \\
@@ -744,24 +743,25 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 - e \; | \;
 \# \; e \; | \;
 e(el)_{e} \; | \;
-e{:}n(el)_{e} \; | \;
-n \; | \;
-e_{1}[e_{2}] \; | \;
-{<}t{>} \; n\\
+e{:}n(el)_{e}\\
+x ::= & \;\; \mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
+{\it string}\\
 l ::= & \;\; n \; | \;
 e_{1}[e_{2}] \; | \;
 n[e] \; {<}t{>}\\
-el ::= & \;\; \mathbf{nothing} \; | \;
-\vec{e} \; | \;
+ll ::= & \;\; \vec{l}\\
+el_{0} ::= & \;\; \mathbf{nothing} \; | \;
+el_{1}\\
+el_{1} ::= & \;\; \vec{e} \; | \;
 me \; | \;
 \vec{e}, me\\
+el ::= & \;\; el_{0}\\
 cl ::= & \;\; \vec{c} \; | \;
-\vec{e} \; | \;
-me \; | \;
-\vec{c}, \vec{e} \; | \;
-\vec{c}, me \; | \;
-\vec{c}, \vec{e}, me \; | \;
-\vec{e}, me\\
+{...}_{m} \; | \;
+\vec{c}, {...}_{m}\\
 me ::= & \;\; e(el)_{m} \; | \;
 e{:}n(el)_{m} \; | \;
 {...}_{m}\\
@@ -801,7 +801,6 @@ and $e(el)_{m}$ to denote function applications that return multiple values.
 It uses the same categories for method applications, but only ${...}_{e}$
 and ${...}_{m}$, as the vararg expression cannot appear as a statement.
 
-
 We will present the typing rules as a deduction system for the typing
 relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
 We will use the first one for typing statements, and the sencond one
@@ -816,6 +815,43 @@ The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
 for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that extisted before.
+
+The most unusual feature of our type system is the refinement of
+table types, which is given by the following rule:
+\[
+\begin{array}{c}
+\mylabel{T-REFINE}\\
+\dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique} \;\;\;
+       \env_{1} \vdash x:t_{1}, \env_{2} \;\;\;
+       \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
+      {\env_{1} \vdash n[x] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
+\end{array}
+\]
+
+The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
+or \emph{unique} table types.
+We restricted the keys to literals only because the purpose of
+this rule is to make it easier to add new fields to table types
+that represent records.
+We also do not allow changing the type of a field that is already
+in the table because this could lead to loosen table types that
+have no static type checking. 
+For instance, Typed Lua allows us to write the following code:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$t[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{1}{l}{$t[``y"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
+but it does not allow us to write the following code:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$t[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{1}{l}{$t[``x"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
 
 Lua has operator overloading, and allows the programmers to redefine
 the behavior of some operations.
@@ -883,11 +919,11 @@ function applications, as the following example shows:
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; m:\Void \rightarrow \Integer \times \String =$} \\
 & \multicolumn{3}{l}{$\mathbf{fun} \; ():\Integer \times \String$} \\
-& & \multicolumn{2}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; 2, ``foo"$} \\
+& & \multicolumn{2}{l}{$\mathbf{return} \; 2, ``foo"$} \\
 \multicolumn{4}{l}{$\mathbf{in}$} \\
 & \multicolumn{3}{l}{$\mathbf{local} \; s:\Integer \times \Integer \rightarrow \Integer =$} \\
 & & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer, y:\Integer):\Integer$} \\
-& & & \multicolumn{1}{l}{$\mathbf{skip} \;;\; \mathbf{return} \; x + y$} \\
+& & & \multicolumn{1}{l}{$\mathbf{return} \; x + y$} \\
 & \multicolumn{3}{l}{$\mathbf{in} \; s(m()_{e}, m()_{m})_{s}$}
 \end{tabular}
 \end{center}
@@ -1132,16 +1168,6 @@ Table type as record (third example).
 \multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
 \end{tabular}
 \end{center}
-
-Refinement of table types (first example).
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{open} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$t[``f"] \; {<}\String{>} = ``Lou";$}\\
-& \multicolumn{1}{l}{$t[``l"] \; {<}\String{>} = ``Reed";$}\\
-\end{tabular}
-\end{center}
-
 
 Refinement of table types (second example).
 \begin{center}

@@ -26,13 +26,9 @@ type Vararg = (Bool,TType)
 
 data Stm = SSkip
   | SSeq Stm Stm
---  | SLocal (Id,[Id]) [Exp] Stm
   | SLocal (Id,[Id]) ExpList0 Stm
---  | SAss (LHS,[LHS]) (Exp,[Exp])
   | SAss (LHS,[LHS]) ExpList1
---  | SRet [Exp]
   | SRet ExpList0
---  | SApp Exp [Exp]
   | SApp Exp ExpList0
   deriving (Show)
 
@@ -138,27 +134,13 @@ checkStm SSkip g = TVoid
 checkStm (SSeq s1 s2) g = case checkStm s1 g of
   TVoid -> checkStm s2 g
   _ -> error("seq: ")
---checkStm (SLocal (id,idl) el s) g = if subtype2 (checkExpList el g) (idlist2tuple (id:idl))
---                                    then checkStm s (updateEnv (id:idl) g)
---                                    else error("local: " ++ (show (checkExpList el g)) ++ " </: " ++ (show (idlist2tuple (id:idl))))
 checkStm (SLocal (id,idl) el s) g = if subtype2 (checkExpList0 el g) (idlist2tuple (id:idl))
                                     then checkStm s (updateEnv (id:idl) g)
                                     else error("local: " ++ (show (checkExpList0 el g)) ++ " </: " ++ (show (idlist2tuple (id:idl))))
---checkStm (SAss (l,ll) (e,el)) g = if subtype2 (checkExpList (e:el) g) (checkVarList (l:ll) g)
---                                  then TVoid
---                                  else error("assign: " ++ (show (checkExpList (e:el) g)) ++ " </: " ++ (show (checkVarList (l:ll) g)))
 checkStm (SAss (l,ll) el) g = if subtype2 (checkExpList1 el g) (checkVarList (l:ll) g)
                                   then TVoid
                                   else error("assign: " ++ (show (checkExpList1 el g)) ++ " </: " ++ (show (checkVarList (l:ll) g)))
---checkStm (SRet el) g = checkExpList el g
 checkStm (SRet el) g = checkExpList0 el g
---checkStm (SApp e el) g = case g "strict" of
---  TNil -> case checkExp e g of
---            (TFunction p r) -> if subtype2 (checkExpList el g) p
---                               then TVoid
---                               else error("app_{s}: " ++ show(checkExpList el g) ++ " </: " ++ show(p))
---  TTrue -> TVoid
---  e -> error(show(e))
 checkStm (SApp e el) g = case checkMApp e el g of
   TVoid -> TVoid
   TVararg t -> TVoid
@@ -221,10 +203,6 @@ checkMApp e el g = case g "strict" of
               e -> error("app_{?}: " ++ show(e))
   e -> error(show(e))
 
---checkExpList :: [Exp] -> Env -> SType
---checkExpList [] _ = TVararg TNil
---checkExpList (e:es) g = TTuple (checkExp e g) (checkExpList es g)
-
 checkExpList0 :: ExpList0 -> Env -> SType
 checkExpList0 ZNothing _ = TVararg TNil
 checkExpList0 (OEL el) g = checkExpList1 el g
@@ -242,14 +220,6 @@ checkArgList1 :: ExpList1 -> Env -> SType
 checkArgList1 (OExp e) g = TType (checkExp e g)
 checkArgList1 (OMExp m) g = checkMExp m g
 checkArgList1 (LExp e l) g = TTuple (checkExp e g) (checkArgList1 l g)
-
---checkArgList :: [Exp] -> Env -> SType
---checkArgList [] _ = TVoid
---checkArgList (e:es) g = checkArgList1 (checkExp e g) es g
-
---checkArgList1 :: TType -> [Exp] -> Env -> SType
---checkArgList1 t [] g = TType t
---checkArglist1 t (e:es) g = TTuple t (checkArgList1 (checkExp e g) es g)
 
 adjustTuple :: SType -> SType -> SType
 adjustTuple TVoid TVoid = TVoid

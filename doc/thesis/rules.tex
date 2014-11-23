@@ -328,32 +328,14 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-STMCALL1}
 \[
-\dfrac{\env_{1} \vdash e:p_{1} \rightarrow r_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el)_{s}:\env_{3}}
-\]
-
-\mylabel{T-STMCALL2}
-\[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e(el)_{s}:\env_{3}}
+\dfrac{\env_{1} \vdash e(el)_{m}:r, \env_{2}}
+      {\env_{1} \vdash e(el)_{s}:\env_{2}}
 \]
 
 \mylabel{T-STMINVOKE1}
 \[
-\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el)_{s}:\env_{3}}
-\]
-
-\mylabel{T-STMINVOKE2}
-\[
-\dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el)_{s}:\env_{3}}
+\dfrac{\env_{1} \vdash e{:}n(el)_{m}:r, \env_{2}}
+      {\env_{1} \vdash e{:}n(el)_{s}:\env_{2}}
 \]
 
 \mylabel{T-NIL}
@@ -447,106 +429,19 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-CONSTRUCTOR3}
 \[
-\dfrac{\env \vdash e:v_{i}, \env_{i} \;\;\;
-       n = |\;\vec{e}\;| \;\;\;
-       wf(\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique})}
-      {\env \vdash \{\;\vec{e}\;\}:\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique}, \env}
+\dfrac{\env \vdash {...}:t, \env}
+      {\env \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
 \]
 
 \mylabel{T-CONSTRUCTOR4}
 \[
-\dfrac{\env \vdash me:v_{1} \times ... \times v_{n}, \env \;\;\;
-       wf(\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique})}
-      {\env \vdash \{me\}:\{1{:}v_{1}, ..., n{:}v_{n}\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR5}
-\[
-\dfrac{\env \vdash me:v{*}, \env \;\;\;
-       wf(\{\Integer{:}v \cup \Nil\}_{unique})}
-      {\env \vdash \{me\}:\{\Integer{:}v \cup \Nil\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR6}
-\[
 \dfrac{\begin{array}{c}
        \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash e:v_{i}, \env_{i} \;\;\;
-       n = |\;\vec{c}\;| \;\;\;
-       m = |\;\vec{e}\;|\\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{c},\;\vec{e}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR7}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v_{n+1} \times ... \times v_{m}, \env \;\;\;
+       \env \vdash {...}:t, \env \;\;\;
        n = |\;\vec{c}\;| \\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t \cup \Nil\}_{unique})
        \end{array}}
-      {\env \vdash \{\;\vec{c},\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR8}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v{*}, \env \;\;\;
-       n = |\;\vec{c}\;| \\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{c},\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR9}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash e:v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v_{m+1} \times ... \times v_{o}, \env \;\;\;
-       n = |\;\vec{c}\;| \;\;\;
-       m = |\;\vec{e}\;|\\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, m+1{:}v_{m+1}, ..., o{:}v_{o}\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{c},\;\vec{e}\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, m+1{:}v_{m+1}, ..., o{:}v_{o}\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR10}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash e:v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v{*}, \env \;\;\;
-       n = |\;\vec{c}\;| \;\;\;
-       m = |\;\vec{e}\;|\\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, \Integer{:}v \cup \Nil\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{c},\;\vec{e}\;me\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}, \Integer{:}v \cup \Nil\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR11}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash e:v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v_{n+1} \times ... \times v_{m}, \env \;\;\;
-       n = |\;\vec{e}\;| \\
-       wf(\{1{:}v_{1}, ..., n{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{e},\;me\;\}:\{1{:}v_{1}, ..., n{:}v_{n}, n+1{:}v_{n+1}, ..., m{:}v_{m}\}_{unique}, \env}
-\]
-
-\mylabel{T-CONSTRUCTOR12}
-\[
-\dfrac{\begin{array}{c}
-       \env \vdash e:v_{i}, \env_{i} \;\;\;
-       \env \vdash me:v{*}, \env \;\;\;
-       n = |\;\vec{e}\;| \\
-       wf(\{1{:}v_{1}, ..., n{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique})
-       \end{array}}
-      {\env \vdash \{\;\vec{e},\;me\;\}:\{1{:}v_{1}, ..., n{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+      {\env \vdash \{\;\vec{c},\;{...}_{m}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
 \]
 
 \mylabel{T-ARITH1}
@@ -786,32 +681,14 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-EXPAPPLY1}
 \[
-\dfrac{\env_{1} \vdash e:p_{1} \rightarrow r, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el)_{e}:first(r), \env_{3}}
-\]
-
-\mylabel{T-EXPAPPLY2}
-\[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e_{1}(\vec{e_{2}})_{e}:\Any, \env_{3}}
+\dfrac{\env_{1} \vdash e(el)_{m}:r, \env_{2}}
+      {\env_{1} \vdash e(el)_{e}:first(r), \env_{2}}
 \]
 
 \mylabel{T-EXPINVOKE1}
 \[
-\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el)_{e}:first(r), \env_{3}}
-\]
-
-\mylabel{T-EXPINVOKE2}
-\[
-\dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el)_{e}:\Any, \env_{3}}
+\dfrac{\env_{1} \vdash e{:}n(el)_{m}:r, \env_{2}}
+      {\env_{1} \vdash e{:}n(el)_{e}:first(r), \env_{2}}
 \]
 
 \mylabel{T-CAST}
@@ -885,16 +762,54 @@ This appendix presents the complete type system of Typed Lua.
 \[
 \dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
        n = |\vec{e}|}
-      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n}, merge(\env_{1}, ..., \env_{n})}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, merge(\env_{1}, ..., \env_{n})}
 \]
 
 \mylabel{T-EXPLIST3}
 \[
-\dfrac{\env \vdash me:r, \env_{1}}
-      {\env \vdash me:r, \env_{1}}
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{1}}
 \]
 
 \mylabel{T-EXPLIST4}
+\[
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+\]
+
+\mylabel{T-EXPLIST5}
+\[
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       \env \vdash me:r, \env_{n + 1} \;\;\;
+       n = |\vec{e}|}
+      {\env \vdash \vec{e}, me:t_{1} \times ... \times t_{n} \times r, merge(\env_{1}, ..., \env_{n+1})}
+\]
+
+\mylabel{T-EXPLISTSTRICT1}
+\[
+\env \vdash \mathbf{nothing}:\Void, \env
+\]
+
+\mylabel{T-EXPLISTSTRICT2}
+\[
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       n = |\vec{e}|}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n}, merge(\env_{1}, ..., \env_{n})}
+\]
+
+\mylabel{T-EXPLISTSTRICT3}
+\[
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
+\]
+
+\mylabel{T-EXPLISTSTRICT4}
+\[
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+\]
+
+\mylabel{T-EXPLISTSTRICT5}
 \[
 \dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
        \env \vdash me:r, \env_{n + 1} \;\;\;
@@ -907,14 +822,14 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\env_{1} \vdash e:p_{1} \rightarrow r, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el):r, \env_{3}}
+      {\env_{1} \vdash e(el)_{m}:r, \env_{3}}
 \]
 
 \mylabel{T-APPLY2}
 \[
 \dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e_{1}(\vec{e_{2}}):\Any{*}, \env_{3}}
+      {\env_{1} \vdash e_{1}(el)_{m}:\Any{*}, \env_{3}}
 \]
 
 \mylabel{T-INVOKE1}
@@ -922,19 +837,19 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
        \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el):r, \env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{3}}
 \]
 
 \mylabel{T-INVOKE2}
 \[
 \dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el):\Any{*}, \env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{m}:\Any{*}, \env_{3}}
 \]
 
 \mylabel{T-DOTS}
 \[
 \dfrac{\env_{1}({...}) = t}
-      {\env_{1} \vdash {...}:t{*}, \env_{1}}
+      {\env_{1} \vdash {...}_{m}:t{*}, \env_{1}}
 \]
 
