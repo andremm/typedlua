@@ -732,7 +732,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-INDEX1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{1} \;\;\;
+\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
        \exists i \in 1{..}n \; t \lesssim k_{i}}
       {\env_{1} \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
@@ -834,15 +834,16 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-INVOKE1}
 \[
-\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+       \env_{2} \vdash e[n]:[\Self \mapsto t]p_{1} \rightarrow r, \env_{3} \;\;\;
+       \env_{3} \vdash el:p_{2}, \env_{4} \;\;\;
        p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{3}}
+      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{4}}
 \]
 
 \mylabel{T-INVOKE2}
 \[
-\dfrac{\env_{1} \vdash e[n]:\Any, \env_{2} \;\;\;
+\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
        \env_{2} \vdash el:p, \env_{3}}
       {\env_{1} \vdash e{:}n(el)_{m}:\Any{*}, \env_{3}}
 \]

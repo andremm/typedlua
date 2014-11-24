@@ -817,7 +817,7 @@ variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that extisted before.
 
 The most unusual feature of our type system is the refinement of
-table types, which is given by the following rule:
+table types:
 \[
 \begin{array}{c}
 \mylabel{T-REFINE}\\
@@ -850,6 +850,251 @@ but it does not allow us to write the following code:
 \multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
 & \multicolumn{1}{l}{$t[``x"] \; {<}\String{>} = ``foo";$}\\
 & \multicolumn{1}{l}{$t[``x"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
+
+This example also uses the rule \textsc{T-CONSTRUCTOR1} to
+infer the type of the empty table constructor:
+\[
+\begin{array}{c}
+\mylabel{T-CONSTRUCTOR1}\\
+\env \vdash \{\}:\{\}_{unique}, \env
+\end{array}
+\]
+
+Typed Lua also has inference rules to infer table types that we
+can use to initialize hashes, arrays, and records:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-CONSTRUCTOR2}\\
+\dfrac{\env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       n = |\;\vec{c}\;| \;\;\;
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique})}
+      {\env \vdash \{\;\vec{c}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}, \env}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-CONSTRUCTOR3}\\
+\dfrac{\env \vdash {...}:t, \env}
+      {\env \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-CONSTRUCTOR4}\\
+\dfrac{\begin{array}{c}
+       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
+       \env \vdash {...}:t, \env \;\;\;
+       n = |\;\vec{c}\;| \\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t \cup \Nil\}_{unique})
+       \end{array}}
+      {\env \vdash \{\;\vec{c},\;{...}_{m}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{T-CONSTRUCTOR2} type checks the following example:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\String:\Integer \cup \Nil\}_{closed} = \{ [``x"] = 1, [``y"] = 2 \} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; b:\Integer \cup \Nil = a[``x"] \; \mathbf{in} \; x = a[``z"]$}
+\end{tabular}
+\end{center}
+
+It also uses the rules \textsc{T-FIELD1} and \textsc{T-FIELD2}:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-FIELD1}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Boolean \cup \Number \cup \String}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}:super(t_{2}), \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-FIELD2}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\subtype t_{1}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: \Any:super(t_{2}), \env_{3}}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{T-FIELD1} infers fields that keys are subype
+of $\Boolean$, $\Number$, or $\String$.
+The rule \textsc{T-FIELD2} infers fields thaty keys have the
+dynamic type if its type does not include $\Nil$.
+
+Typed Lua handles arrays as hashes that maps $\Integer$ to some
+type $t$.
+We did not include in the abstract syntax tree the simplified
+syntax of table consturctors that initializes arrays because
+we can write it using explicit indices.
+For instance, we write the table constructor
+$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to mean the table constructor
+$\{ ``x", ``y", ``z" \}$.
+We chose to make this simplification because the inference rules
+for the simpflified version does not include anything new.
+They are the same rules that just automatically control the indices.
+For the same reason, we also omitted in the table constructor expressions
+that return multiple results.
+However, we did not omit the vararg expression in the last position
+to show the case that we infer a record with an array part.
+
+The rule \textsc{T-CONSTRUCTOR3} type checks the following example:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\Integer:\String \cup \Nil\}_{closed} = \{ {...}_{m} \} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; b:\String \cup \Nil = t[1] \; \mathbf{in} \; b = t[5]$}
+\end{tabular}
+\end{center}
+
+We are assuming that $...$ is in the environment as has type $\String$.
+
+The rule \textsc{T-CONSTRUCTOR4} type checks the following example:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{``x":\Integer, ``y":\Boolean, \Integer:\String \cup \Nil\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``x"] = ``foo", [``y"] = \mathbf{true}, {...}_{m} \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; a[``x"] = ``bar"$}
+\end{tabular}
+\end{center}
+
+We are also assuming that $...$ is in the environment as has type $\String$.
+
+These rules along \emph{unique} table types also allow us initialize
+record types that have optional fields.
+We can include the optional field in the initialization
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{``x":\String, ``y":\String \cup \Nil, ``z":\String\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``x"] = ``foo", [``y"] = ``bar", [``z"] = ``baz" \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
+\end{tabular}
+\end{center}
+and we can also ommit it
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{``x":\String, ``y":\String \cup \Nil, ``z":\String\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [``x"] = ``foo", [``z"] = ``baz" \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
+\end{tabular}
+\end{center}
+
+Typed Lua also keeps track whether it is safe or not safe to
+change the type of a table.
+To do that, our type system always promotes an \emph{open}
+table to \emph{closed} and an \emph{unique} table to \emph{open}
+when they appear as expressions.
+The order also matters, as going from \emph{unique} to \emph{open}
+before going from \emph{open} to \emph{closed} closes \emph{unique} tables.
+The rule \textsc{T-IDREAD} along with the predicate \emph{close}
+express this intuition:
+\[
+\begin{array}{c}
+\mylabel{T-IDREAD}\\
+\dfrac{\env_{1}(n_{r}) = t}
+      {\env_{1} \vdash n_{r}:close(t), \env_{1}}
+\end{array}
+\]
+
+The rule \textsc{T-IDREAD} makes this unsafe example not type check:
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; a:\{``x":\String \cup \Nil\}_{closed} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String \}_{unique} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
+& & \multicolumn{1}{l}{$a = b \;;\; a[``x"] = \mathbf{nil}$}
+\end{tabular}
+\end{center}
+
+The assignment $a = b$ is not valid because the aliasing changed the
+type of $b$ from $\{``x":\String\}_{unique}$ to $\{``x":\String\}_{open}$,
+which is not subtype of $\{``x":\String \cup \Nil\}_{closed}$.
+
+However, sometimes we want to use \emph{unique} tables to initialize
+closed tables, as they allow us to initialize optional fields.
+To do that, Typed Lua includes a cast expression that allow us
+to use the \emph{unique} table type before it becomes \emph{open}.
+The rule \textsc{T-CAST} describes this behavior:
+\[
+\begin{array}{c}
+\mylabel{T-CAST}\\
+\dfrac{t \subtype \env_{1}(n)}
+      {\env_{1} \vdash {<}t{>} \; n:t, \env_{1}[n \mapsto t]}
+\end{array}
+\]
+
+The rule \textsc{T-CAST} allow us to type check the following example:
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{2}{l}{$a[``y"] \; {<}\String{>} = ``bar";$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{closed} =$}\\
+& & \multicolumn{1}{l}{${<}\{``x":\String, ``y":\String \cup \Nil\}_{open}{>} \; a \; \mathbf{in} \; a[``z"] \; {<}\Integer{>} = 1$}
+\end{tabular}
+\end{center}
+
+We can use $a$ to initialize $b$ because the cast expression converts
+the type of $a$ from $\{``x":\String, ``y":\String\}_{unique}$ to
+$\{``x":\String, ``y":\String \cup \Nil\}_{open}$, which is subtype of
+$\{``x":\String, ``y":\String \cup \Nil\}_{closed}$.
+We can continue to refine the type of $a$ after the aliasing,
+as it still holds an \emph{open} table.
+At the end of this example, $a$ has type
+$\{``x":\String, ``y":\String \cup \Nil, ``z":\Integer\}_{open}$.
+
+Refinement of table types (second example).
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{open} = a \; \mathbf{in}$}\\
+& & \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& & \multicolumn{1}{l}{$b[``x"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
+
+Typed Lua uses the refinement of table types to express an object-oriented
+idioms that is commonly used by Lua programmers.
+\[
+\begin{array}{c}
+\mylabel{T-METHOD3}\\
+\dfrac{\begin{array}{c}
+       \env_{1}(n_{1}) = \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{unique|open} \;\;\;
+       \env_{1} \vdash n_{2} : l \;\;\;
+       \not \exists i \in 1..n \; l \lesssim k_{i}\\
+       closeall(\env_{1}[self \mapsto \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed}, \vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}
+       \end{array}}
+      {\begin{array}{c}
+       \env_{1} \vdash \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; s:\\
+       closeset(\env_{1}[n_{1} \mapsto \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, l{:}\Const \; \Self \times \vec{t} \rightarrow r\}_{unique|closed}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
+       \end{array}}
+\end{array}
+\]
+
+\[
+\begin{array}{c}
+\mylabel{T-INVOKE1}\\
+\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
+       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
+       \Self \times p_{2} \lesssim p_{1}}
+      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{3}}
+\end{array}
+\]
+
+\begin{center}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{open} = \{ [``x"] = 0.0, [``y"] = 0.0 \}$}\\
+\multicolumn{4}{l}{$\mathbf{in}$}\\
+& \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:number, y:number):\Self$}\\
+& & \multicolumn{2}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{closed} =$}\\
+& & & \multicolumn{1}{l}{$setmetatable(\{\}, \{ [``\string_\string_index"] = self \})$}\\
+& & \multicolumn{2}{l}{$\mathbf{in} \; s[``x"] = x; \; s[``y"] = y; \; \mathbf{return} \; s$}\\
+; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:number, y:number):\Void$}\\
+& & \multicolumn{2}{l}{$self[``x"] = self[``x"] + x;$}\\
+& & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y$}
 \end{tabular}
 \end{center}
 
@@ -1126,71 +1371,4 @@ $\Integer \times \Integer \rightarrow \Integer \times \Integer \sqcup \Nil \time
 and
 $\Value{*} \rightarrow \Void$.
 
-Table type as hash.
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{\String:\Integer \cup \Nil\}_{closed} = \{ [``foo"] = 1 \} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{local} \; x:\Integer \cup \Nil = t[``foo"] \; \mathbf{in} \; x = t[``bar"]$}
-\end{tabular}
-\end{center}
-
-Table type as array.
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{\Integer:\String \cup \Nil\}_{closed} = \{ ``a", ``b", ``c" \} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{local} \; x:\String \cup \Nil = t[1] \; \mathbf{in} \; x = t[4]$}
-\end{tabular}
-\end{center}
-
-Table type as record (first example).
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``l":\String\}_{closed} =$}\\
-& \multicolumn{1}{l}{$\{ [``l"] = ``Reed", [``f"] = ``Lou" \}$}\\
-\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
-\end{tabular}
-\end{center}
-
-Table type as record (second example).
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``m":\String \cup \Nil, ``l":\String\}_{closed} =$}\\
-& \multicolumn{1}{l}{$\{ [``f"] = ``Lewis", [``m"] = ``Allan", [``l"] = ``Reed" \}$}\\
-\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
-\end{tabular}
-\end{center}
-
-Table type as record (third example).
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{``f":\String, ``m":\String \cup \Nil, ``l":\String\}_{closed} =$}\\
-& \multicolumn{1}{l}{$\{ [``f"] = ``Lou", [``l"] = ``Reed" \}$}\\
-\multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
-\end{tabular}
-\end{center}
-
-Refinement of table types (second example).
-\begin{center}
-\begin{tabular}{lll}
-\multicolumn{3}{l}{$\mathbf{local} \; t:\{\}_{open} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{open} = p \; \mathbf{in}$}\\
-& & \multicolumn{1}{l}{$t[``f"] \; {<}\String{>} = ``Lou";$}\\
-& & \multicolumn{1}{l}{$t[``l"] \; {<}\String{>} = ``Reed";$}\\
-\end{tabular}
-\end{center}
-
-Objects.
-\begin{center}
-\begin{tabular}{llll}
-\multicolumn{4}{l}{$\mathbf{local} \; s:\{``x:"\Number, ``y":\Number\}_{open} = \{ [``x"] = 0.0, [``y"] = 0.0 \}$}\\
-\multicolumn{4}{l}{$\mathbf{in}$}\\
-& \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:number, y:number):\Self$}\\
-& & \multicolumn{2}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{closed} =$}\\
-& & & \multicolumn{1}{l}{$setmetatable(\{\}, \{ [``\string_\string_index"] = self \}$}\\
-& & \multicolumn{2}{l}{$\mathbf{in} \; s[``x"] = x; \; s[``y"] = y; \; \mathbf{return} \; s$}\\
-; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:number, y:number):\Void$}\\
-& & \multicolumn{2}{l}{$self[``x"] = self[``x"] + x;$}\\
-& & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y$}
-\end{tabular}
-\end{center}
 
