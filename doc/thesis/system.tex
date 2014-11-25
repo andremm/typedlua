@@ -715,24 +715,26 @@ $$
 \begin{array}{rl}
 s ::= & \;\; \mathbf{skip} \; | \;
 s_{1} \; ; \; s_{2} \; | \;
-ll = el_{1} \; | \;
+\vec{l} = el \; | \;
 m \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = el_{0} \; \mathbf{in} \; s \; | \;
+& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
 \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; el\\
-& | \; e(el)_{s} \; | \;
+\mathbf{return} \; el \; | \;
+e(el)_{s} \; | \;
 e{:}n(el)_{s}\\
 e ::= & \;\; \mathbf{nil} \; | \;
-x \; | \;
+c \; | \;
 {...}_{e} \; | \;
 n \; | \;
 e_{1}[e_{2}] \; | \;
 {<}t{>} \; n \; | \;
 f \; | \;
 \{ \} \; | \;
-\{ \; cl \; \} \\
+\{ \; \vec{p} \; \} \; | \;
+\{ \; {...}_{m} \; \} \; | \;
+\{ \; \vec{p},{...}_{m} \; \}\\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -744,36 +746,31 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 \# \; e \; | \;
 e(el)_{e} \; | \;
 e{:}n(el)_{e}\\
-x ::= & \;\; \mathbf{false} \; | \;
+l ::= & \;\; n \; | \;
+e_{1}[e_{2}] \; | \;
+n[c] \; {<}t{>}\\
+c ::= & \;\; \mathbf{false} \; | \;
 \mathbf{true} \; | \;
 {\it int} \; | \;
 {\it float} \; | \;
 {\it string}\\
-l ::= & \;\; n \; | \;
-e_{1}[e_{2}] \; | \;
-n[e] \; {<}t{>}\\
-ll ::= & \;\; \vec{l}\\
-el_{0} ::= & \;\; \mathbf{nothing} \; | \;
-el_{1}\\
-el_{1} ::= & \;\; \vec{e} \; | \;
+p ::= & \;\; [e_{1}] = e_{2}\\
+el ::= & \;\; \mathbf{nothing} \; | \;
+\vec{e} \; | \;
 me \; | \;
 \vec{e}, me\\
-el ::= & \;\; el_{0}\\
-cl ::= & \;\; \vec{c} \; | \;
-{...}_{m} \; | \;
-\vec{c}, {...}_{m}\\
 me ::= & \;\; e(el)_{m} \; | \;
 e{:}n(el)_{m} \; | \;
 {...}_{m}\\
-m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
-f ::= & \;\; \mathbf{fun} \; (){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; ({...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; (\vec{n{:}t}){:}r \; s \; ; \; \mathbf{return} \; el\\
-& | \; \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s \; ; \; \mathbf{return} \; el\\
-c ::= & \;\; [e_{1}] = e_{2}\\
+m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; fb \; | \;
+\mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; fb\\
+& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; fb \; | \;
+\mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
+f ::= & \;\; \mathbf{fun} \; (){:}r \; fb \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; fb \; | \;
+\mathbf{fun} \; (\vec{n{:}t}){:}r \; fb \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
+fb ::= & \;\; s \;;\; \mathbf{return} \; el\\
 n ::= & \;\; {\it name}\\
 \end{array}
 $$
@@ -817,44 +814,150 @@ variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that extisted before.
 
 The most unusual feature of our type system is the refinement of
-table types:
+table types.
+The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
+and \emph{unique} table types:
 \[
 \begin{array}{c}
 \mylabel{T-REFINE}\\
 \dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique} \;\;\;
-       \env_{1} \vdash x:t_{1}, \env_{2} \;\;\;
+       \env_{1} \vdash c:t_{1}, \env_{2} \;\;\;
        \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
-      {\env_{1} \vdash n[x] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
+      {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
 \end{array}
 \]
 
-The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
-or \emph{unique} table types.
-We restricted the keys to literals only because the purpose of
-this rule is to make it easier to add new fields to table types
-that represent records.
-We also do not allow changing the type of a field that is already
-in the table because this could lead to loosen table types that
-have no static type checking. 
-For instance, Typed Lua allows us to write the following code:
+We restricted the refinement of table types to include only literal
+keys because its purpose is to make it easier the construction of
+table types that represent records.
+For instance, 
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$t[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{1}{l}{$t[``y"] \; {<}\Integer{>} = 1$}\\
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{1}{l}{$a[``y"] \; {<}\Integer{>} = 1$}\\
 \end{tabular}
 \end{center}
-but it does not allow us to write the following code:
+uses field assignment to add fields $x$ and $y$ to the local $a$.
+After these field assignments $a$ has type
+$\{``x":\String, ``y":\Integer\}_{unique}$.
+
+We do not allow the refinement of table types to change the type of
+a field that is already present in the table type.
+For instance,
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; t:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$t[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{1}{l}{$t[``x"] \; {<}\Integer{>} = 1$}\\
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{1}{l}{$a[``x"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
+do not type check, as we are trying to change the type of field
+``x" from $\String$ to $\String \cup \Integer$.
+More precisely, our type system does not allow the table type to
+change towards a type that is not a subtype of the previous type.
+In this example,
+$\{``x":\String \cup \Integer\}_{unique} \not\subtype \{``x":\String\}_{unique}$.
+We have this restriction because this kind of refinement could lead
+to fields that have a too general type.
+
+\textit{/* We need to close table types before assigning them to fields. */}
+\begin{center}
+\begin{tabular}{l}
+$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in} \; a[``x"] \; {<}\{\}_{closed}{>} = \{\}$
 \end{tabular}
 \end{center}
 
-This example also uses the rule \textsc{T-CONSTRUCTOR1} to
-infer the type of the empty table constructor:
+Lua has multiple assignments, so Typed Lua also has to take this into
+consideration while refining table types.
+The rule \textsc{T-ASSINGMENT} shows that tuple types make it easy
+to use the consistent-subtyping relation to check multiple assignments:
+\[
+\begin{array}{c}
+\mylabel{T-ASSIGNMENT}\\
+\begin{array}{c}
+\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
+       r_{1} \lesssim r_{2}}
+      {\env_{1} \vdash \vec{l} = el:\env_{3}}
+\end{array}
+\end{array}
+\]
+
+This rule is so simple because we left the difficult part to the
+type checking of expression lists.
+The list of left-hand values is also a kind of expression list.
+The difficult part is to check whether there is an expression in
+the expression list that messes the environment, and the rule
+\textsc{T-LHSLIST} captures this intuition:
+\[
+\begin{array}{c}
+\mylabel{T-LHSLIST}\\
+\dfrac{\env \vdash l_{k}:t_{k}, \env_{k} \;\;\;
+       merge(\env_{1}, ..., \env_{n}) = \env_{m} \;\;\;
+       n = |\;\vec{l}\;|}
+      {\env \vdash \vec{l}:t_{1} \times ... \times t_{n} \times \Value{*}, \env_{m}}
+\end{array}
+\]
+
+First, this rule uses the same environment $\env$ to type check each
+left-hand side value $l_{k}$, as they can perform different changes
+to the environment.
+Then, it takes each type $t_{k}$ and builds the tuple type for
+the assignment rule.
+It places the type $\Value{*}$ in the end to discard extra values.
+The rule succeeds if the predicate \emph{merge} can
+produce a new environment, which includes all the modifications
+of each environment $\env_{k}$.
+Intuitively, the predicate \emph{merge} fails when an environment
+tries to change the type of a variable towards a type that is not
+a subtype of its previous type.
+
+We can also use multiple assignments to refine table types:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>}, a[``y"] \; {<}\Integer{>} = ``foo", 1$}\\
+\end{tabular}
+\end{center}
+
+This example type checks because all the environment changes are consistent, and
+$``foo" \times 1 \times \Nil{*} \lesssim \String \times \Integer \times \Value{*}$.
+The type of the expression list includes the type $\Nil{*}$ in the end
+because our type system has typing rules to add this type when
+the type of the expression list does not end with a variadic type.
+Our type system has this behavior to use $\Nil$ in the place of missing
+values, like Lua does.
+This example uses the rule \textsc{T-EXPLIST2}, which is really close
+to the rule \textsc{T-LHSLIST}:
+\[
+\begin{array}{c}
+\mylabel{T-EXPLIST2}\\
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       merge(\env_{1}, ..., \env_{n}) = \env_{m} \;\;\;
+       n = |\;\vec{e}\;|}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{m}}
+\end{array}
+\]
+
+The next example does not type check because it tries to add
+the same field to $a$:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>}, a[``x"] \; {<}\Integer{>} = ``foo", 1$}\\
+\end{tabular}
+\end{center}
+
+Typed Lua also keeps track whether it is safe or not safe to
+change the type of a table, but before discussing this subject,
+we will discuss the different table constructors that our
+abstract syntax includes, as they will appear in the next
+examples.
+
+All the examples that we presented until now use the simplest form of
+the table constructor: the empty table $\{\}$.
+Its inference rule is starightforward:
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR1}\\
@@ -862,88 +965,144 @@ infer the type of the empty table constructor:
 \end{array}
 \]
 
-Typed Lua also has inference rules to infer table types that we
-can use to initialize hashes, arrays, and records:
+Our abstract syntax reduces the more complex uses of the table
+constructor into three forms: $\{\;\vec{p}\;\}$, $\{\;{...}_{m}\;\}$,
+and $\{\;\vec{p},{...}_{m}\;\}$.
+The first one uses a list of expression pairs $[e_{1}] = e_{2}$,
+the second one uses just the vararg expression, and the third one uses both.
+We did not include in the abstract syntax a table constructor
+that uses a list of expressions because we can write it using the first form.
+For instance, we can write the table constructor
+$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to mean the table constructor
+$\{ ``x", ``y", ``z" \}$.
+We chose to not include this form because its inference rule is similar
+to the inference rule of the first form, and just controls the type of
+the ommited indices.
+For the same reason we did not include table constructors with
+multiple expressions that can return a tuple type that does not end
+with a variadic type.
+We did include the vararg expression in the last position to show how
+our type system can infer a table type that has a record part and
+also an array part.
+
+The inference rule \textsc{T-CONSTRUCTOR2} infers a table type for
+the first form:
+\[
+\begin{array}{c}
+\mylabel{T-CONSTRUCTOR2}\\
+\dfrac{\env_{i} \vdash p_{i}:k_{i}{:}v_{i}, \env_{i+1} \;\;\;
+       n = |\;\vec{p}\;| \;\;\;
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}) = t}
+      {\env_{1} \vdash \{\;\vec{p}\;\}:t, \env_{n+1}}
+\end{array}
+\]
+
+This inference rule infers the type of each pair, uses these types
+to build a table type, and uses the predicate \emph{wf} to check
+whether the table type is well formed.
+We gave the definition of this predicate in the last section.
+
+The inference rules for expression pairs would be straightforward
+if our table types allowed any type in the keys.
+The rules \textsc{T-PAIR1}, \textsc{T-PAIR2}, and \textsc{T-PAIR3}
+check if the type of the key is a $\Boolean$, a $\Number$,
+or a $\String$, respectively:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{T-CONSTRUCTOR2}\\
-\dfrac{\env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       n = |\;\vec{c}\;| \;\;\;
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique})}
-      {\env \vdash \{\;\vec{c}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}, \env}
+\mylabel{T-PAIR1}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Boolean}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
+\mylabel{T-PAIR2}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Number}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{T-PAIR3}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \String}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{T-PAIR4} is a fallback for the previous rules,
+but it works only if the type of the key does not include $\Nil$:
+\[
+\begin{array}{c}
+\mylabel{T-PAIR4}\\
+\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\subtype t_{1}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: \Any{:}t_{2}, \env_{3}}
+\end{array}
+\]
+
+The rule \textsc{T-CONSTRUCTOR2} along with the rules for expression
+pairs allow Typed Lua to type check the following example:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{\String:\Integer \cup \Nil\}_{closed} = \{ [``x"] = 1, [``y"] = 2 \} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{local} \; b:\Integer \cup \Nil = a[``x"] \; \mathbf{in} \; b = a[``z"]$}
+\end{tabular}
+\end{center}
+
+This example type checks because Typed Lua infers the table type
+$\{``x":1, ``y":2\}_{unique}$, which is subtype of
+$\{\String:\Integer \cup \Nil\}_{closed}$.
+Even though the key $``z"$ does not exist in the table $a$,
+the two table indexations type check with type $\Integer \cup \Nil$,
+which is subtype of the type of $b$.
+The rule \textsc{T-INDEX1} describes this behavior:
+\[
+\begin{array}{c}
+\mylabel{T-INDEX1}\\
+\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; t \lesssim k_{i}}
+      {\env_{1} \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
+\end{array}
+\]
+
+Typed Lua handles arrays as hashes that maps integers to some type $t$.
+In Lua, programmers often use the vararg expression to initialize arrays.
+The rules \textsc{T-CONSTRUCTOR3} and \textsc{T-CONSTRUCTOR4} define
+the behavior of the vararg expression for this case:
+\[
+\begin{array}{c}
+\begin{array}{c}
 \mylabel{T-CONSTRUCTOR3}\\
-\dfrac{\env \vdash {...}:t, \env}
-      {\env \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
+\dfrac{\env_{1}({...}) = t}
+      {\env_{1} \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env_{1}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR4}\\
 \dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash {...}:t, \env \;\;\;
-       n = |\;\vec{c}\;| \\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t \cup \Nil\}_{unique})
+       \env_{i} \vdash p_{i}:k_{i}{:}v_{i}, \env_{i+1} \;\;\;
+       n = |\;\vec{p}\;| \;\;\;
+       \env_{i+1}({...}) = t_{v}\\
+       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t_{v} \cup \Nil\}_{unique}) = t_{t}
        \end{array}}
-      {\env \vdash \{\;\vec{c},\;{...}_{m}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+      {\env_{1} \vdash \{\;\vec{p},\;{...}_{m}\;\}:t_{t}, \env_{n+1}}
 \end{array}
 \end{array}
 \]
 
-The rule \textsc{T-CONSTRUCTOR2} type checks the following example:
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; a:\{\String:\Integer \cup \Nil\}_{closed} = \{ [``x"] = 1, [``y"] = 2 \} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{local} \; b:\Integer \cup \Nil = a[``x"] \; \mathbf{in} \; x = a[``z"]$}
-\end{tabular}
-\end{center}
-
-It also uses the rules \textsc{T-FIELD1} and \textsc{T-FIELD2}:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{T-FIELD1}\\
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       t_{1} \subtype \Boolean \cup \Number \cup \String}
-      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}:super(t_{2}), \env_{3}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-FIELD2}\\
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       \Nil \not\subtype t_{1}}
-      {\env_{1} \vdash [e_{1}] = e_{2}: \Any:super(t_{2}), \env_{3}}
-\end{array}
-\end{array}
-\]
-
-The rule \textsc{T-FIELD1} infers fields that keys are subype
-of $\Boolean$, $\Number$, or $\String$.
-The rule \textsc{T-FIELD2} infers fields thaty keys have the
-dynamic type if its type does not include $\Nil$.
-
-Typed Lua handles arrays as hashes that maps $\Integer$ to some
-type $t$.
-We did not include in the abstract syntax tree the simplified
-syntax of table consturctors that initializes arrays because
-we can write it using explicit indices.
-For instance, we write the table constructor
-$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to mean the table constructor
-$\{ ``x", ``y", ``z" \}$.
-We chose to make this simplification because the inference rules
-for the simpflified version does not include anything new.
-They are the same rules that just automatically control the indices.
-For the same reason, we also omitted in the table constructor expressions
-that return multiple results.
-However, we did not omit the vararg expression in the last position
-to show the case that we infer a record with an array part.
-
-The rule \textsc{T-CONSTRUCTOR3} type checks the following example:
+The rule \textsc{T-CONSTRUCTOR3} type checks the case where we use
+only the vararg expression inside a table constructor to initialize
+an array.
+If we assume that the $...$ is in the environment and has type $\String$,
+the following example type checks through this rule:
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; a:\{\Integer:\String \cup \Nil\}_{closed} = \{ {...}_{m} \} \; \mathbf{in}$}\\
@@ -951,9 +1110,10 @@ The rule \textsc{T-CONSTRUCTOR3} type checks the following example:
 \end{tabular}
 \end{center}
 
-We are assuming that $...$ is in the environment as has type $\String$.
-
-The rule \textsc{T-CONSTRUCTOR4} type checks the following example:
+The rule \textsc{T-CONSTRUCTOR4} type checks the case where we use
+the table constructor as a record that includes an array part.
+If we assume that the $...$ is in the environment and has type $\String$,
+the following example type checks through this rule:
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; a:\{``x":\Integer, ``y":\Boolean, \Integer:\String \cup \Nil\}_{closed} =$}\\
@@ -961,11 +1121,19 @@ The rule \textsc{T-CONSTRUCTOR4} type checks the following example:
 \multicolumn{2}{l}{$\mathbf{in} \; a[``x"] = ``bar"$}
 \end{tabular}
 \end{center}
+but the next example does not type check because the record part
+includes fields that the key types are subtype of the array part:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; a:\{1:\String, 10:\Boolean, \Integer:\String \cup \Nil\}_{closed} =$}\\
+& \multicolumn{1}{l}{$\{ [1] = ``foo", [10] = \mathbf{true}, {...}_{m} \}$}\\
+\multicolumn{2}{l}{$\mathbf{in} \; a[``x"] = ``bar"$}
+\end{tabular}
+\end{center}
 
-We are also assuming that $...$ is in the environment as has type $\String$.
-
-These rules along \emph{unique} table types also allow us initialize
-record types that have optional fields.
+Making the inference rules of the table constructor infer an \emph{unique}
+table type also allow us to use them for initializing record types that
+have optional fields.
 We can include the optional field in the initialization
 \begin{center}
 \begin{tabular}{ll}
@@ -974,7 +1142,7 @@ We can include the optional field in the initialization
 \multicolumn{2}{l}{$\mathbf{in} \; \mathbf{skip}$}
 \end{tabular}
 \end{center}
-and we can also ommit it
+and we can also omit it in the initialization
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; a:\{``x":\String, ``y":\String \cup \Nil, ``z":\String\}_{closed} =$}\\
@@ -983,15 +1151,21 @@ and we can also ommit it
 \end{tabular}
 \end{center}
 
-Typed Lua also keeps track whether it is safe or not safe to
-change the type of a table.
+After discussing the inference rules of the table constructor,
+we can get back to the discussion about the refinement of table types.
+
+Besides allowing the refinement of table types through field assignment,
+Typed Lua also keeps track whether it is safe or not safe to change the
+type of a table.
 To do that, our type system always promotes an \emph{open}
 table to \emph{closed} and an \emph{unique} table to \emph{open}
-when they appear as expressions.
-The order also matters, as going from \emph{unique} to \emph{open}
-before going from \emph{open} to \emph{closed} closes \emph{unique} tables.
-The rule \textsc{T-IDREAD} along with the predicate \emph{close}
-express this intuition:
+when they appear as expressions, or when they enter in a scope that is
+not its declaration scope.
+The order matters, as going from \emph{unique} to \emph{open}
+before going from \emph{open} to \emph{closed} closes \emph{unique} table types.
+
+The rule \textsc{T-IDREAD} uses the predicate \emph{close} to do
+this promotion before we use a local variable:
 \[
 \begin{array}{c}
 \mylabel{T-IDREAD}\\
@@ -1000,7 +1174,9 @@ express this intuition:
 \end{array}
 \]
 
-The rule \textsc{T-IDREAD} makes this unsafe example not type check:
+This rule does not change the type of the local variable because it
+just need to ensure that an alias will not get the same type.
+For instance, it makes this unsafe example not type check:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{``x":\String \cup \Nil\}_{closed} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
@@ -1013,10 +1189,10 @@ The assignment $a = b$ is not valid because the aliasing changed the
 type of $b$ from $\{``x":\String\}_{unique}$ to $\{``x":\String\}_{open}$,
 which is not subtype of $\{``x":\String \cup \Nil\}_{closed}$.
 
-However, sometimes we want to use \emph{unique} tables to initialize
-closed tables, as they allow us to initialize optional fields.
+However, sometimes we want to use \emph{unique} table types to initialize
+\emph{closed} table types, as they allow us to initialize optional fields.
 To do that, Typed Lua includes a cast expression that allow us
-to use the \emph{unique} table type before it becomes \emph{open}.
+to use an \emph{unique} table type before it becomes \emph{open}.
 The rule \textsc{T-CAST} describes this behavior:
 \[
 \begin{array}{c}
@@ -1046,7 +1222,21 @@ as it still holds an \emph{open} table.
 At the end of this example, $a$ has type
 $\{``x":\String, ``y":\String \cup \Nil, ``z":\Integer\}_{open}$.
 
-Refinement of table types (second example).
+Even though the rule \textsc{T-CAST} handles the case that we assign
+an alias to a variable, we still have to close this variable due to
+safety.
+The rule \textsc{T-LOCAL} is one example where we handle this case:
+\[
+\begin{array}{c}
+\mylabel{T-LOCAL}\\
+\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
+       r_{1} \lesssim \vec{t} \;\;\;
+       closeset(\env_{2}[\vec{n} \mapsto \vec{t}], fav(\mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s)) \vdash s:\env_{3}}
+      {\env_{1} \vdash \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s:\env_{3} - \{\vec{n} \mapsto \vec{t}\}}
+\end{array}
+\]
+
+This rule prevents the following unsafe example to type check:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -1056,8 +1246,36 @@ Refinement of table types (second example).
 \end{tabular}
 \end{center}
 
-Typed Lua uses the refinement of table types to express an object-oriented
-idioms that is commonly used by Lua programmers.
+We cannot add the field $``x"$ to $b$ because its type is \emph{closed},
+and thus do not allow chaning the value that is stored in the field $``x"$
+of local $a$.
+
+We also need to make sure to close all \emph{open} table types before we
+type check another scope.
+The rule \textsc{T-FUNCTION3} shows this case:
+\[
+\begin{array}{c}
+\mylabel{T-FUNCTION3}\\
+\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}}
+      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))}
+\end{array}
+\]
+
+This rule prevents the following unsafe example to type check:
+\begin{center}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{3}{l}{$\mathbf{local} \; b:\Integer \times \Integer \rightarrow \Integer =$}\\
+& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer, y:\Integer):\Integer$}\\
+& & & \multicolumn{1}{l}{$a[``z"] \; {<}\Integer{>} = 1; \; \mathbf{return} \; x + y$}\\
+& \multicolumn{3}{l}{$\mathbf{in} \; a[``z"] \; {<}\String{>} = ``foo"$}
+\end{tabular}
+\end{center}
+
+Typed Lua uses the refinement of table types to allow programmers to
+build modules and objects.
+It also allows Typed Lua to type check an object-oriented idiom that
+programmers often use it.
 \[
 \begin{array}{c}
 \mylabel{T-METHOD3}\\
@@ -1139,24 +1357,6 @@ This example is safe, but the following it is not:
 $\mathbf{local} \; x{:}\Integer, \;y{:}\Any = 1 \; \mathbf{in} \; x = x + y$
 \end{tabular}
 \end{center}
-
-\textit{/* Expression list rules. Where should we describe the
-discarding/replacement of tuple elements? */}
-
-Even though Lua has multiple assignments, the rule \textsc{T-ASSIGNMENT}
-shows that tuples types and consistent-subtyping make straightforward
-to type check them.
-\[
-\begin{array}{c}
-\mylabel{T-ASSIGNMENT}\\
-\begin{array}{c}
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
-       r_{1} \lesssim r_{2}}
-      {\env_{1} \vdash \vec{l} = el:\env_{3}}
-\end{array}
-\end{array}
-\]
 
 Multiple assignments and multiple return values can also appear in
 function applications, as the following example shows:
