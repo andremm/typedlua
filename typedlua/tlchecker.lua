@@ -605,6 +605,8 @@ local function explist2typegen (explist)
       if len == 0 then t = Nil else t = get_type(explist[len]) end
       if tltype.isVararg(t) then
         return tltype.first(t)
+      elseif tltype.isTuple(t) then
+        return tltype.first(t[2])
       else
         return Nil
       end

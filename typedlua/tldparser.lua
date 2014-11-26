@@ -89,6 +89,9 @@ local G = lpeg.P { "TypedLuaDescription";
   IdDecList = (lpeg.V("IdDec")^1 + lpeg.Cc(nil)) / tltype.Table;
   TypeDec = tllexer.token(tllexer.Name, "Name") * lpeg.V("IdDecList") * tllexer.kw("end");
   Interface = lpeg.Cp() * tllexer.kw("interface") * lpeg.V("TypeDec") /
+              tlast.statInterface +
+              lpeg.Cp() * tllexer.kw("typealias") *
+              tllexer.token(tllexer.Name, "Name") * tllexer.symb("=") * lpeg.V("Type") /
               tlast.statInterface;
   -- parser
   Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /

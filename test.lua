@@ -1723,7 +1723,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)
@@ -1771,7 +1771,7 @@ s = [=[
 concat2 = 2^3..1
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -1904,7 +1904,7 @@ s = [=[
 if a then
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -1914,7 +1914,7 @@ s = [=[
 if a then else
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2130,7 +2130,7 @@ repeat
   break
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2268,7 +2268,7 @@ s = [=[
 x = ...:any
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2298,7 +2298,7 @@ s = [=[
 local x:number*
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
+test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
 ]=]
 
 r = parse(s)
@@ -2318,7 +2318,7 @@ s = [=[
 local x:number?|string?
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
+test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
 ]=]
 
 r = parse(s)
