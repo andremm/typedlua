@@ -83,7 +83,7 @@ types optionally ending in a variadic type, and union of these tuples.
 Literal types represent the type of literal values.
 They can be the boolean values $\False$ and $\True$,
 any integer value, any floating point value, and any string value.
-We shall see that literal types are important to represet table types
+We shall see that literal types are important to represent table types
 as records.
 
 Our type system also includes the following base types: $\Boolean$,
@@ -157,12 +157,12 @@ recursive types.
 
 We could have omitted the rules \textsc{S-LITERAL}, \textsc{S-BASE},
 and \textsc{S-INT2}, because the first two are reflexive and we
-could achieve the third one trhough transitivity.
+could achieve the third one through transitivity.
 More precisely, we could have defined subsumption rules that
-specify the reflexive and trasitive behavior of subtyping,
+specify the reflexive and transitive behavior of subtyping,
 and use these rules instead of the ones we defined.
 For instance, we would not need \textsc{S-INT2} because we could
-use the transisitive subsumption rule to derive that
+use the transitive subsumption rule to derive that
 \[
 \dfrac{\senv \vdash 1 \subtype \Integer \;\;\;
        \senv \vdash \Integer \subtype \Number}
@@ -470,7 +470,7 @@ We needed an auxiliary relation because the subtyping of the type
 of the values stored in the table fields change according to the
 tag of the table type.
 For closed tables, subtyping handles mutable fields invariantly,
-and imutable fields covariantly.
+and immutable fields covariantly.
 The following rules define this behavior.
 \[
 \begin{array}{c}
@@ -505,7 +505,7 @@ For instance,
 \{ & ``firstname":\String,\\
   &  ``middlename":\String \cup \Nil, ``lastname":\String \}_{closed}
 \end{align*}
-Second, they do not allow programmers to use the table construtor to
+Second, they do not allow programmers to use the table constructor to
 initialize table types that represent hashes.
 For instance,
 \begin{align*}
@@ -518,7 +518,7 @@ of table types, and also to allow programmers to omit optional
 fields in the initialization of table types.
 To do that, we defined a subtyping rule that allow \emph{open}
 table types to omit fields when $\Nil$ is subtype of the type of
-the value of the ommited key.
+the value of the omitted key.
 The following subtyping rule show this behavior:
 \[
 \begin{array}{c}
@@ -727,7 +727,7 @@ e{:}n(el)_{s}\\
 e ::= & \;\; \mathbf{nil} \; | \;
 c \; | \;
 {...}_{e} \; | \;
-n \; | \;
+n_{e} \; | \;
 e_{1}[e_{2}] \; | \;
 {<}t{>} \; n \; | \;
 f \; | \;
@@ -746,7 +746,7 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 \# \; e \; | \;
 e(el)_{e} \; | \;
 e{:}n(el)_{e}\\
-l ::= & \;\; n \; | \;
+l ::= & \;\; n_{l} \; | \;
 e_{1}[e_{2}] \; | \;
 n[c] \; {<}t{>}\\
 c ::= & \;\; \mathbf{false} \; | \;
@@ -782,9 +782,9 @@ $$
 Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
 It splits the syntactic categories as follows:
 $s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$el$ are expression lists, $c$ are constructor fields, $cl$ are lists of
-constructor fields, $me$ are expressions with multiple results,
-$f$ are function declarations, $m$ are method declarations, $n$ are variable names,
+$el$ are expression lists, $c$ are literal constants, $p$ are expression pairs,
+$me$ are expressions with multiple results, $f$ are function declarations,
+$m$ are method declarations, $n$ are variable names,
 $t$ are first-level types, and $r$ are second-level types.
 The notation $\vec{n{:}t}$ denotes the non-empty list
 $n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
@@ -798,20 +798,28 @@ and $e(el)_{m}$ to denote function applications that return multiple values.
 It uses the same categories for method applications, but only ${...}_{e}$
 and ${...}_{m}$, as the vararg expression cannot appear as a statement.
 
+We also included two kinds of type cast in our core language:
+the expression ${<}t{>} \;n$ and the left-hand value $n[c] \; {<}t{>}$.
+We will show that the first helps allowing safe aliasing between
+table types, while the second allows the refinement of table types.
+Due to the refinement of table types we also split variable names
+into two categories: $n_{e}$ when they appear as expressions and
+$n_{l}$ when they appear as left-hand values.
+
 We will present the typing rules as a deduction system for the typing
 relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
-We will use the first one for typing statements, and the sencond one
+We will use the first one for typing statements, and the second one
 for typing expressions.
 The first relation means that given the type environment $\env_{1}$,
 typing the statement $s$ produces the new type environment $\env_{2}$. 
-The sencond relation means that given the type environment $\env_{1}$,
+The second relation means that given the type environment $\env_{1}$,
 the expression $e$ has type $t$, and produces the new type environment $\env_{2}$.
 We need two typing relations because only expressions have types,
 though both expressions and statements can modify the environment.
 The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
 for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
-the other mappings that extisted before.
+the other mappings that existed before.
 
 The most unusual feature of our type system is the refinement of
 table types.
@@ -871,7 +879,7 @@ $\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in} \; a[``x"] \; {<}\{\}_{
 Lua has multiple assignments, so Typed Lua also has to take this into
 consideration while refining table types.
 The rule \textsc{T-ASSINGMENT} shows that tuple types make it easy
-to use the consistent-subtyping relation to check multiple assignments:
+to use the consistent-subtyping relation to type check multiple assignments:
 \[
 \begin{array}{c}
 \mylabel{T-ASSIGNMENT}\\
@@ -941,7 +949,7 @@ to the rule \textsc{T-LHSLIST}:
 \]
 
 The next example does not type check because it tries to add
-the same field to $a$:
+the same field to $a$, but with different types:
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -957,7 +965,7 @@ examples.
 
 All the examples that we presented until now use the simplest form of
 the table constructor: the empty table $\{\}$.
-Its inference rule is starightforward:
+Its inference rule is straightforward:
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR1}\\
@@ -973,13 +981,12 @@ the second one uses just the vararg expression, and the third one uses both.
 We did not include in the abstract syntax a table constructor
 that uses a list of expressions because we can write it using the first form.
 For instance, we can write the table constructor
-$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to mean the table constructor
-$\{ ``x", ``y", ``z" \}$.
+$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to express $\{ ``x", ``y", ``z" \}$.
 We chose to not include this form because its inference rule is similar
 to the inference rule of the first form, and just controls the type of
-the ommited indices.
+the omitted indices.
 For the same reason we did not include table constructors with
-multiple expressions that can return a tuple type that does not end
+multiple expressions, which can return a tuple type that does not end
 with a variadic type.
 We did include the vararg expression in the last position to show how
 our type system can infer a table type that has a record part and
@@ -1005,8 +1012,8 @@ We gave the definition of this predicate in the last section.
 The inference rules for expression pairs would be straightforward
 if our table types allowed any type in the keys.
 The rules \textsc{T-PAIR1}, \textsc{T-PAIR2}, and \textsc{T-PAIR3}
-check if the type of the key is a $\Boolean$, a $\Number$,
-or a $\String$, respectively:
+check if the type of the key is a subtype of $\Boolean$, $\Number$,
+or $\String$, respectively:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -1169,8 +1176,8 @@ this promotion before we use a local variable:
 \[
 \begin{array}{c}
 \mylabel{T-IDREAD}\\
-\dfrac{\env_{1}(n_{r}) = t}
-      {\env_{1} \vdash n_{r}:close(t), \env_{1}}
+\dfrac{\env_{1}(n) = t}
+      {\env_{1} \vdash n_{e}:close(t), \env_{1}}
 \end{array}
 \]
 
@@ -1181,7 +1188,7 @@ For instance, it makes this unsafe example not type check:
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{``x":\String \cup \Nil\}_{closed} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
 & \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String \}_{unique} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
-& & \multicolumn{1}{l}{$a = b \;;\; a[``x"] = \mathbf{nil}$}
+& & \multicolumn{1}{l}{$a = b \;;\; a[``x"] = \mathbf{nil} \;;\; b[``x"] = b[``x"] \;{..}\; ``bar"$}
 \end{tabular}
 \end{center}
 
@@ -1247,7 +1254,7 @@ This rule prevents the following unsafe example to type check:
 \end{center}
 
 We cannot add the field $``x"$ to $b$ because its type is \emph{closed},
-and thus do not allow chaning the value that is stored in the field $``x"$
+and thus do not allow changing the value that is stored in the field $``x"$
 of local $a$.
 
 We also need to make sure to close all \emph{open} table types before we
@@ -1292,71 +1299,68 @@ programmers often use it.
 \end{array}
 \]
 
-\[
-\begin{array}{c}
-\mylabel{T-INVOKE1}\\
-\dfrac{\env_{1} \vdash e[n]:p_{1} \rightarrow r, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       \Self \times p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{3}}
-\end{array}
-\]
-
+The rule \textsc{T-METHOD3} allow our type system to type check the
+following example:
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{open} = \{ [``x"] = 0.0, [``y"] = 0.0 \}$}\\
 \multicolumn{4}{l}{$\mathbf{in}$}\\
-& \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:number, y:number):\Self$}\\
+& \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:\Number, y:\Number):\Self$}\\
 & & \multicolumn{2}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{closed} =$}\\
 & & & \multicolumn{1}{l}{$setmetatable(\{\}, \{ [``\string_\string_index"] = self \})$}\\
 & & \multicolumn{2}{l}{$\mathbf{in} \; s[``x"] = x; \; s[``y"] = y; \; \mathbf{return} \; s$}\\
-; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:number, y:number):\Void$}\\
+; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:\Number, y:\Number):\Void$}\\
 & & \multicolumn{2}{l}{$self[``x"] = self[``x"] + x;$}\\
 & & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y$}
 \end{tabular}
 \end{center}
 
-Lua has operator overloading, and allows the programmers to redefine
-the behavior of some operations.
-For instance, programmers can use metatables to redefine the
-behavior of arithmetic operations.
-Even though Typed Lua does not support operator overloading yet,
-it includes typing rules that allow programmers to use the
-dynamic type when they are using overloaded operations.
-The following typing rules show how Typed Lua uses the dynamic type
-to handle the overloading of arithmetic operations:
+This example uses the type $\{``x":\Number, ``y":\Number\}_{open}$ to
+initialize the local variable $s$, which represents the type of the class
+that we are defining.
+Then, we use two method definitions to include $new$ and $move$ into
+our class that now has type
+\begin{align*}
+\{ & ``x":\Number, ``y":\Number,\\
+   & ``new":\Self \times \Number \times \Number \rightarrow \Self,\\
+   & ``move":\Self \times \Number \times \Number \rightarrow \Void \}_{open}
+\end{align*}
+
+Inside the definition of the method \emph{new} we use \emph{setmetatable}
+to initialize the local $s$ with the type of $\Self$.
+The rule \textsc{T-SETMETATABLE} express this idea:
 \[
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{T-ARITH5}\\
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{T-ARITH6}\\
-\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:\Any, \env_{3}}
-      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
-\end{array}
+\mylabel{T-SETMETATABLE}\\
+\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+       t \subtype \{\}_{open}}
+      {\env_{1} \vdash setmetatable(\{\}, \{[``\string_\string_index"] = e\}):close(t), \env_{2}}
 \end{array}
 \]
 
-The rule \textsc{T-ARITH5} allows type checking the following
-example:
+After we define our class, we can use it to create object instances
+of this class and call its methods.
+The next example assumes the object $o$ is in the environment as
+has the type of the class we just defined:
 \begin{center}
 \begin{tabular}{l}
-$\mathbf{local} \; x{:}\Any = 1 \; \mathbf{in} \; x = x + 1$
+$o{:}move(10, 10)_{s}$
 \end{tabular}
 \end{center}
 
-This example is safe, but the following it is not:
-\begin{center}
-\begin{tabular}{l}
-$\mathbf{local} \; x{:}\Integer, \;y{:}\Any = 1 \; \mathbf{in} \; x = x + y$
-\end{tabular}
-\end{center}
+This method call type checks through the rule \textsc{T-INVOKESTM1}.
+This rule uses the inference rule \textsc{T-INVOKE1} and discards the results.
+We defined the rule \textsc{T-INVOKE1} as follows:
+\[
+\begin{array}{c}
+\mylabel{T-INVOKE1}\\
+\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+       \env_{2} \vdash e[n]:p_{1} \rightarrow r, \env_{3} \;\;\;
+       \env_{3} \vdash el:p_{2}, \env_{4} \;\;\;
+       \Self \times p_{2} \lesssim p_{1}}
+      {\env_{1} \vdash e{:}n(el)_{m}:[\Self \mapsto t]r, \env_{4}}
+\end{array}
+\]
 
 Multiple assignments and multiple return values can also appear in
 function applications, as the following example shows:
@@ -1372,6 +1376,19 @@ function applications, as the following example shows:
 & \multicolumn{3}{l}{$\mathbf{in} \; s(m()_{e}, m()_{m})_{s}$}
 \end{tabular}
 \end{center}
+
+This example does not type check because we are trying to call
+$s$ with $\Integer \times \Integer \times \String$,
+but its input parameter has type $\Integer \times \Integer$.
+Lua drops extra values in function calls, and Typed Lua can also
+have this behavior.
+If we change the input type of $s$ to $\Integer \times \Integer \times \Value{*}$,
+this example type checks.
+Typed Lua also has to adjust function calls to use $\Nil$ in the
+place of missing parameters, otherwise it would not be able to
+type check function calls that have optional parameters.
+
+\textit{/* I guess we should have different typing rules for strict and default. */}
 
 Typed Lua includes four typing rules to handle the $\mathbf{or}$
 logical operator and its common idioms:
@@ -1409,8 +1426,8 @@ logical operator and its common idioms:
 \]
 
 The rule \textsc{T-OR1} is the rule that implements the short circuit.
-We use the consistent-subtyping in this relation to guarantee that
-the type system avaliates the second expression when the first one
+We use the consistent-subtyping relation in this rule to guarantee that
+the type system checks the second expression when the first one
 has the dynamic type, as it can be hiding a false value.
 
 The rules \textsc{T-OR2} and \textsc{T-OR3} guarantee that the final
@@ -1424,10 +1441,10 @@ that might be part of the type of the first expression.
 We can use pattern matching to the define the recursive predicate
 \emph{filter} as follows:
 \begin{align*}
-fu(t_{1} \cup t_{2}, t_{3}) & = fu(t_{1}, t_{3}) \cup fu(t_{2}, t_{3})\\
-fu(t_{1} \cup t_{2}, t_{1}) & = fu(t_{2}, t_{1})\\
-fu(t_{1} \cup t_{2}, t_{2}) & = fu(t_{1}, t_{2})\\
-fu(t_{1}, t_{2}) & = t_{1}
+filter(t_{1} \cup t_{2}, t_{1}) & = filter(t_{2}, t_{1})\\
+filter(t_{1} \cup t_{2}, t_{2}) & = filter(t_{1}, t_{2})\\
+filter(t_{1} \cup t_{2}, t_{3}) & = filter(t_{1}, t_{3}) \cup filter(t_{2}, t_{3})\\
+filter(t_{1}, t_{2}) & = t_{1}
 \end{align*}
 
 Using these typing rules our type system can type check the following
@@ -1514,10 +1531,11 @@ to execute different actions according to their types.
 \begin{array}{c}
 \mylabel{T-IF2}\\
 \dfrac{\begin{array}{c}
+       \env_{1}(n) = t\\
        closeall(\env_{1}[n \mapsto \String]) \vdash s_{1}:\env_{2} \\
-       closeall(\env_{1}[n \mapsto filter(\env_{1}(n), \String)) \vdash s_{2}:\env_{3}
+       closeall(\env_{1}[n \mapsto filter(t, \String)) \vdash s_{2}:\env_{3}
       \end{array}}
-      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{1}[n \mapsto t], fav(s_{1}) \cup fav(s_{2}))}
 
 \end{array}
 \]
@@ -1539,8 +1557,15 @@ $\String \times \Integer \times \String \cup \Nil \rightarrow \String$.
 
 Typed Lua also includes similar rules to handle the tags \texttt{nil},
 \texttt{boolean}, and \texttt{number}.
+There is also a similar rule for handling the type $\Integer$, but
+it works only with Lua 5.3, as it depends on the function \texttt{math.type}.
+This function appears only in Lua 5.3 and it returns the string $``integer"$
+when its input parameter is a number that has an integer representation,
+the string $``float"$ when its input parameter is a number that has a
+floating point representation, or $\Nil$ otherwise.
 
-Overloading on the return type.
+Lua programmers also overload the return type of functions to denote
+errors, and Typed Lua also handles this case with the rule \textsc{T-IF3}:
 \[
 \begin{array}{c}
 \mylabel{T-IF3}\\
@@ -1549,7 +1574,7 @@ Overloading on the return type.
        closeall(\env_{1}[\pi \mapsto fpt(\env_{1}(\pi), \Nil, i)]) \vdash s_{1}:\env_{2} \\
        closeall(\env_{1}[\pi \mapsto gpt(\env_{1}(\pi), \Nil, i)) \vdash s_{2}:\env_{3}
       \end{array}}
-      {\env_{1} \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+      {\env_{1} \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2}))}
 
 \end{array}
 \]
@@ -1571,4 +1596,48 @@ $\Integer \times \Integer \rightarrow \Integer \times \Integer \sqcup \Nil \time
 and
 $\Value{*} \rightarrow \Void$.
 
+Lua has operator overloading, and allows the programmers to redefine
+the behavior of some operations.
+For instance, programmers can use metatables to redefine the
+behavior of arithmetic operations.
+Even though Typed Lua does not support operator overloading yet,
+it includes typing rules that allow programmers to use the
+dynamic type when they are using overloaded operations.
+The following typing rules show how Typed Lua uses the dynamic type
+to handle the overloading of arithmetic operations:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-ARITH5}\\
+\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:t, \env_{3}}
+      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-ARITH6}\\
+\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
+       \env_{2} \vdash e_{2}:\Any, \env_{3}}
+      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\end{array}
+\end{array}
+\]
 
+The rule \textsc{T-ARITH5} allows type checking the following
+example:
+\begin{center}
+\begin{tabular}{l}
+$\mathbf{local} \; x{:}\Any = 1 \; \mathbf{in} \; x = x + 1$
+\end{tabular}
+\end{center}
+
+This example is safe, but the following it is not:
+\begin{center}
+\begin{tabular}{l}
+$\mathbf{local} \; x{:}\Integer, \;y{:}\Any = 1 \; \mathbf{in} \; x = x + y$
+\end{tabular}
+\end{center}
+
+Although this last example is not safe, it shows that optional
+type systems still preserve the flexibility of dynamically
+typed languages along with the benefits of static type checking.
