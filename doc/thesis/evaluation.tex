@@ -646,8 +646,50 @@ functions that traverses the AST.
 In this case we had to rely on the dynamic type to defer the
 function declarations.
 
+We detected some bugs while doing the bootstrap:
+accessing undeclared global variables.
+
 \section{Related Work}
 \label{sec:relatedwork}
+
+\subsection{Lua Related Work}
+
+Metalua \citep{metalua} is a Lua compiler that supports compile-time
+metaprogramming (CTMP).
+CTMP is a kind of macro system that allows the programmers to interact
+with the compiler \citep{fleutot2007contrasting}. 
+Metalua extends Lua 5.1 syntax to include its macro system,
+and allows programmers to define their own syntax.
+Metalua can provide syntactical support for several object-oriented
+styles, and can also provide syntax for turning simple type
+annotations into run-time assertions.
+
+MoonScript \citep{moonscript} is a programming language that supports
+class-based object-oriented programming, and compiles to idiomatic
+Lua code.
+However, it does not perform compile-time type checking.
+
+LuaInspect \citep{luainspect} is a tool that uses MetaLua to perform
+some code analysis, such as flagging unknown global variables and
+table fields, checking the number of function arguments against
+signatures, and inferring function return values, but it does not
+try to analyze object-oriented code and does not perform compile-time
+type checking.
+
+Tidal Lock \citep{tidallock} is a prototype of another optional type
+system for Lua, which is written in Metalua.
+A remarkable feature of Tidal Lock is the way that it handles tables,
+because it allows the programmer to incrementally build the type of
+a table.
+More precisely, Tidal Lock allows the programmer to create an empty
+table to build its type according to the keys that the programmer
+inserts in it, so the programmer does not need to build the table in
+a single table constructor.
+This feature inspired us to introduce it into Typed Lua,
+but in a simpler way and with different formalization.
+Like Typed Lua, Tidal Lock also has local type inference.
+Unlike Typed Lua, Tidal Lock does not type the common object-oriented
+idioms used by Lua programmers, though it also uses subtyping.
 
 Tidal Lock \citep{tidallock} is a prototype of an optional type system for Lua.
 It also includes the refinement of table types.
@@ -675,6 +717,8 @@ It also uses local type inference to deduce the type of unannotated expressions,
 and have a dynamic type.
 However, Tidal Lock does not support union types, recursive types, and variadic types.
 It also does not support any object-oriented idiom.
+
+\subsection{Non-Lua Related Work}
 
 Typed Racket \citep{tobin-hochstadt2008ts} is a statically typed version
 of the Racket language, which is a Scheme dialect.
