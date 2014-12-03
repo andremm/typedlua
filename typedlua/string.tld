@@ -2,7 +2,7 @@
 Typed Lua description file for string manipulation
 ]]
 
-byte : (string, number?, number?) -> (number*)
+byte : (string, number?, number?) -> (number, number*)
 char : (number*) -> (string)
 dump : ((value*) -> (value*)) -> (string)
 find : (string, string, number?, value) -> (number, number) | (nil)

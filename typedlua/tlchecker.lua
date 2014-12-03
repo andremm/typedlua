@@ -135,6 +135,7 @@ local function infer_return_type (env)
     end
   else
     local r = tltype.Unionlist(table.unpack(l))
+    if tltype.isAny(r) then r = tltype.Tuple({ Any }, true) end
     close_type(r)
     return r
   end
@@ -404,7 +405,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = tltype.first(get_type(exp1))
+  local t1 = replace_names(env, tltype.first(get_type(exp1)), exp1.pos)
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table()) then
@@ -605,8 +606,6 @@ local function explist2typegen (explist)
       if len == 0 then t = Nil else t = get_type(explist[len]) end
       if tltype.isVararg(t) then
         return tltype.first(t)
-      elseif tltype.isTuple(t) then
-        return tltype.first(t[2])
       else
         return Nil
       end
@@ -769,6 +768,8 @@ local function check_invoke (env, exp)
     local t3
     if tltype.isTable(t1) then
       t3 = tltype.getField(t2, t1)
+      local s = env.self or Nil
+      if not tltype.subtype(s, t1) then env.self = t1 end
     else
       local string_userdata = env["loaded"]["string"] or tltype.Table()
       t3 = tltype.getField(t2, string_userdata)
@@ -959,11 +960,7 @@ local function check_assignment (env, varlist, explist)
     if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
       local t = get_type(l)
-      if not env.self then
-        env.self = t
-      else
-        if tltype.subtype(t, env.self) then env.self = t end
-      end
+      if tltype.isTable(t) then env.self = t end
     end
   end
   check_explist(env, explist)
@@ -973,7 +970,7 @@ local function check_assignment (env, varlist, explist)
     table.insert(l, get_type(v))
   end
   table.insert(l, tltype.Vararg(Value))
-  local var_type, exp_type = tltype.Tuple(l), explist2typelist(explist)
+  local var_type, exp_type = replace_names(env, tltype.Tuple(l), varlist.pos), replace_names(env, explist2typelist(explist), explist.pos)
   local msg = "attempt to assign '%s' to '%s'"
   if tltype.subtype(exp_type, var_type) then
   elseif tltype.consistent_subtype(exp_type, var_type) then

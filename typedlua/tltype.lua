@@ -115,7 +115,7 @@ end
 -- value type
 
 -- Value : () -> (type)
-function tltype.Value (t)
+function tltype.Value ()
   return { tag = "TValue" }
 end
 
