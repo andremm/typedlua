@@ -33,7 +33,7 @@ end
 
 local function typeerror (env, tag, msg, pos)
   local l, c = lineno(env.subject, pos)
-  local error_msg = { tag = tag, msg = msg, l = l, c = c }
+  local error_msg = { tag = tag, filename = env.filename, msg = msg, l = l, c = c }
   table.insert(env.messages, error_msg)
 end
 
@@ -162,12 +162,42 @@ end
 local function check_tl (env, name, path)
   local file = io.open(path, "r")
   local subject = file:read("*a")
+  local s, f = env.subject, env.filename
   io.close(file)
   local ast = assert(tlparser.parse(subject, path, env.strict))
+  env.subject = subject
+  env.filename = name .. ".tl"
   tlst.begin_function(env)
   check_block(env, ast)
   local t1 = tltype.first(infer_return_type(env))
   tlst.end_function(env)
+  env.subject = s
+  env.filename = f
+  return t1
+end
+
+local function check_tl1 (env, name, path)
+  local file = io.open(path, "r")
+  local subject = file:read("*a")
+  io.close(file)
+  local ast = assert(tlparser.parse(subject, path, env.strict))
+  local lua_env = tlst.get_local(env, "_ENV")
+  local tl_env = tlst.new_env(subject, name .. ".tl", env.strict)
+  tlst.begin_function(tl_env)
+  tlst.begin_scope(tl_env)
+  tlst.set_vararg(tl_env, String)
+  tlst.set_local(tl_env, lua_env)
+  tlst.get_local(tl_env, "_ENV")
+  tl_env.messages = env.messages
+  tl_env.interface = env.interface
+  tl_env.userdata = env.userdata
+  for k, v in ipairs(ast) do
+    check_stm(tl_env, v)
+  end
+  check_unused_locals(tl_env)
+  local t1 = tltype.first(infer_return_type(env))
+  tlst.end_scope(tl_env)
+  tlst.end_function(tl_env)
   return t1
 end
 
@@ -1444,11 +1474,12 @@ local function load_lua_env (env)
   tlst.get_local(env, "_ENV")
 end
 
-function tlchecker.typecheck (ast, subject, strict)
+function tlchecker.typecheck (ast, subject, filename, strict)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
+  assert(type(filename) == "string")
   assert(type(strict) == "boolean")
-  local env = tlst.new_env(subject, strict)
+  local env = tlst.new_env(subject, filename, strict)
   tlst.begin_function(env)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
@@ -1462,9 +1493,11 @@ function tlchecker.typecheck (ast, subject, strict)
   return env.messages
 end
 
-function tlchecker.error_msgs (messages, filename, warnings)
+function tlchecker.error_msgs (messages, warnings)
+  assert(type(messages) == "table")
+  assert(type(warnings) == "boolean")
   local l = {}
-  local error_msg = filename .. ":%d:%d: type error, %s"
+  local error_msg = "%s:%d:%d: type error, %s"
   local skip_error = { any = true,
     mask = true,
     unused = true,
@@ -1473,10 +1506,10 @@ function tlchecker.error_msgs (messages, filename, warnings)
     local tag = v.tag
     if skip_error[tag] then
       if warnings then
-        table.insert(l, string.format(error_msg, v.l, v.c, v.msg))
+        table.insert(l, string.format(error_msg, v.filename, v.l, v.c, v.msg))
       end
     else
-      table.insert(l, string.format(error_msg, v.l, v.c, v.msg))
+      table.insert(l, string.format(error_msg, v.filename, v.l, v.c, v.msg))
     end
   end
   if #l == 0 then

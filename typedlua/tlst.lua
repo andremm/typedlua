@@ -4,10 +4,11 @@ This module implements Typed Lua symbol table.
 
 local tlst = {}
 
--- new_env : (string, boolean) -> (env)
-function tlst.new_env (subject, strict)
+-- new_env : (string, string, boolean) -> (env)
+function tlst.new_env (subject, filename, strict)
   local env = {}
   env.subject = subject
+  env.filename = filename
   env.strict = strict
   env.messages = {}
   env.maxscope = 0
