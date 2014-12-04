@@ -141,6 +141,24 @@ local function infer_return_type (env)
   end
 end
 
+local function check_masking (env, local_name, pos)
+  local masked_local = tlst.masking(env, local_name)
+  if masked_local then
+    local l, c = lineno(env.subject, masked_local.pos)
+    msg = "masking previous declaration of local %s on line %d"
+    msg = string.format(msg, local_name, l)
+    typeerror(env, "mask", msg, pos)
+  end
+end
+
+local function check_unused_locals (env)
+  local l = tlst.unused(env)
+  for k, v in pairs(l) do
+    local msg = string.format("unused local '%s'", k)
+    typeerror(env, "unused", msg, v.pos)
+  end
+end
+
 local function check_tl (env, name, path)
   local file = io.open(path, "r")
   local subject = file:read("*a")
@@ -217,24 +235,6 @@ local function check_require (env, name, pos)
     end
   end
   return env["loaded"][name]
-end
-
-local function check_masking (env, local_name, pos)
-  local masked_local = tlst.masking(env, local_name)
-  if masked_local then
-    local l, c = lineno(env.subject, masked_local.pos)
-    msg = "masking previous declaration of local %s on line %d"
-    msg = string.format(msg, local_name, l)
-    typeerror(env, "mask", msg, pos)
-  end
-end
-
-local function check_unused_locals (env)
-  local l = tlst.unused(env)
-  for k, v in pairs(l) do
-    local msg = string.format("unused local '%s'", k)
-    typeerror(env, "unused", msg, v.pos)
-  end
 end
 
 local function check_arith (env, exp)
@@ -1247,6 +1247,10 @@ local function check_index (env, exp)
   if tltype.isRecursive(t1) then t1 = t1[2] end
   if tltype.isSelf(t1) and env.self then t1 = env.self end
   if tltype.isTable(t1) then
+    if exp1.tag == "Id" and exp1[1] ~= "_ENV" then
+      local s = env.self or Nil
+      if not tltype.subtype(s, t1) then env.self = t1 end
+    end
     local field_type = tltype.getField(t2, t1)
     if not tltype.isNil(field_type) then
       set_type(exp, field_type)
@@ -1289,6 +1293,7 @@ function check_var (env, var, exp)
     if tltype.isRecursive(t1) then t1 = t1[2] end
     if tltype.isSelf(t1) and env.self then t1 = env.self end
     if tltype.isTable(t1) then
+      if exp1.tag == "Id" and exp1[1] ~= "_ENV" then env.self = t1 end
       local field_type = tltype.getField(t2, t1)
       if not tltype.isNil(field_type) then
         set_type(var, field_type)
