@@ -646,6 +646,19 @@ e = [=[
 r = parse(s)
 assert(r == e)
 
+-- calls
+
+s = [=[
+f()
+t:m()
+]=]
+e = [=[
+{ `Call{ `Index{ `Id "_ENV", `String "f" } }, `Invoke{ `Index{ `Id "_ENV", `String "t" }, `String "m" } }
+]=]
+
+r = parse(s)
+assert(r == e)
+
 -- concatenation expressions
 
 s = [=[
@@ -3153,6 +3166,9 @@ assert(r == e)
 
 s = [=[
 local x, y = 1 + "foo", "foo" + 1
+local a:any
+a = a + 1
+a = 1 + a
 ]=]
 e = [=[
 test.lua:1:18: type error, attempt to perform arithmetic on a 'string'
@@ -3164,6 +3180,9 @@ assert(r == e)
 
 s = [=[
 local x, y = "foo" .. 1, 1 .. "foo"
+local a:any
+a = a .. "foo"
+a = "foo" .. a
 ]=]
 e = [=[
 test.lua:1:23: type error, attempt to concatenate a 'number'
@@ -3175,6 +3194,9 @@ assert(r == e)
 
 s = [=[
 local x, y = 1 < "foo", "foo" < 1
+local a:any
+a = a < 1
+a = 1 < a
 ]=]
 e = [=[
 test.lua:1:14: type error, attempt to compare 'number' with 'string'
@@ -3197,6 +3219,9 @@ assert(r == e)
 
 s = [=[
 local x:number, y:number = nil and 1, false and 1 
+local a:number?, b:number|false = 1, 1
+a = a and 1
+b = b and 1
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign 'nil' to 'number'
@@ -3219,6 +3244,9 @@ assert(r == e)
 
 s = [=[
 local x:nil, y:boolean = nil or 1, false or 1 
+local a:number?, b:number|false = 1, 1
+a = a or 1
+b = b or 1
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1' to 'nil'
@@ -3274,6 +3302,8 @@ assert(r == e)
 
 s = [=[
 local x = -"foo"
+local a:any
+a = -a
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to perform arithmetic on a 'string'
@@ -3284,6 +3314,8 @@ assert(r == e)
 
 s = [=[
 local x = #1
+local a:any
+a = #a
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to get length of a 'number'
@@ -3448,6 +3480,75 @@ assert(r == e)
 -- new tests
 
 s = [=[
+local x = setmetatable({}, {})
+local y = setmetatable()
+local z = require(x)
+local w = require()
+]=]
+e = [=[
+test.lua:1:11: type error, second argument of setmetatable must be { __index = e }
+test.lua:2:11: type error, setmetatable must have two arguments
+test.lua:3:11: type error, the argument of require must be a literal string
+test.lua:4:11: type error, require must have one argument
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f ():(number, number) return 1, 2 end
+local x:number, y:number, z:number = f()
+]=]
+e = [=[
+test.lua:2:27: type error, attempt to assign 'nil' to 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f ():(number) end
+]=]
+e = [=[
+test.lua:1:18: type error, return type '(nil*)' does not match '(number, nil*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f ():(any) return 1 end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TAny, `TVararg{ `TNil } } } }, { `Function{ {  }:`TTuple{ `TAny, `TVararg{ `TNil } }, { `Return{ `Number "1" } } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number?
+local t = { [function () end] = 1, [x] = 2 }
+]=]
+e = [=[
+test.lua:2:37: type error, table index can be nil
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:number = 1
+local x:string = "foo"
+]=]
+e = [=[
+{ `Local{ { `Id "x":`TBase number }, { `Number "1" } }, `Local{ { `Id "x":`TBase string }, { `String "foo" } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local function fib (n:number)
   if n == 0 then
     return 0
@@ -3517,6 +3618,101 @@ end
 ]=]
 e = [=[
 test.lua:10:9: type error, attempt to concatenate a 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x:any = 1
+for n = x, x, x do end
+for k in x do end
+]=]
+e = [=[
+{ `Local{ { `Id "x":`TAny }, { `Number "1" } }, `Fornum{ `Id "n":`TBase number, `Id "x", `Id "x", `Id "x", {  } }, `Forin{ { `Id "k" }, { `Id "x" }, {  } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x
+local y = x.z, y.z
+x.z = 1
+z.z = 2
+]=]
+e = [=[
+test.lua:2:16: type error, attempt to access undeclared global 'y'
+test.lua:2:16: type error, attempt to index 'nil' with 'z'
+test.lua:4:1: type error, attempt to access undeclared global 'z'
+test.lua:4:1: type error, attempt to index 'nil' with 'z'
+test.lua:4:1: type error, attempt to assign '(2, nil*)' to '(nil, value*)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local x
+local y = 1
+x()
+y()
+]=]
+e = [=[
+test.lua:4:1: type error, attempt to call local 'y' of type 'number'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local t:{"x":any} = {}
+local x:any
+local y:number = 1
+t:x()
+t:y()
+x:y()
+y:x()
+]=]
+e = [=[
+test.lua:5:1: type error, attempt to call method 'y' of type 'nil'
+test.lua:7:1: type error, attempt to index 'number' with 'x'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local o = { x = 1 }
+const function o:set_x (x:number) self.x = x end
+local x = o.set_x
+]=]
+e = [=[
+test.lua:3:7: type error, attempt to create a method reference
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local function f ():(nil*) return end
+local function g (x:number):(number)?
+  if x < 0 then
+    return nil, "negative"
+  else
+    return x
+  end
+end
+local function h (x:number):(number)?
+  if x > 0 then
+    return x
+  else
+    return g(x)
+  end
+end
+]=]
+e = [=[
+{ `Localrec{ { `Id "f":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } }, { `Function{ {  }:`TTuple{ `TVararg{ `TNil } }, { `Return } } } }, `Localrec{ { `Id "g":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "x":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "lt", `Id "x", `Number "0" }, { `Return{ `Nil, `String "negative" } }, { `Return{ `Id "x" } } } } } } }, `Localrec{ { `Id "h":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "x":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "lt", `Number "0", `Id "x" }, { `Return{ `Id "x" } }, { `Return{ `Call{ `Id "g", `Id "x" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3875,6 +4071,17 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+local person:Person = { firstname = "Lou", lastname = "Reed" }
+]=]
+e = [=[
+test.lua:1:7: type error, type alias 'Person' is not defined
+test.lua:1:7: type error, attempt to assign '{firstname:string, lastname:string}' to 'nil'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local interface Person
   firstname:string
   lastname:string
@@ -3929,6 +4136,22 @@ local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
 { `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user1":`TVariable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`TVariable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
+local interface Person
+  firstname:string
+  middlename:string?
+  lastname:string
+end
+
+local interface Person end
+]=]
+e = [=[
+test.lua:7:7: type error, attempt to redeclare interface 'Person'
 ]=]
 
 r = typecheck(s)
@@ -4341,6 +4564,16 @@ a = not (1) and 2 or 3
 r = generate(s)
 assert(r == e)
 
+s = [=[
+t = { 1, 2, 3 }
+]=]
+e = [=[
+t = {1, 2, 3}
+]=]
+
+r = generate(s)
+assert(r == e)
+
 -- do
 
 s = [=[
@@ -4389,7 +4622,31 @@ end
 r = generate(s)
 assert(r == e)
 
+s = [=[
+for k,v in pairs({}) do end
+]=]
+e = [=[
+for k, v in pairs({}) do
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
 -- function
+
+s = [=[
+function f ():(nil*) end
+]=]
+e = [=[
+f = function ()
+
+end
+]=]
+
+r = generate(s)
+assert(r == e)
 
 s = [=[
 function f () end
@@ -4665,6 +4922,28 @@ end
 r = generate(s)
 assert(r == e)
 
+s = [=[
+local x:number?
+if not x then print("error") else x = x + 1 end
+if type(x) == "nil" then print("error") else x = x + 1 end
+]=]
+e = [=[
+local x
+if not (x) then
+  print("error")
+else
+  x = x + 1
+end
+if type(x) == "nil" then
+  print("error")
+else
+  x = x + 1
+end
+]=]
+
+r = generate(s)
+assert(r == e)
+
 -- local
 
 s = [=[
@@ -4867,6 +5146,91 @@ local a4 = create("f")
 local a5 = create("c",a3,a4)
 local a = create("a",a2,a5)
 print_tree(a)
+]=]
+
+r = generate(s)
+assert(r == e)
+
+s = [=[
+interface Shape
+  x, y:number
+  const new:(number, number) => (self)
+  const move:(number, number) => ()
+end
+
+local Shape = { x = 0, y = 0 }
+
+const function Shape:new (x:number, y:number)
+  local s = setmetatable({}, { __index = self })
+  s.x = x
+  s.y = y
+  return s
+end
+
+const function Shape:move (dx:number, dy:number)
+  self.x = self.x + dx
+  self.y = self.y + dy
+end
+
+local shape1 = Shape:new(0, 5)
+local shape2:Shape = Shape:new(10, 10)
+
+interface Circle
+  x, y, radius:number
+  const new:(number, number, value) => (self)
+  const move:(number, number) => ()
+  const area:() => (number)
+end
+
+local Circle = setmetatable({}, { __index = Shape })
+
+Circle.radius = 0
+
+const function Circle:new (x:number, y:number, radius:value)
+  local c = setmetatable(Shape:new(x, y), { __index = self })
+  c.radius = tonumber(radius) or 0
+  return c
+end
+
+const function Circle:area ()
+  return 3.14 * self.radius * self.radius
+end
+
+local circle1 = Circle:new(0, 5, 10)
+local circle2:Circle = Circle:new(10, 10, 15)
+circle1:area()
+circle2:area()
+]=]
+e = [=[
+
+local Shape = {["x"] = 0, ["y"] = 0}
+Shape["new"] = function (self, x, y)
+  local s = setmetatable({},{["__index"] = self})
+  s["x"] = x
+  s["y"] = y
+  return s
+end
+Shape["move"] = function (self, dx, dy)
+  self["x"] = self["x"] + dx
+  self["y"] = self["y"] + dy
+end
+local shape1 = Shape:new(0,5)
+local shape2 = Shape:new(10,10)
+
+local Circle = setmetatable({},{["__index"] = Shape})
+Circle["radius"] = 0
+Circle["new"] = function (self, x, y, radius)
+  local c = setmetatable(Shape:new(x,y),{["__index"] = self})
+  c["radius"] = tonumber(radius) or 0
+  return c
+end
+Circle["area"] = function (self)
+  return 3.14 * self["radius"] * self["radius"]
+end
+local circle1 = Circle:new(0,5,10)
+local circle2 = Circle:new(10,10,15)
+circle1:area()
+circle2:area()
 ]=]
 
 r = generate(s)

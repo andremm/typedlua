@@ -176,31 +176,6 @@ local function check_tl (env, name, path)
   return t1
 end
 
-local function check_tl1 (env, name, path)
-  local file = io.open(path, "r")
-  local subject = file:read("*a")
-  io.close(file)
-  local ast = assert(tlparser.parse(subject, path, env.strict))
-  local lua_env = tlst.get_local(env, "_ENV")
-  local tl_env = tlst.new_env(subject, name .. ".tl", env.strict)
-  tlst.begin_function(tl_env)
-  tlst.begin_scope(tl_env)
-  tlst.set_vararg(tl_env, String)
-  tlst.set_local(tl_env, lua_env)
-  tlst.get_local(tl_env, "_ENV")
-  tl_env.messages = env.messages
-  tl_env.interface = env.interface
-  tl_env.userdata = env.userdata
-  for k, v in ipairs(ast) do
-    check_stm(tl_env, v)
-  end
-  check_unused_locals(tl_env)
-  local t1 = tltype.first(infer_return_type(env))
-  tlst.end_scope(tl_env)
-  tlst.end_function(tl_env)
-  return t1
-end
-
 local function check_interface (env, stm)
   local name, t, is_local = stm[1], stm[2], stm.is_local
   if tlst.get_interface(env, name) then
@@ -523,6 +498,9 @@ local function check_return_type (env, inf_type, dec_type, pos)
   local msg = "return type '%s' does not match '%s'"
   inf_type = replace_names(env, inf_type, pos)
   dec_type = replace_names(env, dec_type, pos)
+  if tltype.isUnionlist(dec_type) then
+    dec_type = tltype.unionlist2tuple(dec_type)
+  end
   if tltype.subtype(inf_type, dec_type) then
   elseif tltype.consistent_subtype(inf_type, dec_type) then
     msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
@@ -581,7 +559,7 @@ local function check_table (env, exp)
       check_exp(env, exp1)
       check_exp(env, exp2)
       t1, t2 = get_type(exp1), tltype.general(get_type(exp2))
-      if tltype.subtype(t1, Nil) then
+      if tltype.subtype(Nil, t1) then
         t1 = Any
         local msg = "table index can be nil"
         typeerror(env, "table", msg, exp1.pos)
@@ -632,30 +610,24 @@ local function explist2typegen (explist)
       local t = get_type(explist[i])
       return tltype.first(t)
     else
-      local t
-      if len == 0 then t = Nil else t = get_type(explist[len]) end
+      local t = Nil
+      if len > 0 then t = get_type(explist[len]) end
+      if tltype.isTuple(t) then
+        if i <= #t then
+          t = t[i]
+        else
+          t = t[#t]
+          if not tltype.isVararg(t) then t = Nil end
+        end
+      else
+        t = Nil
+      end
       if tltype.isVararg(t) then
         return tltype.first(t)
       else
-        return Nil
+        return t
       end
     end
-  end
-end
-
-local function explist2type (explist)
-  local len = #explist
-  if len == 0 then
-    return tltype.Tuple({ Nil }, true)
-  else
-    local l = {}
-    for i = 1, len do
-      l[i] = tltype.first(get_type(explist[i]))
-    end
-    if not tltype.isVararg(explist[len]) then
-      l[len + 1] = Nil
-    end
-    return tltype.Tuple(l, true)
   end
 end
 
