@@ -7,14 +7,13 @@ This is a benefit to programmers that use dynamically typed languages
 to build large applications, as static types detect many bugs
 during the development phase, and also provide better documentation.
 
-In this chapter we present the formalization of Typed Lua.
+In this chapter we present the formalization of Typed Lua's type system.
 Besides its practical contribution, Typed Lua also has some interesting
-contributions on the field of optional type systems for scripting
+contributions to the field of optional type systems for scripting
 languages.
-Namely, it is a simple type system that covers several Lua idioms
+They are novel type system features that let Typed Lua cover several Lua idioms
 and features, such as the refinement of tables, multiple return values,
 and optional parameters.
-We will use typing rules to explain how we implemented the features of Typed Lua.
 
 \section{Types}
 
@@ -47,7 +46,7 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
-& | \; \pi_{i} & \textit{projection types}\\
+& | \; \pi_{i}^{x} & \textit{projection types}\\
 l ::= & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
 b ::= & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
 k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
@@ -70,46 +69,39 @@ Figure \ref{fig:typelang} presents the abstract syntax of the
 Typed Lua types.
 Typed Lua splits types into two categories:
 \emph{first-level types} and \emph{second-level types}.
-Typed Lua uses first-level types to represent Lua values and
-second-level types to represent expression lists, and it also
-uses them to type multiple assignments and function applications.
+Typed Lua uses first-level types to represent first-class Lua values and
+second-level types to represent tuples of values that appear in 
+multiple assignments and function applications.
 First-level types include literal types, base types, the type $\Nil$,
 the top type $\Value$, the dynamic type $\Any$, the type $\Self$,
 union types, function types, table types, recursive types, and
 projection types.
 Second-level types include the type $\Void$, tuples of first-level
-types optionally ending in a variadic type, and union of these tuples.
+types optionally ending in a variadic type, and unions of these tuples.
 
 Literal types represent the type of literal values.
 They can be the boolean values $\False$ and $\True$,
 any integer value, any floating point value, and any string value.
-We shall see that literal types are important to represent table types
-as records.
+We shall see that literal types are important in our treatment of
+table types as records.
 
 Our type system also includes the following base types: $\Boolean$,
 $\Integer$, $\Number$, and $\String$.
-The base types $\Boolean$ and $\String$ represent the values that
-during run-time Lua tags as \texttt{boolean} and \texttt{string},
-respectively;
-the base types $\Integer$ and $\Number$ represent the values
-that during run-time Lua tags as \texttt{number}.
-We introduced two different base types to represent Lua numbers
-because Lua introduced integers in version 5.3.
+The base types $\Boolean$ and $\String$ represent the values that during
+run-time Lua tags as \texttt{boolean} and \texttt{string}, respectively.
+Lua 5.3 introduced two internal representations to the tag \texttt{number}:
+\texttt{integer} for integer numbers and \texttt{float} for real numbers.
+Both \texttt{integer} and \texttt{float} values are subtype of \texttt{number}.
+We introduced the base type $\Number$ to represent either the tag
+\texttt{number} or \texttt{float} values, and the type $\Integer$ to represent
+\texttt{integer} values.
 
-The subtyping rules for literal types include a reflexive rule,
-and the rules for defining that literal types are subtypes of
-their respective base types;
-the subtyping rules for base types include a reflexive rule,
-and another rule for defining that $\Integer$ is subtype of
-$\Number$.
+The subtyping rules for literal types and base types include the rules
+for defining that literal types are subtypes of their respective base types,
+and that $\Integer$ is subtype of $\Number$.
 We defined these subtyping rules as follows:
 \[
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{S-LITERAL}\\
-\senv \vdash l \subtype l
-\end{array}
-\;
 \begin{array}{c}
 \mylabel{S-FALSE}\\
 \senv \vdash \False \subtype \Boolean
@@ -118,6 +110,11 @@ We defined these subtyping rules as follows:
 \begin{array}{c}
 \mylabel{S-TRUE}\\
 \senv \vdash \True \subtype \Boolean
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-STRING}\\
+\senv \vdash {\it string} \subtype \String
 \end{array}
 \\ \\
 \begin{array}{c}
@@ -136,15 +133,6 @@ We defined these subtyping rules as follows:
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{S-STRING}\\
-\senv \vdash {\it string} \subtype \String
-\end{array}
-\begin{array}{c}
-\mylabel{S-BASE}\\
-\senv \vdash b \subtype b
-\end{array}
-\;
-\begin{array}{c}
 \mylabel{S-NUMBER}\\
 \senv \vdash \Integer \subtype \Number
 \end{array}
@@ -155,14 +143,27 @@ The variable $\senv$ is a set of pairs of recursion variables.
 We shall notice that we need this set to record the pairs of valid
 recursive types.
 
-We could have omitted the rules \textsc{S-LITERAL}, \textsc{S-BASE},
-and \textsc{S-INT2}, because the first two are reflexive and we
-could achieve the third one through transitivity.
-More precisely, we could have defined subsumption rules that
-specify the reflexive and transitive behavior of subtyping,
-and use these rules instead of the ones we defined.
-For instance, we would not need \textsc{S-INT2} because we could
-use the transitive subsumption rule to derive that
+Subtyping is reflexive, thus, we include reflexive rules for
+first-level and second-level types as follows:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-FIRST}\\
+\senv \vdash t \subtype t
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-SECOND}\\
+\senv \vdash s \subtype s
+\end{array}
+\end{array}
+\]
+
+Subtyping is also transitive, and for this reason we could have omitted
+the rule \textsc{S-INT2}.
+More precisely, we could have defined a transitive rule for first-level
+types instead of defining specific rules to transitive cases.
+For instance, a transitive rule would allow us to derive that
 \[
 \dfrac{\senv \vdash 1 \subtype \Integer \;\;\;
        \senv \vdash \Integer \subtype \Number}
@@ -178,27 +179,22 @@ Thus, we define the subtyping rules using an algorithmic
 way that is close to the implementation, as this way allows us to use
 subtyping to formalize consistent-subtyping.
 
-The type $\Nil$ represents the type of values that during run-time
+The type $\Nil$ represents the type of the value that during run-time
 Lua tags as \texttt{nil}.
-It is a separated type because in our type system $\Nil$ is
-not the bottom type.
+In our type system $\Nil$ is not the bottom type, and it is subtype
+only of itself through the reflexive rule.
 Typed Lua has this behavior because in Lua the tag \texttt{nil}
 represents the absence of an useful value.
-Thus, making $\Nil$ the bottom type would severally reduce the
-amount of type safety in our type system.
-The next subtyping rule shows this behavior:
-\[
-\begin{array}{c}
-\mylabel{S-NIL}\\
-\senv \vdash \Nil \subtype \Nil
-\end{array}
-\]
+Thus, making $\Nil$ the bottom type would lead to several expressions
+that would pass the type checker, but that would fail during run-time
+in the presence of a \texttt{nil} value.
 
-The type $\Value$ is the top type, so any first-level type is
+The type $\Value$ is the top type, so any first-level type is a
 subtype of $\Value$.
-We shall see that this type along with variadic types help to
-drop extra values on multiple assignments, and function calls,
-thus preserving the semantics of Lua in these cases.
+In the next section we will show that this type along with
+variadic types help the type system drop extra values on
+multiple assignments and function calls, thus preserving the
+semantics of Lua in these cases.
 Following we show its subtyping rule:
 \[
 \begin{array}{c}
@@ -207,16 +203,9 @@ Following we show its subtyping rule:
 \end{array}
 \]
 
-The dynamic type $\Any$ is the type that allows programmers to mix
-static and dynamic typing.
-The type $\Any$ is neither the bottom nor the top type, but a
-separated typed that is subtype only of itself:
-\[
-\begin{array}{c}
-\mylabel{S-ANY}\\
-\senv \vdash \Any \subtype \Any
-\end{array}
-\]
+The dynamic type $\Any$ allows programmers to mix static and dynamic typing;
+it is neither the bottom nor the top type,
+but a separate type that is subtype only of itself through the reflexive rule.
 
 Even though the dynamic type $\Any$ is neutral to subtyping,
 it is not to consistent-subtyping:
@@ -236,33 +225,27 @@ it is not to consistent-subtyping:
 
 The rules that handle the dynamic type are the only rules that
 differ between subtyping and consistent-subtyping.
-If we set the type $\Any$ as both bottom and top types of our
+If we had set the type $\Any$ as both bottom and top types of our
 subtyping relation, then all programs would type check without errors.
 This would happen due to the transitivity of subtyping, that is,
 we would be able to down-cast any type to $\Any$ and then up-cast
 $\Any$ to any type.
-While the rule \textsc{S-ANY} is neutral and makes transitivity
-not be a problem, the rules \textsc{C-ANY1} and \textsc{C-ANY2}
-are the rules that allow the dynamic type to interact with other
-first-level types, and thus allow dynamically typed code coexist
-with statically typed code.
+The rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that
+allow the dynamic type to interact with other first-level types,
+and thus allow dynamically typed code to coexist with statically
+typed code.
 Because of these two rules consistent-subtyping cannot be transitive.
 
-Typed Lua uses the type $\Self$ to represent \emph{objects}.
+Typed Lua uses the type $\Self$ to represent the \emph{receiver}
+in object-oriented method definitions and method calls.
 As we mentioned in Chapter \ref{chap:typedlua}, we need the type
 $\Self$ to prevent programmers from indexing a method without
-calling it with the correct receiver.
-The type $\Self$ is only a subtype of itself:
-\[
-\begin{array}{c}
-\mylabel{S-SELF}\\
-\senv \vdash \Self \subtype \Self
-\end{array}
-\]
+calling it with the correct \emph{receiver}.
+The type $\Self$ is subtype only of itself through the reflexive rule.
 
 Union types represent types that can hold a value of several
 different, but fixed types.
-Next we show the subtyping rules for union types:
+The subtyping rules for union types are standard:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -293,14 +276,15 @@ and the other rules show that a type $t$ is subtype
 of a union type $t_{1} \cup t_{2}$ if $t$ is subtype of
 $t_{1}$ or if $t$ is subtype of $t_{2}$.
 
-Union types are disjoint, that is, the types in the union are not
-consistent-subtype of any other type in the same union.
+Union types must be disjoint, that is, the types in the union are not
+consistent-subtype of each other.
+In the implementation of Typed Lua we use consitent-subtyping to
+normalize and simplify union types, but we let them free in the
+formalization.
 For instance, the union type $\Boolean \;\cup\; \Any$ results the
 type $\Any$, because $\Boolean \lesssim \Any$;
 and the union type $\Number \;\cup\; \Nil \;\cup\; 1$ results the union
 type $\Number \;\cup\; \Nil$ because $1 \lesssim \Number$.
-
-\emph{/* Do we need to show how Typed Lua simplifies union types? */}
 
 To introduce function types we first need to introduce
 second-level types, as they appear on both sides of function types.
@@ -312,107 +296,101 @@ argument passing, multiple returns, and multiple assignments.
 A variadic type $t*$ is a generator for a sequence of values of
 type $t \cup \Nil$, and it represents the type of the vararg
 expression.
-Next we show their subtyping rules:
+The subtyping rule for tuple types is standard, but the subtyping
+rules for variadic types are not obvious:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{S-VARARG}\\
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
-      {\senv \vdash t_{1}* \subtype t_{2}*}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-TUPLE1}\\
+\mylabel{S-TUPLE}\\
 \dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
        \senv \vdash s_{1} \subtype s_{2}}
       {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{S-TUPLE2}\\
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \;\;\;
-       \senv \vdash t_{1}* \subtype s_{2}}
-      {\senv \vdash t_{1}* \subtype t_{2} \times s_{2}}
+\mylabel{S-VARARG1}\\
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1}{*} \subtype t_{2}{*}}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-TUPLE3}\\
-\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil \;\;\;
-       \senv \vdash s_{1} \subtype t_{2}*}
-      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}*}
+\mylabel{S-VARARG2}\\
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2}}
+      {\senv \vdash t_{1}{*} \subtype t_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VARARG3}\\
+\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1} \subtype t_{2}{*}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-VARARG4}\\
+\dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \;\;\;
+       \senv \vdash t_{1}{*} \subtype s_{2}}
+      {\senv \vdash t_{1}{*} \subtype t_{2} \times s_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VARARG5}\\
+\dfrac{\senv \vdash t_{1} \subtype t_{2}{*} \;\;\;
+       \senv \vdash s_{1} \subtype t_{2}{*}}
+      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}{*}}
 \end{array}
 \end{array}
 \]
 
-The subtyping rules for variadic and tuple types show that
-these types are covariant.
-The subtyping rule for variadic types is straightforward:
-it shows that a variadic type $t_{1}*$ is subtype of another
-variadic type $t_{2}*$ if $t_{1} \cup \Nil$ is subtype of
-$t_{2} \cup \Nil$.
-The first rule for tuple types shows that a tuple type
-$t_{1} \times s_{1}$ is subtype of another tuple type
-$t_{2} \times s_{2}$ if $t_{1}$ is subtype of $t_{2}$
-and $s_{1}$ is subtype of $s_{2}$.
-A tuple type can optionally end with a variadic type, and
-the rules \textsc{S-TUPLE2} and \textsc{S-TUPLE3} handle this case.
-The rule \textsc{S-TUPLE2} shows that a variadic type is subtype of
+The subtyping rules for tuple and variadic types show that they are covariant.
+While we need just one subtyping rule for tuple types,
+we need five different subtyping rules for variadic types
+to handle all the cases that they can appear.
+The rule \textsc{S-TUPLE1} shows that a tuple type $t_{1} \times s_{1}$
+is subtype of another tuple type $t_{2} \times s_{2}$ if
+$t_{1}$ is subtype of $t_{2}$ and $s_{1}$ is subtype of $s_{2}$.
+The rule \textsc{S-VARARG1} handles the subtyping between two variadic types.
+It shows that $t_{1}{*}$ is subtype of $t_{2}{*}$
+if $t_{1} \cup \Nil$ is subtype of $t_{2} \cup \Nil$.
+This rule explicit includes $\Nil$ in both sides because otherwise
+$\Nil{*}$ would not be a subtype of several other variadic types.
+For instance, $\Nil{*}$ would not be subtype of $\Number{*}$,
+as $\Nil \not\subtype \Number$.
+The rules \textsc{S-VARARG2} and \textsc{S-VARARG3} handles the
+subtyping between a firt-level type and a variadic type.
+The rule \textsc{S-VARARG2} shows that a variadic type $t_{1}{*}$ is
+subtype of a firt-level type $t_{2}$ if $t_{1} \cup \Nil$ is subtype of $t_{2}$.
+The rule \textsc{S-VARARG3} shows that a firt-level type $t_{1}$
+is subtype of a variadic type $t_{2}{*}$ if $t_{1}$ is subtype of $t_{2} \cup \Nil$.
+The rules \textsc{S-VARARG4} and \textsc{S-VARARG5} handle the
+subtyping between a tuple type and a variadic type.
+The rule \textsc{S-VARARG4} shows that a variadic type is subtype of
 a tuple type whenever the type of the value that it generates is
 subtype of all the elements of the tuple.
-The rule \textsc{S-TUPLE3} shows that a tuple type is subtype of a
+The rule \textsc{S-VARARG5} shows that a tuple type is subtype of a
 variadic type whenever all the elements of the tuple are subtype of
 the type of the value that it generates.
-We shall see that these subtyping relations along with the
-types $\Value$ and $\Nil$ allow our type system to reflect
+In the next section we will show that we use these subtyping relations
+along with the types $\Value$ and $\Nil$ to make our type system reflect
 the semantics of Lua on discarding extra parameters and
 replacing missing parameters.
 
-In our type system function types have the form $p \rightarrow r$,
-where $p$ is the type of the parameters list and $r$ is the
-return type.
-The type of the parameters list can be $\Void$ or a tuple type,
+Function types have the form $p \rightarrow r$, where
+$p$ is the type of the parameter list and $r$ is the return type.
+The type of the parameter list can be $\Void$ or a tuple type,
 while the return type can be $\Void$, a tuple type, or a union of
 tuple types.
 The type $\Void$ means an empty tuple.
-Our type system includes union of tuples on the return type because
+Our type system includes unions of tuples on the return type because
 in Lua it is common to overload the return type to denote error,
 as we mentioned in Section \ref{sec:statistics}.
 
 The type $\Void$ and union of tuple types are also second-level types.
-The type $\Void$ is subtype only of itself.
-The subtyping rules for union of tuple types are similar to the
-subtyping rules for union of first-level types.
-Next we show the subtyping rules for these second-level types:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-VOID}\\
-\senv \vdash \Void \subtype \Void
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-UNION4}\\
-\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
-       \senv \vdash s_{2} \subtype s}
-      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-UNION5}\\
-\dfrac{\senv \vdash s \subtype s_{1}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-UNION6}\\
-\dfrac{\senv \vdash s \subtype s_{2}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
-\end{array}
-\end{array}
-\]
+The type $\Void$ is subtype only of itself through the reflexive rule.
+The subtyping rules for unions of tuple types are similar to the
+subtyping rules for unions of first-level types.
 
 The subtyping rule for function types is standard, that is, it is
-contravariant on the type of the parameters list and
+contravariant on the type of the parameter list and
 covariant on the return type:
 \[
 \begin{array}{c}
@@ -423,21 +401,22 @@ covariant on the return type:
 \end{array}
 \]
 
-Our type system includes table types to represent Lua tables.
+Table types represent the various forms that Lua tables can take.
 The syntactical form of table types is $\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{tag}$.
 When $n = 0$, then $i = 0$ and it represents the type of an empty table.
 When $n > 0$, then $i$ varies from 1 to $n$, each $k_{i}$ represents
 the type of a table key, and each $v_{i}$ represents the type of the
-value that the table key $k_{i}$ maps to.
-We restricted the type of keys to literal types, base types, and the dynamic type,
-but we can use any first-level type to represent the type of values they map to.
+value that table keys of type $k_{i}$ map to.
+Key types can only be literal types, base types, and the dynamic type.
 We made this restriction to the type of the keys because the statistics
 that we discussed in Section \ref{sec:statistics} showed that most
 of the tables are records, lists, and hashes.
-The dynamic type is an option when we need a more loosen table type.
+The dynamic type is an option when we need a loose table type.
+Value types can be any first-level type, and can optionally include
+the $\Const$ attribute to denote immutable values.
 
 We also use the tags \emph{closed}, \emph{open}, and \emph{unique}
-to classify table types, though they have only one syntactical form.
+to classify table types.
 The first tag represents the table types that the type annotations,
 interface, and userdata declarations describe.
 The second tag represents the table types that we can use field assignment
@@ -623,8 +602,6 @@ whether a table type is well formed:
 \[
 \forall i \not\exists j \; i \not= j \wedge k_{i} \lesssim k_{j}
 \]
-
-\emph{/* Can we use this well formed rule to allow $k$ to be $t$? */}
 
 Our type system also includes recursive types: $\mu x.t$,
 where $t$ is a function or table type with $x$ appearing anywhere
