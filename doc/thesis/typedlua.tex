@@ -49,6 +49,7 @@ It worth mentioning that we used our implementation to produce and
 test all the examples that we present along this section.
 
 \section{Optional type annotations}
+\label{sec:optann}
 
 Lua values can have one of eight tags:
 \emph{nil}, \emph{boolean}, \emph{number}, \emph{string},
@@ -220,6 +221,7 @@ This is a typical example where run-time checks would ensure safety
 between the interaction of dynamically typed and statically typed code.
 
 \section{Functions}
+\label{sec:func}
 
 Lua has first-class functions, but they have some peculiarities.
 First, the number of arguments of a function call does
@@ -325,6 +327,7 @@ Thus, this example compiles with error because the call to \texttt{sum}
 passes an unexpected extra argument of type \texttt{string}.
 
 \section{Unions}
+\label{sec:unions}
 
 Typed Lua includes union types to encode three common Lua idioms:
 the use of optional values, the overloading based on the tags of
@@ -515,6 +518,7 @@ check whether a function has this type,
 and we still need to work on this problem.
 
 \section{Tables and Interfaces}
+\label{sec:tables}
 
 Tables are the only mechanism that Lua has to build data structures;
 they are associative arrays where any value (except \texttt{nil})
@@ -871,6 +875,7 @@ through field assignment is crucial for making Typed Lua
 support idiomatic definition of Lua modules.
 
 \section{Modules}
+\label{sec:modules}
 
 Lua does not set policies on how programmers should define modules,
 but it provides mechanisms for organizing a program in modules.
@@ -996,6 +1001,7 @@ relevant for supporting object-oriented programming, as we discuss in
 the next section.
 
 \section{Object-Oriented Programming}
+\label{sec:oop}
 
 Lua provides minimal support for object-oriented programming.
 The basic mechanism is the \texttt{:} syntactic sugar for method
@@ -1195,6 +1201,7 @@ and does not offer privacy rules, but these limitations are not
 on plans for future work anyway.
 
 \section{Description files}
+\label{sec:tld}
 
 The Typed Lua compiler also handles description files.
 The programmer can use description files for two purposes:

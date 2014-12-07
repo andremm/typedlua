@@ -50,7 +50,7 @@ t ::= & \;\; l & \textit{literal types}\\
 l ::= & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} & \\
 b ::= & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String & \\
 k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
-v ::= & \;\; t \; | \; \Const \; t & \textit{field types}\\ 
+v ::= & \;\; t \; | \; \Const \; t & \textit{value types}\\ 
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
 s ::= & \;\; t &\\
@@ -424,73 +424,331 @@ to add new fields to them.
 The third tag represents the table types of table constructors.
 We have different subtyping rules for table types according to their
 tags.
-We will discuss these subtyping rules in the next paragraphs to
-explain why we needed different tags.
 
-The following subtyping rule shows that \emph{closed} table types
-have width subtyping, and depth subtyping on $\Const$ fields;
-it resembles the subtyping rule for record types.
-
+The subtyping rule between \emph{closed} table types resembles the
+standard subtyping rule between records:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE1}\\
 \dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
        \senv \vdash k_{j} \subtype k_{i}' \;\;\;
        \senv \vdash k_{i}' \subtype k_{j} \;\;\;
-       \senv \vdash v_{j} \subtype_{c} v_{i}'}
+       \senv \vdash v_{j} \subtype v_{i}'}
       {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
 \end{array}
 \]
 
-The rule \textsc{S-TABLE1} introduced the relation $\subtype_{c}$.
-It is just an auxiliary relation that defines the subtyping of the
-type of the values stored in table fields.
-We needed an auxiliary relation because the subtyping of the type
-of the values stored in the table fields change according to the
-tag of the table type.
-For closed tables, subtyping handles mutable fields invariantly,
-and immutable fields covariantly.
-The following rules define this behavior.
+The rule \textsc{S-TABLE1} allows \emph{closed} table types to
+have width subtyping, and depth subtyping on $\Const$ fields.
+The subtyping rules for the type of the values stored in a \emph{closed}
+table type describe this behavior:
 \[
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-FIELD1}\\
 \dfrac{\senv \vdash v_{1} \subtype v_{2} \;\;\;
        \senv \vdash v_{2} \subtype v_{1}}
-      {\senv \vdash v_{1} \subtype_{c} v_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD2}\\
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash \Const \; v_{1} \subtype_{c} \Const \; v_{2}}
+      {\senv \vdash v_{1} \subtype v_{2}}
 \end{array}
 \;
 \begin{array}{c}
+\mylabel{S-FIELD2}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype \Const \; v_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
 \mylabel{S-FIELD3}\\
 \dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{c} \Const \; v_{2}}
+      {\senv \vdash v_{1} \subtype \Const \; v_{2}}
 \end{array}
 \end{array}
 \]
 
-There are two limitations on \emph{closed} table types that led us to
-introduce \emph{open} and \emph{unique} table types.
-First, they do not allow programmers to use the table constructor to
-initialize table types that include optional fields.
+The rule \textsc{S-FIELD1} handles mutable values invariantly,
+while the rule \textsc{S-FIELD2} handles immutable values covariantly.
+It is also safe to promote a mutable value to immutable, and the rule
+\textsc{S-FIELD3} defines this behavior.
+However, it is not safe to promote an immutable value to mutable,
+and that is the reason why we do not have a subtying rule for this case.
+
+There is a limitation on \emph{closed} table types that led us to
+introduce \emph{unique} table types.
+If the table constructor had a \emph{closed} table type, then
+programmers would not be able to use it to initialize a variable with
+a table type that describe a more general type.
 For instance,
+\begin{verbatim}
+    local t:{"x":integer, "y":integer?} = { x = 1, y = 2 }
+\end{verbatim}
+whould not type check, as the type of the table constructor would not
+be subtype of the type in the annotation.
+More precisely,
+\[
+\{``x":1, ``y":2\}_{closed} \not\subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\]
+Thus, we introduced \emph{unique} table types to represent the type of
+the table constructor and avoid this limitation.
+
+We introduced \emph{open} table types to allow the refinement of table types,
+an idiom very common in Lua.
+
+Even though \emph{open} and \emph{unique} table types have specific
+subtyping rules, we will present them in the next section along with
+the typing rules that formalize the refinement of table types.
+The presentation of these subtyping rules is easier in the next section,
+as they include some unsafe behaviors that the refinement of
+table types keeps track to make them safe.
+
+Any table type has to be \emph{well-formed}.
+Informally, a table type is well-formed if key types do not overlap.
+Formally, a table type is well-formed if it obeys the following rule:
+\[
+\forall i \not\exists j \; i \not= j \wedge k_{i} \lesssim k_{j}
+\]
+
+Well-formed table types avoid ambiguous table types.
+For instance, this rule detects that the table type
+$\{1:\Number, \Integer:\String, \Any:\Boolean\}$ is ambiguous,
+because the type of the value stored by key $1$ can be
+$\Number$, $\String$, or $\Boolean$, as $1 \lesssim 1$,
+$1 \lesssim \Integer$, and $1 \lesssim \Any$.
+Moreover, the type of the value stored by a key of type $\Integer$,
+which is not the literal type $1$, can be $\Number$ or $\Boolean$,
+as $\Integer \lesssim \Integer$, and $\Integer \lesssim \Any$.
+
+Recursive types have the form $\mu x.t$,
+where $t$ is a first-level type with $x$ appearing anywhere this
+first-level type could appear.
+For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
+is a type for singly-linked list of integers.
+
+We use the \emph{Amber rule} \citep{cardelli1986amber} to define
+subtyping between recursive types:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-ASSUMPTION}\\
+\dfrac{x_{1} \subtype x_{2} \in \senv}
+      {\senv \vdash x_{1} \subtype x_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-AMBER}\\
+\dfrac{\senv[x_{1} \subtype x_{2}] \vdash t_{1} \subtype t_{2}}
+      {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{S-AMBER} needs the rule \textsc{S-ASSUMPTION}
+to show that $\mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}$.
+The rule \textsc{S-ASSUMPTION} checks if the assumption
+$x_{1} \subtype x_{2}$ exists in the set of assumptions $\senv$.
+The rule \textsc{S-AMBER} extends the set of assumptions
+with the assumption $x_{1} \subtype x_{2}$ to check whether
+$t_{1} \subtype t_{2}$ or not.
+
+A recursive type may appear inside a first-level type, and our
+type system includes subtyping rules to handle subtyping between
+a first-level type and a recursive type:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-AMBERL}\\
+\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
+      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-AMBERR}\\
+\dfrac{\senv \vdash t_{1} \subtype [x \mapsto \mu x.t_{2}]t_{2}}
+      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
+\end{array}
+\end{array}
+\]
+
+For instance, it is the rule \textsc{S-AMBERR} that allows our
+type system to type check the example that we presented
+in Section \ref{sec:tables}:
+\begin{verbatim}
+    local interface Element
+      info:integer
+      next:Element?
+    end
+    local function insert (e:Element?, v:integer):Element
+      return { info = v, next = e }
+    end
+\end{verbatim}
+
+The interface \texttt{Element} defines the type for singly-linked
+list of integers that we just mentioned, and the function
+\texttt{insert} inserts an element in the begining of the list.
+In this example, the recursive type appears inside the type of
+the table constructor.
+It type checks because the rule \textsc{S-AMBERR} verifies that
+the type of the table constructor is a subtype of \texttt{Element}:
 \begin{align*}
-\{ & ``firstname":\String, ``lastname":\String \}_{closed} \not \subtype\\
-\{ & ``firstname":\String,\\
-  &  ``middlename":\String \cup \Nil, ``lastname":\String \}_{closed}
+\{ & ``info":\Integer, \\
+   & ``next":\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed} \cup \Nil \}_{unique} \subtype \\
+& \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
-Second, they do not allow programmers to use the table constructor to
-initialize table types that represent hashes.
-For instance,
-\begin{align*}
-\{ & ``x":\Number, ``y":\Number, ``z":\Number \}_{closed} \not \subtype\\
-\{ & \String:\Number \cup \Nil\}_{closed}
-\end{align*}
+
+Projection types have the form $\pi_{i}^{x}$, where $x$ is a variable
+that stores an union of tuple types in a special type environment,
+and $i$ is an index that indicates how to build a first-level
+union type from $x$.
+For instance, if $x$ is the union of tuple types
+$(\Integer \times \Integer) \sqcup (\Nil \times \String)$,
+then $\pi_{1}^{x}$ represents the type $\Integer \cup \Nil$
+while $\pi_{2}^{x}$ represents the type $\Integer \cup \String$.
+Projection types follow the reflexive subtyping rule.
+In the next section we will show in more detail how our type system
+uses them as a mechanism for handling unions of tuple types,
+when they appear on the right-hand side of the declaration of local variables.
+We will also show how this feature allows our type system to constrain
+the type of a local variable that depends on the type of another local variable.
+
+\textit{/* How should we control invalid indices? */}
+
+\section{Typing rules}
+
+In this section we use a reduced core of Typed Lua to present the
+most interesting rules of our type system.
+This core limits control flow to if and while statements,
+has explicit type annotations, and explicit scope for variables.
+It also has explicit method declarations and explicit method calls
+instead of treating them as syntactic sugar.
+We use this reduced core because it simplifies the presentation
+of our type system.
+Appendix \ref{app:rules} presents the full set of typing rules.
+
+\begin{figure}[!ht]
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rl}
+s ::= & \;\; \mathbf{skip} \; | \;
+s_{1} \; ; \; s_{2} \; | \;
+\vec{l} = el \; | \;
+m \; | \;
+\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
+\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
+& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
+\mathbf{return} \; el \; | \;
+e(el)_{s} \; | \;
+e{:}n(el)_{s}\\
+e ::= & \;\; \mathbf{nil} \; | \;
+c \; | \;
+{...}_{e} \; | \;
+n_{e} \; | \;
+e_{1}[e_{2}] \; | \;
+{<}t{>} \; n \; | \;
+f \; | \;
+\{ \} \; | \;
+\{ \; \vec{p} \; \} \; | \;
+\{ \; {...}_{m} \; \} \; | \;
+\{ \; \vec{p},{...}_{m} \; \}\\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
+e_{1} < e_{2} \; | \;
+e_{1} \; \mathbf{and} \; e_{2} \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \\
+& | \; \mathbf{not} \; e \; | \;
+- e \; | \;
+\# \; e \; | \;
+e(el)_{e} \; | \;
+e{:}n(el)_{e}\\
+l ::= & \;\; n_{l} \; | \;
+e_{1}[e_{2}] \; | \;
+n[c] \; {<}t{>}\\
+c ::= & \;\; \mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
+{\it string}\\
+p ::= & \;\; [e_{1}] = e_{2}\\
+el ::= & \;\; \mathbf{nothing} \; | \;
+\vec{e} \; | \;
+me \; | \;
+\vec{e}, me\\
+me ::= & \;\; e(el)_{m} \; | \;
+e{:}n(el)_{m} \; | \;
+{...}_{m}\\
+m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; fb \; | \;
+\mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; fb\\
+& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; fb \; | \;
+\mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
+f ::= & \;\; \mathbf{fun} \; (){:}r \; fb \; | \;
+\mathbf{fun} \; ({...}{:}t){:}r \; fb \; | \;
+\mathbf{fun} \; (\vec{n{:}t}){:}r \; fb \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
+fb ::= & \;\; s \;;\; \mathbf{return} \; el\\
+n ::= & \;\; {\it name}\\
+\end{array}
+$$
+\dend
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax}
+\end{figure}
+
+Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
+It splits the syntactic categories as follows:
+$s$ are statements, $e$ are expressions, $l$ are left-hand values,
+$el$ are expression lists, $c$ are literal constants, $p$ are expression pairs,
+$me$ are expressions with multiple results, $f$ are function declarations,
+$m$ are method declarations, $n$ are variable names,
+$t$ are first-level types, and $r$ are second-level types.
+The notation $\vec{n{:}t}$ denotes the non-empty list
+$n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
+
+Our reduced core also splits function application, method application, and
+the vararg expression (${...}$) into different syntactic categories.
+It uses $e(el)_{s}$ to denote function applications that return no value
+because they appear as statements,
+$e(el)_{e}$ to denote function applications that return only one value,
+and $e(el)_{m}$ to denote function applications that return multiple values.
+It uses the same categories for method applications, but only ${...}_{e}$
+and ${...}_{m}$, as the vararg expression cannot appear as a statement.
+
+We also included two kinds of type cast in our core language:
+the expression ${<}t{>} \;n$ and the left-hand value $n[c] \; {<}t{>}$.
+We will show that the first helps allowing safe aliasing between
+table types, while the second allows the refinement of table types.
+Due to the refinement of table types we also split variable names
+into two categories: $n_{e}$ when they appear as expressions and
+$n_{l}$ when they appear as left-hand values.
+
+We will present the typing rules as a deduction system for the typing
+relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
+We will use the first one for typing statements, and the second one
+for typing expressions.
+The first relation means that given the type environment $\env_{1}$,
+typing the statement $s$ produces the new type environment $\env_{2}$. 
+The second relation means that given the type environment $\env_{1}$,
+the expression $e$ has type $t$, and produces the new type environment $\env_{2}$.
+We need two typing relations because only expressions have types,
+though both expressions and statements can modify the environment.
+The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
+for meaning that we extended the environment $\env_{1}$ with the
+variable $n$ that maps to type $t$, and this mapping does not affect
+the other mappings that existed before.
+
+The most unusual feature of our type system is the refinement of
+table types.
+The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
+and \emph{unique} table types:
+\[
+\begin{array}{c}
+\mylabel{T-REFINE}\\
+\dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique} \;\;\;
+       \env_{1} \vdash c:t_{1}, \env_{2} \;\;\;
+       \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
+      {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
+\end{array}
+\]
 
 We introduced \emph{open} table types to allow the refinement
 of table types, and also to allow programmers to omit optional
@@ -582,240 +840,10 @@ as follows:
 \end{array}
 \]
 
-Table types can be ambiguous.
-For instance, $\{1:\Number, \Integer:\String\}$ is an ambiguous
-table type because the type of the value stored by key $1$ can be
-$\Number$ or $\String$, as $1 \subtype 1$ and
-$1 \subtype \Integer$.
-Table types can get even more ambiguous when we use the dynamic
-type in the type of table keys.
-For instance, the table type $\{1:\Number, \Integer:\String, \Any:\Boolean\}$
-is ambiguous because the type of the value stored by key $1$ can be
-$\Number$, or $\String$, or $\Boolean$, as $1 \subtype 1$,
-$1 \subtype \Integer$, and $1 \lesssim \Any$.
-Moreover, the type of the value stored by a key of type $\Integer$,
-which is not the literal type $1$, can be $\Number$ or $\Boolean$,
-as $\Integer \subtype \Integer$, and $\Integer \lesssim \Any$.
-
-To avoid ambiguous table types we use the following rule to check
-whether a table type is well formed:
-\[
-\forall i \not\exists j \; i \not= j \wedge k_{i} \lesssim k_{j}
-\]
-
-Our type system also includes recursive types: $\mu x.t$,
-where $t$ is a function or table type with $x$ appearing anywhere
-a function or table type could appear.
-For instance, $\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed}$
-represents the type of single linked list of numbers.
-
-We use the \emph{Amber rule} from the Amber language
-\citep{cardelli1986amber} to define the subtyping rule for
-recursive types:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-ASSUMPTION}\\
-\dfrac{x_{1} \subtype x_{2} \in \senv}
-      {\senv \vdash x_{1} \subtype x_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-AMBER}\\
-\dfrac{\senv[x_{1} \subtype x_{2}] \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
-\end{array}
-\end{array}
-\]
-
-The rule \textsc{S-AMBER} needs the rule \textsc{S-ASSUMPTION}
-to show that $\mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}$.
-The rule \textsc{S-ASSUMPTION} checks if the assumption
-$x_{1} \subtype x_{2}$ exists in the set of assumptions $\senv$.
-The rule \textsc{S-AMBER} extends the set of assumptions
-with the assumption $x_{1} \subtype x_{2}$ to check whether
-$t_{1} \subtype t_{2}$ or not.
-
-Our type system does not infer recursive types, so we defined two
-extra subtyping rules that handle the cases where they may
-appear inside a table or function type:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-AMBERL}\\
-\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
-      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-AMBERR}\\
-\dfrac{\senv \vdash t_{1} \subtype [x \mapsto \mu x.t_{2}]t_{2}}
-      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
-\end{array}
-\end{array}
-\]
-
-For instance, the rule \textsc{S-AMBERR} allows our type system
-check whether the type of a table constructor is subtype of
-a recursive type or not, as we show in the following example:
-\begin{align*}
-\{ & ``info":\Number, \\
-   & ``next":\mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed} \cup \Nil \}_{unique} \subtype \\
-& \mu x.\{``info":\Number, ``next":x \;\cup\; \Nil\}_{closed}
-\end{align*}
-
-Our type system also introduces projection types, but they do not
-appear on the subtyping and consistent-subtyping rules.
-They are just a mechanism that the type system uses for handling
-union of tuple types, when they appear on the right-hand side of
-the declaration of local variables.
-That is the reason why we do not need to define subtyping and
-consistent-subtyping rules for them.
-We will see projection types in more detail in the next section.
-
-\section{Typing rules}
-
-In this section we use a reduced core of Typed Lua to present the
-most interesting typing rules of our type system.
-It is also a reduced core of the Lua language with only if and while
-control flow statements, without syntactic sugar, with explicit
-type annotations, with explicit scope of local variables, and
-with explicit declaration of methods.
-We use this reduced core because it simplifies the presentation
-of our type system.
-Appendix \ref{app:rules} presents the full set of typing rules.
-
-\begin{figure}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rl}
-s ::= & \;\; \mathbf{skip} \; | \;
-s_{1} \; ; \; s_{2} \; | \;
-\vec{l} = el \; | \;
-m \; | \;
-\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
-\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; el \; | \;
-e(el)_{s} \; | \;
-e{:}n(el)_{s}\\
-e ::= & \;\; \mathbf{nil} \; | \;
-c \; | \;
-{...}_{e} \; | \;
-n_{e} \; | \;
-e_{1}[e_{2}] \; | \;
-{<}t{>} \; n \; | \;
-f \; | \;
-\{ \} \; | \;
-\{ \; \vec{p} \; \} \; | \;
-\{ \; {...}_{m} \; \} \; | \;
-\{ \; \vec{p},{...}_{m} \; \}\\
-& | \; e_{1} + e_{2} \; | \;
-e_{1} \; {..} \; e_{2} \; | \;
-e_{1} == e_{2} \; | \;
-e_{1} < e_{2} \; | \;
-e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \\
-& | \; \mathbf{not} \; e \; | \;
-- e \; | \;
-\# \; e \; | \;
-e(el)_{e} \; | \;
-e{:}n(el)_{e}\\
-l ::= & \;\; n_{l} \; | \;
-e_{1}[e_{2}] \; | \;
-n[c] \; {<}t{>}\\
-c ::= & \;\; \mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{\it int} \; | \;
-{\it float} \; | \;
-{\it string}\\
-p ::= & \;\; [e_{1}] = e_{2}\\
-el ::= & \;\; \mathbf{nothing} \; | \;
-\vec{e} \; | \;
-me \; | \;
-\vec{e}, me\\
-me ::= & \;\; e(el)_{m} \; | \;
-e{:}n(el)_{m} \; | \;
-{...}_{m}\\
-m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; fb \; | \;
-\mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; fb\\
-& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; fb \; | \;
-\mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
-f ::= & \;\; \mathbf{fun} \; (){:}r \; fb \; | \;
-\mathbf{fun} \; ({...}{:}t){:}r \; fb \; | \;
-\mathbf{fun} \; (\vec{n{:}t}){:}r \; fb \; | \;
-\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
-fb ::= & \;\; s \;;\; \mathbf{return} \; el\\
-n ::= & \;\; {\it name}\\
-\end{array}
-$$
-\dend
-\caption{Typed Lua abstract syntax}
-\label{fig:syntax}
-\end{figure}
-
-Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
-It splits the syntactic categories as follows:
-$s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$el$ are expression lists, $c$ are literal constants, $p$ are expression pairs,
-$me$ are expressions with multiple results, $f$ are function declarations,
-$m$ are method declarations, $n$ are variable names,
-$t$ are first-level types, and $r$ are second-level types.
-The notation $\vec{n{:}t}$ denotes the non-empty list
-$n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
-
-Our reduced code also splits function application, method application, and
-the vararg expression (${...}$) into different categories.
-It uses $e(el)_{s}$ to denote function applications that return no value
-because they appear as statements,
-$e(el)_{e}$ to denote function applications that return only one value,
-and $e(el)_{m}$ to denote function applications that return multiple values.
-It uses the same categories for method applications, but only ${...}_{e}$
-and ${...}_{m}$, as the vararg expression cannot appear as a statement.
-
-We also included two kinds of type cast in our core language:
-the expression ${<}t{>} \;n$ and the left-hand value $n[c] \; {<}t{>}$.
-We will show that the first helps allowing safe aliasing between
-table types, while the second allows the refinement of table types.
-Due to the refinement of table types we also split variable names
-into two categories: $n_{e}$ when they appear as expressions and
-$n_{l}$ when they appear as left-hand values.
-
-We will present the typing rules as a deduction system for the typing
-relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
-We will use the first one for typing statements, and the second one
-for typing expressions.
-The first relation means that given the type environment $\env_{1}$,
-typing the statement $s$ produces the new type environment $\env_{2}$. 
-The second relation means that given the type environment $\env_{1}$,
-the expression $e$ has type $t$, and produces the new type environment $\env_{2}$.
-We need two typing relations because only expressions have types,
-though both expressions and statements can modify the environment.
-The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
-for meaning that we extended the environment $\env_{1}$ with the
-variable $n$ that maps to type $t$, and this mapping does not affect
-the other mappings that existed before.
-
-The most unusual feature of our type system is the refinement of
-table types.
-The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
-and \emph{unique} table types:
-\[
-\begin{array}{c}
-\mylabel{T-REFINE}\\
-\dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique} \;\;\;
-       \env_{1} \vdash c:t_{1}, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
-      {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
-\end{array}
-\]
-
 We restricted the refinement of table types to include only literal
 keys because its purpose is to make it easier the construction of
 table types that represent records.
-For instance, 
+For instance,
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
