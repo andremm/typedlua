@@ -6,6 +6,8 @@ if not table.unpack then table.unpack = unpack end
 
 local tltype = {}
 
+tltype.integer = false
+
 -- literal types
 
 -- Literal : (boolean|number|string) -> (type) 
@@ -53,6 +55,24 @@ function tltype.isNum (t)
   return tltype.isLiteral(t) and type(t[1]) == "number"
 end
 
+-- isFloat : (type) -> (boolean)
+function tltype.isFloat (t)
+  if _VERSION == "Lua 5.3" then
+    return tltype.isLiteral(t) and math.type(t[1]) == "float"
+  else
+    return false
+  end
+end
+
+-- isInt : (type) -> (boolean)
+function tltype.isInt (t)
+  if _VERSION == "Lua 5.3" then
+    return tltype.isLiteral(t) and math.type(t[1]) == "integer"
+  else
+    return false
+  end
+end
+
 -- isStr : (type) -> (boolean)
 function tltype.isStr (t)
   return tltype.isLiteral(t) and type(t[1]) == "string"
@@ -80,6 +100,11 @@ function tltype.String ()
   return tltype.Base("string")
 end
 
+-- Integer : (boolean?) -> (type)
+function tltype.Integer (i)
+  if i then return tltype.Base("integer") else return tltype.Base("number") end
+end
+
 -- isBase : (type) -> (boolean)
 function tltype.isBase (t)
   return t.tag == "TBase"
@@ -98,6 +123,11 @@ end
 -- isString : (type) -> (boolean)
 function tltype.isString (t)
   return tltype.isBase(t) and t[1] == "string"
+end
+
+-- isInteger : (type) -> (boolean)
+function tltype.isInteger (t)
+  return tltype.isBase(t) and t[1] == "integer"
 end
 
 -- nil type
@@ -393,6 +423,11 @@ function tltype.isConstField (f)
   return f.tag == "TField" and f.const
 end
 
+-- ArrayField : (boolean, type) -> (field)
+function tltype.ArrayField (i, t)
+  return tltype.Field(false, tltype.Integer(i), t)
+end
+
 -- Table : (field*) -> (type)
 function tltype.Table (...)
   return { tag = "TTable", ... }
@@ -550,6 +585,8 @@ local function subtype_literal (env, t1, t2)
       return tltype.isNum(t1)
     elseif tltype.isString(t2) then
       return tltype.isStr(t1)
+    elseif tltype.isInteger(t2) then
+      return tltype.isInt(t1)
     else
       return false
     end
@@ -560,7 +597,7 @@ end
 
 local function subtype_base (env, t1, t2)
   if tltype.isBase(t1) and tltype.isBase(t2) then
-    return t1[1] == t2[1]
+    return t1[1] == t2[1] or (tltype.isInteger(t1) and tltype.isNumber(t2))
   else
     return false
   end
@@ -851,6 +888,8 @@ end
 function tltype.general (t)
   if tltype.isFalse(t) or tltype.isTrue(t) then
     return tltype.Boolean()
+  elseif tltype.isInt(t) and tltype.integer then
+    return tltype.Integer(true)
   elseif tltype.isNum(t) then
     return tltype.Number()
   elseif tltype.isStr(t) then

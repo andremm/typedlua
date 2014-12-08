@@ -41,7 +41,8 @@ local G = lpeg.P { "TypedLua";
                 tltype.Literal;
   BaseType = tllexer.token("boolean", "Type") / tltype.Boolean +
              tllexer.token("number", "Type") / tltype.Number +
-             tllexer.token("string", "Type") / tltype.String;
+             tllexer.token("string", "Type") / tltype.String +
+             tllexer.token("integer", "Type") * lpeg.Carg(3) / tltype.Integer;
   NilType = tllexer.token("nil", "Type") / tltype.Nil;
   ValueType = tllexer.token("value", "Type") / tltype.Value;
   AnyType = tllexer.token("any", "Type") / tltype.Any;
@@ -76,8 +77,7 @@ local G = lpeg.P { "TypedLua";
                 tltype.Field;
   HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("FieldType") /
              tltype.Field;
-  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("FieldType") /
-              tltype.Field;
+  ArrayType = lpeg.Carg(3) * lpeg.V("FieldType") / tltype.ArrayField;
   KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
   FieldType = lpeg.V("Type") * lpeg.Cc(tltype.Nil()) / tltype.Union;
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
@@ -132,29 +132,40 @@ local G = lpeg.P { "TypedLua";
           tllexer.symb(">=") / "ge" +
           tllexer.symb("<") / "lt" +
           tllexer.symb(">") / "gt";
+  BOrOp = tllexer.symb("|") / "bor";
+  BXorOp = tllexer.symb("~") / "bxor";
+  BAndOp = tllexer.symb("&") / "band";
+  ShiftOp = tllexer.symb("<<") / "shl" +
+            tllexer.symb(">>") / "shr";
   ConOp = tllexer.symb("..") / "concat";
   AddOp = tllexer.symb("+") / "add" +
           tllexer.symb("-") / "sub";
   MulOp = tllexer.symb("*") / "mul" +
+          tllexer.symb("//") / "idiv" +
           tllexer.symb("/") / "div" +
           tllexer.symb("%") / "mod";
   UnOp = tllexer.kw("not") / "not" +
          tllexer.symb("-") / "unm" +
+         tllexer.symb("~") / "bnot" +
          tllexer.symb("#") / "len";
   PowOp = tllexer.symb("^") / "pow";
   Expr = lpeg.V("SubExpr_1");
   SubExpr_1 = chainl1(lpeg.V("SubExpr_2"), lpeg.V("OrOp"));
   SubExpr_2 = chainl1(lpeg.V("SubExpr_3"), lpeg.V("AndOp"));
   SubExpr_3 = chainl1(lpeg.V("SubExpr_4"), lpeg.V("RelOp"));
-  SubExpr_4 = lpeg.V("SubExpr_5") * lpeg.V("ConOp") * lpeg.V("SubExpr_4") /
+  SubExpr_4 = chainl1(lpeg.V("SubExpr_5"), lpeg.V("BOrOp"));
+  SubExpr_5 = chainl1(lpeg.V("SubExpr_6"), lpeg.V("BXorOp"));
+  SubExpr_6 = chainl1(lpeg.V("SubExpr_7"), lpeg.V("BAndOp"));
+  SubExpr_7 = chainl1(lpeg.V("SubExpr_8"), lpeg.V("ShiftOp"));
+  SubExpr_8 = lpeg.V("SubExpr_9") * lpeg.V("ConOp") * lpeg.V("SubExpr_8") /
               tlast.exprBinaryOp +
-              lpeg.V("SubExpr_5");
-  SubExpr_5 = chainl1(lpeg.V("SubExpr_6"), lpeg.V("AddOp"));
-  SubExpr_6 = chainl1(lpeg.V("SubExpr_7"), lpeg.V("MulOp"));
-  SubExpr_7 = lpeg.V("UnOp") * lpeg.V("SubExpr_7") / tlast.exprUnaryOp +
-              lpeg.V("SubExpr_8");
-  SubExpr_8 = lpeg.V("SimpleExp") * (lpeg.V("PowOp") * lpeg.V("SubExpr_7"))^-1 /
-              tlast.exprBinaryOp;
+              lpeg.V("SubExpr_9");
+  SubExpr_9 = chainl1(lpeg.V("SubExpr_10"), lpeg.V("AddOp"));
+  SubExpr_10 = chainl1(lpeg.V("SubExpr_11"), lpeg.V("MulOp"));
+  SubExpr_11 = lpeg.V("UnOp") * lpeg.V("SubExpr_11") / tlast.exprUnaryOp +
+               lpeg.V("SubExpr_12");
+  SubExpr_12 = lpeg.V("SimpleExp") * (lpeg.V("PowOp") * lpeg.V("SubExpr_11"))^-1 /
+               tlast.exprBinaryOp;
   SimpleExp = lpeg.Cp() * tllexer.token(tllexer.Number, "Number") / tlast.exprNumber +
               lpeg.Cp() * tllexer.token(tllexer.String, "String") / tlast.exprString +
               lpeg.Cp() * tllexer.kw("nil") / tlast.exprNil +
@@ -638,10 +649,11 @@ local function traverse (ast, errorinfo, strict)
   return ast
 end
 
-function tlparser.parse (subject, filename, strict)
+function tlparser.parse (subject, filename, strict, integer)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict)
+  if integer and _VERSION ~= "Lua 5.3" then integer = false end
+  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict, integer)
   if not ast then return ast, error_msg end
   return traverse(ast, errorinfo, strict)
 end

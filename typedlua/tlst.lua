@@ -10,6 +10,7 @@ function tlst.new_env (subject, filename, strict)
   env.subject = subject
   env.filename = filename
   env.strict = strict
+  env.integer = false
   env.messages = {}
   env.maxscope = 0
   env.scope = 0

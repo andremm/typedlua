@@ -50,6 +50,7 @@ end
 local op = { add = " + ",
              sub = " - ",
              mul = " * ",
+             idiv = " // ",
              div = " / ",
              mod = " % ",
              pow = " ^ ",
@@ -57,10 +58,16 @@ local op = { add = " + ",
              eq = " == ",
              lt = " < ",
              le = " <= ",
+             bor = "|",
+             bxor = "~",
+             band = "&",
+             shl = "<<",
+             shr = ">>",
              ["and"] = " and ",
              ["or"] = " or ",
              ["not"] = "not ",
              unm = "-",
+             bnot = "~",
              len = "#" }
 
 local function code_call (call, i)
@@ -163,11 +170,19 @@ function code_exp (exp, i)
     local str = "{" .. code_fieldlist(exp, i) .. "}"
     return str
   elseif tag == "Op" then
-    local str
+    local str = ""
     if exp[3] then
-      str = code_exp(exp[2], i) .. op[exp[1]] .. code_exp(exp[3], i)
+      if _VERSION == "Lua 5.3" then
+        if exp[2].tag == "Call" and exp[2][1].tag == "Index" and
+           exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
+           exp[2][1][2].tag == "String" and exp[2][1][2][1] == "type" and
+           exp[3].tag == "String" and exp[3][1] == "integer" then
+          str = "math."
+        end
+      end
+      str = str .. code_exp(exp[2], i) .. op[exp[1]] .. code_exp(exp[3], i)
     else
-      str = op[exp[1]] .. "(" .. code_exp(exp[2], i) .. ")"
+      str = str .. op[exp[1]] .. "(" .. code_exp(exp[2], i) .. ")"
     end
     return str
   elseif tag == "Paren" then

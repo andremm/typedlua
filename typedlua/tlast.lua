@@ -45,8 +45,9 @@ lhs: ident | `Index{ expr expr }
 
 ident: `Id{ <string> type? }
 
-opid: 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow' | 'concat'
-  | 'eq' | 'lt' | 'le' | 'and' | 'or' | 'not' | 'unm' | 'len'
+opid: 'add' | 'sub' | 'mul' | 'div' | 'idiv' | 'mod' | 'pow' | 'concat'
+  | 'band' | 'bor' | 'bxor' | 'shl' | 'shr' | 'eq' | 'lt' | 'le'
+  | 'and' | 'or' | 'not' | 'unm' | 'len' | 'bnot'
 
 type:
   `TLiteral{ literal }
@@ -300,10 +301,16 @@ function tlast.exprBinaryOp (e1, op, e2)
   elseif op == "add" or
          op == "sub" or
          op == "mul" or
+         op == "idiv" or
          op == "div" or
          op == "mod" or
          op == "pow" or
          op == "concat" or
+         op == "band" or
+         op == "bor" or
+         op == "bxor" or
+         op == "shl" or
+         op == "shr" or
          op == "eq" or
          op == "lt" or
          op == "le" or

@@ -37,7 +37,8 @@ local G = lpeg.P { "TypedLuaDescription";
                 tltype.Literal;
   BaseType = tllexer.token("boolean", "Type") / tltype.Boolean +
              tllexer.token("number", "Type") / tltype.Number +
-             tllexer.token("string", "Type") / tltype.String;
+             tllexer.token("string", "Type") / tltype.String +
+             tllexer.token("integer", "Type") * lpeg.Carg(3) / tltype.Integer;
   NilType = tllexer.token("nil", "Type") / tltype.Nil;
   ValueType = tllexer.token("value", "Type") / tltype.Value;
   AnyType = tllexer.token("any", "Type") / tltype.Any;
@@ -72,8 +73,7 @@ local G = lpeg.P { "TypedLuaDescription";
                 tltype.Field;
   HashType = lpeg.Cc(false) * lpeg.V("KeyType") * tllexer.symb(":") * lpeg.V("FieldType") /
              tltype.Field;
-  ArrayType = lpeg.Cc(false) * lpeg.Cc(tltype.Number()) * lpeg.V("FieldType") /
-              tltype.Field;
+  ArrayType = lpeg.Carg(3) * lpeg.V("FieldType") / tltype.ArrayField;
   KeyType = lpeg.V("BaseType") + lpeg.V("ValueType") + lpeg.V("AnyType");
   FieldType = lpeg.V("Type") * lpeg.Cc(tltype.Nil()) / tltype.Union;
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
@@ -142,13 +142,14 @@ local function traverse (ast, errorinfo, strict)
   end
 end
 
-function tldparser.parse (filename, strict)
+function tldparser.parse (filename, strict, integer)
   local file = assert(io.open(filename, "r"))
   local subject = file:read("*a")
   file:close()
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
-  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict)
+  if integer and _VERSION ~= "Lua 5.3" then integer = false end
+  local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict, integer)
   if not ast then return ast, error_msg end
   return traverse(ast, errorinfo, strict)
 end

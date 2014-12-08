@@ -21,6 +21,7 @@ local True = tltype.True()
 local Boolean = tltype.Boolean()
 local Number = tltype.Number()
 local String = tltype.String()
+local Integer = tltype.Integer(false)
 
 local check_block, check_stm, check_exp, check_var
 
@@ -164,7 +165,7 @@ local function check_tl (env, name, path)
   local subject = file:read("*a")
   local s, f = env.subject, env.filename
   io.close(file)
-  local ast = assert(tlparser.parse(subject, path, env.strict))
+  local ast = assert(tlparser.parse(subject, path, env.strict, env.integer))
   env.subject = subject
   env.filename = name .. ".tl"
   tlst.begin_function(env)
@@ -200,7 +201,7 @@ local function check_userdata (env, stm)
 end
 
 local function check_tld (env, name, path)
-  local ast = assert(tldparser.parse(path, env.strict))
+  local ast = assert(tldparser.parse(path, env.strict, env.integer))
   local t = tltype.Table()
   for k, v in ipairs(ast) do
     local tag = v.tag
@@ -242,14 +243,53 @@ local function check_require (env, name, pos)
   return env["loaded"][name]
 end
 
-local function check_arith (env, exp)
+local function check_arith (env, exp, op)
   local exp1, exp2 = exp[2], exp[3]
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local msg = "attempt to perform arithmetic on a '%s'"
-  if tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
+  if tltype.subtype(t1, tltype.Integer(true)) and
+     tltype.subtype(t2, tltype.Integer(true)) then
+    if op == "div" or op == "pow" then
+      set_type(exp, Number)
+    else
+      set_type(exp, Integer)
+    end
+  elseif tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
     set_type(exp, Number)
+    if op == "idiv" then
+      local msg = "integer division on floats"
+      typeerror(env, "arith", msg, exp1.pos)
+    end
+  elseif tltype.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
+  elseif tltype.isAny(t2) then
+    set_type(exp, Any)
+    msg = string.format(msg, tltype.tostring(t2))
+    typeerror(env, "any", msg, exp2.pos)
+  else
+    set_type(exp, Any)
+    local wrong_type, wrong_pos = tltype.general(t1), exp1.pos
+    if tltype.subtype(t1, Number) or tltype.isAny(t1) then
+      wrong_type, wrong_pos = tltype.general(t2), exp2.pos
+    end
+    msg = string.format(msg, tltype.tostring(wrong_type))
+    typeerror(env, "arith", msg, wrong_pos)
+  end
+end
+
+local function check_bitwise (env, exp, op)
+  local exp1, exp2 = exp[2], exp[3]
+  check_exp(env, exp1)
+  check_exp(env, exp2)
+  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  local msg = "attempt to perform bitwise on a '%s'"
+  if tltype.subtype(t1, tltype.Integer(true)) and
+     tltype.subtype(t2, tltype.Integer(true)) then
+    set_type(exp, Integer)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
     msg = string.format(msg, tltype.tostring(t1))
@@ -364,9 +404,9 @@ end
 local function check_binary_op (env, exp)
   local op = exp[1]
   if op == "add" or op == "sub" or
-     op == "mul" or op == "div" or op == "mod" or
+     op == "mul" or op == "idiv" or op == "div" or op == "mod" or
      op == "pow" then
-    check_arith(env, exp)
+    check_arith(env, exp, op)
   elseif op == "concat" then
     check_concat(env, exp)
   elseif op == "eq" then
@@ -377,6 +417,9 @@ local function check_binary_op (env, exp)
     check_and(env, exp)
   elseif op == "or" then
     check_or(env, exp)
+  elseif op == "band" or op == "bor" or op == "bxor" or
+         op == "shl" or op == "shr" then
+    check_bitwise(env, exp)
   else
     error("cannot type check binary operator " .. op)
   end
@@ -388,12 +431,32 @@ local function check_not (env, exp)
   set_type(exp, Boolean)
 end
 
+local function check_bnot (env, exp)
+  local exp1 = exp[2]
+  check_exp(env, exp1)
+  local t1 = tltype.first(get_type(exp1))
+  local msg = "attempt to perform bitwise on a '%s'"
+  if tltype.subtype(t1, tltype.Integer(true)) then
+    set_type(exp, Integer)
+  elseif tltype.isAny(t1) then
+    set_type(exp, Any)
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "any", msg, exp1.pos)
+  else
+    set_type(exp, Any)
+    msg = string.format(msg, tltype.tostring(t1))
+    typeerror(env, "bitwise", msg, exp1.pos)
+  end
+end
+
 local function check_minus (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
   local t1 = tltype.first(get_type(exp1))
   local msg = "attempt to perform arithmetic on a '%s'"
-  if tltype.subtype(t1, Number) then
+  if tltype.subtype(t1, Integer) then
+    set_type(exp, Integer)
+  elseif tltype.subtype(t1, Number) then
     set_type(exp, Number)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
@@ -414,7 +477,7 @@ local function check_len (env, exp)
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table()) then
-    set_type(exp, Number)
+    set_type(exp, Integer)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
     msg = string.format(msg, tltype.tostring(t1))
@@ -431,6 +494,8 @@ local function check_unary_op (env, exp)
   local op = exp[1]
   if op == "not" then
     check_not(env, exp)
+  elseif op == "bnot" then
+    check_bnot(env, exp)
   elseif op == "unm" then
     check_minus(env, exp)
   elseif op == "len" then
@@ -575,7 +640,7 @@ local function check_table (env, exp)
       check_exp(env, exp1)
       t1, t2 = tltype.Literal(i), tltype.general(get_type(exp1))
       if k == len and tltype.isVararg(t2) then
-        t1 = Number
+        t1 = Integer
       end
       i = i + 1
     end
@@ -1029,6 +1094,8 @@ local function tag2type (t)
       return Number
     elseif tag == "string" then
       return String
+    elseif tag == "integer" then
+      return Integer
     else
       return t
     end
@@ -1446,12 +1513,17 @@ local function load_lua_env (env)
   tlst.get_local(env, "_ENV")
 end
 
-function tlchecker.typecheck (ast, subject, filename, strict)
+function tlchecker.typecheck (ast, subject, filename, strict, integer)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   assert(type(strict) == "boolean")
   local env = tlst.new_env(subject, filename, strict)
+  if integer and _VERSION == "Lua 5.3" then
+    Integer = tltype.Integer(true)
+    env.integer = true
+    tltype.integer = true
+  end
   tlst.begin_function(env)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
