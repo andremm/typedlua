@@ -64,8 +64,8 @@ We explain all Typed Lua types and syntactical extensions along this chapter.
 \textbf{Types}\\
 \dstart
 \begin{align*}
-\textit{type} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
-\textit{primarytype} & ::= \; \textit{literaltype} \; | \;
+\textit{type} ::= & \;\; \textit{primarytype} \; [\texttt{`?'}]\\
+\textit{primarytype} ::= & \;\; \textit{literaltype} \; | \;
   \textit{basetype} \; | \;
   \textbf{nil} \; | \;
   \textbf{value} \; | \;
@@ -75,31 +75,29 @@ We explain all Typed Lua types and syntactical extensions along this chapter.
 & | \; \textit{functiontype} \; | \;
   \textit{tabletype} \; | \;
   \textit{primarytype} \; \texttt{`|'} \; \textit{primarytype}\\
-\textit{literaltype} & ::= \; \textbf{false} \; | \;
+\textit{literaltype} ::= & \;\; \textbf{false} \; | \;
   \textbf{true} \; | \;
   \textit{Int} \; | \;
   \textit{Float} \; | \;
   \textit{String}\\
-\textit{basetype} & ::= \; \textbf{boolean} \; | \;
+\textit{basetype} ::= & \;\; \textbf{boolean} \; | \;
   \textbf{integer} \; | \;
   \textbf{number} \; | \;
   \textbf{string}\\
-\textit{functiontype} & ::= \; \textit{tupletype} \; \texttt{`->'} \; \textit{rettupletype}\\
-\textit{methodtype} & ::= \; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettupletype}\\
-\textit{tabletype} & ::= \; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
-\textit{tupletype} & ::= \; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
-\textit{typelist} & ::= \; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
-\textit{rettupletype} & ::= \; \textit{unionlist} \; [\texttt{`?'}]\\
-\textit{unionlist} & ::= \; \textit{tupletype} \; | \;
-  \textit{unionlist} \; \texttt{`|'} \; \textit{unionlist}\\
-\textit{tabletypebody} & ::= \; \textit{type} \; | \; \textit{fieldtypelist}\\
-\textit{fieldtypelist} & ::= \; [\textbf{const}] \; \textit{fieldtype} \; \{\texttt{`,'} \; [\textbf{const}] \; \textit{fieldtype}\}\\ 
-\textit{fieldtype} & ::= \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
-\textit{keytype} & ::= \; \textit{literaltype} \; | \;
-  \textit{basetype} \; | \;
-  \textbf{value} \; | \;
+\textit{functiontype} ::= & \;\; \textit{tupletype} \; \texttt{`->'} \; \textit{rettype}\\
+\textit{tupletype} ::= & \;\; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+\textit{typelist} ::= & \;\; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
+\textit{rettype} ::= & \;\; \textit{type} \; | \;
+  \textit{uniontuple} \; [\texttt{`?'}]\\
+\textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
+  \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}\\
+\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
+\textit{tabletypebody} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type} \; | \;
+  \textit{recordtype}\\
+\textit{keytype} ::= & \;\; \textit{basetype} \; | \;
   \textbf{any}\\
-\textit{rettype} & ::= \; \textit{type} \; | \; \textit{rettupletype}
+\textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
+\textit{recordfield} ::= & \;\; [\textbf{const}] \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}
 \end{align*}
 \dend
 \caption{The concrete syntax of Typed Lua types}
@@ -119,7 +117,7 @@ the top type \texttt{value}, the dynamic type \texttt{any},
 the self type \texttt{self}, named types, function types, table types,
 and union types.
 Second-level types include the type void \texttt{()},
-vararg types, tuple types, and union of tuple types.
+vararg types, tuple types, and unions of tuple types.
 
 Typed Lua uses subtyping to order types.
 Any first-level type is a subtype of \texttt{value}.
@@ -211,7 +209,9 @@ In this example, Typed Lua cannot guarantee that \texttt{distance} is never
 going to call \texttt{absolute} with a parameter that is not an integer number,
 because in the semantics of Lua the minus operator can result in a
 value that is not an integer number.
-More precisely, we can call \texttt{absolute} inside \texttt{distance}
+In fact, we can overload the minus operator to return a value that is
+not even a number.
+However, we can call \texttt{absolute} inside \texttt{distance}
 because the expression \texttt{x - y} has type \texttt{any},
 and it is consistent with type \texttt{integer}.
 Still, the dynamic type \texttt{any} may be hiding a value of a type
@@ -245,7 +245,7 @@ They are just an artifact of the interaction between the type system
 and the semantics of Lua.
 
 As we can see in Figure \ref{fig:types}, second-level types consist
-of either \emph{tupletype} or \emph{rettupletype}.
+of either \emph{tupletype} or \emph{rettype}.
 A second-level type is the type void \texttt{()},
 a tuple of first-level types optionally ending in a variadic type,
 or a union of these tuples.
@@ -304,8 +304,8 @@ In the right hand side of the multiple assignment, only the first
 value produced by the first call to multiple gets used,
 so the type of the right hand side is
 \texttt{(integer, integer, string, nil*)},
-and the type assigned to \texttt{x}, \texttt{y}, and \texttt{z}
-are respectively \texttt{integer}, \texttt{integer}, and \texttt{string}.
+and the types assigned to \texttt{x}, \texttt{y}, and \texttt{z}
+are \texttt{integer}, \texttt{integer}, and \texttt{string}, respectively.
 The same tuple is assigned to the call to \texttt{sum} and it
 compiles without errors, as the first two components of the tuple
 are consistent with the types of the parameters, and the other
@@ -429,7 +429,7 @@ Next, we show an example:
         return nil, "division by zero"
       else
         local r = dividend % divisor
-        local q = (dividend - r) / divisor
+        local q = (dividend - r) // divisor
         return q, r
       end 
     end
@@ -463,9 +463,8 @@ that is equivalent to the type \texttt{integer|nil},
 and variable \texttt{r} gets the type $X_{2}$
 that is equivalent to the type \texttt{integer|string}.
 
-Projection types do not appear in the subtyping and consistent-subtyping
-relations because Typed Lua actually replaces them with the union of the
-corresponding component of each tuple.
+Typed Lua replaces projection types with the union of the corresponding
+component of each tuple when it infers that a variable has a projection type.
 If a variable with a projection type appears in a \texttt{type} predicate,
 it discriminates against all tuples in the union.
 In our example, $X$ is \texttt{(integer, integer, nil*)|(nil, string, nil*)}
@@ -477,10 +476,13 @@ has type \texttt{integer} inside the \texttt{then} block;
 and variable \texttt{q} has type \texttt{nil} while variable \texttt{r}
 has type \texttt{string} inside the \texttt{else} block.
 
-We could also have used \texttt{type(q) == "number"} or
-even \texttt{type(r) == "number"} as the predicate of our example,
+We could also have used \texttt{type(q) == "integer"} or
+even \texttt{type(r) == "integer"} as the predicate of our example,
 as both predicates would produce the same result.
 However, the form that appears in our example is much more succinct and idiomatic.
+Note that the type \texttt{integer} is restricted to Lua 5.3,
+as we use the function \texttt{math.type} to decide whether a number
+is integer or not.
 
 Typed Lua does not allow assignments to variables that hold a projection type,
 unless the union has been discriminated down to a single value.
@@ -492,26 +494,22 @@ The overloading mechanism of Typed Lua have a limitation:
 the return type cannot depend on the input type.
 Next, we show an example:
 \begin{verbatim}
-    local function limitation (x:number|string, y:number|string)
+    local function limitation (x:number|string)
       if type(x) == "number" then
-        if type(y) == "number" then
-          return x + y
-        end
+        return x + x
       else
-        if type(y) == "string" then
-          return x .. y
-        end
+        return x .. x
       end
     end
 \end{verbatim}
 
 This example shows that we cannot write a function that is
-guaranteed to return a number when we pass two numbers and
-guaranteed to return a string when we pass two strings.
+guaranteed to return a number when we pass a number and
+guaranteed to return a string when we pass a string.
 Even though we could use intersection types to express the type
 of this function as
-\texttt{(number, number) -> (number) \string&
-(string, string) -> (string)},
+\texttt{(number) -> (number) \string&
+(string) -> (string)},
 and therefore solve this limitation,
 intersection types require more sophisticated flow typing to
 check whether a function has this type,
@@ -986,15 +984,15 @@ examples.
 After we define the module \texttt{mymath}, regardless of adopted style,
 users can use it in the standard way:
 \begin{verbatim}
-    local m = require "mymath"
-    print(m.pow(2, 3))                   -- 8
-    print(m.pow(2, "foo"))               -- compile-time error
+    local mymath = require "mymath"
+    print(mymath.pow(2, 3))              -- 8
+    print(mymath.pow(2, "foo"))          -- compile-time error
 \end{verbatim}
 
 And now the users of the module \texttt{mymath} have the policies that
 Typed Lua provides.
 The call to \texttt{require} assigns the type of the module \texttt{mymath}
-to \texttt{m}, so Typed Lua can catch misuses of the module.
+to the local \texttt{mymath}, so Typed Lua can catch misuses of the module.
 
 The way Typed Lua handles modules using table types is also
 relevant for supporting object-oriented programming, as we discuss in
@@ -1013,7 +1011,7 @@ and then calls it with the result of evaluating \texttt{obj} as
 the first argument, followed by the result of evaluating the
 argument list in the original expression.
 
-Typed Lua uses table types along with the self type to
+Typed Lua uses table types along with the \texttt{self} type to
 represent objects, as we show in the following example:
 \begin{verbatim}
     local Shape = { x = 0.0, y = 0.0 }
@@ -1104,6 +1102,8 @@ Notice that we use double arrow instead of single arrow inside the
 definition of the interface \texttt{Shape}.
 The double arrow is syntactic sugar for defining the type of methods,
 as it includes an implicit first parameter of type \texttt{self}.
+The double arrow can appear only inside the declaration of
+interfaces and userdata, which we will introduce in the next section.
 The interface definition allows us to export the type of the class \texttt{Shape},
 which is the same type that is given by the variable \texttt{Shape}:
 \begin{verbatim}
@@ -1214,19 +1214,21 @@ that is written in C.
 \textbf{The complete syntax of description files}\\
 \dstart
 \begin{align*}
-\textit{description} & ::= \; \textit{desclist}\\
-\textit{desclist} & ::= \; \textit{descitem} \; \{ \textit{descitem} \}\\
-\textit{descitem} & ::= \; \textit{typedid} \; | \;
+\textit{description} ::= & \; \textit{desclist}\\
+\textit{desclist} ::= & \; \textit{descitem} \; \{ \textit{descitem} \}\\
+\textit{descitem} ::= & \; \textit{typedid} \; | \;
   \textit{interface} \; | \;
-  \textit{userdata}\\
-\textit{typedid} & ::= \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
-\textit{interface} & ::= \; \textbf{interface} \; \textit{typedec}\\
-\textit{userdata} & ::= \; \textbf{userdata} \; \textit{typedec}\\
-\textit{typedec} & ::= \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
-\textit{decitem} & ::= \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
-\textit{idtype} & ::= \; \textit{type} \; | \; \textit{methodtype}\\
-\textit{idlist} & ::= \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
-\textit{id} & ::= \; [\textbf{const}] \; \textit{Name}
+  \textit{userdata} \; | \;
+  \textit{typealias}\\
+\textit{typedid} ::= & \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
+\textit{interface} ::= & \; \textbf{interface} \; \textit{typedec}\\
+\textit{userdata} ::= & \; \textbf{userdata} \; \textit{typedec}\\
+\textit{typedec} ::= & \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
+\textit{decitem} ::= & \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
+\textit{id} ::= & \; [\textbf{const}] \; \textit{Name}\\
+\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
 \end{align*}
 \dend
 \caption{The concrete syntax of Typed Lua description files}
@@ -1238,14 +1240,22 @@ description files in extended BNF.
 A Typed Lua description file defines the table type that represents
 a certain module and the type names that are exported
 along with this table type.
-We can export a type name through the declaration of an interface or
-userdata.
-As we saw, an interface declaration is just a shortcut to a table type.
-An userdata declaration is a shortcut to a table type that includes
-a \emph{brand} that is its name.
+We can export a type name through the declaration of an interface,
+userdata, or type alias.
+As we saw, an interface declaration is just a shortcut to a table type
+that represents a record.
+An userdata declaration is similar to an interface declaration,
+but it also includes its name as the \emph{brand} of the table type.
 The Typed Lua compiler uses this brand to combine structural with
 nominal type checking, so two different userdata are not subtype
 of each other because they do not share the same brand.
+A type alias declaration assigns a name to a first-level type.
+Even though the type alias declaration may make the interface declaration
+look redundant, it does not have a syntax as nice as the syntax
+of the interface declaration for defining records.
+The type alias declaration is specially useful when we need to create
+names for types that are not records.
+
 The Typed Lua compiler searches for a description file when it cannot
 not find the respective Typed Lua file that is the argument of
 \texttt{require}.
@@ -1260,6 +1270,7 @@ a MD5 digest library for Lua that is written in C:
       new : (self) -> (self)
       reset : (self) -> (self)
       update : (self, string*) -> (self)
+      version : string
     end
 
     __tostring : (md5_context) -> (string)
@@ -1281,13 +1292,15 @@ our use of the library:
     local x = m.new()
     local y = x:clone()
     local z = m.clone("foo")             -- compile-time error
-    print(x:digest() == m.digest(x))
+    print(x:digest() == m.digest(y))
 \end{verbatim}
 
-In this example there is a type error because function \texttt{clone}
+In this example there is a type error because the function \texttt{clone}
 expects a value of type \texttt{md5\string_context} instead of a value
 of type \texttt{string}.
 
 The description files are the mechanism that we used to include the
-typing of the Lua standard libraries inside Typed Lua.
+typing of the Lua standard library inside Typed Lua.
+In Chapter \ref{chap:evaluation} we discuss the issues that we found
+while typing the Lua standard library. 
 

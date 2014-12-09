@@ -1,10 +1,14 @@
 We begin this chapter presenting a little bit of the history about
 combining static and dynamic typing in the same language.
-After that, we introduce optional type systems and gradual typing.
-We end this section discussing why optional type systems and two
+Then, we introduce optional type systems and gradual typing.
+After that, we discuss why optional type systems and two
 other approaches are often called gradual typing.
+We end this chapter presenting some statistics about the usage of
+some Lua features and idioms that helped us identify how should
+we combine static and dynamic typing in Lua.
 
 \section{A little bit of history}
+\label{sec:history}
 
 Common LISP \citep{steele1982ocl} introduced optional type annotations
 in the early eighties, but not for static type checking.
@@ -73,7 +77,7 @@ the \texttt{Dynamic} type during run-time.
 Although soft typing and dynamic typing may seem similar, they are not.
 They are not similar because soft typing targets statically type
 checking of dynamically typed languages for detecting programming
-errors while dynamic typing targets the optimization of dynamically
+errors, while dynamic typing targets the optimization of dynamically
 typed code through the elimination of unnecessary run-time checks.
 In other words, soft typing sees code optimization as a side effect
 that comes with static type checking.
@@ -91,7 +95,7 @@ if this run-time error is due to a violation of library's contract,
 or due to a bug, when the library is poorly documented.
 In this approach, programmers can insert assertions in the form of
 contracts that check the input and output of higher-order functions;
-and the compiler add blame annotations in the generated code as a way
+and the compiler adds blame annotations in the generated code
 to track assertion failures back to the source of the error.
 
 BabyJ \citep{anderson2003babyj} is an object-oriented language
@@ -122,13 +126,14 @@ The coercions are run-time checks that ensure static code does not
 crash dependent code during run-time.
 
 \section{Optional Type Systems}
+\label{sec:optional}
 
 Optional type systems \citep{bracha2004pluggable} are an approach for
-plugging static typing in dynamically typed languages through
-optional type annotations that are used to perform compile-time type
-checking, though not influencing the original run-time semantics of
-the language.
-That is, the run-time semantics should still catch type errors
+plugging static typing in dynamically typed languages.
+They use optional type annotations to perform compile-time type checking,
+though they do not influence the original run-time semantics
+of the language.
+This means that the run-time semantics should still catch type errors
 independently of the static type checking.
 For instance, we can view the typed lambda calculus as an optional
 type system for the untyped lambda calculus, because both have the
@@ -147,10 +152,10 @@ semantics of Smalltalk when executing programs, even if programs are
 statically typed.
 
 \emph{Pluggable type systems} \citep{bracha2004pluggable} generalize
-the idea of optional type systems that Strongtalk put in practice,
-to have different optional type systems that can be layered on top
-of a dynamically typed language without affecting its original run-time
-semantics.
+the idea of optional type systems that Strongtalk put in practice.
+The idea is to have different optional type systems that can be layered
+on top of a dynamically typed language without affecting its original
+run-time semantics.
 Although these systems can be unsound on their interaction with the
 dynamically typed part of the language or even by design, their
 unsoundness does not affect run-time safety, as the language run-time
@@ -158,9 +163,9 @@ semantics still catches any run-time errors caused by an unsound
 type system.
 
 Dart \citep{dart} and TypeScript \citep{typescript} are new
-languages that are designed with an optional type system, and both
-use JavaScript as their code generation target because their main
-purpose is web development.
+languages that are designed with an optional type system.
+Both use JavaScript as their code generation target because
+their main purpose is web development.
 In fact, Dart is a new class-based object-oriented language with
 optional type annotations and a semantics that resembles the
 semantics of Smalltalk, while TypeScript is a strict superset of
@@ -173,9 +178,9 @@ covariant function return types;
 without counting the interaction between statically and dynamically
 typed code that is also unsound.
 
-Unfortunately, there is no common formalization for optional type
-systems, so each language ends up implementing its optional type
-system on its own way.
+There is no common formalization for optional type systems, and
+each language ends up implementing its optional type system on
+its own way.
 Strongtalk, Dart, and TypeScript provide an informal description of
 their optional type systems rather than a formal one.
 In the next section we shall see that we can use some features
@@ -183,6 +188,7 @@ of gradual typing \citep{siek2006gradual,siek2007objects} to
 formalize optional type systems.
 
 \section{Gradual Typing}
+\label{sec:gradual}
 
 The main goal of gradual typing \citep{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
@@ -199,16 +205,16 @@ a dynamic type to statically typed languages.
 \begin{figure}[!ht]
 \dstart
 $$
-\begin{array}{rlr}
-T ::= & & \emph{types}\\
+\begin{array}{llr}
+t ::= & & \emph{types}\\
 & \;\; \Number & \emph{base type number}\\
 & | \; \String & \emph{base type string}\\
 & | \; ? & \emph{dynamic type}\\
-& | \; T \rightarrow T & \emph{function types}\\
+& | \; t \rightarrow t & \emph{function types}\\
 e ::= & & \emph{expressions}\\
-& \;\; c & \emph{constants}\\
+& \;\; l & \emph{literals}\\
 & | \; x & \emph{variables}\\
-& | \; \lambda x{:}T{.}e & \emph{abstractions}\\
+& | \; \lambda x{:}t{.}e & \emph{abstractions}\\
 & | \; e_{1} e_{2} & \emph{application}
 \end{array}
 $$
@@ -218,7 +224,7 @@ $$
 \end{figure}
 
 The central idea of gradual typing is the \emph{consistency}
-relation, written $T_{1} \sim T_{2}$.
+relation, written $t_{1} \sim t_{2}$.
 The consistency relation allows implicit conversions to and from the
 dynamic type, and disallows conversions between inconsistent types
 \citep{siek2006gradual}.
@@ -234,20 +240,20 @@ it is neither commutative nor transitive.
 $$
 \begin{array}{c}
 \begin{array}{c}
-T \sim T \mylabel{C-REFL}
+t \sim t \mylabel{C-REFL}
 \end{array}
 \;
 \begin{array}{c}
-T \sim \;? \mylabel{C-DYNR}
+t \sim \;? \mylabel{C-DYNR}
 \end{array}
 \;
 \begin{array}{c}
-? \sim T \mylabel{C-DYNL}
+? \sim t \mylabel{C-DYNL}
 \end{array}
 \\ \\
 \begin{array}{c}
-\dfrac{T_{3} \sim T_{1} \;\;\; T_{2} \sim T_{4}}
-      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUNC}
+\dfrac{t_{3} \sim t_{1} \;\;\; t_{2} \sim t_{4}}
+      {t_{1} \rightarrow t_{2} \sim t_{3} \rightarrow t_{4}} \mylabel{C-FUNC}
 \end{array}
 \end{array}
 $$
@@ -260,7 +266,7 @@ Figure \ref{fig:consistency} defines the consistency relation.
 The rule \textsc{C-REFL} is the reflexive rule.
 Rules \textsc{C-DYNR} and \textsc{C-DYNL} are the rules that allow
 conversions to and from the dynamic type $?$.
-The rule \textsc{C-FUNC} resembles the subtyping of functions
+The rule \textsc{C-FUNC} resembles the subtyping between function types,
 because it is contravariant on the argument type and covariant on the
 return type.
 
@@ -268,14 +274,14 @@ Figure \ref{fig:gts} uses the consistency relation in the typing rules
 of the gradual type system of the simply typed lambda calculus extended
 with the dynamic type $?$.
 The environment $\env$ is a function from variables to types, and
-the directive $type$ is a function from constants to types.
+the directive $type$ is a function from literal values to types.
 The rule \textsc{T-VAR} uses the environment function $\env$ to get the
 type of a variable $x$.
-The rule \textsc{T-CONST} uses the directive $type$ to get the type of
-a constant $c$.
+The rule \textsc{T-LIT} uses the directive $type$ to get the type of
+a literal $l$.
 The rule \textsc{T-ABS} evaluates the expression $e$ with an environment
-$\env$ that binds the variable $x$ to the type $T_{1}$, and the resulting
-type is the the function type $T_{1} \rightarrow T_{2}$.
+$\env$ that binds the variable $x$ to the type $t_{1}$, and the resulting
+type is the the function type $t_{1} \rightarrow t_{2}$.
 The rule \textsc{T-APP1} handles function calls where the type of the
 function is dynamically typed; in this case, the argument type may have
 any type and the resulting type has the dynamic type.
@@ -287,23 +293,23 @@ be consistent to the argument type of the function's signature.
 \dstart
 $$
 \begin{matrix}
-\dfrac{\env(x) = T}
-      {\env \vdash x:T} \mylabel{T-VAR}
+\dfrac{\env(x) = t}
+      {\env \vdash x:t} \mylabel{T-VAR}
 \;\;\;
-\dfrac{type(c) = T}
-      {\env \vdash c:T} \mylabel{T-CONST}
+\dfrac{type(l) = t}
+      {\env \vdash l:t} \mylabel{T-LIT}
 \\ \\
-\dfrac{\env, x:T_{1} \vdash e:T_{2}}
-      {\env \vdash \lambda x:T_{1}.e:T_{1} \rightarrow T_{2}} \mylabel{T-ABS}
+\dfrac{\env, x:t_{1} \vdash e:t_{2}}
+      {\env \vdash \lambda x:t_{1}.e:t_{1} \rightarrow t_{2}} \mylabel{T-ABS}
 \;\;\;
 \dfrac{\env \vdash e_{1}:\;? \;\;\;
-       \env \vdash e_{2}:T}
+       \env \vdash e_{2}:t}
       {\env \vdash e_{1} e_{2}:\;?} \mylabel{T-APP1}
 \\ \\
-\dfrac{\env \vdash e_{1}:T_{1} \rightarrow T_{2} \;\;\;
-       \env \vdash e_{2}:T_{3} \;\;\;
-       T_{3} \sim T_{1}}
-      {\env \vdash e_{1} e_{2}:T_{2}} \mylabel{T-APP2}
+\dfrac{\env \vdash e_{1}:t_{1} \rightarrow t_{2} \;\;\;
+       \env \vdash e_{2}:t_{3} \;\;\;
+       t_{3} \sim t_{1}}
+      {\env \vdash e_{1} e_{2}:t_{2}} \mylabel{T-APP2}
 \end{matrix}
 $$
 \dend
@@ -321,9 +327,9 @@ While \citet{siek2006gradual} rely on the consistency relation,
 and injections, and \citet{thatte1990qst} relies on subtyping.
 
 The subtyping relation $\subtype$ actually is a pitfall on Thatte's
-quasi-static typing, because quasi-static typing sets the dynamic type
+quasi-static typing, because it sets the dynamic type
 as the top and the bottom of the subtying relation:
-$T \subtype \;?$ and $? \subtype T$.
+$t \subtype \;?$ and $? \subtype t$.
 Subtyping is transitive, so we have that
 \[
 \frac{\Number \subtype \;? \;\;\;
@@ -335,7 +341,7 @@ accepts programs that should be rejected.
 
 Later, \citet{siek2007objects} reported that the consistency relation is
 orthogonal to the subtyping relation, so we can combine them to achieve
-the \emph{consistent-subtyping} relation, written $T_{1} \lesssim T_{2}$.
+the \emph{consistent-subtyping} relation, written $t_{1} \lesssim t_{2}$.
 This relation is essential for designing gradual type systems for
 object-oriented languages.
 Like the consistency relation, and unlike the subtyping relation,
@@ -366,8 +372,8 @@ $$
 \end{array}
 \;
 \begin{array}{c}
-\dfrac{T_{3} \subtype T_{1} \;\;\; T_{2} \subtype T_{4}}
-      {T_{1} \rightarrow T_{2} \subtype T_{3} \rightarrow T_{4}} \mylabel{S-FUN}
+\dfrac{t_{3} \subtype t_{1} \;\;\; t_{2} \subtype t_{4}}
+      {t_{1} \rightarrow t_{2} \subtype t_{3} \rightarrow t_{4}} \mylabel{S-FUN}
 \end{array}
 \end{array}
 $$
@@ -378,7 +384,7 @@ $$
 
 Figure \ref{fig:subtyping} presents the subtyping relation for the simply
 typed lambda calculus extended with the dynamic type $?$.
-Even though we could have used the reflexive rule $T \subtype T$ to express
+Even though we could have used the reflexive rule $t \subtype t$ to express
 the rules \textsc{S-NUM}, \textsc{S-STR}, and \textsc{S-ANY},
 we did not combine these rules in a single one to make explicit the
 neutrality of the dynamic type $?$ to the subtyping rules.
@@ -434,7 +440,7 @@ between statically and dynamically typed code, and not influencing
 the run-time semantics.
 
 However, another important feature of gradual typing is the theoretic
-foundation that is provides for inserting run-time checks that
+foundation that it provides for inserting run-time checks that
 prove dynamically typed code does not violate the invariants of
 statically typed code, thus preserving type safety.
 To do that, \citet{siek2006gradual,siek2007objects} defined the
@@ -444,7 +450,7 @@ statically and dynamically typed code.
 The semantics of these casts is based on the higher-order contracts
 proposed by \citet{findler2002chf}.
 
-However, \citet{herman2007sgt} showed that there is an efficiency
+\citet{herman2007sgt} showed that there is an efficiency
 concern regarding the run-time checks, because there are two
 ways that casts can lead to unbounded space consumption.
 The first affects tail recursion while the second appears when
@@ -452,8 +458,8 @@ first-class functions or objects cross the border between
 static code and dynamic code, that is, some programs can apply
 repeated casts to the same function or object.
 \citet{herman2007sgt} use the coercion calculus of
-\citet{henglein1994dts} to solve the problem of space efficiency,
-that is, they use coercions to express casts.
+\citet{henglein1994dts} to express casts as coercions and
+solve the problem of space efficiency.
 Their approach normalizes an arbitrary sequence of coercions to a
 coercion of bounded size.
 
@@ -461,7 +467,7 @@ Another concern about casts is how to improve debugging support,
 because a cast application can be delayed and the error related
 to that cast application can appear far way from the real error.
 \citet{wadler2009wpc} developed the \emph{blame calculus} as a way
-to attack this issue, and \citet{ahmed2011bfa} extended the
+to handle this issue, and \citet{ahmed2011bfa} extended the
 blame calculus with polymorphism.
 The blame calculus is an intermediate language to integrate
 static and dynamic typing that uses the blame tracking approach
@@ -475,7 +481,7 @@ Thus, \citet{siek2009casts} extended the coercion calculus of
 \citet{herman2007sgt} with blame tracking to achieve an
 implementation of the blame calculus that is space efficient.
 After that, \citet{siek2010blame} proposed a new solution that also
-attacks both problems.
+handles both problems.
 This new solution is based on a concept called \emph{threesome},
 which is a way to split a cast between two parties into two casts
 among three parties.
@@ -484,24 +490,26 @@ so we can split any cast into a downcast from the source to an
 intermediate type that is followed by an upcast from the intermediate
 type to the target type (a \emph{threesome}).
 
-ActionScript \citep{moock2007as3} is the first language that
-incorporated a gradual type system to its implementation and
-Perl 6 \citep{tang2007pri} is also being designed with a
-gradual type system, though there is little documentation about
-the gradual type systems of these languages.
-Grace \citep{black2012grace,black2013sg} is a new object-oriented,
-gradually typed, educational language.
-In Grace, modules are gradually typed objects, that is, modules
-may have types and methods as attributes, and can have a state
-\citep{homer2013modules}.
-Gradual Python \citep{reticulated} is an attempt to develop a
-gradual type system for Python that deals with mutable objects
-\citep{siek2013mutable}.
+There are some programming languages that either incorporated
+gradual typing or have research on this subject.
+Reticulated Python \citep{reticulated,vitousek2014deg} is a research
+project that evaluates the costs of gradual typing in Python.
 Gradualtalk \citep{allende2013gts} is a gradually-typed Smalltalk
 that introduces a new cast insertion strategy for gradually-typed
 objects \citep{allende2013cis}.
+Grace \citep{black2012grace,black2013sg} is a new object-oriented,
+gradually-typed, educational language.
+In Grace, modules are gradually-typed objects, that is, modules
+may have types and methods as attributes, and can have a state
+\citep{homer2013modules}.
+ActionScript \citep{moock2007as3} is one the first languages that
+incorporated gradual typing to its implementation and
+Perl 6 \citep{tang2007pri} is also being designed with gradual typing,
+though there is few documentation about the gradual type systems
+of these languages.
 
 \section{Approaches that are often called Gradual Typing}
+\label{sec:approaches}
 
 Gradual typing is similar to optional type systems in that type
 annotations are optional, and unannotated code is dynamically
@@ -520,17 +528,17 @@ Still, we can view gradual typing as a way to formalize an optional
 type system when the gradual type system does not insert run-time
 checks.
 BabyJ \citep{anderson2003babyj} and Alore \citep{lehtosalo2011alore}
-are two examples of object-oriented languages that use gradual
-typing to formalize their optional type systems.
-The optional type systems of both BabyJ and Alore are nominal.
+are two examples of object-oriented languages that have an
+optional type system with a formalization that relates to gradual typing,
+though the optional type systems of both BabyJ and Alore are nominal.
 BabyJ uses the relation $\approx$ that is similar to the consistency
-relation while Alore combines  subtyping along with the consistency
+relation while Alore combines subtyping along with the consistency
 relation to define a \emph{consistent-or-subtype} relation.
 The consistent-or-subtype relation is different from the
 consistent-subtyping relation of \citet{siek2007objects}, but it is
-also written $T_{1} \lesssim T_{2}$.
-The consistent-or-subtype relation holds when $T_{1} \sim T_{2}$
-or $T_{1} <: T_{2}$, where $<:$ is transitive and $\sim$ is not.
+also written $t_{1} \lesssim t_{2}$.
+The consistent-or-subtype relation holds when $t_{1} \sim t_{2}$
+or $t_{1} <: t_{2}$, where $<:$ is transitive and $\sim$ is not.
 Alore also extends its optional type system to include optional
 monitoring of run-time type errors in the gradual typing style.
 
@@ -580,9 +588,8 @@ The approach used by \citet{tobin-hochstadt2008ts} to design and
 implement Typed Racket probably is also called gradual typing
 because it allows the programmer to gradually migrate from untyped
 scripts to typed programs.
-However, note that Typed Racket is a statically typed language
-and type annotations are mandatory.
-So, what makes it gradual is a type system with a dynamic type
+However, Typed Racket is a statically typed language,
+and what makes it gradual is a type system with a dynamic type
 that handles the interaction between Racket and Typed Racket modules.
 
 \section{Statistics about the usage of Lua}
@@ -600,8 +607,8 @@ LuaRocks \citep{hisham2013luarocks} is a package manager for Lua
 modules.
 We downloaded the 3928 \texttt{.lua} files that were available in
 the LuaRocks repository at February 1st 2014.
-However, we ignored files that are not compatible with Lua 5.2,
-the latest version of Lua.
+However, we ignored files that were not compatible with Lua 5.2,
+the latest version of Lua at that time.
 We also ignored \emph{machine-generated} files and test files,
 because these files may not represent idiomatic Lua code,
 and might skew our statistics towards non-typical uses of Lua.
@@ -696,7 +703,7 @@ they execute different code according to the inspected tag.
 
 These numbers show us that Typed Lua should include union types,
 because the use of the \texttt{type} idiom shows that disjoint unions
-will help programmers define data structures that can hold a value of
+would help programmers define data structures that can hold a value of
 several different, but fixed types.
 Typed Lua should also use \texttt{type} as a mechanism for decomposing
 unions, though it may be restricted to base types only.
@@ -711,13 +718,13 @@ also for signaling an unexpected behavior.
 Typed Lua should include function types to represent Lua functions,
 and tuple types to represent the signatures of Lua functions,
 multiple return values, and multiple assignments.
-Tuple types will require some special attention, because Typed Lua
+Tuple types require some special attention, because Typed Lua
 should be able to adjust tuple types during compile-time, in a
 similar way to what Lua does with function calls and multiple
 assignments during run-time.
 In addition, the number of functions that return \texttt{nil} and
 \texttt{false} plus something else show us that overloading on the
-return type will be useful to the type system.
+return type is also useful to the type system.
 
 We also measured how frequently programmers use the object-oriented
 paradigm in Lua.
@@ -734,18 +741,16 @@ declare methods:
 13\% using the colon syntactic sugar, 14\% using \texttt{self}, and
 18\% using both.
 
-Based on these observations, Typed Lua should include interfaces and
-classes as syntactic sugar for table types that encode objects.
-Proposing an optional type system for Lua that includes classes may
-sound unusual at first glance, because Lua does not have standard
-policies for object-oriented programming.
-However, Lua provides mechanisms that allow programmers to abstract
-their code in terms of objects, and our statistics confirm that
-an expressive number of programmers are relying on these mechanisms to
-use the object-oriented paradigm in Lua.
-Typed Lua should include interfaces and classes as merely syntactic
-mechanisms that help the compiler type check object-oriented code,
-and they should not influence the semantics of Lua.
+Based on these observations, Typed Lua should include support
+to object-oriented programming.
+Even though Lua does not have standard policies for object-oriented
+programming, it provides mechanisms that allow programmers to
+abstract their code in terms of objects, and our statistics confirm
+that an expressive number of programmers are relying on these mechanisms
+to use the object-oriented paradigm in Lua.
+Typed Lua should include some standard way of defining interfaces and classes
+that the compiler can use to type check object-oriented code,
+but without changing the semantics of Lua.
 
 We also measured how programmers are defining modules.
 We observed that 38\% of the files use the current way of defining
@@ -762,15 +767,16 @@ However, we did not ignore sample scripts, which usually serve to
 help the users of a given module on how to use this module, and
 that is the reason why we have a high number of plain scripts.
 
-Based on these observations, Typed Lua should also use interfaces as
-syntactic sugar for table types that define modules.
+Based on these observations, Typed Lua should include a way
+for defining table types that represent the type of modules.
 Typed Lua should also support the deprecated style of module
 definition, using global names as exported members of the module.
 
-Besides using interfaces for encoding objects and defining modules,
-Typed Lua should also use interfaces for defining the types of
-userdata, as programmers often use userdata in an object-oriented
-style.
+Typed Lua should also include some way for defining the types of
+userdata.
+This feature should also allow programmers to define an userdata
+that can be used in an object-oriented style, as this is another
+common idiom from modules that are written in C.
 
 The last statistics that we collected were about variadic functions
 and vararg expressions.
