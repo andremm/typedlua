@@ -515,7 +515,7 @@ intersection types require more sophisticated flow typing to
 check whether a function has this type,
 and we still need to work on this problem.
 
-\section{Tables and Interfaces}
+\section{Tables}
 \label{sec:tables}
 
 Tables are the only mechanism that Lua has to build data structures;
@@ -641,11 +641,112 @@ Next, we show one example of table type to type a record:
 Type inference would infer the very same table type that we used to
 annotate the variable \texttt{person}.
 
+Lua programmers often build records incrementally, that is,
+they usually declares a local variable with an empty table,
+and then use assignment to add fields to this table:
+\begin{verbatim}
+    local person = {}
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+    print("bye bye " .. person.firstname)  -- bye bye Lou
+\end{verbatim}
+
+In this example, we want to refine the type of \texttt{person} as
+we build the table:
+starting with \texttt{\{\}}, and then refining to \texttt{\{"firstname":string\}},
+and finally reaching \texttt{\{"firstname":string, "lastname":string\}}.
+This type change is trickier than the one that we introduced for narrowing
+union types, as we are not just allowing the programmer to change
+the type of the variable \texttt{person}, but we are actually allowing
+the programmer to change the type of the value that \texttt{person} points to.
+This type change is safe in this example, but it is not in the following one:
+\begin{verbatim}
+    local person = {}
+    local bogus = person
+    person.firstname = "Lou"
+    person.lastname = "Reed"
+    bogus.firstname = true               -- compile-time error
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, the fifth line is unsound because it allows the
+programmer to change the type of the value that is stored in
+\texttt{person.firstname}, and makes the last line crash during
+run-time.
+On the first line, we assign an empty table to \texttt{person}.
+On the second line, we assign the type of \texttt{person} to
+\texttt{bogus}.
+On the third and fourth lines we change the type of \texttt{person}
+as we did in the previous example.
+On the fifth line we try to change the type of \texttt{bogus}
+from \texttt{\{\}} to \texttt{\{"firstname":boolean\}},
+but if we allow this type change we also allow changing the value
+that is stored in \texttt{person.firstname}, regardless of its type.
+Taking the changes individually looks fine, but the truth is that
+aliasing makes one of them unsound.
+
+The location of the change also matters, as the next example shows:
+\begin{verbatim}
+    local person = { lastname = "Reed" }
+    local function spoil ()
+      person.firstname = nil             -- compile-time error
+    end
+    person.firstname = "Lou"
+    spoil()
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, the third line is unsound because it allows the
+programmer to change the type of \texttt{person} outside of the scope
+that it was declared.
+The call to \texttt{spoil} erases the field \texttt{firstname} from
+\texttt{person}, and makes the last line crash during run-time.
+
+It is also not sound to allow the type of the fields to change,
+as the next example shows:
+\begin{verbatim}
+    local person = { firstname = "Lewis", lastname = "Reed" }
+    person.middlename = "Allan"
+    person.firstname = 1942              -- compile-time error
+    person.lastname = 2013               -- compile-time error
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, both third and fourth line are unsound because
+they are trying to change the type of fields that already exist.
+
+Typed Lua tags a variable that holds a table type as either
+\emph{open} or \emph{closed}.
+If a variable gets its type from a table constructor then it
+is open, otherwise it is always closed.
+
+Typed Lua uses three restrictions to decide whether it is
+sound to allow field assignment to change the type of an
+open variable or not:
+the variable must be local to the current block,
+the new type must be a subtype of the old one, and
+the variable cannot have been assigned in another function.
+
+We can create aliases to open variables, but they are always closed.
+Any mutation on these aliases is not a problem, as the type of
+the original reference can only change towards a subtype.
+For mutable fields this means that the type of the field cannot
+change after it is added to the type of the table.
+
+Table types along with their refinement through field assignment
+are the foundation for defining modules and objects in Typed Lua.
+In the next section, we show that the refinement of table types
+through field assignment is crucial for making Typed Lua
+support idiomatic definition of Lua modules.
+
+\section{Interfaces and type aliases}
+\label{sec:alias}
+
 Typed Lua includes \emph{interfaces} as syntactic sugar to table types
 that specify records, as writing table types can be unwieldy when
 records get bigger and types of record fields get more complicated.
 For instance, we can use the following interface as an alias to the
-type of the record we showed in the previous example:
+type of the record we showed in the last section:
 \begin{verbatim}
     local interface Person
       firstname:string
@@ -774,103 +875,56 @@ from the previous example, thus eliminating the compile-time error:
     end
 \end{verbatim}
 
-Lua programmers often build records incrementally, that is,
-they usually declares a local variable with an empty table,
-and then use assignment to add fields to this table:
+Typed Lua also includes a way to create aliases for types that does not
+follow the records syntax.
+However, we limitim aliases to union types, function types, table types,
+and recursive types.
+The reason for this restriction is to avoid the creation of aliases
+to predefined types.
+
+For instance, we can use the \texttt{typealias} construct to define an
+alias to the type of the abstract syntax tree for a language of simple
+arithmetic expressions:
 \begin{verbatim}
-    local person = {}
-    person.firstname = "Lou"
-    person.lastname = "Reed"
-    print("bye bye " .. person.firstname)  -- bye bye Lou
+    local typealias Exp = {"tag":"Number", 1:number}
+                        | {"tag":"Add", 1:Exp, 2:Exp}
+                        | {"tag":"Sub", 1:Exp, 2:Exp}
+                        | {"tag":"Mul", 1:Exp, 2:Exp}
+                        | {"tag":"Div", 1:Exp, 2:Exp}
 \end{verbatim}
 
-In this example, we want to refine the type of \texttt{person} as
-we build the table:
-starting with \texttt{\{\}}, and then refining to \texttt{\{"firstname":string\}},
-and finally reaching \texttt{\{"firstname":string, "lastname":string\}}.
-This type change is trickier than the one that we introduced for narrowing
-union types, as we are not just allowing the programmer to change
-the type of the variable \texttt{person}, but we are actually allowing
-the programmer to change the type of the value that \texttt{person} points to.
-This type change is safe in this example, but it is not in the following one:
+The type \texttt{Exp} is a recursive type that resembles the
+algebraic data types from functional programming.
+Typed Lua also includes typing rules that let programmers
+deconstruct unions of table types, and it resembles
+pattern matching from functional programming.
+We can use this feature to write an evaluation function for
+our simple language:
 \begin{verbatim}
-    local person = {}
-    local bogus = person
-    person.firstname = "Lou"
-    person.lastname = "Reed"
-    bogus.firstname = true               -- compile-time error
-    print("bye bye " .. person.firstname)
-\end{verbatim}
-
-In this example, the fifth line is unsound because it allows the
-programmer to change the type of the value that is stored in
-\texttt{person.firstname}, and makes the last line crash during
-run-time.
-On the first line, we assign an empty table to \texttt{person}.
-On the second line, we assign the type of \texttt{person} to
-\texttt{bogus}.
-On the third and fourth lines we change the type of \texttt{person}
-as we did in the previous example.
-On the fifth line we try to change the type of \texttt{bogus}
-from \texttt{\{\}} to \texttt{\{"firstname":boolean\}},
-but if we allow this type change we also allow changing the value
-that is stored in \texttt{person.firstname}, regardless of its type.
-Taking the changes individually looks fine, but the truth is that
-aliasing makes one of them unsound.
-
-The location of the change also matters, as the next example shows:
-\begin{verbatim}
-    local person = { lastname = "Reed" }
-    local function spoil ()
-      person.firstname = nil             -- compile-time error
+    local function eval (e:Exp):number
+      if e.tag == "Number" then return e[1]
+      elseif e.tag == "Add" then return eval(e[1]) + eval(e[2])
+      elseif e.tag == "Sub" then return eval(e[1]) - eval(e[2])
+      elseif e.tag == "Mul" then return eval(e[1]) * eval(e[2])
+      elseif e.tag == "Div" then return eval(e[1]) / eval(e[2])
+      end
     end
-    person.firstname = "Lou"
-    spoil()
-    print("bye bye " .. person.firstname)
 \end{verbatim}
 
-In this example, the third line is unsound because it allows the
-programmer to change the type of \texttt{person} outside of the scope
-that it was declared.
-The call to \texttt{spoil} erases the field \texttt{firstname} from
-\texttt{person}, and makes the last line crash during run-time.
+When Typed Lua finds the pattern \texttt{n.s1 == s2}, it checks
+if the type of the variable \texttt{n} is a union of table types
+and if \texttt{s1} and \texttt{s2} are strings.
+If that is the case, it constrains the type of \texttt{n} inside
+the \texttt{if} to the table type that has the pair \texttt{s1:s2}.
+For instance, in the case of \texttt{e.tag == "Add"}, Typed Lua
+constrains the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
+This is safe because Typed Lua restricts this pattern to literal types only.
 
-It is also not sound to allow the type of the fields to change,
-as the next example shows:
-\begin{verbatim}
-    local person = { firstname = "Lewis", lastname = "Reed" }
-    person.middlename = "Allan"
-    person.firstname = 1942              -- compile-time error
-    person.lastname = 2013               -- compile-time error
-    print("bye bye " .. person.firstname)
-\end{verbatim}
-
-In this example, both third and fourth line are unsound because
-they are trying to change the type of fields that already exist.
-
-Typed Lua tags a variable that holds a table type as either
-\emph{open} or \emph{closed}.
-If a variable gets its type from a table constructor then it
-is open, otherwise it is always closed.
-
-Typed Lua uses three restrictions to decide whether it is
-sound to allow field assignment to change the type of an
-open variable or not:
-the variable must be local to the current block,
-the new type must be a subtype of the old one, and
-the variable cannot have been assigned in another function.
-
-We can create aliases to open variables, but they are always closed.
-Any mutation on these aliases is not a problem, as the type of
-the original reference can only change towards a subtype.
-For mutable fields this means that the type of the field cannot
-change after it is added to the type of the table.
-
-Table types along with their refinement through field assignment
-are the foundation for defining modules and objects in Typed Lua.
-In the next section, we show that the refinement of table types
-through field assignment is crucial for making Typed Lua
-support idiomatic definition of Lua modules.
+Even though the type alias declaration may make the interface declaration
+look redundant, it does not have a syntax as nice as the syntax
+of the interface declaration for defining records.
+For this reason worth keeping two different constructs.
+One for records specifically and another to more general types.
 
 \section{Modules}
 \label{sec:modules}
@@ -1250,11 +1304,6 @@ The Typed Lua compiler uses this brand to combine structural with
 nominal type checking, so two different userdata are not subtype
 of each other because they do not share the same brand.
 A type alias declaration assigns a name to a first-level type.
-Even though the type alias declaration may make the interface declaration
-look redundant, it does not have a syntax as nice as the syntax
-of the interface declaration for defining records.
-The type alias declaration is specially useful when we need to create
-names for types that are not records.
 
 The Typed Lua compiler searches for a description file when it cannot
 not find the respective Typed Lua file that is the argument of
