@@ -49,7 +49,7 @@ It worth mentioning that we used our implementation to produce and
 test all the examples that we present along this section.
 
 \section{Optional type annotations}
-\label{sec:optann}
+\label{sec:annotations}
 
 Lua values can have one of eight tags:
 \emph{nil}, \emph{boolean}, \emph{number}, \emph{string},
@@ -221,7 +221,7 @@ This is a typical example where run-time checks would ensure safety
 between the interaction of dynamically typed and statically typed code.
 
 \section{Functions}
-\label{sec:func}
+\label{sec:functions}
 
 Lua has first-class functions, but they have some peculiarities.
 First, the number of arguments of a function call does
@@ -735,18 +735,20 @@ change after it is added to the type of the table.
 
 Table types along with their refinement through field assignment
 are the foundation for defining modules and objects in Typed Lua.
-In the next section, we show that the refinement of table types
-through field assignment is crucial for making Typed Lua
+In Section \ref{sec:modules} we show that the refinement of table
+types through field assignment is crucial for making Typed Lua
 support idiomatic definition of Lua modules.
+In Section \ref{sec:oop} we show that the refinement of table
+types is also helpful for defining classes and objects.
 
 \section{Interfaces and type aliases}
 \label{sec:alias}
 
 Typed Lua includes \emph{interfaces} as syntactic sugar to table types
 that specify records, as writing table types can be unwieldy when
-records get bigger and types of record fields get more complicated.
+records get bigger and the types of record fields get more complicated.
 For instance, we can use the following interface as an alias to the
-type of the record we showed in the last section:
+type of the record we showed in the previous section:
 \begin{verbatim}
     local interface Person
       firstname:string
@@ -877,13 +879,13 @@ from the previous example, thus eliminating the compile-time error:
 
 Typed Lua also includes a way to create aliases for types that does not
 follow the records syntax.
-However, we limitim aliases to union types, function types, table types,
+However, we limit aliases to union types, function types, table types,
 and recursive types.
 The reason for this restriction is to avoid the creation of aliases
 to predefined types.
 
 For instance, we can use the \texttt{typealias} construct to define an
-alias to the type of the abstract syntax tree for a language of simple
+alias to the type of the abstract syntax tree of a language of simple
 arithmetic expressions:
 \begin{verbatim}
     local typealias Exp = {"tag":"Number", 1:number}
@@ -896,7 +898,7 @@ arithmetic expressions:
 The type \texttt{Exp} is a recursive type that resembles the
 algebraic data types from functional programming.
 Typed Lua also includes typing rules that let programmers
-deconstruct unions of table types, and it resembles
+deconstruct unions of table types, which resembles
 pattern matching from functional programming.
 We can use this feature to write an evaluation function for
 our simple language:
@@ -911,20 +913,22 @@ our simple language:
     end
 \end{verbatim}
 
-When Typed Lua finds the pattern \texttt{n.s1 == s2}, it checks
-if the type of the variable \texttt{n} is a union of table types
-and if \texttt{s1} and \texttt{s2} are strings.
+When Typed Lua finds the pattern \texttt{n[s1] == s2}, it checks
+if the type of the variable \texttt{n} is an union of table types,
+if \texttt{s1} a literal string, and if \texttt{s2} is also a literal string.
 If that is the case, it constrains the type of \texttt{n} inside
 the \texttt{if} to the table type that has the pair \texttt{s1:s2}.
-For instance, in the case of \texttt{e.tag == "Add"}, Typed Lua
-constrains the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
+For instance, the expression \texttt{e.tag == "Add"} makes Typed Lua
+constrain the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
 This is safe because Typed Lua restricts this pattern to literal types only.
+If we did not add this pattern, we would not be able to traverse the AST,
+as any attempt to index an union is a compile-time error.
 
 Even though the type alias declaration may make the interface declaration
 look redundant, it does not have a syntax as nice as the syntax
 of the interface declaration for defining records.
-For this reason worth keeping two different constructs.
-One for records specifically and another to more general types.
+For this reason, it worth having two different constructs.
+One specifically for records and another for more general types.
 
 \section{Modules}
 \label{sec:modules}
@@ -1303,7 +1307,8 @@ but it also includes its name as the \emph{brand} of the table type.
 The Typed Lua compiler uses this brand to combine structural with
 nominal type checking, so two different userdata are not subtype
 of each other because they do not share the same brand.
-A type alias declaration assigns a name to a first-level type.
+A type alias declaration is a way to create shortcuts to union types,
+function types, table types, and recursive types.
 
 The Typed Lua compiler searches for a description file when it cannot
 not find the respective Typed Lua file that is the argument of
