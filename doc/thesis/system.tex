@@ -16,18 +16,7 @@ and features, such as the refinement of tables, multiple return values,
 and optional parameters.
 
 \section{Types}
-
-Our type system uses subtyping \citep{cardelli1984smi,abadi1996to} to order
-types and consistent-subtyping \citep{siek2007objects,siek2013mutable}
-to allow the interaction between statically and dynamically typed code.
-We will explain the subtyping and consistent-subtyping rules along this
-section while we introduce each type from our type system.
-We will focus the discussion on the definition of subtyping because,
-as we mentioned in Chapter \ref{chap:review}, we can combine the
-consistency and subtyping relations to achieve consistent-subtyping.
-The differences between subtyping and consistent-subtyping are the way
-they handle the dynamic type, and the fact that subtyping is transitive,
-but consistent-subtyping is not.
+\label{sec:types}
 
 \begin{figure}[!ht]
 \textbf{Type Language}\\
@@ -95,6 +84,103 @@ Both \texttt{integer} and \texttt{float} values are subtype of \texttt{number}.
 We introduced the base type $\Number$ to represent either the tag
 \texttt{number} or \texttt{float} values, and the type $\Integer$ to represent
 \texttt{integer} values.
+
+The type $\Nil$ represents the type of the value that during run-time
+Lua tags as \texttt{nil}.
+
+The type $\Value$ is the top type, so any first-level type is a
+subtype of $\Value$.
+
+Typed Lua uses the type $\Self$ to represent the \emph{receiver}
+in object-oriented method definitions and method calls.
+As we mentioned in Chapter \ref{chap:typedlua}, we need the type
+$\Self$ to prevent programmers from indexing a method without
+calling it with the correct \emph{receiver}.
+
+Union types represent types that can hold a value of several
+different, but fixed types.
+
+To introduce function types we first need to introduce
+second-level types, as they appear on both sides of function types.
+Second-level types are tuples of first-level types
+that can optionally end with a variadic type.
+Our type system needs second-level types because tuples are
+not first-class values in Lua, though they may appear on
+argument passing, multiple returns, and multiple assignments.
+A variadic type $t*$ is a generator for a sequence of values of
+type $t \cup \Nil$, and it represents the type of the vararg
+expression.
+
+Function types have the form $p \rightarrow r$, where
+$p$ is the type of the parameter list and $r$ is the return type.
+The type of the parameter list can be $\Void$ or a tuple type,
+while the return type can be $\Void$, a tuple type, or a union of
+tuple types.
+The type $\Void$ means an empty tuple.
+Our type system includes unions of tuples on the return type because
+in Lua it is common to overload the return type to denote error,
+as we mentioned in Section \ref{sec:statistics}.
+
+The type $\Void$ and union of tuple types are also second-level types.
+
+Table types represent the various forms that Lua tables can take.
+The syntactical form of table types is $\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{tag}$.
+When $n = 0$, then $i = 0$ and it represents the type of an empty table.
+When $n > 0$, then $i$ varies from 1 to $n$, each $k_{i}$ represents
+the type of a table key, and each $v_{i}$ represents the type of the
+value that table keys of type $k_{i}$ map to.
+Key types can only be literal types, base types, and the dynamic type.
+We made this restriction to the type of the keys because the statistics
+that we discussed in Section \ref{sec:statistics} showed that most
+of the tables are records, lists, and hashes.
+The dynamic type is an option when we need a loose table type.
+Value types can be any first-level type, and can optionally include
+the $\Const$ attribute to denote immutable values.
+
+We also use the tags \emph{closed}, \emph{open}, and \emph{unique}
+to classify table types.
+The first tag represents the table types that the type annotations,
+interface, and userdata declarations describe.
+The second tag represents the table types that we can use field assignment
+to add new fields to them.
+The third tag represents the table types of table constructors.
+We have different subtyping rules for table types according to their
+tags.
+
+Recursive types have the form $\mu x.t$,
+where $t$ is a first-level type with $x$ appearing anywhere this
+first-level type could appear.
+For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
+is a type for singly-linked list of integers.
+
+Projection types have the form $\pi_{i}^{x}$, where $x$ is a variable
+that stores an union of tuple types in a special type environment,
+and $i$ is an index that indicates how to build a first-level
+union type from $x$.
+For instance, if $x$ is the union of tuple types
+$(\Integer \times \Integer) \sqcup (\Nil \times \String)$,
+then $\pi_{1}^{x}$ represents the type $\Integer \cup \Nil$
+while $\pi_{2}^{x}$ represents the type $\Integer \cup \String$.
+In the next section we will show in more detail how our type system
+uses them as a mechanism for handling unions of tuple types,
+when they appear on the right-hand side of the declaration of local variables.
+We will also show how this feature allows our type system to constrain
+the type of a local variable that depends on the type of another local variable.
+
+\section{Subtyping}
+\label{sec:subtyping}
+
+Our type system uses subtyping \citep{cardelli1984smi,abadi1996to} to order
+types and consistent-subtyping \citep{siek2007objects,siek2013mutable}
+to allow the interaction between statically and dynamically typed code.
+We will explain the subtyping and consistent-subtyping rules along this
+section while we introduce each type from our type system.
+We will focus the discussion on the definition of subtyping because,
+as we mentioned in Chapter \ref{chap:review}, we can combine the
+consistency and subtyping relations to achieve consistent-subtyping.
+The differences between subtyping and consistent-subtyping are the way
+they handle the dynamic type, and the fact that subtyping is transitive,
+but consistent-subtyping is not.
 
 The subtyping rules for literal types and base types include the rules
 for defining that literal types are subtypes of their respective base types,
@@ -179,8 +265,6 @@ Thus, we define the subtyping rules using an algorithmic
 way that is close to the implementation, as this way allows us to use
 subtyping to formalize consistent-subtyping.
 
-The type $\Nil$ represents the type of the value that during run-time
-Lua tags as \texttt{nil}.
 In our type system $\Nil$ is not the bottom type, and it is subtype
 only of itself through the reflexive rule.
 Typed Lua has this behavior because in Lua the tag \texttt{nil}
@@ -189,8 +273,6 @@ Thus, making $\Nil$ the bottom type would lead to several expressions
 that would pass the type checker, but that would fail during run-time
 in the presence of a \texttt{nil} value.
 
-The type $\Value$ is the top type, so any first-level type is a
-subtype of $\Value$.
 In the next section we will show that this type along with
 variadic types help the type system drop extra values on
 multiple assignments and function calls, thus preserving the
@@ -236,15 +318,8 @@ and thus allow dynamically typed code to coexist with statically
 typed code.
 Because of these two rules consistent-subtyping cannot be transitive.
 
-Typed Lua uses the type $\Self$ to represent the \emph{receiver}
-in object-oriented method definitions and method calls.
-As we mentioned in Chapter \ref{chap:typedlua}, we need the type
-$\Self$ to prevent programmers from indexing a method without
-calling it with the correct \emph{receiver}.
 The type $\Self$ is subtype only of itself through the reflexive rule.
 
-Union types represent types that can hold a value of several
-different, but fixed types.
 The subtyping rules for union types are standard:
 \[
 \begin{array}{c}
@@ -286,16 +361,6 @@ type $\Any$, because $\Boolean \lesssim \Any$;
 and the union type $\Number \;\cup\; \Nil \;\cup\; 1$ results the union
 type $\Number \;\cup\; \Nil$ because $1 \lesssim \Number$.
 
-To introduce function types we first need to introduce
-second-level types, as they appear on both sides of function types.
-Second-level types are tuples of first-level types
-that can optionally end with a variadic type.
-Our type system needs second-level types because tuples are
-not first-class values in Lua, though they may appear on
-argument passing, multiple returns, and multiple assignments.
-A variadic type $t*$ is a generator for a sequence of values of
-type $t \cup \Nil$, and it represents the type of the vararg
-expression.
 The subtyping rule for tuple types is standard, but the subtyping
 rules for variadic types are not obvious:
 \[
@@ -374,17 +439,6 @@ along with the types $\Value$ and $\Nil$ to make our type system reflect
 the semantics of Lua on discarding extra parameters and
 replacing missing parameters.
 
-Function types have the form $p \rightarrow r$, where
-$p$ is the type of the parameter list and $r$ is the return type.
-The type of the parameter list can be $\Void$ or a tuple type,
-while the return type can be $\Void$, a tuple type, or a union of
-tuple types.
-The type $\Void$ means an empty tuple.
-Our type system includes unions of tuples on the return type because
-in Lua it is common to overload the return type to denote error,
-as we mentioned in Section \ref{sec:statistics}.
-
-The type $\Void$ and union of tuple types are also second-level types.
 The type $\Void$ is subtype only of itself through the reflexive rule.
 The subtyping rules for unions of tuple types are similar to the
 subtyping rules for unions of first-level types.
@@ -400,30 +454,6 @@ covariant on the return type:
       {\senv \vdash p_{1} \rightarrow r_{1} \subtype p_{2} \rightarrow r_{2}}
 \end{array}
 \]
-
-Table types represent the various forms that Lua tables can take.
-The syntactical form of table types is $\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{tag}$.
-When $n = 0$, then $i = 0$ and it represents the type of an empty table.
-When $n > 0$, then $i$ varies from 1 to $n$, each $k_{i}$ represents
-the type of a table key, and each $v_{i}$ represents the type of the
-value that table keys of type $k_{i}$ map to.
-Key types can only be literal types, base types, and the dynamic type.
-We made this restriction to the type of the keys because the statistics
-that we discussed in Section \ref{sec:statistics} showed that most
-of the tables are records, lists, and hashes.
-The dynamic type is an option when we need a loose table type.
-Value types can be any first-level type, and can optionally include
-the $\Const$ attribute to denote immutable values.
-
-We also use the tags \emph{closed}, \emph{open}, and \emph{unique}
-to classify table types.
-The first tag represents the table types that the type annotations,
-interface, and userdata declarations describe.
-The second tag represents the table types that we can use field assignment
-to add new fields to them.
-The third tag represents the table types of table constructors.
-We have different subtyping rules for table types according to their
-tags.
 
 The subtyping rule between \emph{closed} table types resembles the
 standard subtyping rule between records:
@@ -517,12 +547,6 @@ Moreover, the type of the value stored by a key of type $\Integer$,
 which is not the literal type $1$, can be $\Number$ or $\Boolean$,
 as $\Integer \lesssim \Integer$, and $\Integer \lesssim \Any$.
 
-Recursive types have the form $\mu x.t$,
-where $t$ is a first-level type with $x$ appearing anywhere this
-first-level type could appear.
-For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
-is a type for singly-linked list of integers.
-
 We use the \emph{Amber rule} \citep{cardelli1986amber} to define
 subtyping between recursive types:
 \[
@@ -594,22 +618,10 @@ the type of the table constructor is a subtype of \texttt{Element}:
 & \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
 
-Projection types have the form $\pi_{i}^{x}$, where $x$ is a variable
-that stores an union of tuple types in a special type environment,
-and $i$ is an index that indicates how to build a first-level
-union type from $x$.
-For instance, if $x$ is the union of tuple types
-$(\Integer \times \Integer) \sqcup (\Nil \times \String)$,
-then $\pi_{1}^{x}$ represents the type $\Integer \cup \Nil$
-while $\pi_{2}^{x}$ represents the type $\Integer \cup \String$.
 Projection types follow the reflexive subtyping rule.
-In the next section we will show in more detail how our type system
-uses them as a mechanism for handling unions of tuple types,
-when they appear on the right-hand side of the declaration of local variables.
-We will also show how this feature allows our type system to constrain
-the type of a local variable that depends on the type of another local variable.
 
 \section{Typing rules}
+\label{sec:rules}
 
 In this section we use a reduced core of Typed Lua to present the
 most interesting rules of our type system.
