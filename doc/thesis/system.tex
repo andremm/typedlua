@@ -31,8 +31,8 @@ t ::= & \;\; l & \textit{literal types}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; \Self & \textit{self type}\\
 & | \; t \cup t & \textit{disjoint union types}\\
-& | \; p \rightarrow r & \textit{function types}\\
-& | \; \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
+& | \; s \rightarrow r & \textit{function types}\\
+& | \; \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
 & | \; \pi_{i}^{x} & \textit{projection types}\\
@@ -42,11 +42,10 @@ k ::= & \;\; l \; | \; b \; | \; \Any & \textit{key types}\\
 v ::= & \;\; t \; | \; \Const \; t & \textit{value types}\\ 
 \multicolumn{3}{c}{}\\
 \multicolumn{3}{c}{\textbf{Second-level types}}\\
-s ::= & \;\; t &\\
+s ::= & \;\; \Void & \textit{void type}\\
 & | \; t* & \textit{variadic types}\\
 & | \; t \times s & \textit{tuple types}\\
-p ::= & \;\; \Void \; | \; s & \textit{parameters list type}\\
-r ::= & \;\; \Void \; | \; s \; | \; s \sqcup r & \textit{return types}\\
+r ::= & \;\; s \; | \; s \sqcup r & \textit{return types}\\
 \end{array}
 $$
 \dend
@@ -58,113 +57,133 @@ Figure \ref{fig:typelang} presents the abstract syntax of the
 Typed Lua types.
 Typed Lua splits types into two categories:
 \emph{first-level types} and \emph{second-level types}.
-Typed Lua uses first-level types to represent first-class Lua values and
-second-level types to represent tuples of values that appear in 
-multiple assignments and function applications.
+First-level types represent first-class Lua values and
+second-level types represent tuples of values that appear in 
+assignments and function applications.
 First-level types include literal types, base types, the type $\Nil$,
 the top type $\Value$, the dynamic type $\Any$, the type $\Self$,
 union types, function types, table types, recursive types, and
 projection types.
-Second-level types include the type $\Void$, tuples of first-level
-types optionally ending in a variadic type, and unions of these tuples.
+Second-level types include the type $\Void$, variadic types,
+tuple types, and unions of tuple types.
 
-Literal types represent the type of literal values.
+Literal types $l$ represent the type of literal values.
 They can be the boolean values $\False$ and $\True$,
-any integer value, any floating point value, and any string value.
+an integer value, a floating point value, or a string value.
 We shall see that literal types are important in our treatment of
 table types as records.
 
-Our type system also includes the following base types: $\Boolean$,
-$\Integer$, $\Number$, and $\String$.
+Typed Lua includes four base types $b$: $\Boolean$, $\Integer$, $\Number$, and $\String$.
 The base types $\Boolean$ and $\String$ represent the values that during
 run-time Lua tags as \texttt{boolean} and \texttt{string}, respectively.
 Lua 5.3 introduced two internal representations to the tag \texttt{number}:
 \texttt{integer} for integer numbers and \texttt{float} for real numbers.
-Both \texttt{integer} and \texttt{float} values are subtype of \texttt{number}.
+Both \texttt{integer} and \texttt{float} values are a subtype of \texttt{number}.
 We introduced the base type $\Number$ to represent either the tag
 \texttt{number} or \texttt{float} values, and the type $\Integer$ to represent
 \texttt{integer} values.
+In the next section we will show that $\Integer$ is subtype of $\Number$.
+This allows programmers to use \texttt{integer} values in the
+place of \texttt{float} values.
 
 The type $\Nil$ represents the type of the value that during run-time
 Lua tags as \texttt{nil}.
 
-The type $\Value$ is the top type, so any first-level type is a
-subtype of $\Value$.
+The type $\Value$ is the top type.
+In Section \ref{sec:rules} we will show that this type,
+along with variadic types, helps the type system to drop extra values
+on assignments and function calls, thus preserving the
+semantics of Lua in these cases.
+
+Typed Lua includes the dynamic type $\Any$ for allowing programmers
+to mix static and dynamic typing.
 
 Typed Lua uses the type $\Self$ to represent the \emph{receiver}
 in object-oriented method definitions and method calls.
 As we mentioned in Chapter \ref{chap:typedlua}, we need the type
-$\Self$ to prevent programmers from indexing a method without
-calling it with the correct \emph{receiver}.
+$\Self$ to prevent programs from indexing a method without
+calling it with the correct receiver.
 
-Union types represent types that can hold a value of several
-different, but fixed types.
+Union types $t_{1} \cup t_{2}$ represent types that can hold a value
+of two different types.
 
-To introduce function types we first need to introduce
-second-level types, as they appear on both sides of function types.
-Second-level types are tuples of first-level types
-that can optionally end with a variadic type.
-Our type system needs second-level types because tuples are
-not first-class values in Lua, though they may appear on
-argument passing, multiple returns, and multiple assignments.
-A variadic type $t*$ is a generator for a sequence of values of
-type $t \cup \Nil$, and it represents the type of the vararg
-expression.
+Function types have the form $s \rightarrow r$ to represent Lua functions,
+where $s$ is the type of the parameter list and $r$ is the return type.
+Both $s$ and $r$ are second-level types.
+In the next paragraphs we explain why we need different representations
+for the type of the parameter list and the return type.
 
-Function types have the form $p \rightarrow r$, where
-$p$ is the type of the parameter list and $r$ is the return type.
-The type of the parameter list can be $\Void$ or a tuple type,
-while the return type can be $\Void$, a tuple type, or a union of
-tuple types.
-The type $\Void$ means an empty tuple.
-Our type system includes unions of tuples on the return type because
-in Lua it is common to overload the return type to denote error,
+Second-level types $s$ are tuples of first-level types that can end
+with either an empty tuple or with a variadic type.
+Typed Lua needs second-level types because tuples are not first-class
+values in Lua, though they may appear on argument passing,
+multiple returns, and multiple assignments.
+The type $\Void$ is the type of an empty tuple.
+A variadic type $t*$ is a generator for a sequence of values
+of type $t \cup \Nil$, and it represents the type of a vararg expression.
+
+Second-level types $r$ include the same second-level types introduced
+by $s$ plus unions of tuple types.
+Typed Lua includes unions of tuples because Lua programs
+usually overload the return type of functions to denote error,
 as we mentioned in Section \ref{sec:statistics}.
+We could not find a nice concrete syntax to represent unions of
+tuples that appear in the type of the parameter list, and
+that is the reason why we restrict them to appear in the return type only.
+The same reason led us to split second-level types into two
+different symbols.
+We use the symbol $\sqcup$ to represent the union between two
+different tuple types.
+We have different unions because $\cup$ represents the union
+between two first-level types, while $\sqcup$ represents the
+union between two tuple types.
 
-The type $\Void$ and union of tuple types are also second-level types.
-
-Table types represent the various forms that Lua tables can take.
-The syntactical form of table types is $\{ k_{i}{:}v_{i}, ..., k_{n}{:}v_{n} \}_{tag}$.
-When $n = 0$, then $i = 0$ and it represents the type of an empty table.
-When $n > 0$, then $i$ varies from 1 to $n$, each $k_{i}$ represents
-the type of a table key, and each $v_{i}$ represents the type of the
-value that table keys of type $k_{i}$ map to.
-Key types can only be literal types, base types, and the dynamic type.
+Back to first-level types, table types represent the various forms
+that Lua tables can take.
+The syntactical form of table types is $\{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{tag}$,
+where each $k_{i}$ represents the type of a table key,
+and each $v_{i}$ represents the type of the value that table keys of type $k_{i}$ map to.
+Key types can only be literal types, base types, or the dynamic type.
 We made this restriction to the type of the keys because the statistics
 that we discussed in Section \ref{sec:statistics} showed that most
 of the tables are records, lists, and hashes.
 The dynamic type is an option when we need a loose table type.
 Value types can be any first-level type, and can optionally include
-the $\Const$ attribute to denote immutable values.
+the $\Const$ type to denote immutable values.
 
 We also use the tags \emph{closed}, \emph{open}, and \emph{unique}
 to classify table types.
-The first tag represents the table types that the type annotations,
-interface, and userdata declarations describe.
-The second tag represents the table types that we can use field assignment
-to add new fields to them.
-The third tag represents the table types of table constructors.
-We have different subtyping rules for table types according to their
-tags.
+The tag \emph{unique} represents tables that we know their contents,
+and that there is no alias to them.
+In particular, the type of the table constructor has this tag.
+The tag \emph{open} represents \emph{unique} table types that
+have at least one alias.
+The tag \emph{closed} represents table types that do not provide
+any guarantees about the types not listed in the table type.
+In particular, type annotations as well as interfaces and userdata
+declarations always describe \emph{closed} table types.
+In the next sections we explain in more detail why we need
+different table types.
 
 Recursive types have the form $\mu x.t$,
-where $t$ is a first-level type with $x$ appearing anywhere this
-first-level type could appear.
+where $t$ is a first-level type that $x$ represents.
 For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
-is a type for singly-linked list of integers.
+is a type for singly-linked lists of integers.
 
+Type Lua includes projection types as a way to project
+unions of tuple types into unions of first-level types.
 Projection types have the form $\pi_{i}^{x}$, where $x$ is a variable
 that stores an union of tuple types in a special type environment,
-and $i$ is an index that indicates how to build a first-level
+and $i$ is an index that indicates how to project a first-level
 union type from $x$.
 For instance, if $x$ is the union of tuple types
 $(\Integer \times \Integer) \sqcup (\Nil \times \String)$,
 then $\pi_{1}^{x}$ represents the type $\Integer \cup \Nil$
 while $\pi_{2}^{x}$ represents the type $\Integer \cup \String$.
-In the next section we will show in more detail how our type system
+In Section \ref{sec:rules} we show in more detail how our type system
 uses them as a mechanism for handling unions of tuple types,
 when they appear on the right-hand side of the declaration of local variables.
-We will also show how this feature allows our type system to constrain
+We also show how this feature allows our type system to constrain
 the type of a local variable that depends on the type of another local variable.
 
 \section{Subtyping}
@@ -273,11 +292,7 @@ Thus, making $\Nil$ the bottom type would lead to several expressions
 that would pass the type checker, but that would fail during run-time
 in the presence of a \texttt{nil} value.
 
-In the next section we will show that this type along with
-variadic types help the type system drop extra values on
-multiple assignments and function calls, thus preserving the
-semantics of Lua in these cases.
-Following we show its subtyping rule:
+Any first-level type is a subtype of $\Value$:
 \[
 \begin{array}{c}
 \mylabel{S-VALUE}\\
@@ -285,8 +300,7 @@ Following we show its subtyping rule:
 \end{array}
 \]
 
-The dynamic type $\Any$ allows programmers to mix static and dynamic typing;
-it is neither the bottom nor the top type,
+The dynamic type $\Any$ is neither the bottom nor the top type,
 but a separate type that is subtype only of itself through the reflexive rule.
 
 Even though the dynamic type $\Any$ is neutral to subtyping,
