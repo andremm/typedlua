@@ -129,7 +129,7 @@ usually overload the return type of functions to denote error,
 as we mentioned in Section \ref{sec:statistics}.
 We could not find a nice concrete syntax to represent unions of
 tuples that appear in the type of the parameter list, and
-that is the reason why we restrict them to appear in the return type only.
+that is the reason why we restricted them to appear in the return type only.
 The same reason led us to split second-level types into two
 different symbols.
 We use the symbol $\sqcup$ to represent the union between two
@@ -169,12 +169,20 @@ Any table type has to be \emph{well-formed}.
 Informally, a table type is well-formed if key types do not overlap.
 In Section \ref{sec:rules} we formalize the definition of well-formed table types.
 We delay the proper formalization of well-formed table types because we use
-consitent-subtyping in this formalization.
+consistent-subtyping in this formalization.
 
 Recursive types have the form $\mu x.t$,
 where $t$ is a first-level type that $x$ represents.
 For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
 is a type for singly-linked lists of integers.
+In Section \ref{sec:alias} we mentioned that we can use the following
+interface declaration as an alias to this type:
+\begin{verbatim}
+    local interface Element
+      info:integer
+      next:Element?
+    end
+\end{verbatim}
 
 Type Lua includes projection types as a way to project
 unions of tuple types into unions of first-level types.
@@ -256,8 +264,7 @@ We define these subtyping rules as follows:
 \]
 
 Subtyping is reflexive and transitive;
-due to the transitivity of subtyping, we could have omitted
-the rule \textsc{S-INT2}.
+due to the transitivity of subtyping, we could have omitted the rule \textsc{S-INT2}.
 More precisely, we could have defined a transitive rule for first-level
 types instead of defining specific rules to transitive cases.
 For instance, a transitive rule would allow us to derive that
@@ -323,8 +330,8 @@ Some people might expect that $\Nil$ is the bottom type
 of our type system, but it is not,
 and it is subtype only of itself through the reflexive rule.
 Many programming languages include a bottom type to represent
-an empty value that programmers can use as a default expression
-Typed Lua has this behavior because in Lua the tag \texttt{nil}
+an empty value that programmers can use as a default expression.
+Typed Lua does not have this behavior because in Lua the tag \texttt{nil}
 represents the absence of an useful value.
 Thus, making $\Nil$ the bottom type would lead to several expressions
 that would pass the type checker, but that would fail during run-time
@@ -364,7 +371,7 @@ and the other rules show that a type $t$ is subtype
 of a union type $t_{1} \cup t_{2}$ if $t$ is subtype of
 $t_{1}$ or if $t$ is subtype of $t_{2}$.
 
-In the implementation of Typed Lua we use consitent-subtyping to
+In the implementation of Typed Lua we use consistent-subtyping to
 normalize and simplify union types, but we let them free in the
 formalization.
 For instance, the union type \texttt{boolean|any} results in the
@@ -396,7 +403,7 @@ The simplest second-level type is the type $\Void$ that
 is subtype only of itself through the reflexive rule.
 
 The subtyping rule for tuple types is standard, but the subtyping
-rules for variadic types are not obvious:
+rules for variadic types are not so obvious:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -426,14 +433,14 @@ rules for variadic types are not obvious:
 \\ \\
 \begin{array}{c}
 \mylabel{S-VARARG4}\\
-\dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \;\;\;
+\dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \times \Void \;\;\;
        \senv \vdash t_{1}{*} \subtype s_{2}}
       {\senv \vdash t_{1}{*} \subtype t_{2} \times s_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-VARARG5}\\
-\dfrac{\senv \vdash t_{1} \subtype t_{2}{*} \;\;\;
+\dfrac{\senv \vdash t_{1} \times \Void \subtype t_{2}{*} \;\;\;
        \senv \vdash s_{1} \subtype t_{2}{*}}
       {\senv \vdash t_{1} \times s_{1} \subtype t_{2}{*}}
 \end{array}
@@ -497,7 +504,7 @@ the subtyping rule between \emph{closed} table types resembles the
 standard subtyping rule between records:
 \[
 \begin{array}{c}
-\mylabel{S-TABLE}\\
+\mylabel{S-TABLE1}\\
 \dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
        \senv \vdash k_{j} \subtype k_{i}' \;\;\;
        \senv \vdash k_{i}' \subtype k_{j} \;\;\;
@@ -506,7 +513,7 @@ standard subtyping rule between records:
 \end{array}
 \]
 
-The rule \textsc{S-TABLE} introduced the relation $\subtype_{c}$.
+The rule \textsc{S-TABLE1} introduced the relation $\subtype_{c}$.
 It is just an auxiliary relation that defines the subtyping of the
 type of the values stored in the table fields.
 We need an auxiliary relation because the subtyping of the
@@ -569,12 +576,10 @@ Moreover, we introduced \emph{open} table types to allow the refinement of table
 an idiom very common in Lua.
 
 Even though \emph{open} and \emph{unique} table types can interact with
-\emph{closed} table types, they do not follow the subtyping rules.
-Instead, we define a specific relation that handles the interaction
-between the different table types that our type system has.
-We will present this relation in the next section along with the typing
+\emph{closed} table types, they follow different subtyping rules.
+We will present these rules in the next section along with the typing
 rules that formalize the refinement of table types.
-The presentation of this relation is easier in the next section,
+The presentation of these rules is easier in the next section,
 as they include some unsafe behaviors that the refinement of
 table types keeps track to make them safe.
 
@@ -599,7 +604,7 @@ subtyping between recursive types:
 The rule \textsc{S-AMBER} also uses the rule \textsc{S-ASSUMPTION}
 to check whether $\mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}$.
 Both rules use the set of assumptions $\senv$,
-which are pairs of recursion variables.
+where each assumption is a pair of recursion variables.
 The rule \textsc{S-AMBER} extends $\senv$ with the assumption
 $x_{1} \subtype x_{2}$ to check whether $t_{1} \subtype t_{2}$.
 The rule \textsc{S-ASSUMPTION} allows the rule \textsc{S-AMBER}
@@ -624,29 +629,30 @@ recursive types and other first-level types:
 \end{array}
 \]
 
-For instance, it is the rule \textsc{S-UNFOLDR} that allows our
-type system to type check the example that we presented
-in Section \ref{sec:tables}:
+The rules \textsc{S-UNFOLDR}, \textsc{S-AMBER}, and \textsc{S-ASSUMPTION}
+allow our type system to type check the function \texttt{insert}
+from Section \ref{sec:alias}:
 \begin{verbatim}
-    local interface Element
-      info:integer
-      next:Element?
-    end
     local function insert (e:Element?, v:integer):Element
       return { info = v, next = e }
     end
 \end{verbatim}
 
-The interface \texttt{Element} defines the type for singly-linked
-list of integers that we just mentioned, and the function
-\texttt{insert} inserts an element in the begining of the list.
-In this example, the recursive type appears inside the type of
-the table constructor.
-It type checks because the rule \textsc{S-UNFOLDR} verifies that
+First, a recursive type appears inside the type of the table constructor.
+Thus, the type checker uses the rule \textsc{S-UNFOLDR} to verify whether
 the type of the table constructor is a subtype of \texttt{Element}:
 \begin{align*}
 \{ & ``info":\Integer, \\
    & ``next":\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed} \cup \Nil \}_{unique} \subtype \\
+& \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
+\end{align*}
+
+After unfolding, the recursive types appear only as part of the type
+of the value of the key type $``next"$.
+Thus, the type checker uses the rules \textsc{S-AMBER} and \textsc{S-ASSUMPTION}
+to verify whether these recursive types are subtypes between each other:
+\begin{align*}
+& \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed} \subtype \\
 & \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
 
