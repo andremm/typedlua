@@ -554,7 +554,7 @@ to mutable because it would not be safe, as this rule would allow
 programmers to change the value that is stored in an immutable field.
 
 There is a limitation on \emph{closed} table types that led us to
-introduce \emph{unique} table types.
+introduce \emph{open} and \emph{unique} table types.
 If the table constructor had a \emph{closed} table type, then
 programmers would not be able to use it to initialize a variable with
 a table type that describes a more general type.
@@ -569,19 +569,140 @@ More precisely,
 \{``x":1, ``y":2\}_{closed} \not\subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
 \]
 
-Thus, we introduced \emph{unique} table types to represent the type of
-the table constructor and avoid this limitation.
+Simply promoting the type of each table value to its supertype would
+not overcome this limitation, as it still would give to the table constructor
+a closed table type without covariant mutable fields.
+Thus, programmers would not be able to use the table constructor to
+initialize a variable with a table type that includes an optional field.
+Using the previous example,
+\begin{align*}
+& \{``x":\Integer, ``y":\Integer\}_{closed} \not\subtype \\
+& \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\end{align*}
 
-Moreover, we introduced \emph{open} table types to allow the refinement of table types,
-an idiom very common in Lua.
+We introduced \emph{unique} table types to avoid this limitation,
+as they represent the type of the tables that we known their contents.
+In particular, this is the case of the table constructor.
+The following subtyping rule defines the subtyping relation among
+\emph{unique} table types and other table types:
+\[
+\begin{array}{c}
+\mylabel{S-TABLE2}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+\end{array}
+\]
 
-Even though \emph{open} and \emph{unique} table types can interact with
-\emph{closed} table types, they follow different subtyping rules.
-We will present these rules in the next section along with the typing
-rules that formalize the refinement of table types.
-The presentation of these rules is easier in the next section,
-as they include some unsafe behaviors that the refinement of
-table types keeps track to make them safe.
+Unlike the rule \textsc{S-TABLE1}, the rule \textsc{S-TABLE2} allows
+covariant keys.
+We allow this behavior to \emph{unique} table types because we also
+want to use them as a way to join table fields.
+For instance, we may want to use the table constructor to initialize
+a variable with a table type that describes a hash.
+
+The rule \textsc{S-TABLE2} introduced the auxiliary relations
+$\subtype_{u}$ and $\subtype_{o}$.
+The first allows width and depth subtyping on all fields,
+while the second allows the omission of optional fields.
+We define them as follows:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-FIELD4}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} v_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD5}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD6}\\
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FIELD7}\\
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} v}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD8}\\
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} \Const \; v}
+\end{array}
+\end{array}
+\]
+
+Using \emph{unique} table types to represent the type of the table
+constructor allows our type system to type check the previous example.
+More precisely,
+\[
+\{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\]
+
+Even though \emph{unique} table types overcome our limitation,
+its subtyping rule allows unsafe aliasing.
+The covariance on mutable fields allows programs that create unsafe
+aliases to pass the type checker.
+For instance,
+\begin{verbatim}
+    local t1 = { foo = 5 }
+    local t2:{"foo":integer?} = t1
+    t2.foo = nil
+\end{verbatim}
+should not type check, as the last line is erasing the field \texttt{foo}
+from \texttt{t1}.
+This program would type checks as it is, because our implementation uses
+local type inference to assign static types to unannotated locals.
+In this example, the type of \texttt{t1} would be subtype of the type of \texttt{t2}.
+More precisely,
+\[
+\{``foo":\Integer\}_{unique} \subtype \{``foo":\Integer \cup \Nil\}_{closed}
+\]
+
+In the next section we will show in more detail that this example
+does not type check, because our type system promotes an alias
+expression from \emph{unique} to \emph{closed}, and promotes the
+aliased variable from \emph{unique} to \emph{open}.
+This means that the previous example does not type check because
+the type of the expression \texttt{t1} is not subtype of the type
+of the variable \texttt{t2}.
+More precisely,
+\[
+\{``foo":\Integer\}_{closed} \not\subtype \{``foo":\Integer \cup \Nil\}_{closed}
+\]
+
+Thus, we introduced \emph{open} table types to handle the aliasing of table types.
+We define the subtyping relation among \emph{open} table types
+and \emph{closed} or \emph{open} table types as follows:
+\[
+\begin{array}{c}
+\mylabel{S-TABLE3}\\
+\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
+       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
+       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
+\end{array}
+\]
+
+The rule \textsc{S-TABLE3} uses the same rules from \textsc{S-TABLE1}
+for handling the type of the values of each key, and it uses the same
+rules from \textsc{S-TABLE2} to allow joining fields plus omitting optional fields.
+
+In the next section we will show in more detail how our type system
+keeps track of \emph{open} and \emph{unique} table types to make them safe.
+Moreover, we will also show that we can use them to allow the refinement
+of table types.
 
 We use the \emph{Amber rule} \citep{cardelli1986amber} to define
 subtyping between recursive types:
@@ -763,7 +884,7 @@ and $e(el)_{m}$ to denote function applications that return multiple values.
 It uses the same categories for method applications, but only ${...}_{e}$
 and ${...}_{m}$, as the vararg expression cannot appear as a statement.
 
-We also included two kinds of type cast in our core language:
+We also include two kinds of type cast in our core language:
 the expression ${<}t{>} \;n$ and the left-hand value $n[c] \; {<}t{>}$.
 We will show that the first helps allowing safe aliasing between
 table types, while the second allows the refinement of table types.
@@ -786,148 +907,76 @@ for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that existed before.
 
-The most unusual feature of our type system is the refinement of
-table types.
+\textit{/* \textbf{begin} TODO list */}
+
+\begin{itemize}
+\item Refinement with \_ENV
+\item Assignment + left-hand side
+\item Locals + inference rules + unique and closed table types
+\end{itemize}
+
+\textit{/* \textbf{end} TODO list */}
+
+We start with the rule that defines the most unusual feature of
+our type system: the refinment of table types.
 The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
 and \emph{unique} table types:
 \[
 \begin{array}{c}
 \mylabel{T-REFINE}\\
-\dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique} \;\;\;
+\dfrac{\begin{array}{c}
+       \env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique}\\
        \env_{1} \vdash c:t_{1}, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
+       \not \exists i \in 1..n \; t_{1} \lesssim k_{i} \;\;\;
+       \Nil \not\lesssim t_{1}
+       \end{array}}
       {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
 \end{array}
 \]
 
-We introduced \emph{open} table types to allow the refinement
-of table types, and also to allow programmers to omit optional
-fields in the initialization of table types.
-To do that, we defined a subtyping rule that allow \emph{open}
-table types to omit fields when $\Nil$ is subtype of the type of
-the value of the omitted key.
-The following subtyping rule show this behavior:
-\[
-\begin{array}{c}
-\mylabel{S-TABLE2}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
-\end{array}
-\]
-
-The rule \textsc{S-TABLE2} introduced the relation $\subtype_{o}$.
-It is an auxiliary relation that defines the subtyping relation
-on optional fields, and we defined it as follows:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-FIELD4}\\
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} v}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD5}\\
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} \Const \; v}
-\end{array}
-\end{array}
-\]
-
-Although \emph{open} table types let programmers omit optional fields,
-they do not let programmers initialize optional fields that are
-mutable, unless they use the same type of the field in the initialization.
-For instance,
-\begin{align*}
-\{ & ``firstname":\String,\\
-   & ``middlename":\String, ``lastname":\String \}_{open} \not \subtype \\
-\{ & ``firstname":\String, \\
-   & ``middlename":\String \cup \Nil, ``lastname":\String \}_{closed}
-\end{align*}
-
-We introduced \emph{unique} table types to solve this problem.
-We use \emph{unique} table types to denote the type of the
-table constructor.
-The following subtyping rule allow programmers to use table constructors
-to initialize and omit optional fields:
-\[
-\begin{array}{c}
-\mylabel{S-TABLE3}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
-\end{array}
-\]
-
-The rule \textsc{S-TABLE3} introduced the relation $\subtype_{u}$.
-It is an auxiliary relation that makes \emph{unique} table types
-have width and depth subtyping on all fields, and we defined it
-as follows:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-FIELD6}\\
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{u} v_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD7}\\
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD8}\\
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
-\end{array}
-\end{array}
-\]
+\textit{/* Should we split into two rules instead of using $open|unique$? */}
 
 We restricted the refinement of table types to include only literal
-keys because its purpose is to make it easier the construction of
+keys, because its purpose is to make it easier the construction of
 table types that represent records.
+
+We use the refinement of table types to handle the declaration of global variables.
+In Lua, the assignment \texttt{v = 5} is syntactic sugar to \texttt{\string_ENV["v"] = 5}
+when \texttt{v} is not a local variable, where \texttt{\string_ENV} is a table
+that stores the global environment.
+For this reason, Typed Lua treats accesses to global variables as field accesses
+to an open table in the top-level scope.
 For instance,
 \begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{1}{l}{$a[``y"] \; {<}\Integer{>} = 1$}\\
+\begin{tabular}{l}
+$\string_ENV[``x"] \; {<}\String{>} = ``foo";$\\
+$\string_ENV[``y"] \; {<}\Integer{>} = 1$\\
 \end{tabular}
 \end{center}
-uses field assignment to add fields $x$ and $y$ to the local $a$.
-After these field assignments $a$ has type
-$\{``x":\String, ``y":\Integer\}_{unique}$.
+uses field assignment to add fields $``x"$ and $``y"$ to $\string_ENV$.
+We are assuming that $\string_ENV$ is in the environment and has type $\{\}_{open}$.
+Therefore, after these field assignments $\string_ENV$ has type
+$\{``x":\String, ``y":\Integer\}_{open}$.
 
 We do not allow the refinement of table types to change the type of
 a field that is already present in the table type.
 For instance,
 \begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{1}{l}{$a[``x"] \; {<}\Integer{>} = 1$}\\
+\begin{tabular}{l}
+$\string_ENV[``x"] \; {<}\String{>} = ``foo";$\\
+$\string_ENV[``x"] \; {<}\Integer{>} = 1$\\
 \end{tabular}
 \end{center}
-do not type check, as we are trying to change the type of field
-``x" from $\String$ to $\String \cup \Integer$.
-More precisely, our type system does not allow the table type to
-change towards a type that is not a subtype of the previous type.
-In this example,
-$\{``x":\String \cup \Integer\}_{unique} \not\subtype \{``x":\String\}_{unique}$.
-We have this restriction because this kind of refinement could lead
-to fields that have a too general type.
+do not type check, as we are trying to add a field that already exists
+in $\string_ENV$.
+We could allow the refinement of existing fields, but this could
+lead to fields that have a too general type, which could decrease
+the ammout of type checking.
 
 \textit{/* We need to close table types before assigning them to fields. */}
 \begin{center}
 \begin{tabular}{l}
-$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in} \; a[``x"] \; {<}\{\}_{closed}{>} = \{\}$
+$\string_ENV[``x"] \; {<}\{\}_{unique}{>} = \{\}$
 \end{tabular}
 \end{center}
 
