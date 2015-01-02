@@ -25,3 +25,6 @@ tlchecker.lua: tlchecker.tl
 
 tlcode.lua: tlcode.tl
 	$(TLC) -o tlcode.lua tlcode.tl
+
+clean:
+	rm -f tllexer.lua tlast.lua tltype.lua tlst.lua tlparser.lua tldparser.lua tlchecker.lua tlcode.lua

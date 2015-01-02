@@ -907,16 +907,6 @@ for meaning that we extended the environment $\env_{1}$ with the
 variable $n$ that maps to type $t$, and this mapping does not affect
 the other mappings that existed before.
 
-\textit{/* \textbf{begin} TODO list */}
-
-\begin{itemize}
-\item Refinement with \_ENV
-\item Assignment + left-hand side
-\item Locals + inference rules + unique and closed table types
-\end{itemize}
-
-\textit{/* \textbf{end} TODO list */}
-
 We start with the rule that defines the most unusual feature of
 our type system: the refinment of table types.
 The rule \textsc{T-REFINE} allow us to add new keys to \emph{open}
@@ -928,57 +918,64 @@ and \emph{unique} table types:
        \env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique}\\
        \env_{1} \vdash c:t_{1}, \env_{2} \;\;\;
        \not \exists i \in 1..n \; t_{1} \lesssim k_{i} \;\;\;
-       \Nil \not\lesssim t_{1}
+       \Nil \not\lesssim t_{1} \;\;\;
+       t_{2} = close(t)
        \end{array}}
-      {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{open|unique}]}
+      {\env_{1} \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t_{2}\}_{open|unique}]}
 \end{array}
 \]
-
-\textit{/* Should we split into two rules instead of using $open|unique$? */}
 
 We restricted the refinement of table types to include only literal
 keys, because its purpose is to make it easier the construction of
 table types that represent records.
 
-We use the refinement of table types to handle the declaration of global variables.
-In Lua, the assignment \texttt{v = 5} is syntactic sugar to \texttt{\string_ENV["v"] = 5}
-when \texttt{v} is not a local variable, where \texttt{\string_ENV} is a table
+We use the refinement of table types to handle global variables.
+In Lua, the assignment \texttt{v = v + 1} translates to
+\texttt{\string_ENV["v"] = \string_ENV["v"] + 1} when \texttt{v}
+is not a local variable, where \texttt{\string_ENV} is a table
 that stores the global environment.
 For this reason, Typed Lua treats accesses to global variables as field accesses
 to an open table in the top-level scope.
 For instance,
-\begin{center}
-\begin{tabular}{l}
-$\string_ENV[``x"] \; {<}\String{>} = ``foo";$\\
-$\string_ENV[``y"] \; {<}\Integer{>} = 1$\\
-\end{tabular}
-\end{center}
+\[
+\string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``y"] \; {<}\Integer{>} = 1
+\]
 uses field assignment to add fields $``x"$ and $``y"$ to $\string_ENV$.
-We are assuming that $\string_ENV$ is in the environment and has type $\{\}_{open}$.
+In all the examples we assume that $\string_ENV$ is in the environment and
+has type $\{\}_{open}$.
 Therefore, after these field assignments $\string_ENV$ has type
 $\{``x":\String, ``y":\Integer\}_{open}$.
 
 We do not allow the refinement of table types to change the type of
 a field that is already present in the table type.
 For instance,
-\begin{center}
-\begin{tabular}{l}
-$\string_ENV[``x"] \; {<}\String{>} = ``foo";$\\
-$\string_ENV[``x"] \; {<}\Integer{>} = 1$\\
-\end{tabular}
-\end{center}
+\[
+\string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``x"] \; {<}\Integer{>} = 1
+\]
 do not type check, as we are trying to add a field that already exists
 in $\string_ENV$.
-We could allow the refinement of existing fields, but this could
-lead to fields that have a too general type, which could decrease
-the ammout of type checking.
+We could have used union types to allow the refinement of existing fields,
+but this could lead to fields that have a too general type, which could
+decrease the ammount of static type checking.
+This means that our type system does not allow the table type to change
+towards a type that is not a subtype of the previous type.
+In this example,
+\[
+\{``x":\String \cup \Integer\}_{open} \not\subtype \{``x":\String\}_{open}
+\]
 
-\textit{/* We need to close table types before assigning them to fields. */}
+We also do not allow the refinement of table types to introduce
+\emph{open} or \emph{unique} table fields.
+For instance,
 \begin{center}
 \begin{tabular}{l}
 $\string_ENV[``x"] \; {<}\{\}_{unique}{>} = \{\}$
 \end{tabular}
 \end{center}
+refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{closed}\}_{open}$,
+though we are trying to refine to $\{``x":\{\}_{unique}\}_{open}$.
+We made this restriction because we still need to prove that the refinement
+of table types is safe.
 
 Lua has multiple assignments, so Typed Lua also has to take this into
 consideration while refining table types.
@@ -1006,7 +1003,7 @@ the expression list that messes the environment, and the rule
 \begin{array}{c}
 \mylabel{T-LHSLIST}\\
 \dfrac{\env \vdash l_{k}:t_{k}, \env_{k} \;\;\;
-       merge(\env_{1}, ..., \env_{n}) = \env_{m} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
        n = |\;\vec{l}\;|}
       {\env \vdash \vec{l}:t_{1} \times ... \times t_{n} \times \Value{*}, \env_{m}}
 \end{array}
@@ -1026,18 +1023,15 @@ tries to change the type of a variable towards a type that is not
 a subtype of its previous type.
 
 We can also use multiple assignments to refine table types:
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>}, a[``y"] \; {<}\Integer{>} = ``foo", 1$}\\
-\end{tabular}
-\end{center}
+\[
+\string_ENV[``x"] \; {<}\String{>}, \string_ENV[``y"] \; {<}\Integer{>} = ``foo", 1
+\]
 
 This example type checks because all the environment changes are consistent, and
 $``foo" \times 1 \times \Nil{*} \lesssim \String \times \Integer \times \Value{*}$.
 The type of the expression list includes the type $\Nil{*}$ in the end
-because our type system has typing rules to add this type when
-the type of the expression list does not end with a variadic type.
+because our type system has typing rules to add this type,
+when the type of the expression list does not end with a variadic type.
 Our type system has this behavior to use $\Nil$ in the place of missing
 values, like Lua does.
 This example uses the rule \textsc{T-EXPLIST2}, which is really close
@@ -1046,20 +1040,17 @@ to the rule \textsc{T-LHSLIST}:
 \begin{array}{c}
 \mylabel{T-EXPLIST2}\\
 \dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
-       merge(\env_{1}, ..., \env_{n}) = \env_{m} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
        n = |\;\vec{e}\;|}
       {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{m}}
 \end{array}
 \]
 
 The next example does not type check because it tries to add
-the same field to $a$, but with different types:
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$a[``x"] \; {<}\String{>}, a[``x"] \; {<}\Integer{>} = ``foo", 1$}\\
-\end{tabular}
-\end{center}
+the same field to $\string_ENV$, but with different types:
+\[
+\string_ENV[``x"] \; {<}\String{>}, \string_ENV[``x"] \; {<}\Integer{>} = ``foo", 1
+\]
 
 Typed Lua also keeps track whether it is safe or not safe to
 change the type of a table, but before discussing this subject,
@@ -1067,8 +1058,7 @@ we will discuss the different table constructors that our
 abstract syntax includes, as they will appear in the next
 examples.
 
-All the examples that we presented until now use the simplest form of
-the table constructor: the empty table $\{\}$.
+The simplest form of the table constructor is the empty table $\{\}$.
 Its inference rule is straightforward:
 \[
 \begin{array}{c}
@@ -1103,7 +1093,7 @@ the first form:
 \mylabel{T-CONSTRUCTOR2}\\
 \dfrac{\env_{i} \vdash p_{i}:k_{i}{:}v_{i}, \env_{i+1} \;\;\;
        n = |\;\vec{p}\;| \;\;\;
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}) = t}
+       t = wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique})}
       {\env_{1} \vdash \{\;\vec{p}\;\}:t, \env_{n+1}}
 \end{array}
 \]
@@ -1138,7 +1128,7 @@ or $\String$, respectively:
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Boolean}
-      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}close(t_{2}), \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
@@ -1146,7 +1136,7 @@ or $\String$, respectively:
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Number}
-      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}close(t_{2}), \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
@@ -1154,7 +1144,7 @@ or $\String$, respectively:
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \String}
-      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}t_{2}, \env_{3}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}{:}close(t_{2}), \env_{3}}
 \end{array}
 \end{array}
 \]
@@ -1167,7 +1157,7 @@ but it works only if the type of the key does not include $\Nil$:
 \dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        \Nil \not\subtype t_{1}}
-      {\env_{1} \vdash [e_{1}] = e_{2}: \Any{:}t_{2}, \env_{3}}
+      {\env_{1} \vdash [e_{1}] = e_{2}: \Any{:}close(t_{2}), \env_{3}}
 \end{array}
 \]
 
@@ -1281,37 +1271,38 @@ we can get back to the discussion about the refinement of table types.
 Besides allowing the refinement of table types through field assignment,
 Typed Lua also keeps track whether it is safe or not safe to change the
 type of a table.
-To do that, our type system always promotes an \emph{open}
-table to \emph{closed} and an \emph{unique} table to \emph{open}
-when they appear as expressions, or when they enter in a scope that is
-not its declaration scope.
-The order matters, as going from \emph{unique} to \emph{open}
-before going from \emph{open} to \emph{closed} closes \emph{unique} table types.
-
-The rule \textsc{T-IDREAD} uses the predicate \emph{close} to do
-this promotion before we use a local variable:
+%To do that, our type system always promotes an \emph{open}
+%table to \emph{closed} and an \emph{unique} table to \emph{open}
+%when they appear as expressions, or when they enter in a scope that is
+%not its declaration scope.
+%The order matters, as going from \emph{unique} to \emph{open}
+%before going from \emph{open} to \emph{closed} closes \emph{unique} table types.
+In the last section we mentioned that aliasing \emph{unique} table
+types is unsafe.
+To avoid unsafe aliasing of \emph{unique} table types, the rule \textsc{T-IDREAD1}
+always promotes them to \emph{closed}, and updates the variable in the
+environment to \emph{open}:
 \[
 \begin{array}{c}
-\mylabel{T-IDREAD}\\
-\dfrac{\env_{1}(n) = t}
-      {\env_{1} \vdash n_{e}:close(t), \env_{1}}
+\mylabel{T-IDREAD1}\\
+\dfrac{\env_{1}(n) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}}
+      {\env_{1} \vdash n_{e}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed}, \env_{1}[n \mapsto \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{open}]}
 \end{array}
 \]
 
-This rule does not change the type of the local variable because it
-just need to ensure that an alias will not get the same type.
-For instance, it makes this unsafe example not type check:
+This is the rule that makes the unsafe example from last section to
+not type check:
 \begin{center}
 \begin{tabular}{lll}
-\multicolumn{3}{l}{$\mathbf{local} \; a:\{``x":\String \cup \Nil\}_{closed} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String \}_{unique} = \{ [``x"] = ``foo" \} \; \mathbf{in}$}\\
-& & \multicolumn{1}{l}{$a = b \;;\; a[``x"] = \mathbf{nil} \;;\; b[``x"] = b[``x"] \;{..}\; ``bar"$}
+\multicolumn{3}{l}{$\mathbf{local} \; a:\{``foo":\Integer\}_{unique} = \{ [``foo"] = 5 \} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``foo":\Integer \cup \Nil \}_{closed} = a \; \mathbf{in}$}\\
+& & \multicolumn{1}{l}{$b[``foo"] = \mathbf{nil}$}
 \end{tabular}
 \end{center}
 
-The assignment $a = b$ is not valid because the aliasing changed the
-type of $b$ from $\{``x":\String\}_{unique}$ to $\{``x":\String\}_{open}$,
-which is not subtype of $\{``x":\String \cup \Nil\}_{closed}$.
+This examples does not type check because aliasing $a$ produces the
+type $\{``foo":\Integer\}_{closed}$ that is not subtype of
+$\{``foo":\Integer \cup \Nil\}_{closed}$, the type of $b$.
 
 However, sometimes we want to use \emph{unique} table types to initialize
 \emph{closed} table types, as they allow us to initialize optional fields.
@@ -1346,21 +1337,8 @@ as it still holds an \emph{open} table.
 At the end of this example, $a$ has type
 $\{``x":\String, ``y":\String \cup \Nil, ``z":\Integer\}_{open}$.
 
-Even though the rule \textsc{T-CAST} handles the case that we assign
-an alias to a variable, we still have to close this variable due to
-safety.
-The rule \textsc{T-LOCAL} is one example where we handle this case:
-\[
-\begin{array}{c}
-\mylabel{T-LOCAL}\\
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       r_{1} \lesssim \vec{t} \;\;\;
-       closeset(\env_{2}[\vec{n} \mapsto \vec{t}], fav(\mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s)) \vdash s:\env_{3}}
-      {\env_{1} \vdash \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s:\env_{3} - \{\vec{n} \mapsto \vec{t}\}}
-\end{array}
-\]
-
-This rule prevents the following unsafe example to type check:
+We should also keep tracking of \emph{open} locals, as they can
+also be unsafe like in the next example:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -1407,11 +1385,12 @@ programmers often use it.
        \env_{1}(n_{1}) = \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{unique|open} \;\;\;
        \env_{1} \vdash n_{2} : l \;\;\;
        \not \exists i \in 1..n \; l \lesssim k_{i}\\
-       closeall(\env_{1}[self \mapsto \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed}, \vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}
+       closeall(\env_{1}[self \mapsto \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{closed}, \vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}\\
+       t_{m} = \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, l{:}\Const \; \Self \times \vec{t} \rightarrow r\}_{unique|open}
        \end{array}}
       {\begin{array}{c}
        \env_{1} \vdash \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; s:\\
-       closeset(\env_{1}[n_{1} \mapsto \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, l{:}\Const \; \Self \times \vec{t} \rightarrow r\}_{unique|closed}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
+       closeset(\env_{1}[n_{1} \mapsto t_{m}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
        \end{array}}
 \end{array}
 \]
@@ -1650,9 +1629,10 @@ to execute different actions according to their types.
 \dfrac{\begin{array}{c}
        \env_{1}(n) = t\\
        closeall(\env_{1}[n \mapsto \String]) \vdash s_{1}:\env_{2} \\
-       closeall(\env_{1}[n \mapsto filter(t, \String)) \vdash s_{2}:\env_{3}
+       closeall(\env_{1}[n \mapsto filter(t, \String)) \vdash s_{2}:\env_{3}\\
+       \env_{4} = closeset(\env_{1}[n \mapsto t], fav(s_{1}) \cup fav(s_{2}))
       \end{array}}
-      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{1}[n \mapsto t], fav(s_{1}) \cup fav(s_{2}))}
+      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:\env_{4}}
 
 \end{array}
 \]
@@ -1704,8 +1684,6 @@ errors, and Typed Lua also handles this case with the rule \textsc{T-IF3}:
 \end{center}
 
 \textit{/* How should we write the typing rule of the local declaration? */}
-
-\textit{/* How this is valid if projection types do not have subtyping rules? */}
 
 We are assuming that functions \emph{idiv} and \emph{print} are in
 the environment with the respective types
