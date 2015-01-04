@@ -6,8 +6,6 @@ local tltype = require "typedlua.tltype"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
 
-package.path = "./typedlua/?.lua;" .. package.path
-
 -- expected result, result, subject
 local e, r, s
 
@@ -4454,11 +4452,9 @@ assert(r == e)
 s = [=[
 local str = "foo"
 print(str:char())
-print(("foo"):dump())
 ]=]
 e = [=[
 test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
-test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((value*) -> (value*), value*)'
 ]=]
 
 r = typecheck(s)

@@ -218,15 +218,16 @@ local function check_tld (env, name, path)
   return t
 end
 
-local function check_require (env, name, pos)
+local function check_require (env, name, pos, extra_path)
+  extra_path = extra_path or ""
   if not env["loaded"][name] then
     local path = string.gsub(package.path, "[.]lua", ".tl")
-    local filepath, msg1 = searchpath(name, path)
+    local filepath, msg1 = searchpath(extra_path .. name, path)
     if filepath then
       env["loaded"][name] = check_tl(env, name, filepath)
     else
       path = string.gsub(package.path, "[.]lua", ".tld")
-      local filepath, msg2 = searchpath(name, path)
+      local filepath, msg2 = searchpath(extra_path .. name, path)
       if filepath then
         env["loaded"][name] = check_tld(env, name, filepath)
       else
@@ -1498,11 +1499,24 @@ function check_block (env, block)
 end
 
 local function load_lua_env (env)
-  local t = check_require(env, "base", 0)
-  local l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os", "debug" }
+  local path = "typedlua/"
+  local l = {}
+  if _VERSION == "Lua 5.1" then
+    path = path .. "lsl51/"
+    l = { "coroutine", "package", "string", "table", "math", "io", "os", "debug" }
+  elseif _VERSION == "Lua 5.2" then
+    path = path .. "lsl52/"
+    l = { "coroutine", "package", "string", "table", "math", "bit32", "io", "os", "debug" }
+  elseif _VERSION == "Lua 5.3" then
+    path = path .. "lsl53/"
+    l = { "coroutine", "package", "string", "utf8", "table", "math", "io", "os", "debug" }
+  else
+    error("Typed Lua does not support " .. _VERSION)
+  end
+  local t = check_require(env, "base", 0, path)
   for k, v in ipairs(l) do
     local t1 = tltype.Literal(v)
-    local t2 = check_require(env, v, 0)
+    local t2 = check_require(env, v, 0, path)
     local f = tltype.Field(false, t1, t2)
     table.insert(t, f)
   end

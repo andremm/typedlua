@@ -1,0 +1,11 @@
+--[[
+Typed Lua description file for modules
+]]
+
+cpath : string
+loaded : {string:{any:any}}
+loaders : {string:{any:any}}
+loadlib : (string, string) -> (boolean)?
+path : string
+preload : {string:{any:any}}
+seeall : ({}) -> ()

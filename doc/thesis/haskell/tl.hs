@@ -12,6 +12,9 @@ data TType = TValue
   | TString
   | TUnion TType TType
   | TFunction SType SType
+  | UTable [(TType,Bool,TType)]
+  | OTable [(TType,Bool,TType)]
+  | CTable [(TType,Bool,TType)]
   deriving (Eq, Show)
 
 data SType = TVoid
@@ -83,6 +86,39 @@ first (TVararg t) = TUnion t TNil
 first (TTuple t s) = t
 first TVoid = error("first(TVoid)")
 
+subtype_closed_fields k b v [] = False
+subtype_closed_fields k2 False v2 ((k1,False,v1):t) = (subtype1 k1 k2 && subtype1 k2 k1 && subtype1 v1 v2 && subtype1 v2 v1) || subtype_closed_fields k2 False v2 t
+subtype_closed_fields k2 True v2 ((k1,True,v1):t) = (subtype1 k1 k2 && subtype1 k2 k1 && subtype1 v1 v2) || subtype_closed_fields k2 True v2 t
+subtype_closed_fields k2 True v2 ((k1,False,v1):t) = (subtype1 k1 k2 && subtype1 k2 k1 && subtype1 v1 v2) || subtype_closed_fields k2 True v2 t
+subtype_closed_fields k2 False v2 ((k1,True,v1):t) = False || subtype_closed_fields k2 False v2 t
+
+subtype_closed_tables [] [] = True
+subtype_closed_tables t [] = True
+subtype_closed_tables [] t = False
+subtype_closed_tables t1 ((k,b,v):t2) = subtype_closed_fields k b v t1 && subtype_closed_tables t1 t2
+
+subtype_unique_fields _ _ v [] = subtype1 TNil v
+subtype_unique_fields k1 b1 v1 ((k2,b2,v2):t) = (subtype1 k1 k2 && subtype1 v1 v2) || subtype_unique_fields k1 b1 v1 t
+
+subtype_unique [] = True
+subtype_unique ((k,b,v):t) = subtype1 TNil v && subtype_unique t
+
+subtype_unique_tables [] [] = True
+subtype_unique_tables t [] = True
+subtype_unique_tables [] t = subtype_unique t
+subtype_unique_tables ((k,b,v):t1) t2 = subtype_unique_fields k b v t2 && subtype_unique_tables t1 t2
+
+subtype_open_fields _ _ v [] = subtype1 TNil v
+subtype_open_fields k1 False v1 ((k2,False,v2):t) = (subtype1 k1 k2 && subtype1 v1 v2 && subtype1 v2 v1) || subtype_open_fields k1 False v1 t
+subtype_open_fields k1 True v1 ((k2,True,v2):t) = (subtype1 k1 k2 && subtype1 v1 v2) || subtype_open_fields k1 True v1 t
+subtype_open_fields k1 False v1 ((k2,True,v2):t) = (subtype1 k1 k2 && subtype1 v1 v2) || subtype_open_fields k1 False v1 t
+subtype_open_fields k1 True v1 ((k2,False,v2):t) = False || subtype_open_fields k1 True v1 t
+
+subtype_open_tables [] [] = True
+subtype_open_tables t [] = True
+subtype_open_tables [] t = subtype_unique t
+subtype_open_tables ((k,b,v):t1) t2 = subtype_open_fields k b v t2 && subtype_open_tables t1 t2
+
 subtype1 :: TType -> TType -> Bool
 subtype1 t TValue = True
 subtype1 TFalse TBoolean = True
@@ -95,6 +131,12 @@ subtype1 TInteger TNumber = True
 subtype1 (TUnion t1 t2) t = (subtype1 t1 t) && (subtype1 t2 t)
 subtype1 t (TUnion t1 t2) = (subtype1 t t1) || (subtype1 t t2)
 subtype1 (TFunction p1 r1) (TFunction p2 r2) = (subtype2 p2 p1) && (subtype2 r1 r2)
+subtype1 (CTable t1) (CTable t2) = subtype_closed_tables t1 t2
+subtype1 (UTable t1) (CTable t2) = subtype_unique_tables t1 t2
+subtype1 (UTable t1) (OTable t2) = subtype_unique_tables t1 t2
+subtype1 (UTable t1) (UTable t2) = subtype_unique_tables t1 t2
+subtype1 (OTable t1) (CTable t2) = subtype_open_tables t1 t2
+subtype1 (OTable t1) (OTable t2) = subtype_open_tables t1 t2
 subtype1 t1 t2 = t1 == t2
 
 subtype2 :: SType -> SType -> Bool
