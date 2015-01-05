@@ -5,7 +5,7 @@ Typed Lua description file for basic functions
 arg : {string}
 
 assert : (value*) -> (any*)
-collectgarbage : (string?, integer?) -> (integer) | (integer, integer) | (boolean)
+collectgarbage : (string?, integer?) -> (number|boolean)
 dofile : (string?) -> (any*)
 error : (string, integer?) -> ()
 _G : { string:any }
@@ -23,7 +23,7 @@ rawlen : ({}|string) -> (integer)
 rawset : ({any:any}, any, any) -> ({any:any})
 select : (integer|string, value*) -> (any*)
 setmetatable : ({any:any}, {any:any}|nil) -> ({any:any}) -- it is a primitive in Typed Lua
-tonumber : (value, number|string?) -> (number) | (nil)
+tonumber : (value, integer?) -> (number) | (nil)
 tostring : (value) -> (string)
 type : (value) -> (string) -- it is a primitive in Typed Lua
 _VERSION : string

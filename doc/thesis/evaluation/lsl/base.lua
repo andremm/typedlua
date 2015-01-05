@@ -17,7 +17,7 @@ return {
   ["rawget"] = 4,
   ["rawlen"] = 1,
   ["rawset"] = 4,
-  ["select"] = 3,
+  ["select"] = 4,
   ["setmetatable"] = 4,
   ["tonumber"] = 3,
   ["tostring"] = 1,
