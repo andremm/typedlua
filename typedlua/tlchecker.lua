@@ -1490,8 +1490,10 @@ end
 function check_block (env, block)
   tlst.begin_scope(env)
   local r = false
+  local bkp = env.self
   for k, v in ipairs(block) do
     r = check_stm(env, v)
+    env.self = bkp
   end
   check_unused_locals(env)
   tlst.end_scope(env)
