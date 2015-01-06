@@ -583,8 +583,8 @@ These are two practices that may hide bugs.
 
 \subsection{Typed Lua Compiler}
 
-The Typed Lua compiler is the last case study that we evaluated, and the
-Table \ref{tab:evaltlc} summarizes the evaluation results.
+The Typed Lua compiler is the last case study that we evaluated.
+Table \ref{tab:evaltlc} summarizes its evaluation results.
 
 \begin{table}[!ht]
 \begin{center}
@@ -614,49 +614,78 @@ tlcode & 1 & 0 & 0 & 0 & 1 & 100\% \\
 \label{tab:evaltlc}
 \end{table}
 
-The \texttt{tlast} module implements the abstract syntax tree that
-the compiler uses to perform the type checking.
-We could not precisely type just one function because its return
-type depend on the type of its input parameter.
+The \texttt{tlast} module implements the Abstract Syntax Tree for
+the compiler.
+We could not precisely type just one function, because it has
+an overloaded type that requires intersection types.
 
-The \texttt{tltype} module implements the types introduced by
-Typed Lua and the subtyping and consistent-subtyping relations;
-it was straightforward to type.
+The \texttt{tltype} module implements the types introduced by Typed Lua.
+It also implements the subtyping and consistent-subtyping relations.
+The interface that this module exports was straightforward to type.
 
-The \texttt{tlst} module implements the environment that the
-compiler uses during the type checking, and it was also straightforward
-to type.
+The \texttt{tlst} module implements the symbols table for the compiler.
+The interface that this module exports was also straightforward to type.
 
 The \texttt{tllexer} module defines common lexical rules for
-the Typed Lua parser and the parser of the description files.
+the Typed Lua parser and the description file parser.
 This module is hard to type because it exports LPeg \citep{lpeg,ierusalimschy2009lpeg}
-patterns, which our type system cannot precisely type because it does
-not support operator overloading.
+patterns.
+For instance,
+\begin{verbatim}
+    tllexer.Number = lpeg.C(Hex + Float + Int) / tonumber
+\end{verbatim}
+exports the pattern that matches a number.
+Note that LPeg overloads the definition of arithmetic operators,
+a feature that our type system does not support yet.
+That is the reason why we could not precisely type the LPeg
+patterns that this module exports.
+However, we could type the two error reporting functions that this
+module exports.
 
-The \texttt{tlparser} and \texttt{tldparser} implement the Typed Lua
-parser and the parser of the description files, respectively.
+The \texttt{tlparser} and \texttt{tldparser} modules implement the Typed Lua
+parser and the description file parser, respectively.
 Even though they use LPeg to implement the grammar rules,
-they only export a parsing function that uses LPeg to parse a
-string and return the corresponding AST.
+they only export a parsing function.
+Both use LPeg to parse a string and return the corresponding AST.
 
-The \texttt{tlchecker} and \texttt{tlcode} modules are also
-straightforward to type.
-The first traverses the AST to perform type checking,
+The interface that the \texttt{tlchecker} and \texttt{tlcode}
+modules export are also straightforward to type.
+The former traverses the AST to perform type checking,
 while the latter traverses the AST to perform code generation.
 
-Even though we could precisely type the interface of most of
-the modules, we had some issues to write mutually recursive
-functions that traverses the AST.
-In this case we had to rely on the dynamic type to defer the
-function declarations.
+Even though we could precisely type the interface that most of
+the modules export, we had issues to write mutually recursive functions.
+This kind of functions often appear on compilers construction
+to traverse the data structures that they use.
+However, Typed Lua still does not support mutually recursive functions.
+A way to overcome this limitation was to predeclare these functions
+with an empty body, and then redeclare them with they actual body.
+The first declaration specifies the function type, while the
+second specifies what the function actually does without changing
+any type definition.
 
-We detected some bugs while doing the bootstrap:
-accessing undeclared global variables.
+Traversing the AST would also be problematic if we had not included
+a way to decompose unions of table types, as we mentioned in Section \ref{sec:alias}.
+
+Bootstraping the compiler also helped revealing some bugs.
+We found some accesses to undeclared global variables and also
+to undeclared table fields.
+The compiler also helped pointing the places where we should narrow
+a nilable value before using it.
+In fact, this point appeared in all the case studies that we rewrote
+the Lua code.
+This means that Lua programmers often use values before checking
+whether it is \texttt{nil}.
 
 \section{Related Work}
 \label{sec:relatedwork}
 
-\subsection{Lua Related Work}
+In this section we compare Typed Lua with other projects and type systems.
+We split this section into two parts: the first compares Typed Lua
+with other Lua projects, while the second compares Typed Lua with
+other type systems that are not related to Lua.
+
+\subsection{Other Lua projects}
 
 Metalua \citep{metalua} is a Lua compiler that supports compile-time
 metaprogramming (CTMP).
@@ -682,23 +711,7 @@ type checking.
 
 Tidal Lock \citep{tidallock} is a prototype of another optional type
 system for Lua, which is written in Metalua.
-A remarkable feature of Tidal Lock is the way that it handles tables,
-because it allows the programmer to incrementally build the type of
-a table.
-More precisely, Tidal Lock allows the programmer to create an empty
-table to build its type according to the keys that the programmer
-inserts in it, so the programmer does not need to build the table in
-a single table constructor.
-This feature inspired us to introduce it into Typed Lua,
-but in a simpler way and with different formalization.
-Like Typed Lua, Tidal Lock also has local type inference.
-Unlike Typed Lua, Tidal Lock does not type the common object-oriented
-idioms used by Lua programmers, though it also uses subtyping.
-
-Tidal Lock \citep{tidallock} is a prototype of an optional type system for Lua.
-It also includes the refinement of table types.
-In fact, Tidal Lock inspired Typed Lua to also include this feature.
-However, Tidal Lock covers a little subset of Lua.
+Tidal Lock covers a little subset of Lua.
 Statements include declaration of local variables, multiple assignments,
 function application, and the return statement, that is, they do not
 include any control-flow statements.
@@ -706,23 +719,25 @@ Expressions include primitive literals, table indexing, function application,
 function declaration, and the table constructor, but they do not include
 binary operations.
 
+A remarkable feature of Tidal Lock is the refinement of table types.
+This feature inspired us to also include it in Typed Lua,
+but in a simpler way and with different formalization.
+
 The table type from Tidal Lock can only represent records, that is,
 it cannot describe hash tables and arrays yet, though we can refine them.
 Tidal Lock also includes field types to describe the type of the fields
 of a table type.
-The field types describe whether a table field is mutable or imutable
+The field types describe if a table field is mutable or imutable
 in a table type.
 Field types are the feature that allow the refinement of table types in
 Tidal Lock.
 
-Tidal Lock is similar to Typed Lua because it is also a structural type
-system based on subtyping.
-It also uses local type inference to deduce the type of unannotated expressions,
-and have a dynamic type.
-However, Tidal Lock does not support union types, recursive types, and variadic types.
-It also does not support any object-oriented idiom.
+Tidal Lock is also a structural type system based on subtyping that has
+local type inference.
+However, it does not support union types, recursive types, and variadic types.
+It also does not type any object-oriented idiom.
 
-\subsection{Non-Lua Related Work}
+\subsection{Other type systems}
 
 Typed Racket \citep{tobin-hochstadt2008ts} is a statically typed version
 of the Racket language, which is a Scheme dialect.
