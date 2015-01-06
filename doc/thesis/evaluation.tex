@@ -401,6 +401,17 @@ However, this module includes some functions such as
 that have a dynamic behavior.
 This means that the return type of these functions depend on the
 type of the values that we use to call them.
+For instance, \texttt{socket.skip(0, nil, "hello")} returns the
+tuple \texttt{(nil, "hello")}, \texttt{socket.skip(1, nil, "hello")}
+returns only the string \texttt{"hello"}, and
+\texttt{socket.skip(-1, nil, "hello")} returns the tuple
+\texttt{(-1, nil, "hello")}.
+Passing a negative number to \texttt{socket.skip} can be
+dangerous, as it returns anything that might be in the stack.
+For instance, \texttt{f = socket.skip(-2)} assigns \texttt{socket.skip}
+to \texttt{f}.
+Our type system cannot handle the type of negative numbers, as
+this requires the refinement types from hybrid type checking \citep{flanagan2006htc}.
 
 We could type most of the members of the modules \texttt{ftp},
 \texttt{http}, and \texttt{smtp}, but we could not precisely type
@@ -408,26 +419,22 @@ the functions \texttt{ftp.get}, \texttt{http.request}, and
 \texttt{smtp.message}.
 
 The function \texttt{ftp.get} downloads data from a given URL,
-and it is difficult to type because its return type depend on
-the type of its parameters.
-Its type is either \texttt{(string) -> (string)?} or
-\texttt{(url\string_argument|url\string_path) -> (number)?}.
-The types \texttt{url\string_argument} and \texttt{url\string_path}
-are table types that describe the URL that should be used to
-download data.
-Both table types include the same fields, except one:
-while the first includes the mandatory field \texttt{argument},
-of type \texttt{string}, the latter includes the mandatory field
-\texttt{path}, also of type \texttt{string}.
+and it is difficult to type because its return type depends on
+the type of its input parameter.
+More precisely, \texttt{ftp.get(url)} returns the tuple
+\texttt{(string) | (nil, string)} if \texttt{url} is a string,
+and it returns the tuple \texttt{(number) | (nil, string)} if
+\texttt{url} is a table.
 
 The function \texttt{http.request} downloads data from a given URL,
-and it is difficult to type because its return type depend on
-the type of its parameters.
-Its type is either
-\texttt{(string, string?) -> (string, number, \{string : string\}, number)?} or
-\texttt{(url\string_request) -> (number, number, \{string : string\}, number)?}.
-The type \texttt{url\string_request} is a table type containing
-details about the downloading URL.
+and it is difficult to type because its return type depends on
+the types of its input parameters.
+More precisely, \texttt{http.request(url, body)} returns the tuple
+\texttt{(string, number, \{string:string\}, number) | (nil, string)}
+if \texttt{url} is a string and \texttt{body} is another string or \texttt{nil},
+but it returns the tuple
+\texttt{(number, number, \{string:string\}, number) | (nil, string)}
+if \texttt{url} is a table and \texttt{body} is \texttt{nil}.
 
 The function \texttt{smtp.message} creates a function that sends
 an SMTP message body, and it is difficult to type because of the
@@ -440,11 +447,12 @@ that apply and remove some text encodings.
 The low-level filters are written in C, while the high-level filters
 use the function \texttt{ltn12.filter.cycle} along with the low level
 filters to create standard filters.
+
 Even though we could type all the members of the \texttt{mime} module,
 the function \texttt{ltn12.filter.cycle} is the only member of the
 \texttt{ltn12} module that we could not give a precise type.
 This function is difficult to type because the \texttt{mime} low-level
-filters do not have a standard API.
+filters are polymorphic.
 
 The \texttt{url} module provides functions that manipulate URLs.
 It is straightforward to type, although it defines a table type for
@@ -482,10 +490,7 @@ The \texttt{http-digest} module only exports the function
 \texttt{http-digest.request}, which extends the function
 \texttt{http.request} with MD5 authentication.
 Like \texttt{http.request}, the return type of \texttt{http-digest.request}
-also depends on the type of its parameters.
-Its type is either
-\texttt{(string) -> (string, number, \{string : string\})?} or
-\texttt{(url\string_request) -> (number, number, \{string : string\})?}.
+also depends on the types of its input parameters.
 
 Even though we could not precisely type the interface that \texttt{http-digest}
 exports, we could use only static types to rewrite it, and they pointed a bug
@@ -525,8 +530,7 @@ However, we hit some limitations of our type system to rewrite this module.
 First, it uses the function \texttt{getmetatable} to get a table and
 checks whether this table has the field \texttt{\string_\string_type} or not.
 We could not give a precise type to \texttt{getmetatable}, so we used the dynamic
-type \texttt{any} as its return type, and this generates a warning that we could not
-remove.
+type \texttt{any} as its return type, and this generates a warning.
 Second, the module returns a metatable that extends \texttt{\string_\string_call}
 with \texttt{typical.type}, that is, we can use the module itself as a function,
 though it is a table.
