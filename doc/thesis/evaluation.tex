@@ -680,10 +680,10 @@ whether it is \texttt{nil}.
 \section{Related Work}
 \label{sec:relatedwork}
 
-In this section we compare Typed Lua with other projects and type systems.
+In this section we compare Typed Lua with other projects.
 We split this section into two parts: the first compares Typed Lua
 with other Lua projects, while the second compares Typed Lua with
-other type systems that are not related to Lua.
+other projects that are not related to Lua.
 
 \subsection{Other Lua projects}
 
@@ -727,7 +727,7 @@ The table type from Tidal Lock can only represent records, that is,
 it cannot describe hash tables and arrays yet, though we can refine them.
 Tidal Lock also includes field types to describe the type of the fields
 of a table type.
-The field types describe if a table field is mutable or imutable
+The field types describe if a table field is mutable or immutable
 in a table type.
 Field types are the feature that allow the refinement of table types in
 Tidal Lock.
@@ -737,7 +737,11 @@ local type inference.
 However, it does not support union types, recursive types, and variadic types.
 It also does not type any object-oriented idiom.
 
-\subsection{Other type systems}
+Luacheck \citep{luacheck} is a tool that performs static analysis on Lua code.
+It can flag access to undeclared globals and unused local variables,
+but it does not perform static type checking.
+
+\subsection{Other projects}
 
 Typed Racket \citep{tobin-hochstadt2008ts} is a statically typed version
 of the Racket language, which is a Scheme dialect.
@@ -746,18 +750,21 @@ untyped modules, which are written in Racket, with typed modules, which are
 written in Typed Racket.
 It also uses local type inference to deduce the type of unannotated expressions.
 
-The type system of Typed Racket introduced \emph{occurrence typing}
+The main feature of Typed Racket's type system is \emph{occurrence typing}
 \citep{tobin-hochstadt2010ltu}.
 It is a novel way to use type predicates in control flow statements
 to refine union types.
-The type system is rich and includes basic types, function types,
-union types, recursive types, and structure types.
-Function types can return multiple values.
-Structure types are similar to our interfaces, as they describe
-record types.
+Occurrence typing is not sound in the presence of mutation.
+As these kinds of checks are common in other languages, related systems
+have appeared \citep{guha2011tlc,winther2011gtp,pearce2013ccf}. 
+
+The type system of Typed Racket also includes function types, recursive
+types, and structure types.
+Its function types also handle multiple return values, and there is
+also a way to describe function types that have optional arguments.
+Its structure types are similar to our interfaces, as they describe record types.
 The type system is also structural and based on subtyping.
-It also includes the dynamic type \texttt{Any}, which is the top
-type in the system.
+It also includes the dynamic type \texttt{Any}, which is the top type in the system.
 Typed Racket also supports polymorphic functions and data structures.
 
 Typed Clojure \citep{bonnaire-sergeant2012typed-clojure} is an
@@ -772,21 +779,20 @@ local type inference to deduce the type of unannotated expressions.
 It also assigns the type \texttt{Any} to unannotated function parameters,
 which is the top type in the type system.
 
-The type system of Typed Clojure is rich.
-It includes polymorphic function types, union types, intersection types,
-lists, vectors, maps, sets, and recursive types.
+The type system of Typed Clojure includes polymorphic function types,
+union types, intersection types, lists, vectors, maps, sets, and recursive types.
 Function types can also have rest parameters, which are similar
 to our variadic types, but can only appear on the input parameter
 of function types.
 In fact, its function types cannot return multiple results.
-It also uses ocurrence typing to allow control flow statements to
+It also uses occurrence typing to allow control flow statements to
 refine union types.
 The type system is also structural and based on subtyping.
 
 Dart \citep{dart} is a new class-based object-oriented programming
 language.
 It includes optional type annotations and compiles to JavaScript.
-The type system of Dart is nomial and includes base types,
+The type system of Dart is nominal and includes base types,
 function types, lists, and maps.
 It also supports generics, and the programmer can define
 generic functions, lists, and maps.
@@ -804,17 +810,28 @@ that includes optional type annotations and class-based
 object-oriented programming.
 It also uses local type inference to deduce the type
 of unannotated expressions.
-The type system of TypeScript is structural and based
-on subtyping.
+The type system of TypeScript is structural, based
+on subtyping, and supports generics.
 It includes the dynamic type, primitive types, function
-types, array types, tuple types, and recursive types.
-TypeScript also support generics.
+types, array types, tuple types, recursive types, and
+object types.
+Unlike Typed Lua, TypeScript does not include union types,
+and it uses arrays to represent variadic functions and
+multiple return values.
 
 Even though TypeScript is unsound by design,
 \citet{bierman2014typescript} shows how to make TypeScript sound.
 They use a reduced core of TypeScript to formalize a
 sound type system for TypeScript, but also to formalize
 its current unsound type system.
+
+TeJaS \citep{lerner2013tejas} is a framework for the construction of
+different type systems for JavaScript.
+The authors created a base type system for JavaScript with
+extensible typing rules that allow the experimentation of
+different static analysis.
+They used TeJaS to create a type system that simulates the
+type system of TypeScript.
 
 \citet{politz2012semantics} proposes semantics and types for objects
 with first-class member names, a well-known feature from scripting languages.
@@ -835,7 +852,9 @@ typed code does not violate statically typed code.
 \citet{allende2013cis} perform a carefull evaluation about
 cast insertion on Gradualtalk.
 They report that usually cast insertions impact on execution
-performance.
+performance, so Gradualtalk also has an option that allows
+programmers to turn them off, downgrading Gradualtalk
+to an optional type system.
 
 Reticulated Python \citep{vitousek2014deg} is a Python compiler
 that supports gradual typing.
@@ -844,14 +863,17 @@ It includes base types, the dynamic type, list types,
 dictionary types, tuple types, function types, set types,
 object types, class types, and recursive types.
 It includes class and object types to differentiate the
-type of class declarations and instances.
+type of class declarations and instances, respectively.
 It also uses local type inference.
 Besides static type checking, Reticulated Python also introduces
 three different approaches for inserting run-time assertions.
 
-Hack \citep{hack} is a new programming language that combines
-static and dynamic type in PHP code.
-Its type system includes generics, nullable types, collections,
+Hack \citep{hack} is a new programming language that runs on the
+Hip Hop Virtual Machine (HHVM).
+The HHVM is a virtual machine that executes Hack and PHP programs.
+We can view Hack as an extension to PHP that combines static and
+dynamic typing.
+The type system of Hack includes generics, nullable types, collections,
 and function types.
 
 The Ruby Type Checker \citep{ren2013rtc} is a library that
@@ -861,3 +883,14 @@ can use on classes and methods.
 Its type system includes nominal types, union types,
 intersection types, method types, parametric polymorphism,
 and type casts.
+
+Grace \citep{black2013sg} is an object-oriented language
+with optional typing.
+Grace is not a dynamically typed language that has been
+extended with an optional type system, but a language
+that has been designed from scratch to have both
+static and dynamic typing.
+\citet{homer2013modules} explores some useful patterns
+that derive from Grace's use of objects as modules
+and its brand of optional structural typing, which
+can also be expressed with Typed Lua's modules as tables.
