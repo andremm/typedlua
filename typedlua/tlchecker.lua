@@ -827,6 +827,7 @@ local function check_invoke (env, exp)
   check_explist(env, explist)
   table.insert(explist, 1, { type = Self })
   local t1, t2 = get_type(exp1), get_type(exp2)
+  t1 = replace_names(env, t1, exp1.pos)
   if tltype.isRecursive(t1) then t1 = t1[2] end
   if tltype.isSelf(t1) and env.self then t1 = env.self end
   if tltype.isTable(t1) or
