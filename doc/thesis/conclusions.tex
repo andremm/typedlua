@@ -1,35 +1,61 @@
-Our main contribution is the design of a complete optional type system
-for Lua, a procedural scripting language.
-TypeScript is a complete optional type system for JavaScript,
-but it does not include union types, and it uses arrays to represent
-variadic functions and multiple return values.
-Gradualtalk is a complete gradual type system for Smalltalk,
-but Smalltalk is an object-oriented language that does
-not handle multiple return values, multiple assignments, and
-variadic functions.
-Gradualtalk also mixes nominal and structural typing because of
-the object-oriented nature of Smalltalk.
-Typed Racket is a complete static type system for Racket, a functional
-language.
-Typed Racket makes it easier to migrate from untyped to typed code,
-but the migration happens module-by-module and type annotations are
-mandatory on typed modules.
-There are research on the design of optional and gradual type systems
-for JavaScript, Perl, and Python, but they are either experimental or
-limited in their coverage.
-Furthermore, Typed Lua includes table types that use types as keys,
-instead of identifiers, and the fact that Typed Lua also includes
-literal types makes its table types subsume the usual idea of
-record types.
+We presented Typed Lua, an optional type system for Lua.
+Typed Lua is a Lua extension that allows programmers to combine static
+and dynamic typing in Lua code, making easier the evolution of simple scripts
+into large programs.
 
-Although each language is different, we believe that several parts of
-the design of Typed Lua should be relevant to other scripting languages.
-Most notably, JavaScript shares with Lua the use of tests of type tags
-as a way of encoding optional and overloaded parameters, and the
-proliferation of class-based object systems built on top of the
-language's delegation mechanisms.
+Our main contribution is the formalization of a complete optional
+type system for Lua.
+Even though Lua shares several characteristics with other dynamically
+typed languages such as JavaScript, Lua also has several unusual features
+that are not present in the type system of these languages.
+Lua has functions with flexible arity that interact with multiple
+assignment, functions that are overloaded on the number of return values,
+and incremental evolution of record and object types.
 
-Typed Lua should also be a major contribution to the Lua community,
+We introduce the refinement of table types to support the incremental
+evolution of record and object types.
+The refinement of table types plays an important role in our type
+system, as they static type check the idiomatic way that Lua programmers
+use tables to define modules and objects.
+
+We introduce projection types to handle functions that are overloaded
+on the number of return values.
+Projection types are a novel feature of our type system, as they
+allow programmers to narrow the type of a local variable that depends
+on the type of another one.
+
+We use union types and variadic types to allow our type system to
+handle functions with flexible arity.
+While union types can describe optional parameters, variadic types
+describe the type of the vararg expression and the type of functions
+that can receive or return any number of values.
+
+Unlike some of the other optional type systems, we designed Typed Lua
+without deliberated unsound parts.
+However, we still do not have proofs that the novel parts of our type
+system are sound.
+
+To improve our confidence on the design of Typed Lua, we performed several
+case studies to evaluate it.
+Before starting the design of Typed Lua, we realized that we should
+not rely only on the semantics of Lua, as this could lead to a
+cumbersome type system that would not support several idiomatic Lua code.
+For this reason, we performed a mostly automated survey of Lua idioms
+and features to support our design choices.
+
+Even though the evaluation results exposed several limitations of our
+type system, they also gave us confidence that our design still
+introduces a reasonable amount of static type safety to several Lua idioms
+and features.
+We found that the three main limitations of our type system are
+the lack of intersection types, parametric polymorphism, and operator overloading.
+We see a soundness proof along with these limitations as our major targets
+for future work.
+While a soundness proof can consolidate our confidence on our design choices,
+overcoming these limitations can increase the amount of static type safety
+that our type system provides.
+
+We believe that Typed Lua is a major contribution to the Lua community,
 because it offers a framework that programmers can use to document,
 test, and better structure their applications.
 For libraries where a full conversion to static type checking should
@@ -37,10 +63,14 @@ prove unfeasible or too much work, the community can use Typed Lua
 just to document the external interfaces of the libraries,
 giving the benefits of static type checking to the users of these
 libraries.
+In fact, we already have user feedback from Lua programmers that are
+using Typed Lua in their projects.
+For instance, ZeroBrane Studio is an IDE for Lua development that is
+starting to use Typed Lua to perform static analysis on Lua code.
 
-Finally, Typed Lua can be a base for further research and development
-of static type systems for the Lua language, such as the use of static
-analysis of Lua API calls for checking that a native library is
+Finally, we also believe that Typed Lua can be a base for further research
+and development of static type systems for the Lua language, such as
+the use of static analysis of Lua API calls for checking that a native library is
 exporting the interface to Lua code that it declares, the use of
 effect types for typing Lua coroutines, and the use of static types
 for code optimization.
