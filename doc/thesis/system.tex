@@ -206,7 +206,7 @@ types and consistent-subtyping \citep{siek2007objects,siek2013mutable}
 to allow the interaction between statically and dynamically typed code.
 We explain the subtyping and consistent-subtyping rules along this section.
 However, we focus the discussion on the definition of subtyping because,
-as we mentioned in Chapter \ref{chap:review}, we can combine the
+as we mentioned in Section \ref{sec:gradual}, we can combine the
 consistency and subtyping relations to achieve consistent-subtyping.
 The differences between subtyping and consistent-subtyping are the way
 they handle the dynamic type, and the fact that subtyping is transitive,
@@ -215,13 +215,12 @@ but consistent-subtyping is not.
 We present the subtyping rules as a deduction system for the
 subtyping relation $\senv \vdash t_{1} \subtype t_{2}$.
 The variable $\senv$ is a set of pairs of recursion variables.
-We shall notice that we need this set to record the hypotheses
-that we assume to check subtyping between recursive types.
+We need this set to record the hypotheses that we assume when checking
+recursive types.
 
 The subtyping rules for literal types and base types include the rules
 for defining that literal types are subtypes of their respective base types,
-and that $\Integer$ is subtype of $\Number$.
-We define these subtyping rules as follows:
+and that $\Integer$ is subtype of $\Number$:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -262,9 +261,9 @@ We define these subtyping rules as follows:
 \]
 
 Subtyping is reflexive and transitive;
-due to the transitivity of subtyping, we could have omitted the rule \textsc{S-INT2}.
+therefore, we could have omitted the rule \textsc{S-INT2}.
 More precisely, we could have defined a transitive rule for first-level
-types instead of defining specific rules to transitive cases.
+types instead of defining specific rules for transitive cases.
 For instance, a transitive rule would allow us to derive that
 \[
 \dfrac{\senv \vdash 1 \subtype \Integer \;\;\;
@@ -279,41 +278,7 @@ More precisely, we want the subtyping and consistent-subtyping rules
 to differ only in the way they handle the dynamic type.
 Thus, we define the subtyping rules using an algorithmic
 way that is close to the implementation, as this way allows us to use
-subtyping to formalize consistent-subtyping.
-
-That is the reason why the dynamic type $\Any$ is neither the bottom nor the top type,
-but a separate type that is subtype only of itself through the reflexive rule.
-
-Even though the dynamic type $\Any$ does not interact with subtyping,
-it does interact with consistent-subtyping:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{C-ANY1}\\
-\senv \vdash t \lesssim \Any
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{C-ANY2}\\
-\senv \vdash \Any \lesssim t
-\end{array}
-\end{array}
-\]
-
-If we had set the type $\Any$ as both bottom and top types of our
-subtyping relation, then any type $t_{1}$ would be subtype of
-any other type $t_{2}$.
-The consequence of this is that all programs would type check without errors.
-This would happen due to the transitivity of subtyping, that is,
-we would be able to down-cast any type $t_{1}$ to $\Any$ and then up-cast
-$\Any$ to any other type $t_{2}$.
-The rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that
-allow the dynamic type to interact with other first-level types,
-and thus allow dynamically typed code to coexist with statically
-typed code.
-Because of these two rules, consistent-subtyping cannot be transitive.
-Still, these two rules are the only rules that differ between
-subtyping and consistent-subtyping.
+subtyping to easily formalize consistent-subtyping.
 
 Our type system includes the top type $\Value$,
 so any first-level type is a subtype of $\Value$:
@@ -324,19 +289,17 @@ so any first-level type is a subtype of $\Value$:
 \end{array}
 \]
 
-Some people might expect that $\Nil$ is the bottom type
-of our type system, but it is not,
-and it is subtype only of itself through the reflexive rule.
 Many programming languages include a bottom type to represent
-an empty value that programmers can use as a default expression.
-Typed Lua does not have this behavior because in Lua the tag \texttt{nil}
-represents the absence of an useful value.
-Thus, making $\Nil$ the bottom type would lead to several expressions
+an empty value that programmers can use as a default expression,
+and we could have used the type $\Nil$ for this role.
+However, making $\Nil$ the bottom type would lead to several expressions
 that would pass the type checker, but that would fail during run-time
 in the presence of a \texttt{nil} value.
+Thus, our type system does not have a bottom type, and $\Nil$ is a
+subtype only of itself and of $\Value$.
 
-Another type that only follows the reflexive rule is the type $\Self$,
-that is, it is subtype only of itself.
+Another type that is only a subtype of itself and of the type $\Value$
+is the type $\Self$.
 
 The subtyping rules for union types are standard:
 \[
@@ -367,17 +330,7 @@ is subtype of $t$ if both $t_{1}$ and $t_{2}$ are subtypes
 of $t$;
 and the other rules show that a type $t$ is subtype
 of a union type $t_{1} \cup t_{2}$ if $t$ is subtype of
-$t_{1}$ or if $t$ is subtype of $t_{2}$.
-
-In the implementation of Typed Lua we use consistent-subtyping to
-normalize and simplify union types, but we let them free in the
-formalization.
-For instance, the union type \texttt{boolean|any} results in the
-type \texttt{any}, because \texttt{boolean} is consistent-subtype
-of \texttt{any}.
-Another example is the union type \texttt{number|nil|1} that
-results in the union type \texttt{number|nil}, because
-\texttt{1} is consistent-subtype of \texttt{number}.
+either $t_{1}$ or $t_{2}$.
 
 The subtyping rule for function types is also standard:
 \[
@@ -392,20 +345,20 @@ The subtyping rule for function types is also standard:
 The rule \textsc{S-FUNCTION} shows that subtyping between
 function types is contravariant on the type of the parameter list
 and covariant on the return type.
-In the last section we explained why our type system uses
+In the previous section we explained why our type system uses
 second-level types to represent the type of the parameter list
 and the return type.
 Now, we explain their subtyping rules.
 
-The simplest second-level type is the type $\Void$ that
-is subtype only of itself through the reflexive rule.
+The simplest tuple type is the type $\Void$ that is the type of an
+empty tuple and it is subtype only of itself.
 
-The subtyping rule for tuple types is standard, but the subtyping
-rules for variadic types are not so obvious:
+The subtyping rule for pair types is standard, but the subtyping rules
+for variadic types are not so obvious:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{S-TUPLE}\\
+\mylabel{S-PAIR}\\
 \dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
        \senv \vdash s_{1} \subtype s_{2}}
       {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
@@ -445,28 +398,21 @@ rules for variadic types are not so obvious:
 \end{array}
 \]
 
-The subtyping rules for tuple and variadic types show that they are covariant.
-While we need just one subtyping rule for tuple types,
+The subtyping rules for pair and variadic types show that they are covariant.
+While we need just one subtyping rule for pair types,
 we need five different subtyping rules for variadic types
 to handle all the cases where they can appear.
-The rule \textsc{S-VARARG1} handles the subtyping between two variadic types,
-while the other rules handle the subtyping between a tuple type and a variadic type.
+The rule \textsc{S-VARARG1} handles the case that both tuple types end
+with variadic types, while the other rules handle the cases that only
+one tuple type ends with a variadic type.
+Note that the case where both tuple types end with the type $\Void$ does
+not require any special rule.
 The rule \textsc{S-VARARG1} shows that $t_{1}{*}$ is subtype of $t_{2}{*}$
 if $t_{1} \cup \Nil$ is subtype of $t_{2} \cup \Nil$.
 This rule explicit includes $\Nil$ in both sides because otherwise
 $\Nil{*}$ would not be a subtype of several other variadic types.
 For instance, $\Nil{*}$ would not be subtype of $\Number{*}$,
 as $\Nil \not\subtype \Number$.
-The rule \textsc{S-VARARG2} shows that a variadic type $t_{1}{*}$ is
-subtype of a tuple type $t_{2} \times \Void$ if $t_{1} \cup \Nil$ is subtype of $t_{2}$.
-The rule \textsc{S-VARARG3} shows that a tuple type $t_{1} \times \Void$
-is subtype of a variadic type $t_{2}{*}$ if $t_{1}$ is subtype of $t_{2} \cup \Nil$.
-The rule \textsc{S-VARARG4} shows that a variadic type is subtype of
-a tuple type whenever the type of the value that it generates is
-subtype of all the elements of the tuple.
-The rule \textsc{S-VARARG5} shows that a tuple type is subtype of a
-variadic type whenever all the elements of the tuple are subtype of
-the type of the value that it generates.
 In the next section we will show that we use these subtyping relations,
 along with the types $\Value$ and $\Nil$, to make our type system reflect
 the semantics of Lua on discarding extra parameters, and
@@ -511,9 +457,9 @@ standard subtyping rule between records:
 \end{array}
 \]
 
-The rule \textsc{S-TABLE1} introduced the relation $\subtype_{c}$.
-It is just an auxiliary relation that defines the subtyping of the
-type of the values stored in the table fields.
+The rule \textsc{S-TABLE1} allows width subtyping between \emph{closed}
+table types, and introduced the auxiliary relation $\subtype_{c}$ to
+handle depth subtyping on the type of the values stored in the table fields.
 We need an auxiliary relation because the subtyping of the
 type of the values stored in the table fields changes according to
 the tags of the table types.
@@ -541,15 +487,13 @@ We define the relation $\subtype_{c}$ as follows:
 \end{array}
 \]
 
-These rules allow closed table types to have width subtyping
-and depth subtyping on $\Const$ fields.
+These rules allow closed table types to have depth subtyping on $\Const$ fields.
 The rule \textsc{S-FIELD1} defines that mutable fields are invariant,
 while the rule \textsc{S-FIELD2} defines that immutable fields are covariant.
 The rule \textsc{S-FIELD3} defines that it is safe to promote fields
 from mutable to immutable.
 We do not include a rule that allows promoting fields from immutable
-to mutable because it would not be safe, as this rule would allow
-programmers to change the value that is stored in an immutable field.
+to mutable because this would be unsafe due to variance.
 
 There is a limitation on \emph{closed} table types that led us to
 introduce \emph{open} and \emph{unique} table types.
@@ -579,7 +523,8 @@ Using the previous example,
 \end{align*}
 
 We introduced \emph{unique} table types to avoid this limitation,
-as they represent the type of the tables that we known their contents.
+as they represent the type of the tables that have no keys that do not
+inhabit one of the table's key types, and that have no alias.
 In particular, this is the case of the table constructor.
 The following subtyping rule defines the subtyping relation among
 \emph{unique} table types and other table types:
@@ -595,7 +540,7 @@ The following subtyping rule defines the subtyping relation among
 \]
 
 Unlike the rule \textsc{S-TABLE1}, the rule \textsc{S-TABLE2} allows
-covariant keys.
+covariant keys and do not allow width subtyping.
 We allow this behavior to \emph{unique} table types because we also
 want to use them as a way to join table fields.
 For instance, we may want to use the table constructor to initialize
@@ -603,7 +548,7 @@ a variable with a table type that describes a hash.
 
 The rule \textsc{S-TABLE2} introduced the auxiliary relations
 $\subtype_{u}$ and $\subtype_{o}$.
-The first allows width and depth subtyping on all fields,
+The first allows depth subtyping on all fields,
 while the second allows the omission of optional fields.
 We define them as follows:
 \[
@@ -640,48 +585,8 @@ We define them as follows:
 \end{array}
 \]
 
-Using \emph{unique} table types to represent the type of the table
-constructor allows our type system to type check the previous example.
-More precisely,
-\[
-\{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
-\]
-
-Even though \emph{unique} table types overcome our limitation,
-its subtyping rule allows unsafe aliasing.
-The covariance on mutable fields allows programs that create unsafe
-aliases to pass the type checker.
-For instance,
-\begin{verbatim}
-    local t1 = { foo = 5 }
-    local t2:{"foo":integer?} = t1
-    t2.foo = nil
-\end{verbatim}
-should not type check, as the last line is erasing the field \texttt{foo}
-from \texttt{t1}.
-This program would type checks as it is, because our implementation uses
-local type inference to assign static types to unannotated locals.
-In this example, the type of \texttt{t1} would be subtype of the type of \texttt{t2}.
-More precisely,
-\[
-\{``foo":\Integer\}_{unique} \subtype \{``foo":\Integer \cup \Nil\}_{closed}
-\]
-
-In the next section we will show in more detail that this example
-does not type check, because our type system promotes an alias
-expression from \emph{unique} to \emph{closed}, and promotes the
-aliased variable from \emph{unique} to \emph{open}.
-This means that the previous example does not type check because
-the type of the expression \texttt{t1} is not subtype of the type
-of the variable \texttt{t2}.
-More precisely,
-\[
-\{``foo":\Integer\}_{closed} \not\subtype \{``foo":\Integer \cup \Nil\}_{closed}
-\]
-
-Thus, we introduced \emph{open} table types to handle the aliasing of table types.
-We define the subtyping relation among \emph{open} table types
-and \emph{closed} or \emph{open} table types as follows:
+We also do not allow width and depth subtyping between \emph{open}
+table types or between \emph{open} and \emph{closed} table types:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE3}\\
@@ -693,14 +598,14 @@ and \emph{closed} or \emph{open} table types as follows:
 \end{array}
 \]
 
-The rule \textsc{S-TABLE3} uses the same rules from \textsc{S-TABLE1}
-for handling the type of the values of each key, and it uses the same
-rules from \textsc{S-TABLE2} to allow joining fields plus omitting optional fields.
+The rule \textsc{S-TABLE3} uses the same rules from
+\textsc{S-TABLE1} for handling the type of the values of each key, and
+it uses the same rules from \textsc{S-TABLE2} to allow joining fields plus
+omitting optional fields.
 
 In the next section we will show in more detail how our type system
-keeps track of \emph{open} and \emph{unique} table types to make them safe.
-Moreover, we will also show that we can use them to allow the refinement
-of table types.
+handles \emph{open} and \emph{unique} table types to allow the refinement of
+table types.
 
 We use the \emph{Amber rule} \citep{cardelli1986amber} to define
 subtyping between recursive types:
@@ -748,17 +653,14 @@ recursive types and other first-level types:
 \end{array}
 \]
 
-The rules \textsc{S-UNFOLDR}, \textsc{S-AMBER}, and \textsc{S-ASSUMPTION}
-allow our type system to type check the function \texttt{insert}
-from Section \ref{sec:alias}:
+As an example, the rule \textsc{S-UNFOLDR} allows our type system to
+type check the function \texttt{insert} from Section \ref{sec:alias}:
 \begin{verbatim}
     local function insert (e:Element?, v:integer):Element
       return { info = v, next = e }
     end
 \end{verbatim}
-
-First, a recursive type appears inside the type of the table constructor.
-Thus, the type checker uses the rule \textsc{S-UNFOLDR} to verify whether
+that is, the type checker uses the rule \textsc{S-UNFOLDR} to verify whether
 the type of the table constructor is a subtype of \texttt{Element}:
 \begin{align*}
 \{ & ``info":\Integer, \\
@@ -766,18 +668,61 @@ the type of the table constructor is a subtype of \texttt{Element}:
 & \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
 
-After unfolding, the recursive types appear only as part of the type
-of the value of the key type $``next"$.
-Thus, the type checker uses the rules \textsc{S-AMBER} and \textsc{S-ASSUMPTION}
-to verify whether these recursive types are subtypes between each other:
-\begin{align*}
-& \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed} \subtype \\
-& \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
-\end{align*}
+Projection types are subtypes only of themselfs and of $\Value$.
+More precisely, a projection type $\pi_{i}^{x}$ is a subtype of the
+same projection type $\pi_{i}^{x}$, which shares the same union of
+tuples $x$ and the same index $i$, and it is also a subtype of $\Value$.
 
-Projection types follow the reflexive subtyping rule.
-A projection type $\pi_{i}^{x}$ is a subtype of another projection type $\pi_{i}^{x}$
-that shares the same union of tuples $x$ and the same index $i$.
+The dynamic type $\Any$ is neither the bottom nor the top type,
+but a separate type that is subtype only of itself and of $\Value$.
+
+Even though the dynamic type $\Any$ does not interact with subtyping,
+it does interact with consistent-subtyping.
+We present the consistent-subtyping rules as a deduction system for
+the consistent-subtyping relation $\senv \vdash t_{1} \lesssim t_{2}$.
+Like in the subtyping relation, $\senv$ is also a set of pairs of
+recursion variables.
+We define the consistent-subtyping rules for the dynamic type $\Any$
+as follows:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{C-ANY1}\\
+\senv \vdash t \lesssim \Any
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{C-ANY2}\\
+\senv \vdash \Any \lesssim t
+\end{array}
+\end{array}
+\]
+
+If we had set the type $\Any$ as both bottom and top types of our
+subtyping relation, then any type $t_{1}$ would be subtype of
+any other type $t_{2}$.
+The consequence of this is that all programs would type check without errors.
+This would happen due to the transitivity of subtyping, that is,
+we would be able to down-cast any type $t_{1}$ to $\Any$ and then up-cast
+$\Any$ to any other type $t_{2}$.
+The rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that
+allow the dynamic type to interact with other first-level types,
+and thus allow dynamically typed code to coexist with statically
+typed code.
+Because of these two rules, consistent-subtyping cannot be transitive.
+These two rules are the only rules that differ between
+subtyping and consistent-subtyping, if we implement the subtyping rules
+as we do in this section.
+
+In the implementation of Typed Lua we also use consistent-subtyping to
+normalize and simplify union types, though we let them free in the
+formalization.
+For instance, the union type \texttt{boolean|any} results in the
+type \texttt{any}, because \texttt{boolean} is consistent-subtype
+of \texttt{any}.
+Another example is the union type \texttt{number|nil|1} that
+results in the union type \texttt{number|nil}, because
+\texttt{1} is consistent-subtype of \texttt{number}.
 
 \section{Typing rules}
 \label{sec:rules}
@@ -1055,6 +1000,46 @@ change the type of a table, but before discussing this subject,
 we will discuss the different table constructors that our
 abstract syntax includes, as they will appear in the next
 examples.
+
+Using \emph{unique} table types to represent the type of the table
+constructor allows our type system to type check the previous example.
+More precisely,
+\[
+\{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\]
+
+Even though \emph{unique} table types overcome our limitation.
+The covariance on mutable fields could allow programs that create unsafe
+aliases to pass the type checker.
+For instance,
+\begin{verbatim}
+    local t1 = { foo = 5 }
+    local t2:{"foo":integer?} = t1
+    t2.foo = nil
+\end{verbatim}
+does not type check, as the last line is erasing the field \texttt{foo}
+from \texttt{t1}.
+This program would type checks as it is, because our implementation uses
+local type inference to assign static types to unannotated locals.
+In this example, the type of \texttt{t1} would be subtype of the type of \texttt{t2}.
+More precisely,
+\[
+\{``foo":\Integer\}_{unique} \subtype \{``foo":\Integer \cup \Nil\}_{closed}
+\]
+
+In the next section we will show in more detail that this example
+does not type check, because our type system promotes an alias
+expression from \emph{unique} to \emph{closed}, and promotes the
+aliased variable from \emph{unique} to \emph{open}.
+This means that the previous example does not type check because
+the type of the expression \texttt{t1} is not subtype of the type
+of the variable \texttt{t2}.
+More precisely,
+\[
+\{``foo":\Integer\}_{closed} \not\subtype \{``foo":\Integer \cup \Nil\}_{closed}
+\]
+
+Thus, we introduced \emph{open} table types to handle the aliasing of table types.
 
 The simplest form of the table constructor is the empty table $\{\}$.
 Its inference rule is straightforward:
