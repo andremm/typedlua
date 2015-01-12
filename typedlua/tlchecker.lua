@@ -112,6 +112,7 @@ local function searchpath (name, path)
     return package.searchpath(name, path)
   else
     local error_msg = ""
+    name = string.gsub(name, '%.', '/')
     for tldpath in string.gmatch(path, "([^;]*);") do
       tldpath = string.gsub(tldpath, "?", name)
       local f = io.open(tldpath, "r")
