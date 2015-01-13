@@ -811,7 +811,7 @@ $$
 Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
 It splits the syntactic categories as follows:
 $s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$el$ are expression lists, $c$ are literal constants, $p$ are expression pairs,
+$el$ are expression lists, $c$ are literal constants, $p$ are table fields,
 $me$ are expressions with multiple results, $f$ are function declarations,
 $m$ are method declarations, $n$ are variable names,
 $t$ are first-level types, and $r$ are second-level types.
@@ -835,20 +835,186 @@ Due to the refinement of table types we also split variable names
 into two categories: $n_{e}$ when they appear as expressions and
 $n_{l}$ when they appear as left-hand values.
 
-We will present the typing rules as a deduction system for the typing
-relations $\env_{1} \vdash s : \env_{2}$ and $\env_{1} \vdash e : t, \env_{2}$. 
-We will use the first one for typing statements, and the second one
+We present the typing rules as a deduction system for the typing
+relations $\env_{1}, \penv \vdash s, \env_{2}$ and
+$\env_{1}, \penv \vdash e : t, \env_{2}$.
+We use the first one for typing statements, and the second one
 for typing expressions.
-The first relation means that given the type environment $\env_{1}$,
-typing the statement $s$ produces the new type environment $\env_{2}$. 
-The second relation means that given the type environment $\env_{1}$,
-the expression $e$ has type $t$, and produces the new type environment $\env_{2}$.
+The first relation means that given the type environment $\env_{1}$
+and the projection environment $\penv$,
+typing the statement $s$ produces the new type environment $\env_{2}$.
+The second relation means that given the type environment $\env_{1}$
+and the projection environment $\penv$,
+the expression $e$ has type $t$ and produces the new type environment $\env_{2}$.
 We need two typing relations because only expressions have types,
-though both expressions and statements can modify the environment.
-The environment maps variables to types, and we will use $\env_{1}[n \mapsto t]$
-for meaning that we extended the environment $\env_{1}$ with the
-variable $n$ that maps to type $t$, and this mapping does not affect
-the other mappings that existed before.
+though expressions and statements can modify the environment.
+We need two environments because $\env$ maps variables to types
+while $\penv$ maps projection variables to unions of tuple types.
+We use $\env_{1}[n \mapsto t]$ for meaning that we extended the environment
+$\env_{1}$ with the variable $n$ that maps to type $t$.
+We use $\penv[\pi \mapsto r]$ for meaning that we extendend the environment
+$\penv$ with the projection $\pi$ that maps to the union of tuple types $r$.
+
+Lua has multiple assignments, and the rule \textsc{T-ASSIGNMENT} uses
+tuple types along with consitent-subtyping to type check this Lua feature:
+\[
+\begin{array}{c}
+\mylabel{T-ASSIGNMENT}\\
+\begin{array}{c}
+\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
+       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
+       r_{1} \lesssim r_{2}}
+      {\env_{1} \vdash \vec{l} = el:\env_{3}}
+\end{array}
+\end{array}
+\]
+
+As an example,
+\[
+x, y = 1, ``foo"
+\]
+type checks because
+$1 \times ``foo" \times \Nil{*} \lesssim \Integer \times \String \times \Value{*}$,
+assuming that $x$ and $y$ are in the environment with
+types $\Integer$ and $\String$, respectively.
+Our type system uses $\Value{*}$ to drop extra values
+and $\Nil{*}$ to replace missing values.
+In this example, the rules \textsc{T-LHSLIST} and \textsc{T-EXPLIST2}
+are the rules that handle these features.
+
+We define the rule \textsc{T-LHSLIST} as follows:
+\[
+\begin{array}{c}
+\mylabel{T-LHSLIST}\\
+\dfrac{\env \vdash l_{k}:t_{k}, \env_{k} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
+       n = |\;\vec{l}\;|}
+      {\env \vdash \vec{l}:t_{1} \times ... \times t_{n} \times \Value{*}, \env_{m}}
+\end{array}
+\]
+
+First, this rule uses the same environment $\env$ to type check each
+left-hand side value $l_{k}$, as they can perform different changes
+to the environment.
+Then, it takes each type $t_{k}$ and builds the tuple type for
+the assignment rule.
+It places the type $\Value{*}$ in the end to discard extra values.
+The rule succeeds if the predicate \emph{merge} can
+produce a new environment, which includes all the modifications
+of each environment $\env_{k}$.
+Intuitively, the predicate \emph{merge} fails when an environment
+tries to change the type of a variable towards a type that is not
+a subtype of its previous type.
+We will show in this section that the refinment of table types can
+change the environment, and that is the reason why we need to check
+whether the environment is consistent.
+
+The rule \textsc{T-EXPLIST2} is close to the rule \textsc{T-LHSLIST}.
+The difference is that it uses $\Nil{*}$ to replace missing values.
+We define this rule as follows:
+\[
+\begin{array}{c}
+\mylabel{T-EXPLIST2}\\
+\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
+       n = |\;\vec{e}\;|}
+      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{m}}
+\end{array}
+\]
+
+The typing rules that type check expression lists include $\Nil{*}$
+in the end of the tuple type only when it does not end in a variadic type.
+For instance, the rules \textsc{T-EXPLIST3} and \textsc{T-EXPLIST4}
+handle the case that an expression list is just an expression that
+return multiple values, but only \textsc{T-EXPLIST3} needs to add
+$\Nil{*}$:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-EXPLIST3}\\
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n} \times \Void, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{1}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-EXPLIST4}\\
+\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+      {\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+\end{array}
+\end{array}
+\]
+
+As an example, the rule \textsc{T-EXPLIST3} allows our type system
+to type check the following example:
+\[
+x, y, z = f()_{m}
+\]
+assuming that $x$, $y$, $z$, and $f$ are in the environment with
+types $\Integer$, $\String$, $\String \cup \Nil$, and
+$\Void \rightarrow \Integer \times \String \times \Void$, respectively.
+It type checks because
+\[
+\Integer \times \String \times \Nil{*} \lesssim \Integer \times \String \times \String \cup \Nil \times \Value{*}
+\]
+
+Conversely,
+\[
+x = f()_{m}
+\]
+type checks because
+\[
+\Integer \times \String \times \Nil{*} \lesssim \Integer \times \Value{*}
+\]
+
+Multiple assignments also appear in function and method applications,
+but our type system needs different typing rules for
+expression lists that appear in function and method applications,
+as we also want to catch arity mismatch.
+For instance, assuming that $x$ and $f$ are in the environment with
+types $\Integer \cup \Nil$ and
+$\String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Void \rightarrow \Integer{*}$,
+respectively.
+We want that
+\[
+x = f(``foo")_{m}
+\]
+type checks because
+\[
+``foo" \times \Nil \times \Nil \times \Void \lesssim \String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Void
+\]
+but we also want that
+\[
+x = f(``foo",1,2,3)_{m}
+\]
+does not type check because
+\[
+``foo" \times 1 \times 2 \times 3 \times \Void \not\lesssim \String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Void
+\]
+
+To do that, the rule \textsc{T-APPLY1} uses rules that type check
+expression lists, but that do not include $\Nil{*}$ in the end of
+the tuple type.
+Instead, it uses the predicate $adjust$ to replace any missing
+value with $\Nil$:
+\[
+\begin{array}{c}
+\mylabel{T-APPLY1}\\
+\dfrac{\env_{1} \vdash e:r_{1} \rightarrow r_{2}, \env_{2} \;\;\;
+       \env_{2} \vdash el:r_{3}, \env_{3} \;\;\;
+       r_{4} = adjust(r_{3}, r_{1}) \;\;\;
+       r_{4} \lesssim r_{1}}
+      {\env_{1} \vdash e(el)_{m}:r_{2}, \env_{3}}
+\end{array}
+\]
+
+We can use pattern matching to the define the recursive predicate
+\emph{adjust} as follows:
+\begin{align*}
+adjust(\Void, t{*}) & = \Nil \times \Void\\
+adjust(\Void, t \times s) & = \Nil \times adjust(\Void,s)\\
+adjust(t_{1} \times s_{1}, t_{2} \times s_{2}) & = t_{1} \times adjust(s1,s2)\\
+adjust(s_{1}, s_{2}) & = s_{1}
+\end{align*}
 
 We start with the rule that defines the most unusual feature of
 our type system: the refinment of table types.
@@ -920,50 +1086,6 @@ though we are trying to refine to $\{``x":\{\}_{unique}\}_{open}$.
 We made this restriction because we still need to prove that the refinement
 of table types is safe.
 
-Lua has multiple assignments, so Typed Lua also has to take this into
-consideration while refining table types.
-The rule \textsc{T-ASSINGMENT} shows that tuple types make it easy
-to use the consistent-subtyping relation to type check multiple assignments:
-\[
-\begin{array}{c}
-\mylabel{T-ASSIGNMENT}\\
-\begin{array}{c}
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
-       r_{1} \lesssim r_{2}}
-      {\env_{1} \vdash \vec{l} = el:\env_{3}}
-\end{array}
-\end{array}
-\]
-
-This rule is so simple because we left the difficult part to the
-type checking of expression lists.
-The list of left-hand values is also a kind of expression list.
-The difficult part is to check whether there is an expression in
-the expression list that messes the environment, and the rule
-\textsc{T-LHSLIST} captures this intuition:
-\[
-\begin{array}{c}
-\mylabel{T-LHSLIST}\\
-\dfrac{\env \vdash l_{k}:t_{k}, \env_{k} \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
-       n = |\;\vec{l}\;|}
-      {\env \vdash \vec{l}:t_{1} \times ... \times t_{n} \times \Value{*}, \env_{m}}
-\end{array}
-\]
-
-First, this rule uses the same environment $\env$ to type check each
-left-hand side value $l_{k}$, as they can perform different changes
-to the environment.
-Then, it takes each type $t_{k}$ and builds the tuple type for
-the assignment rule.
-It places the type $\Value{*}$ in the end to discard extra values.
-The rule succeeds if the predicate \emph{merge} can
-produce a new environment, which includes all the modifications
-of each environment $\env_{k}$.
-Intuitively, the predicate \emph{merge} fails when an environment
-tries to change the type of a variable towards a type that is not
-a subtype of its previous type.
 
 We can also use multiple assignments to refine table types:
 \[
