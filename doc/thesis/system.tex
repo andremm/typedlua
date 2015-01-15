@@ -527,23 +527,25 @@ as they represent the type of the tables that have no keys that do not
 inhabit one of the table's key types, and that have no alias.
 In particular, this is the case of the table constructor.
 The following subtyping rule defines the subtyping relation among
-\emph{unique} table types and other table types:
+\emph{unique} table types and \emph{closed} table types:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE2}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \; \forall j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
       {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
 \end{array}
 \]
 
-Unlike the rule \textsc{S-TABLE1}, the rule \textsc{S-TABLE2} allows
-covariant keys and do not allow width subtyping.
-We allow this behavior to \emph{unique} table types because we also
-want to use them as a way to join table fields.
-For instance, we may want to use the table constructor to initialize
+The rule \textsc{S-TABLE2} allows width subtyping and covariant keys.
+It allows covariant keys because we also want to use \emph{unique}
+table types as a way to join table fields that inhabit \emph{closed} table types.
+For instance, we want to use the table constructor to initialize
 a variable with a table type that describes a hash.
 
 The rule \textsc{S-TABLE2} introduced the auxiliary relations
@@ -592,23 +594,61 @@ More precisely,
 \{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
 \]
 
-We also do not allow width and depth subtyping between \emph{open}
-table types or between \emph{open} and \emph{closed} table types:
+Even though we allow width subtyping between \emph{unique} and \emph{closed}
+table types, we do not allow it among \emph{unique} and \emph{open} or
+\emph{unique} table types because it would violate our definition of
+\emph{unique} and \emph{open} table types:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE3}\\
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \\
+       \exists j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{open|unique}}
 \end{array}
 \]
 
-The rule \textsc{S-TABLE3} uses the same rules from
-\textsc{S-TABLE1} for handling the type of the values of each key, and
-it uses the same rules from \textsc{S-TABLE2} to allow joining fields plus
-omitting optional fields.
+The rules that handle subtyping among \emph{open} table types and
+\emph{open} or \emph{closed} table types are similar to the rules
+that handle subtyping among \emph{unique} table types and other table types:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{S-TABLE4}\\
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \; \forall j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-TABLE5}\\
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \\
+       \exists j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{open}}
+\end{array}
+\end{array}
+\]
+
+The rule \textsc{S-TABLE4} allows width subtyping, while
+the rule \textsc{S-TABLE5} does not allow width subtyping.
+Both rules allow joining fields plus omitting optional fields.
+Both rules use $\subtype_{c}$ to allow depth on $\Const$ fields only.
 
 In the next section we will show in more detail how our type system
 handles \emph{open} and \emph{unique} table types to allow the refinement of
@@ -1330,28 +1370,19 @@ For instance,
 does not type check because aliasing $a$ produces the type
 $\{``foo":\Integer\}_{closed}$ that is not subtype of
 $\{``foo":\Integer \cup \Nil\}_{closed}$, the type of $b$.
-The rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this behavior:
+The rule \textsc{T-IDREAD} defines this behavior:
 \[
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{T-IDREAD1}\\
-\dfrac{\env_{1}(n) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}}
-      {\env_{1} \vdash n_{e}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed}, \env_{1}[n \mapsto \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{open}]}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-IDREAD2}\\
-\dfrac{\env_{1}(n) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{open}}
-      {\env_{1} \vdash n_{e}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed}, \env_{1}}
-\end{array}
+\mylabel{T-IDREAD}\\
+\dfrac{\env_{1}(n) = t}
+      {\env_{1} \vdash n_{e}:close(t), \env_{1}[n \mapsto open(t)]}
 \end{array}
 \]
 
 Aliasing \emph{unique} and \emph{open} table types can be unsafe.
-For this reason, the rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2}
-promote the type of an alias expression from \emph{unique} or \emph{open}
-to \emph{closed}.
-The rule \textsc{T-IDREAD1} also promotes the aliased variable from
+For this reason, the rule \textsc{T-IDREAD} promote the type of an
+alias expression from \emph{unique} or \emph{open} to \emph{closed},
+and it also promotes the aliased variable from
 \emph{unique} to \emph{open}, as \emph{unique} table types only
 denote the type of table types that have no alias.
 
@@ -1368,21 +1399,44 @@ does not type check because we cannot add the field $``x"$ to $b$,
 as its type is \emph{closed}, and thus does not allow changing the
 value that is stored in the field $``x"$ of local $a$.
 
-We also have different rules for type checking table indexing that
-appear as expressions to avoid promoting an \emph{unique} table to
-\emph{open} in these operations:
+We also need to close \emph{unique} and \emph{open} tables that
+appear in the left-hand side of assignments.
+For instance,
+\begin{center}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{open} = \{\} \; \mathbf{in}$}\\
+& & \multicolumn{1}{l}{$b = a;$}\\
+& & \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& & \multicolumn{1}{l}{$b[``x"] \; {<}\Integer{>} = 1$}\\
+\end{tabular}
+\end{center}
+does not type check because we cannot add the field $``x"$ to $b$,
+as its type is \emph{closed}, and thus does not allow changing the
+value that is stored in the field $``x"$ of local $a$.
+The rule \textsc{T-IDWRITE} defines this behavior:
+\[
+\begin{array}{c}
+\mylabel{T-IDWRITE}\\
+\dfrac{\env_{1}(n) = t}
+      {\env_{1} \vdash n_{l}:close(t), \env_{1}[n \mapsto close(t)]}
+\end{array}
+\]
+
+We also have different rules for type checking table indexing to avoid
+promoting table types in these operations:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{T-INDEXREAD1}\\
+\mylabel{T-INDEX1}\\
 \dfrac{\env_{1}(n) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\} \;\;\;
        \env_{1} \vdash e_{2}:t, \env_{2} \;\;\;
        \exists i \in 1{..}n \; t \lesssim k_{i}}
-      {\env_{1} \vdash n_{e}[e_{2}]:v_{i}, \env_{2}}
+      {\env_{1} \vdash n[e_{2}]:v_{i}, \env_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{T-INDEXREAD1}\\
+\mylabel{T-INDEX2}\\
 \dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2} \;\;\;
        \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
        \exists i \in 1{..}n \; t \lesssim k_{i}}
@@ -1400,8 +1454,9 @@ The rule \textsc{T-CAST} describes this behavior:
 \[
 \begin{array}{c}
 \mylabel{T-CAST}\\
-\dfrac{\env_{1}(n) \subtype t}
-      {\env_{1} \vdash {<}t{>} \; n:close(t), \env_{1}[n \mapsto t]}
+\dfrac{\env_{1}(n) \subtype t \;\;\;
+       \env_{1}[n \mapsto t] \vdash n_{e}:t_{1}, \env_{2}}
+      {\env_{1} \vdash {<}t{>} \; n:t_{1}, \env_{2}}
 \end{array}
 \]
 
