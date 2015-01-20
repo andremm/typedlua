@@ -1,27 +1,18 @@
 Typed Lua is an optional type system for Lua, and its main goal is to
-allow programmers to combine static and dynamic typing in Lua.
-In practice, Typed Lua extends the syntax of Lua to introduce
-optional type annotations.
-In addition, Typed Lua performs local type inference \citep{pierce2000lti}
+provide static type checking for Lua.
+To do that, Typed Lua extends the syntax of Lua 5.3 to introduce
+optional type annotations, and performs local type inference \citep{pierce2000lti}
 to detect more precise types for unannotated expressions.
 Even though the compiler warns the programmer about type errors,
 it always removes the type annotations to generate Lua code that
 runs in unmodified Lua implementations.
 
-An important feature of Typed Lua is its backwards compatibility with Lua,
-that is, unannotated Typed Lua code is valid Lua code.
-For this reason, the syntactic extensions introduced by Typed Lua
-include new keywords that are not reserved words.
+Another goal of Typed Lua is to be backwards compatible with Lua.
+This means that any Lua code is valid Typed Lua code.
+To be backwards compatible with Lua, the syntactic extensions introduced
+by Typed Lua does not include new reserved words.
 Appendix \ref{app:syntax} presents the complete syntax of Typed Lua
 in extended BNF.
-
-Another important feature of Typed Lua is its interface between
-statically and dynamically typed modules.
-This means that the programmer can enjoy some of the benefits of
-static types even without converting existing Lua modules to Typed Lua,
-as a dynamically typed module can export a statically typed interface,
-and statically typed users of the module have their use of the module
-checked by the compiler.
 
 We use the consistent-subtyping relation of gradual typing
 \citep{siek2007objects,siek2013mutable} to formalize Typed Lua,
@@ -29,24 +20,26 @@ though it does not insert run-time checks in the gradual typing style.
 In gradual typing, run-time checks inspect the interaction between
 dynamically typed and statically typed code to guarantee that dynamically
 typed code does not violate statically typed code during run-time.
-A good reason for not inserting run-time checks at this moment is that they
-can decrease run-time performance \citep{allende2013cis}, and we believe that
-a careful evaluation of run-time checks should be done before inserting them
-on the type system.
+We did not insert run-time checks at this moment because they can decrease
+run-time performance \citep{allende2013cis}.
+We believe that a careful evaluation of run-time checks should be done before
+inserting them on the type system.
+However, this evaluation is out of the scope of this work.
 
 Unlike Dart \citep{dart} and TypeScript \citep{typescript},
-we are designing Typed Lua aiming soundness to make it possible to switch
-Typed Lua from optional typing to gradual typing in the future,
-as a sound type system is a prerequisite to make Typed Lua insert
-run-time checks after static type checking.
+we are designing Typed Lua aiming soundness to make it possible to
+switch Typed Lua from optional typing to gradual typing in the future.
+As we mentioned in the previous chapter,
+a sound type system is a prerequisite to insert run-time checks after
+static type checking, because a sound type system ensures that
+statically typed code will not throw type errors during run-time.
 
 In this chapter we use some examples of Typed Lua code to show how
 they relate to Lua.
-This examples shall give an informal overview of our optional type system.
-We use typing rules to present the formalization of our optional type system
-in Chapter \ref{chap:system}.
-It worth mentioning that we used our implementation to produce and
-test all the examples that we present along this section.
+These examples shall give an informal overview of our optional type system.
+We will use typing rules to present the formalization of our optional type
+system in the next chapter.
+All the examples that we present along this chapter run in our Typed Lua compiler.
 
 \section{Optional type annotations}
 \label{sec:annotations}
@@ -56,8 +49,9 @@ Lua values can have one of eight tags:
 \emph{function}, \emph{table}, \emph{userdata}, and \emph{thread}.
 Typed Lua includes types for the first six.
 Typed Lua also includes a syntactical extension that programmers can use
-to define the types of \emph{userdata}, and uses it to define the type \emph{thread}. 
-In this section, we present the Typed Lua types that may appear on annotations.
+to define the types of \emph{userdata}.
+We use this syntactical extension to define the type \emph{thread}. 
+In this section we present the Typed Lua types that may appear on annotations.
 We explain all Typed Lua types and syntactical extensions along this chapter.
 
 \begin{figure}[!ht]
@@ -92,10 +86,11 @@ We explain all Typed Lua types and syntactical extensions along this chapter.
 \textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
   \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}\\
 \textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
-\textit{tabletypebody} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type} \; | \;
+\textit{tabletypebody} ::= & \;\; \textit{hashtype} \; | \;
   \textit{recordtype}\\
+\textit{hashtype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
 \textit{keytype} ::= & \;\; \textit{basetype} \; | \;
-  \textbf{any}\\
+  \textbf{value}\\
 \textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
 \textit{recordfield} ::= & \;\; [\textbf{const}] \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}
 \end{align*}
@@ -104,7 +99,7 @@ We explain all Typed Lua types and syntactical extensions along this chapter.
 \label{fig:types}
 \end{figure}
 
-Figure \ref{fig:types} presents the concrete syntax of the
+Figure \ref{fig:types} presents the concrete syntax of
 Typed Lua types in extended BNF.
 We classify Typed Lua types into two categories:
 \emph{first-level types} and \emph{second-level types}.
@@ -121,41 +116,83 @@ vararg types, tuple types, and unions of tuple types.
 
 Typed Lua uses subtyping to order types.
 Any first-level type is a subtype of \texttt{value}.
-The rest of the subtyping relationship is standard:
-union types are supertypes of their parts,
-\texttt{boolean}, \texttt{integer}, \texttt{number}, and \texttt{string}
-are supertypes of their respective literal types,
-\texttt{integer} is subtype of \texttt{number},
-function types are related by contravariance on the input
-and covariance on the output, table types have width subtyping,
-with depth subtyping on \texttt{const} fields, tuple and vararg types
-are covariant.
+Union types are supertypes of their parts.
+The base types \texttt{boolean}, \texttt{integer}, \texttt{number},
+and \texttt{string} are supertypes of their respective literal types.
+The base type \texttt{integer} is subtype of \texttt{number}.
+Function types are related by contravariance on the input
+and covariance on the output.
+Table types have width subtyping, with depth subtyping on
+\texttt{const} fields.
+Tuple and vararg types are covariant.
+Unions of tuple types are also supertypes of their parts.
 
 Typed Lua uses consistent-subtyping to check the interaction among the
 dynamic type \texttt{any} and other types.
-The dynamic type \texttt{any} is a subtype of \texttt{value}, but neither
-a supertype nor a subtype of any other type.
+The dynamic type \texttt{any} is a subtype of \texttt{value}, but it is
+neither a supertype nor a subtype of any other type.
 Our consistent-subtyping relationship follows the standards defined
 by the gradual typing of objects \citep{siek2007objects,siek2013mutable}.
 In practice, we can pass a value of the dynamic type anytime we want
-a value of some other type, and can pass any value where a
+a value of some other type, and we can pass any value where a
 value of the dynamic type is expected, but the compiler tracks these
 operations, and the programmer can choose to be warned about them.
 
 Typed Lua allows optional type annotations in variable and function
 declarations.
-Whenever it is possible to use local type inference, the compiler
-assigns a more specific type to an unannotated declaration.
-When it is not possible to use local type inference, the compiler
-assigns the type \texttt{any} to an unannotated declaration.
-For instance, in function declarations, the compiler does not infer
-a more specific type to unannotated input parameters, because,
-in this case, global type inference often is undecidable in a
-language with subtyping and overloading \citep{wells1999typability}.
+We use the following example to illustrate how we can annotate a
+function declaration and a variable declaration:
+\begin{verbatim}
+    local function succ (x:integer):integer
+      return x + 1
+    end
+    local x:integer = 7
+    x = succ(x)
+    print(x)      --> 8
+\end{verbatim}
 
-In the following example, we use type annotations in a function
-declaration, and we do not use type annotations in a declaration of a
-local variable:
+Typed Lua uses local type inference to assign more specific types to
+some unannotated declarations.
+More precisely, Typed Lua can infer the type of local variables and
+the return type of local functions that are not recursive.
+The inference that we implement in Typed Lua is quite simple, as it
+uses only the type of the local expression.
+For local variables, Typed Lua uses the type of the initialization
+expression to assign a more specific type to an unannotated local variable.
+For local functions, Typed Lua uses the type of the returned expression
+to assign a more specific type to an uannotated return type.
+This means that we can rewrite the previous example as follows:
+\begin{verbatim}
+    local function succ (x:integer)
+      return x + 1
+    end
+    local x = 7
+    x = succ(x)
+    print(x)      --> 8
+\end{verbatim}
+
+In this example, the compiler uses local type inference to assign the
+type \texttt{integer} to the local variable \texttt{x} and to the
+return type of the local function \texttt{succ}, making this example
+compile without any warnings.
+Local type inference always use the most general type.
+In this example, the compiler does not use the literal type \texttt{7},
+instead of the base type \texttt{integer}, because this would generate
+a warning when we try to assign other integer value to the variable \texttt{x}.
+Still, programmers can use literal types in type annotations if
+they need a variable that has a very specific type.
+In Section \ref{sec:tables} we will see in more detail that literal
+types are essential to type Lua tables.
+
+Typed Lua assigns the type \texttt{any} to the unannotated declarations
+that it cannot infer a more specific type.
+More precisely, Typed Lua cannot infer more specific types to input
+parameters of function declarations and to the return type of
+recursive functions, as global type inference is undecidable in a
+language with subtyping \citep{wells1999typability}.
+
+We use the following example to illustrate type annotations in the
+declaration of a recursive function:
 \begin{verbatim}
     local function factorial (n:integer):integer
       if n == 0 then
@@ -164,23 +201,15 @@ local variable:
         return n * factorial(n - 1)
       end
     end
-    local x = 5
-    print(factorial(x))
 \end{verbatim}
 
-Even though we did not add type annotations in the declaration of
-the local variable \texttt{x}, the compiler uses local type inference to
-assign the type \texttt{integer} to \texttt{x}, and this example compiles
-without any errors.
-The compiler does not use the literal type \texttt{5},
-instead of the base type \texttt{integer}, because this would prevent
-programmers from assigning other integer values to the variable
-\texttt{x}.
-The inference that we implement in Typed Lua is quite simple, as it
-uses only the type of the local expression.
+This example compiles without any warnings because we annotated
+the return type of \texttt{factorial}.
 
-Typed Lua allows programmers to combine statically typed code with
-dynamically typed code, as we show in the following example:
+We use the following example to illustrate the omission of type
+annotations in the input parameters of a local function,
+and also to show that Typed Lua allows programmers to combine
+statically typed code with dynamically typed code:
 \begin{verbatim}
     local function absolute (n:integer):integer
       if n < 0 then
@@ -198,15 +227,15 @@ dynamically typed code, as we show in the following example:
 The function \texttt{distance} receives two parameters of type \texttt{any}
 and returns a value of type \texttt{integer}.
 The compiler assigns the dynamic type \texttt{any} to the input
-parameters of \texttt{distance} because they do not have type annotations,
+parameters of \texttt{distance} because they do not have type annotations
 and the compiler does not use global type inference, as we mentioned
 previously.
-Even though we did not annotated the return type of \texttt{distance},
+Even though we did not annotate the return type of \texttt{distance},
 the compiler is able to infer its return type because it is local
 and not recursive.
 
 In this example, Typed Lua cannot guarantee that \texttt{distance} is never
-going to call \texttt{absolute} with a parameter that is not an integer number,
+going to call \texttt{absolute} with a parameter that is not an integer,
 because in the semantics of Lua the minus operator can result in a
 value that is not an integer number.
 In fact, we can overload the minus operator to return a value that is
@@ -215,8 +244,8 @@ However, we can call \texttt{absolute} inside \texttt{distance}
 because the expression \texttt{x - y} has type \texttt{any},
 and it is consistent with type \texttt{integer}.
 Still, the dynamic type \texttt{any} may be hiding a value of a type
-that is not an integer, making the dynamically typed code crash the
-statically typed code.
+that is not an integer, making the dynamically typed code break the
+guarantees provided by the statically typed code.
 This is a typical example where run-time checks would ensure safety
 between the interaction of dynamically typed and statically typed code.
 
@@ -231,100 +260,138 @@ replace missing arguments.
 Second, functions can return any number of values,
 and this number of returned values may not be statically known.
 Third, Lua has multiple assignment, and the semantics
-of argument passing is the same of the multiple assignment
-(or vice-versa), that is, calling a function is like doing a
-multiple assignment where the left hand side is the parameter list
-and the right hand side is the argument list.
+of argument passing is the same of the multiple assignment, that is,
+calling a function is like doing a multiple assignment where the
+left hand side is the parameter list and the right hand side is the
+argument list.
 
-Typed Lua uses second-level types to encode function types,
+Typed Lua uses second-level types to encode function types
 and to preserve these peculiarities.
 We call them second-level because these types do not correspond
 to actual Lua values and we cannot use them to type variables or
 parameters.
-They are just an artifact of the interaction between the type system
-and the semantics of Lua.
+Second-level types represent tuple types that can appear in multiple assignment.
+Since the semantics of argument passing is the same of multiple assignment,
+second-level types also appear in function types.
 
-As we can see in Figure \ref{fig:types}, second-level types consist
+\begin{figure}[!ht]
+\textbf{Function types}\\
+\dstart
+\begin{align*}
+\textit{functiontype} ::= & \;\; \textit{tupletype} \; \texttt{`->'} \; \textit{rettype}\\
+\textit{tupletype} ::= & \;\; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+\textit{typelist} ::= & \;\; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
+\textit{rettype} ::= & \;\; \textit{type} \; | \;
+  \textit{uniontuple} \; [\texttt{`?'}]\\
+\textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
+  \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua function types}
+\label{fig:functions}
+\end{figure}
+
+As we can see in Figure \ref{fig:functions}, second-level types consist
 of either \emph{tupletype} or \emph{rettype}.
-A second-level type is the type void \texttt{()},
+A second-level type is either the type void \texttt{()},
 a tuple of first-level types optionally ending in a variadic type,
 or a union of these tuples.
+The type void \texttt{()} represents the type of the empty tuple.
 A variadic type \texttt{t*} is a generator for a sequence of values
 of the union type \texttt{t|nil}.
-Union of tuples may appear only on the return type of functions,
-and together with \emph{projection types} play an important role
-in functions that are overloaded on the return type.
-We will explain union types and projection types in more detail
-in the next section.
+Union of tuple types appear in the return type of function types to
+represent overloading on the return type.
+We will explain union types in more detail in the next section.
+We can use only one first-level type \texttt{t} in the return type
+because it is syntactic sugar to the tuple type \texttt{(t)}.
 
-To match the semantics of Lua function calls, the \emph{default} operation
-mode of Typed Lua adds a variadic tail to the parts of a function
-type whenever the programmer does not specify one.
-In the previous examples, the type of both \texttt{factorial} and
-\texttt{absolute} is \texttt{(integer, value*) -> (integer, nil*)},
-and the type of \texttt{distance} is \texttt{(any, any, value*) -> (integer, nil*)}.
-If we call \texttt{absolute} with extra arguments, Typed Lua silently ignores
-them, as the type signature lets \texttt{absolute} receive any number of
-extra arguments.
-If we call \texttt{absolute} with fewer arguments, Typed Lua uses \texttt{nil} to
-replace the missing arguments and in the case of \texttt{absolute} generates
-an error, as \texttt{nil} is neither a subtype of \texttt{integer} nor consistent
-with \texttt{integer}.
+Typed Lua provides two operation modes: the \emph{default} mode and
+the \emph{strict} mode.
+In the default mode, the compiler adds a variadic tail to the
+type of the parameter list and to the return type whenever the
+programmer does not specify one.
+The default mode has this behavior to preserve the semantics
+of function calls in Lua, that is, it discards extra arguments and
+uses \texttt{nil} to replace missing arguments.
+In the strict mode, the compiler does not add a variadic tail
+to the type of the parameter list and to the return type.
+Instead, it preserves the type defined by the programmer to catch
+arity mismatch.
+We will use the following function to illustrate how these two
+operation modes work:
+\begin{verbatim}
+    local function sum (x:integer, y:integer):integer
+      return x + y
+    end
+\end{verbatim}
 
-Typed Lua also provides a \emph{strict} operation mode, and programmers can
-use this mode if they want to catch arity mismatch of function calls.
-In the strict mode, Typed Lua does not add a variadic tail to the
-parts of a function type unless the programmer explicitly declares one.
-In the previous examples, the type of both \texttt{factorial} and
-\texttt{absolute} is \texttt{(integer) -> (integer)},
-and the type of \texttt{distance} is \texttt{(any, any) -> (integer)}.
-If we call \texttt{absolute} with either extra or missing arguments,
-Typed Lua generates errors about arity mismatch.
+In the default mode, the type of \texttt{sum} is
+\texttt{(integer, integer, value*) -> (integer, nil*)}.
+The compiler adds \texttt{value*} to the type of the parameter list
+to discard extra arguments.
+For instance, the call \texttt{sum(1, 2, 3)} compiles without any
+warnings because Typed Lua uses \texttt{value*} to drop the extra
+argument \texttt{3}.
+
+In the strict mode, the type of \texttt{sum} is
+\texttt{(integer, integer) -> (integer)}.
+The compiler does not add \texttt{value*} to the type of the parameter
+list to catch arity mismatch.
+For instance, the call \texttt{sum(1, 2, 3)} compiles with a warning
+because we are passing an extra argument \texttt{3} to \texttt{sum}.
+
+Even though these operation modes affect function calls, they do not
+affect other multiple assignment.
+For instance,
+\begin{verbatim}
+    local x:integer, y:integer = 1, 2, 3
+\end{verbatim}
+compiles without any warnings in both operation modes.
+This means that the left-hand side of this local declaration has the
+tuple type \texttt{(integer, integer, value*)}, while the expression
+list in the right-hand side of this local declaration has the
+tuple type \texttt{(1, 2, 3, nil*)} in both operation modes.
 
 A variadic type can only appear in the tail position of a tuple,
 because Lua takes only the first value of any expression that appears
 in an expression list that is not in tail position.
-The following example shows the interaction between multiple returns
-and expression lists:
+We will use the following function to illustrate the interaction
+between multiple returns and expression lists:
 \begin{verbatim}
-    local function multiple ()
+    local function m ():(integer, string)
       return 2, "foo"
     end
-    local function sum (x:integer, y:integer)
-      return x + y
-    end
-    local x, y, z = multiple(), multiple()
-    print(sum(multiple(), multiple()))
 \end{verbatim}
 
-In the default mode, the type of \texttt{multiple} is
-\texttt{(value*) -> (integer, string, nil*)},
-and the type of \texttt{sum} is \texttt{(integer, integer, value*) -> (integer, nil*)}.
-In the right hand side of the multiple assignment, only the first
-value produced by the first call to multiple gets used,
-so the type of the right hand side is
-\texttt{(integer, integer, string, nil*)},
-and the types assigned to \texttt{x}, \texttt{y}, and \texttt{z}
-are \texttt{integer}, \texttt{integer}, and \texttt{string}, respectively.
-The same tuple is assigned to the call to \texttt{sum} and it
-compiles without errors, as the first two components of the tuple
-are consistent with the types of the parameters, and the other
-components are consistent with \texttt{value}.
+As an example,
+\begin{verbatim}
+    local x:integer, y:integer, z:string = m(), m()
+\end{verbatim}
+compiles without warnings in both operation modes.
+This happens because in the right hand side of the multiple
+assignment, only the first value produced by the first call
+to \texttt{m} gets used, so the type of the right hand side
+is \texttt{(integer, integer, string, nil*)}, which is
+consistent with the type of the left hand side
+\texttt{(integer, integer, string, value*)}.
 
-In the strict mode, the type of \texttt{multiple} is \texttt{() -> (integer, string)},
-and the type of \texttt{sum} is \texttt{(integer, integer) -> (integer)}.
-Like in the default mode, only the first value produced by the
-first call to multiple gets used in the right hand side of the
-multiple assignment;
-and the type of the right hand side is also
-\texttt{(integer, integer, string, nil*)},
-because the strict mode affects only the type of function declarations
-and multiple assignments that appear in function calls.
-Unlike in the default mode, the type of the call to \texttt{sum} is
-\texttt{(integer, integer, string)}, and does not include the
-variadic tail to catch arity mismatch.
-Thus, this example compiles with error because the call to \texttt{sum}
-passes an unexpected extra argument of type \texttt{string}.
+We can also type variadic functions.
+For instance,
+\begin{verbatim}
+    local function v (...:string):(string*)
+      return ...
+    end
+\end{verbatim}
+has type \texttt{(string*) -> (string*)} in both operation modes.
+The call \texttt{v()} compiles without any warnings in the default and
+strict modes because \texttt{(value*)} and \texttt{()} are consistent
+with \texttt{(string*)}.
+The call \texttt{v("hello", "world")} compiles without any warnings
+in the default and strict modes because \texttt{("hello", "world", nil*)}
+and \texttt{("hello", "world")} are consistent with \texttt{(string*)}.
+The call \texttt{v(...)} compiles withouth any warnings in both
+operation modes because the type of the argument list is \texttt{(string*)},
+assuming that the vararg expression (\texttt{...}) has type \texttt{string}.
 
 \section{Unions}
 \label{sec:unions}
@@ -346,18 +413,18 @@ The following example shows a function that has an optional parameter:
       return greeting .. name
     end
 
-    print(message("Typed Lua"))         -- Typed Lua
-    print(message("Typed Lua", "Hi "))  -- Hi Typed Lua
+    print(message("Typed Lua"))         --> Typed Lua
+    print(message("Typed Lua", "Hi "))  --> Hi Typed Lua
 \end{verbatim}
 
 Although the parameter \texttt{greeting} is optional, and has type
-\texttt{string|nil}, the concatenation does not generate a type error
+\texttt{string|nil}, the concatenation does not generate a warning
 because we used the short-circuiting \texttt{or} operator to declare a
 new variable \texttt{greeting} that is guaranteed to have type \texttt{string}. 
 In Lua, only the values \texttt{nil} and \texttt{false} represent a
 false condition, so programmers often use the \texttt{or} operator as a
 common idiom to assign a default value to an optional parameter. 
-Typed Lua uses a typing rule to encode this idiom: 
+Typed Lua uses the following rule to type this idiom: 
 if the left hand side of \texttt{or} has type \texttt{t|nil} and
 the right hand side has type \texttt{t} then the \texttt{or} expression has
 type \texttt{t}.
@@ -373,12 +440,12 @@ shadows the optional parameter:
 
 Typed Lua allows the assignment \texttt{x = x or e} to refine
 the type of \texttt{x} from \texttt{t|nil} to \texttt{t}
-if it matches the following restrictions: 
+if it matches the following rules: 
 the type of \texttt{e} is a subtype of \texttt{t},
 and the variable \texttt{x} is local to the current function
 and it is not being assigned in another function.
-The refinement only affects the type of \texttt{x} in the remainder
-of the current scope.
+The refinement only affects the type of \texttt{x} until the
+next assignment to \texttt{x}.
 In the case of \texttt{greeting}, the assignment refines its type
 from \texttt{string|nil} to \texttt{string}. 
 
@@ -401,8 +468,9 @@ The simplest case overloads on just a single parameter:
 Typed Lua has a small set of \texttt{type} predicates that allows
 programmers to constrain the type of a local variable inside a condition.
 This example uses the \texttt{type(x) == "string"} predicate that
-constrains the type of \texttt{x} from \texttt{t|string} to
-\texttt{string} when the predicate is true and \texttt{t} otherwise.
+constrains the type of \texttt{x} from \texttt{string|t} to
+\texttt{string} inside the \texttt{if} body and to \texttt{t}
+inside the \texttt{else} body. 
 This is a simplified form of \emph{flow typing} \citep{guha2011tlc,tobin-hochstadt2010ltu}.
 As with \texttt{or}, the variable must be local to the function
 and it is not being assigned in another function.
@@ -418,9 +486,8 @@ Lua programmers also overload the return type of functions,
 usually for signaling the occurrence of errors.
 In this idiom, a function returns its normal set of return values
 when it successfully finished its execution,
-and usually returns \texttt{nil} as the first value plus an
-error message or other data that describes the error
-when something failed during its execution.
+and returns \texttt{nil} plus an error message or other data that
+describes the error when something failed during its execution.
 Next, we show an example:
 \begin{verbatim}
     local function idiv (dividend:integer, divisor:integer):
@@ -453,36 +520,44 @@ A typical client of this function would use it as follows:
 \end{verbatim}
 
 When Typed Lua finds a union of tuples in the right hand side of
-a declaration, it stores this union in a special type environment
-with a fresh name and assigns \emph{projection types} to the
-variables that appear unannotated in the left hand side of the declaration.
-In our example, Typed Lua assigns the union of tuples
-\texttt{(integer, integer, nil*)|(nil, string, nil*)} to a type variable $X$.
-Thus, variable \texttt{q} gets the type $X_{1}$
-that is equivalent to the type \texttt{integer|nil},
-and variable \texttt{r} gets the type $X_{2}$
-that is equivalent to the type \texttt{integer|string}.
+a declaration, it assigns \emph{projection types} to the
+variables that appear unannotated in the left hand side of the
+declaration.
+Projection types do not appear in type annotations, but Typed Lua
+uses them to project unions of tuple types into unions of
+first-level types that have a dependency relation.
+We will discuss projection types in more detail in the next chapter.
 
-Typed Lua replaces projection types with the union of the corresponding
-component of each tuple when it infers that a variable has a projection type.
+So far, Typed Lua replaces projection types with the union of the
+corresponding component of each tuple, when it infers that a variable
+has a projection type.
+In our example, the variables \texttt{q} and \texttt{r} get projection
+types that map to the first and second components of the union of
+tuple types \texttt{(integer, integer, nil*)|(nil, string, nil*)}.
+This means that variables \texttt{q} and \texttt{r} have types
+\texttt{integer|nil} and \texttt{integer|string}, respectively.
+
 If a variable with a projection type appears in a \texttt{type} predicate,
-it discriminates against all tuples in the union.
-In our example, $X$ is \texttt{(integer, integer, nil*)|(nil, string, nil*)}
-outside of the \texttt{if} statement,
+it discriminates against all tuples in the projected union.
+In our example, the projected union has type
+\texttt{(integer, integer, nil*)|(nil, string, nil*)} outside of the
+\texttt{if} statement,
 but \texttt{(integer, integer, nil*)} inside the \texttt{then} block,
 and \texttt{(nil, string, nil*)} inside the \texttt{else} block.
-Thus, variable \texttt{q} has type \texttt{integer} and variable \texttt{r} also
+Thus, variable \texttt{q} has type \texttt{integer|nil} and variable
+\texttt{r} has type \texttt{integer|string} outside of the
+\texttt{if} statement;
+but variable \texttt{q} has type \texttt{integer} and variable \texttt{r} also
 has type \texttt{integer} inside the \texttt{then} block;
 and variable \texttt{q} has type \texttt{nil} while variable \texttt{r}
 has type \texttt{string} inside the \texttt{else} block.
 
-We could also have used \texttt{type(q) == "integer"} or
-even \texttt{type(r) == "integer"} as the predicate of our example,
+We could have used \texttt{math.type(q) == "integer"} or
+even \texttt{math.type(r) == "integer"} as the predicate of our example,
 as both predicates would produce the same result.
 However, the form that appears in our example is much more succinct and idiomatic.
 Note that the type \texttt{integer} is restricted to Lua 5.3,
-as we use the function \texttt{math.type} to decide whether a number
-is integer or not.
+as we use the function \texttt{math.type} to decide whether a number is integer.
 
 Typed Lua does not allow assignments to variables that hold a projection type,
 unless the union has been discriminated down to a single value.
@@ -508,9 +583,7 @@ guaranteed to return a number when we pass a number and
 guaranteed to return a string when we pass a string.
 Even though we could use intersection types to express the type
 of this function as
-\texttt{(number) -> (number) \string&
-(string) -> (string)},
-and therefore solve this limitation,
+\texttt{(number) -> (number) \string& (string) -> (string)},
 intersection types require more sophisticated flow typing to
 check whether a function has this type,
 and we still need to work on this problem.
@@ -535,6 +608,23 @@ A table type $\texttt{\{k}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
 \texttt{, ..., k}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$ represents a map
 from values of type $\texttt{k}_{\texttt{i}}$ to values of type
 $\texttt{t}_{\texttt{i}}$.
+
+\begin{figure}[!ht]
+\textbf{Table types}\\
+\dstart
+\begin{align*}
+\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
+\textit{tabletypebody} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type} \; | \;
+  \textit{recordtype}\\
+\textit{keytype} ::= & \;\; \textit{basetype} \; | \;
+  \textbf{value}\\
+\textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
+\textit{recordfield} ::= & \;\; [\textbf{const}] \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua table types}
+\label{fig:tables}
+\end{figure}
 
 Although Typed Lua has just one framework to represent tables,
 it has three different syntaxes for defining the type of a table:
@@ -741,7 +831,7 @@ support idiomatic definition of Lua modules.
 In Section \ref{sec:oop} we show that the refinement of table
 types is also helpful for defining classes and objects.
 
-\section{Interfaces and type aliases}
+\section{Type aliases and interfaces}
 \label{sec:alias}
 
 Typed Lua includes \emph{interfaces} as syntactic sugar to table types
@@ -755,6 +845,34 @@ type of the record we showed in the previous section:
       lastname:string
     end
 \end{verbatim}
+
+\begin{figure}[!ht]
+\textbf{Type alias}\\
+\dstart
+\begin{align*}
+\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua type aliases}
+\label{fig:aliases}
+\end{figure}
+
+\begin{figure}[!ht]
+\textbf{Interfaces}\\
+\dstart
+\begin{align*}
+\textit{interface} ::= & \; \textbf{interface} \; \textit{typedec}\\
+\textit{typedec} ::= & \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
+\textit{decitem} ::= & \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
+\textit{id} ::= & \; [\textbf{const}] \; \textit{Name}\\
+\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua interfaces}
+\label{fig:interfaces}
+\end{figure}
 
 The declaration of the interface \texttt{Person} is an alias to the
 table type \texttt{\{"firstname":string, "lastname":string\}} in the
@@ -1259,6 +1377,14 @@ on plans for future work anyway.
 
 \section{Description files}
 \label{sec:tld}
+
+An important feature of Typed Lua is its interface between
+statically and dynamically typed modules.
+This means that the programmer can enjoy some of the benefits of
+static types even without converting existing Lua modules to Typed Lua,
+as a dynamically typed module can export a statically typed interface,
+and statically typed users of the module have their use of the module
+checked by the compiler.
 
 The Typed Lua compiler also handles description files.
 The programmer can use description files for two purposes:
