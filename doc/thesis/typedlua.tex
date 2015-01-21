@@ -86,9 +86,9 @@ We explain all Typed Lua types and syntactical extensions along this chapter.
 \textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
   \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}\\
 \textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
-\textit{tabletypebody} ::= & \;\; \textit{hashtype} \; | \;
+\textit{tabletypebody} ::= & \;\; \textit{maptype} \; | \;
   \textit{recordtype}\\
-\textit{hashtype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
+\textit{maptype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
 \textit{keytype} ::= & \;\; \textit{basetype} \; | \;
   \textbf{value}\\
 \textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
@@ -438,14 +438,14 @@ shadows the optional parameter:
     end
 \end{verbatim}
 
-Typed Lua allows the assignment \texttt{x = x or e} to refine
-the type of \texttt{x} from \texttt{t|nil} to \texttt{t}
+Typed Lua allows the assignment \texttt{v = v or e} to refine
+the type of \texttt{v} from \texttt{t|nil} to \texttt{t}
 if it matches the following rules: 
 the type of \texttt{e} is a subtype of \texttt{t},
-and the variable \texttt{x} is local to the current function
+and the variable \texttt{v} is local to the current function
 and it is not being assigned in another function.
-The refinement only affects the type of \texttt{x} until the
-next assignment to \texttt{x}.
+The refinement only affects the type of \texttt{v} until the
+next assignment to \texttt{v}.
 In the case of \texttt{greeting}, the assignment refines its type
 from \texttt{string|nil} to \texttt{string}. 
 
@@ -467,8 +467,8 @@ The simplest case overloads on just a single parameter:
 
 Typed Lua has a small set of \texttt{type} predicates that allows
 programmers to constrain the type of a local variable inside a condition.
-This example uses the \texttt{type(x) == "string"} predicate that
-constrains the type of \texttt{x} from \texttt{string|t} to
+This example uses the \texttt{type(v) == "string"} predicate that
+constrains the type of \texttt{v} from \texttt{string|t} to
 \texttt{string} inside the \texttt{if} body and to \texttt{t}
 inside the \texttt{else} body. 
 This is a simplified form of \emph{flow typing} \citep{guha2011tlc,tobin-hochstadt2010ltu}.
@@ -597,25 +597,18 @@ can be used as a key.
 Programmers can use tables to represent tuples, arrays (dense or sparse),
 records, graphs, modules, objects, etc.
 Lua has syntactic sugar for indexing tables as records:
-\texttt{t.k} is syntactic sugar for \texttt{t["k"]}, and means that
-we are accessing the field \texttt{k} from table \texttt{t}. 
-In this section, we show how Typed Lua encodes tables as maps,
+\texttt{t.k} is syntactic sugar for \texttt{t["k"]}.
+In this section, we show how Typed Lua types tables that encode maps,
 arrays, and records.
-
-Table types are the only framework that Typed Lua has to represent
-the different uses that a Lua table has.
-A table type $\texttt{\{k}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
-\texttt{, ..., k}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$ represents a map
-from values of type $\texttt{k}_{\texttt{i}}$ to values of type
-$\texttt{t}_{\texttt{i}}$.
 
 \begin{figure}[!ht]
 \textbf{Table types}\\
 \dstart
 \begin{align*}
 \textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
-\textit{tabletypebody} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type} \; | \;
+\textit{tabletypebody} ::= & \;\; \textit{maptype} \; | \;
   \textit{recordtype}\\
+\textit{maptype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
 \textit{keytype} ::= & \;\; \textit{basetype} \; | \;
   \textbf{value}\\
 \textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
@@ -626,119 +619,119 @@ $\texttt{t}_{\texttt{i}}$.
 \label{fig:tables}
 \end{figure}
 
-Although Typed Lua has just one framework to represent tables,
-it has three different syntaxes for defining the type of a table:
-\begin{align}
-\label{syn:table1}
-\texttt{`\{'} \; \textit{keytype} \; \texttt{`:'} \; \textit{type} \; \texttt{`\}'}\\
-\label{syn:table2}
-\texttt{`\{'} \; \textit{type} \; \texttt{`\}'}\\
-\label{syn:table3}
-\texttt{`\{'} \; \textit{literaltype} \; \texttt{`:'} \; \textit{type} \;
-\{\texttt{`,'} \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}\} \;
-[\texttt{`,'} \; \textit{type}] \; \texttt{`\}'}
-\end{align}
-The syntax \ref{syn:table1} defines table types for maps:
-it is written \texttt{\{k:t\}},
-and maps to the table type \texttt{\{k:t|nil\}}.
-This table type represents a map that maps values of type
-\texttt{k} to values of type \texttt{t|nil},
-as Lua returns \texttt{nil} when we use a non-existing key to index a table.
-The syntax \ref{syn:table2} defines table types for arrays:
-it is written \texttt{\{t\}},
-and maps to the table type \texttt{\{integer:t|nil\}}.
-This table type is just a syntactic sugar to the definition of a
-map that maps values of type \texttt{integer} to values of type \texttt{t|nil}.
-The syntax \ref{syn:table3} defines table types for records with an
-optional array part: it is written
-$\texttt{\{l}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
-\texttt{, ..., l}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$,
-and maps to the same table type.
-This table type represents a record that maps the literal types
-$\texttt{l}_{\texttt{i}}$\texttt{, ..., }$\texttt{l}_{\texttt{n}}$
-to values of types $\texttt{t}_{\texttt{i}}$\texttt{, ..., }$\texttt{t}_{\texttt{n}}$.
+Figure \ref{fig:tables} shows that the concrete syntax of Typed Lua
+table types is restricted to either the type of the empty table,
+maps, arrays, or records with an optional array part.
+We made this design choice due to the results that we obtained
+about the usage of the table constructor, which we discussed
+in Section \ref{sec:statistics}.
+Later in this chapter we will show that we use the syntax of records
+to type modules and objects.
+We will also show that we need the \texttt{const} modifier while
+typing object-oriented code.
 
+The table type \texttt{\{k:t\}} represents the type of a map
+from values of type \texttt{k} to values of type \texttt{t|nil}.
+Table types that represent maps always include the type \texttt{nil},
+because Lua returns \texttt{nil} when we use a non-existing key to
+index a table. 
+The types of the keys are restricted to either base types or the
+type \texttt{value} due to the statistics of the table constructor,
+which we discussed in Section \ref{sec:statistics}.
 Next, we show one example of table type to type a map from strings to integers:
 \begin{verbatim}
     local t:{string:integer} = { foo = 1 } 
-    local x:integer = t.foo               -- compile-time error
-    local y:integer? = t.bar              -- y gets nil
-    local z:integer = t["bar"] or 0       -- z gets 0 
+    local x:integer = t.foo           --> compile-time warning
+    local y:integer? = t.bar          --> y gets nil
+    local z:integer = t["bar"] or 0   --> z gets 0 
 \end{verbatim}
 
-The second line of this example gives a type error because we are
+The second line of this example raises a warning, because we are
 attempting to assign a value of type \texttt{integer|nil} to a
 variable that accepts only values of type \texttt{integer}.
 Although the field \texttt{bar} does not exist in \texttt{t}, the third
-line of this example does not give a type error because the
+line of this example does not raise a warning, because the
 annotated type matches the type of the values that can be stored in
 \texttt{t}.
 The last line shows that the \texttt{or} idiom is also useful to
 give a default value to a missing table field.
 
-Next, we show one example of table type to type an array:
+The table type \texttt{\{t\}} represents the type of an array that 
+maps values of type \texttt{integer} to values of type \texttt{t|nil}.
+In other words, Typed Lua handles arrays as syntactic sugar to the
+table type \texttt{\{integer:t\}}.
+Next, we show one example of table type to type an array of strings:
 \begin{verbatim}
     local days:{string} = { "Sunday", "Monday", "Tuesday",
                             "Wednesday", "Thursday", "Friday",
                             "Saturday" }
-    local x = days[1]                    -- x gets "Sunday"
-    local y = days[8]                    -- y gets nil
+    local i = 5
+    local x = days[1]                 --> x gets "Sunday"
+    local y = days[8]                 --> y gets nil
+    local z = days[i]                 --> z gets "Thursday"
 \end{verbatim}
 
-In this example, the type of both variables \texttt{x} and \texttt{y}
-is \texttt{string|nil}.
+In this example, the type of \texttt{i} is \texttt{integer},
+while the type of \texttt{x}, \texttt{y}, and \texttt{z} is
+\texttt{string|nil}.
 An inconvenient aspect of making the types of maps and arrays always
 include the type \texttt{nil} is to overload the programmers,
 as they need to use \texttt{or} or \texttt{if} to narrow the type of
-the elements they are accessing. 
+the elements they are accessing.
+
+The table type
+$\texttt{\{l}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
+\texttt{, ..., l}{_\texttt{n}}\texttt{:t}_{\texttt{n}}\texttt{\}}$
+represents the type of a record that maps literal types
+$\texttt{l}_{\texttt{i}}$\texttt{, ..., }$\texttt{l}_{\texttt{n}}$
+to values of types $\texttt{t}_{\texttt{i}}$\texttt{, ..., }$\texttt{t}_{\texttt{n}}$.
+Most programming languages treat records as maps from names
+to types, but we chose to use literal types instead of
+names due to the statistics results that we obtained about
+the usage of the table constructor, which we discussed in
+Section \ref{sec:statistics}.
+This means that we can use the syntax of records to type a
+list that has fixed elements, like the variable \texttt{days} from
+the previous example.
 
 When we know that a list has fixed elements, we can leave the
 variable declaration unannotated and let local type inference assign
 a more specific table type to the variable.
-If we remove the annotation in this example, the compiler uses the
+If we remove the annotation in the previous example, the compiler uses the
 syntax of records to infer the following table type to \texttt{days}:
 \texttt{\{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string\}}.
 
-When we use the inferred table type while initializing a table, the
-compiler gives an error message when we try to access an index that
-is out of bounds.
+When we use the syntax of records to type an array, the compiler
+raises a warning when we try to access an index that is out of bounds.
+In the previous example, both \texttt{days[8]} and \texttt{days[i]}
+raise warnings, as both the literal type \texttt{8} and the base type
+\texttt{integer} do not map to any value.
 
-We can also use the style of the inferred type to define heterogeneous
-tuples:
+We can also use the syntax of records to type heterogeneous tuples:
 \begin{verbatim}
     local album:{1:string, 2:integer, 3:string} =
       { "Transformer", 1972, "Lou Reed" }
 \end{verbatim}
 
-The next example shows how we can annotate a \texttt{map} function
-that receives another function as its parameter and uses this
-function to alter the elements of a list of numbers, which is
-also a parameter of \texttt{map}:
-\begin{verbatim}
-    local function map (f:(number)->(number), l:{number})
-      for i = 1, #l do
-        l[i] = f(l[i] or 0)
-      end
-    end
-\end{verbatim}
-
-Next, we show one example of table type to type a record:
+Next, we show one example of table type to type a record that maps
+names to strings:
 \begin{verbatim}
     local person:{"firstname":string, "lastname":string} =
       { firstname = "Lou", lastname = "Reed" } 
 \end{verbatim}
 
-Type inference would infer the very same table type that we used to
-annotate the variable \texttt{person}.
+In these two previous examples, local type inference would infer the
+very same table types that we used to annotate the variables
+\texttt{album} and \texttt{person}.
 
 Lua programmers often build records incrementally, that is,
-they usually declares a local variable with an empty table,
+they usually declare a local variable with an empty table,
 and then use assignment to add fields to this table:
 \begin{verbatim}
     local person = {}
     person.firstname = "Lou"
     person.lastname = "Reed"
-    print("bye bye " .. person.firstname)  -- bye bye Lou
+    print("bye bye " .. person.firstname)  --> bye bye Lou
 \end{verbatim}
 
 In this example, we want to refine the type of \texttt{person} as
@@ -749,96 +742,147 @@ This type change is trickier than the one that we introduced for narrowing
 union types, as we are not just allowing the programmer to change
 the type of the variable \texttt{person}, but we are actually allowing
 the programmer to change the type of the value that \texttt{person} points to.
-This type change is safe in this example, but it is not in the following one:
+
+Typed Lua tags a variable that holds a table type as either
+\emph{unique}, \emph{open}, or \emph{closed}.
+If a variable gets is type from a table constructor then it is
+unique, otherwise it is closed.
+Any alias to unique variables makes them open, as we use the
+tag open to keep track of unique variables that are aliased.
+In the previous example, \texttt{person} has an unique type
+because it has no alias.
+Typed Lua also has different subtyping rules that handle these
+different tags.
+We explain these tags and their subtyping rules in more detail
+in Chapter \ref{chap:system}.
+
+Typed Lua uses three rules to decide whether it is sound to
+allow field assignment to change the type of unique and open
+variables:
+the variable must be local to the current block,
+the new type must only add new fields, and
+the variable cannot have been assigned in another function.
+
+The following example shows that it is not sound to allow the
+type of the fields to change:
+\begin{verbatim}
+    local person = { firstname = "Lewis", lastname = "Reed" }
+    person.middlename = "Allan"
+    person.firstname = 1942           --> compile-time warning
+    person.lastname = 2013            --> compile-time warning
+    print("bye bye " .. person.firstname)
+\end{verbatim}
+
+In this example, both third and fourth lines are unsound because
+they are trying to change the type of fields that already exist.
+
+It is also not sound to allow changing the type of an alias:
 \begin{verbatim}
     local person = {}
     local bogus = person
     person.firstname = "Lou"
     person.lastname = "Reed"
-    bogus.firstname = true               -- compile-time error
+    bogus.firstname = true            --> compile-time warning
     print("bye bye " .. person.firstname)
 \end{verbatim}
 
 In this example, the fifth line is unsound because it allows the
 programmer to change the type of the value that is stored in
-\texttt{person.firstname}, and makes the last line crash during
-run-time.
-On the first line, we assign an empty table to \texttt{person}.
-On the second line, we assign the type of \texttt{person} to
+\texttt{person.firstname}, and makes the last line break the
+guarantees provided by the statically typed code.
+In the first line, we assign an empty table to \texttt{person}.
+In the second line, we assign the type of \texttt{person} to
 \texttt{bogus}.
-On the third and fourth lines we change the type of \texttt{person}
-as we did in the previous example.
-On the fifth line we try to change the type of \texttt{bogus}
+In the third and fourth lines we change the type of \texttt{person}.
+In the fifth line we try to change the type of \texttt{bogus}
 from \texttt{\{\}} to \texttt{\{"firstname":boolean\}},
 but if we allow this type change we also allow changing the value
 that is stored in \texttt{person.firstname}, regardless of its type.
 Taking the changes individually looks fine, but the truth is that
 aliasing makes one of them unsound.
 
+We can create aliases to open variables, but they are always closed.
+Any mutation in the original reference and in the aliased reference
+is not a problem, as the type of the original reference can only
+add new fields.
+For mutable fields this means that the type of the field cannot
+change after it is added to the type of the table.
+In our previous example, the second line changes the type of
+\texttt{person} from unique to open and makes the type of
+\texttt{bogus} closed.
+
 The location of the change also matters, as the next example shows:
 \begin{verbatim}
     local person = { lastname = "Reed" }
     local function spoil ()
-      person.firstname = nil             -- compile-time error
+      person.firstname = nil          --> compile-time warning
     end
     person.firstname = "Lou"
     spoil()
     print("bye bye " .. person.firstname)
 \end{verbatim}
 
-In this example, the third line is unsound because it allows the
-programmer to change the type of \texttt{person} outside of the scope
-that it was declared.
+In this example, the third line is unsound because this line allows
+the programmer to change the type of \texttt{person} outside of the
+scope that \texttt{person} was declared.
 The call to \texttt{spoil} erases the field \texttt{firstname} from
-\texttt{person}, and makes the last line crash during run-time.
-
-It is also not sound to allow the type of the fields to change,
-as the next example shows:
-\begin{verbatim}
-    local person = { firstname = "Lewis", lastname = "Reed" }
-    person.middlename = "Allan"
-    person.firstname = 1942              -- compile-time error
-    person.lastname = 2013               -- compile-time error
-    print("bye bye " .. person.firstname)
-\end{verbatim}
-
-In this example, both third and fourth line are unsound because
-they are trying to change the type of fields that already exist.
-
-Typed Lua tags a variable that holds a table type as either
-\emph{open} or \emph{closed}.
-If a variable gets its type from a table constructor then it
-is open, otherwise it is always closed.
-
-Typed Lua uses three restrictions to decide whether it is
-sound to allow field assignment to change the type of an
-open variable or not:
-the variable must be local to the current block,
-the new type must be a subtype of the old one, and
-the variable cannot have been assigned in another function.
-
-We can create aliases to open variables, but they are always closed.
-Any mutation on these aliases is not a problem, as the type of
-the original reference can only change towards a subtype.
-For mutable fields this means that the type of the field cannot
-change after it is added to the type of the table.
-
-Table types along with their refinement through field assignment
-are the foundation for defining modules and objects in Typed Lua.
-In Section \ref{sec:modules} we show that the refinement of table
-types through field assignment is crucial for making Typed Lua
-support idiomatic definition of Lua modules.
-In Section \ref{sec:oop} we show that the refinement of table
-types is also helpful for defining classes and objects.
+\texttt{person}, and makes the last line break the guarantees
+provided by the statically typed code.
 
 \section{Type aliases and interfaces}
 \label{sec:alias}
 
-Typed Lua includes \emph{interfaces} as syntactic sugar to table types
-that specify records, as writing table types can be unwieldy when
-records get bigger and the types of record fields get more complicated.
-For instance, we can use the following interface as an alias to the
-type of the record we showed in the previous section:
+Typed Lua includes \emph{type aliases} for allowing programmers to
+define their own data types.
+Figure \ref{fig:aliases} shows the concrete syntax of the
+\texttt{typealias} construct.
+
+\begin{figure}[!ht]
+\textbf{Type aliases}\\
+\dstart
+\begin{align*}
+\textit{typealias} ::= & \;\; [\textbf{local}] \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua type aliases}
+\label{fig:aliases}
+\end{figure}
+
+As an example, the following declaration defines the type \texttt{Person}
+as an alias to the table type \texttt{\{"firstname":string, "lastname":string\}}
+in the remainder of the current scope:
+\begin{verbatim}
+    local typealias Person = {"firstname":string,
+                              "lastname":string}
+\end{verbatim}
+
+Typed Lua also includes \emph{interfaces} as syntactic sugar to aliases
+for table types that specify records, as writing table types can be unwieldy
+when records get bigger and the types of record fields get more complicated.
+Figure \ref{fig:interfaces} shows the concrete syntax of the
+\texttt{interface} construct.
+In Section \ref{sec:oop} we will show that we can also use \emph{interface} to
+declare the type of classes, and that \emph{methodtype} is syntactic
+sugar to express the type of methods.
+
+\begin{figure}[!ht]
+\textbf{Interfaces}\\
+\dstart
+\begin{align*}
+\textit{interface} ::= & \;\; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
+\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
+\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua interfaces}
+\label{fig:interfaces}
+\end{figure}
+
+As an example, we can use the following \texttt{interface} to
+define the type \texttt{Person} from the previous example:
 \begin{verbatim}
     local interface Person
       firstname:string
@@ -846,38 +890,7 @@ type of the record we showed in the previous section:
     end
 \end{verbatim}
 
-\begin{figure}[!ht]
-\textbf{Type alias}\\
-\dstart
-\begin{align*}
-\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
-\end{align*}
-\dend
-\caption{The concrete syntax of Typed Lua type aliases}
-\label{fig:aliases}
-\end{figure}
-
-\begin{figure}[!ht]
-\textbf{Interfaces}\\
-\dstart
-\begin{align*}
-\textit{interface} ::= & \; \textbf{interface} \; \textit{typedec}\\
-\textit{typedec} ::= & \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
-\textit{decitem} ::= & \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
-\textit{idtype} ::= & \; \textit{type} \; | \; \textit{methodtype}\\
-\textit{idlist} ::= & \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
-\textit{id} ::= & \; [\textbf{const}] \; \textit{Name}\\
-\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
-\end{align*}
-\dend
-\caption{The concrete syntax of Typed Lua interfaces}
-\label{fig:interfaces}
-\end{figure}
-
-The declaration of the interface \texttt{Person} is an alias to the
-table type \texttt{\{"firstname":string, "lastname":string\}} in the
-remainder of the current scope.
-Now we can use \texttt{Person} in type declarations:
+After we define the type \texttt{Person}, we can use it in type annotations:
 \begin{verbatim}
     local function byebye (person:Person):string
       return "Goodbye " .. person.firstname ..
@@ -892,10 +905,10 @@ Now we can use \texttt{Person} in type declarations:
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
 
-    print(greeter(user1)) -- Goodbye Lewis Reed 
-    print(greeter(user2)) -- compile-time error
-    print(greeter(user3)) -- Goodbye Lou Reed
-    print(greeter(user4)) -- compile-time error
+    print(greeter(user1))             --> Goodbye Lewis Reed 
+    print(greeter(user2))             --> compile-time warning
+    print(greeter(user3))             --> Goodbye Lou Reed
+    print(greeter(user4))             --> compile-time warning
 \end{verbatim}
 
 This example shows that our optional type system is structural rather
@@ -903,43 +916,22 @@ than nominal, that is, it checks the structure of types instead of
 their names, and it uses subtyping and consistent-subtyping for
 checking types.
 
-If our record type has optional fields, that is, fields that can be \texttt{nil},
-we need to use an explicit type declaration when declaring a
-variable of this record type, as we show in the following example:
-\begin{verbatim}
-    local interface Person
-      firstname:string
-      middlename:string?
-      lastname:string
-    end
-    local user1:Person = { firstname = "Lewis",
-                           middlename = "Allan",
-                           lastname = "Reed" }
-    local user2:Person = { lastname = "Reed",
-                           firstname = "Lou" }
-\end{verbatim}
+Even though the interface declaration may look redundant due to
+the type alias declaration, it has a more convenient syntax
+for declaring table types that express records.
+For this reason, it worth having two different constructs;
+one specifically for records and another for more general types.
 
-We need an explicit type declaration because neither of the types
-that the Typed Lua compiler assigns to the above table constructors
-is a subtype of
-\texttt{\{"firstname":string, "middlename":string|nil, "lastname":string\}},
-the type that \texttt{Person} describes.
-
-We can also use interfaces to define recursive types such as liked lists:
+The \texttt{interface} and \texttt{typealias} constructs also allow
+the declaration of recursive types.
+For instance, the following interface defines a type for singly-linked
+lists of integers:
 \begin{verbatim}
     local interface Element
       info:integer
       next:Element?
     end
 \end{verbatim}
-
-We need to explicitly annotate \texttt{next} being of type
-\texttt{Element|nil} because in our type system \texttt{nil}
-is not the bottom type, that is, \texttt{nil} is subtype of itself only.
-Typed Lua has this behavior because in Lua \texttt{nil} represents
-the absence of an useful value.
-Thus, making \texttt{nil} the bottom type would severally reduce the amount
-of type safety in the system.
 
 Now we can use \texttt{Element} to annotate a function that
 inserts an element at the beginning of a list:
@@ -966,43 +958,20 @@ each element of the list:
     l = insert(l, 1)
 
     while l do
-      if l then print(l.info) end
-      l = l.next                  -- compile-time error
+      print(l.info)
+      l = l.next
     end
 \end{verbatim}
 
-However, this example has one compile-time error because we
-are attempting to index the variable \texttt{l},
-which can be \texttt{nil}.
-Notice that we would have the same compile-time error while
-printing the list element if we had not narrowed the type of
-\texttt{l}.
-To eliminate this compile-time error we have to write a
-function that narrows the type of \texttt{l} before using it:
-\begin{verbatim}
-    local function get_next (l:Element?)
-      if l then return l.next else return nil end
-    end
-\end{verbatim}
+Note that the type of \texttt{l} is \texttt{Element} in the
+first line of the \texttt{while} body, but it is restored to
+\texttt{Element|nil} in the second line of the \texttt{while} body
+due to the assignment.
+These rules allow this example to compile without any warnings,
+and we discuss them in more detail in the next chapter.
 
-Now we can use \texttt{get\string_next} to rewrite the \texttt{while}
-from the previous example, thus eliminating the compile-time error:
-\begin{verbatim}
-    while l do
-      if l then print(l.info) end
-      l = get_next(l)
-    end
-\end{verbatim}
-
-Typed Lua also includes a way to create aliases for types that does not
-follow the records syntax.
-However, we limit aliases to union types, function types, table types,
-and recursive types.
-The reason for this restriction is to avoid the creation of aliases
-to predefined types.
-
-For instance, we can use the \texttt{typealias} construct to define an
-alias to the type of the abstract syntax tree of a language of simple
+As another example of recursive type, the following type alias
+defines a type for the abstract syntax tree of a language of simple
 arithmetic expressions:
 \begin{verbatim}
     local typealias Exp = {"tag":"Number", 1:number}
@@ -1014,9 +983,10 @@ arithmetic expressions:
 
 The type \texttt{Exp} is a recursive type that resembles the
 algebraic data types from functional programming.
-Typed Lua also includes typing rules that let programmers
-deconstruct unions of table types, which resembles
-pattern matching from functional programming.
+The small set of \texttt{type} predicates introduced by
+Typed Lua also includes a rule that let programmers
+deconstruct unions of table types.
+This specific rule resembles pattern matching from functional programming.
 We can use this feature to write an evaluation function for
 our simple language:
 \begin{verbatim}
@@ -1030,75 +1000,36 @@ our simple language:
     end
 \end{verbatim}
 
-When Typed Lua finds the pattern \texttt{n[s1] == s2}, it checks
-if the type of the variable \texttt{n} is an union of table types,
-if \texttt{s1} a literal string, and if \texttt{s2} is also a literal string.
-If that is the case, it constrains the type of \texttt{n} inside
-the \texttt{if} to the table type that has the pair \texttt{s1:s2}.
-For instance, the expression \texttt{e.tag == "Add"} makes Typed Lua
+When Typed Lua finds the predicate $\texttt{v[e}_{\texttt{1}}\texttt{] == e}_{\texttt{2}}$,
+it checks whether the type of the variable \texttt{v} is an union of table types,
+whether the type of $\texttt{e}_{\texttt{1}}$ is a literal type $\texttt{l}_{\texttt{1}}$,
+and whether the type of $\texttt{e}_{\texttt{2}}$ is a literal type $\texttt{l}_{\texttt{2}}$.
+If that is the case, it constrains the type of \texttt{v} inside
+the \texttt{if} to the table type that has the key type
+$\texttt{l}_{\texttt{1}}$ that maps to the type $\texttt{l}_{\texttt{2}}$.
+In our example, the expression \texttt{e.tag == "Add"} makes Typed Lua
 constrain the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
-This is safe because Typed Lua restricts this pattern to literal types only.
-If we did not add this pattern, we would not be able to traverse the AST,
-as any attempt to index an union is a compile-time error.
-
-Even though the type alias declaration may make the interface declaration
-look redundant, it does not have a syntax as nice as the syntax
-of the interface declaration for defining records.
-For this reason, it worth having two different constructs.
-One specifically for records and another for more general types.
+If we did not add this special predicate, we would not be able to traverse the AST,
+as any attempt to index an union raises a compile-time warning.
 
 \section{Modules}
 \label{sec:modules}
 
 Lua does not set policies on how programmers should define modules,
 but it provides mechanisms for organizing a program in modules.
-To load a module, Lua first checks whether the module is already
-loaded or not.
-When the module is not loaded, Lua executes its source file as a
-function, and the value returned by this function is the module.
-Thus, Lua modules can be any Lua value.
-However, our survey from Section \ref{sec:statistics} confirms that
+To load a module, Lua first checks whether the module is already loaded.
+When the module is not loaded, Lua executes its source file, and
+the value returned is the module.
+Although programmers can use functions for defining modules,
+our survey from Section \ref{sec:statistics} confirms that
 the convention among Lua programmers is to use tables for defining modules. 
-In this case, the fields of the table are the functions and other
+In this convention, the fields of the table are the functions and other
 values that the module exports.
 
-The simplest way for defining a module in Lua is to declare an
-empty table at the begin of the source file,
-populate this table with the members that the module should export,
-and return this table at the end of the source file. 
-The following example shows how Typed Lua handles this case:
-\begin{verbatim}
-    local mymath = {}
-    local RADIANS_PER_DEGREE = 3.14159 / 180.0
-    mymath.deg = function (x:number)
-      return x / RADIANS_PER_DEGREE
-    end
-    mymath.rad = function (x:number)
-      return x * RADIANS_PER_DEGREE
-    end
-    mymath.pow = function (x:number, y:number)
-      return x ^ y
-    end
-    return mymath
-\end{verbatim}
-
-In this example, Typed Lua uses the refinement of table types to
-allow the programmer to incrementally build the type of the
-module \texttt{mymath}.
-Like in Lua, the variable \texttt{RADIANS\string_PER\string_DEGREE}
-is private because we declared it as local to the module. 
-The \texttt{return} at the end of the source file gives the
-final type of the module \texttt{mymath}:
-\begin{verbatim}
-    { "deg":(number) -> (number),
-      "rad":(number) -> (number),
-      "pow":(number, number) -> (number) }
-\end{verbatim}
-
-Another way of defining modules in Lua is to declare only locals
-in the source file, and return a table constructor that includes
-the members that the module should export at the end of the source file.
-The following example shows how Typed Lua handles this case:
+An idiomatic way for defining modules in Lua is to declare only locals
+in the source file and return a table constructor at the end of the source file.
+The returned constructor includes the members that the module should export.
+The following example illustrates this case in Typed Lua:
 \begin{verbatim}
     local RADIANS_PER_DEGREE = 3.14159 / 180.0
     local function deg (x:number)
@@ -1117,59 +1048,81 @@ The following example shows how Typed Lua handles this case:
     }
 \end{verbatim}
 
-In this example, the \texttt{return} at the end of the source file
-also gives the final type of the module \texttt{mymath}, which is
-the same of the previous example.
-
-There is still a third way of defining modules in Lua through the
-\texttt{module} function, which has been deprecated.
-In this style, the first line of the module calls \texttt{module}.
-This function installs a fresh table as the global environment for
-the rest of the module, so any assignments to global variables are
-field assignments to this table.
-The \texttt{module} function also sets an \texttt{\string_M} field
-in this table as a circular reference to the table itself,
-so the module can end with \texttt{return \string_M},
-but this explicit return is not necessary.
-
-Even though this style has been deprecated, our survey from
-Section \ref{sec:statistics} indicated that around a third of the
-Lua modules that are in LuaRocks still use this style.
-Thus, Typed Lua also supports this style:
+In this example, Typed Lua uses the type of the table constructor
+to allow the programmer to build the type of the module.
+The local variable \texttt{RADIANS\string_PER\string_DEGREE}
+is private because we did not include it in the list of exported members. 
+The \texttt{return} at the end of the source file gives the type of the module:
 \begin{verbatim}
-    module "mymath"
-    local RADIANS_PER_DEGREE = 3.14159 / 180.0
-    deg = function (x:number)
-      return x / RADIANS_PER_DEGREE
-    end
-    rad = function (x:number)
-      return x * RADIANS_PER_DEGREE
-    end
-    pow = function (x:number, y:number)
-      return x ^ y
-    end
+    { "deg":(number) -> (number),
+      "rad":(number) -> (number),
+      "pow":(number, number) -> (number) }
 \end{verbatim}
 
-In this example, Typed Lua treats accesses to global variables as
-field accesses to an open table in the top-level scope,
-and at the end of file this open table gives the final type of the
-module \texttt{mymath}, which is also the same of the previous two
-examples.
+Another idiomatic way for defining modules in Lua is to declare an
+empty table at the begin of the source file,
+populate this table with the members that the module should export,
+and return this table at the end of the source file. 
+The following example illustrates this case in Typed Lua:
+\begin{verbatim}
+    local mymath = {}
+    local RADIANS_PER_DEGREE = 3.14159 / 180.0
+    mymath.deg = function (x:number)
+      return x / RADIANS_PER_DEGREE
+    end
+    mymath.rad = function (x:number)
+      return x * RADIANS_PER_DEGREE
+    end
+    mymath.pow = function (x:number, y:number)
+      return x ^ y
+    end
+    return mymath
+\end{verbatim}
 
-After we define the module \texttt{mymath}, regardless of adopted style,
+In this example, Typed Lua uses the refinement of table types to
+allow the programmer to incrementally build the type of the module.
+The variable \texttt{RADIANS\string_PER\string_DEGREE}
+is private because we declared it as local to the module. 
+The \texttt{return} at the end of the source file gives the
+type of the module, which is the same type of \texttt{mymath}.
+This module has the same type of the module from the previous example.
+
+%There is still a third way for defining modules in Lua through the
+%\texttt{module} function, which has been deprecated.
+%Even though this style has been deprecated, our survey from
+%Section \ref{sec:statistics} indicated that around a third of the
+%Lua modules that are in LuaRocks still use this style.
+%Thus, Typed Lua also supports this style.
+
+After we define the module \texttt{mymath}, regardless of the adopted style,
 users can use it in the standard way:
 \begin{verbatim}
     local mymath = require "mymath"
-    print(mymath.pow(2, 3))              -- 8
-    print(mymath.pow(2, "foo"))          -- compile-time error
+    print(mymath.pow(2, 3))           --> 8
+    print(mymath.pow(2, "foo"))       --> compile-time warning
 \end{verbatim}
 
-And now the users of the module \texttt{mymath} have the policies that
-Typed Lua provides.
-The call to \texttt{require} assigns the type of the module \texttt{mymath}
-to the local \texttt{mymath}, so Typed Lua can catch misuses of the module.
+In Typed Lua, \texttt{require} is a primitive that statically type checks
+a given module to infer the type of this module.
+This means that the type of its input parameter must be a literal string,
+as Typed Lua uses this literal string to find the source file that
+implements the given module.
+To statically type check a module, Typed Lua follows the same rules
+that Lua follows to load a module.
+Typed Lua first checks whether the module is already statically type checked.
+When the module is not yet statically type checked, Typed Lua
+statically type checks its source file, and the type returned is the
+type of the module.
+Typed Lua raises a compile-time warning when it cannot find the source
+file of a given module.
 
-The way Typed Lua handles modules using table types is also
+After we use \texttt{require} to statically type check a module,
+Typed Lua can statically type check the usage of this module.
+In our previous example, the call to \texttt{require} assigns the type
+of the module \texttt{mymath} to the local \texttt{mymath},
+so Typed Lua can catch misuses of the module.
+
+The way that Typed Lua handles modules using table types is also
 relevant for supporting object-oriented programming, as we discuss in
 the next section.
 
