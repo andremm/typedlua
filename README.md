@@ -7,21 +7,29 @@ interfaces, and modules.
 
 # Requirements for running the compiler
 
-    lua >= 5.1
-    lpeg >= 0.12
+1. lua >= 5.1
+1. [lpeg](http://www.inf.puc-rio.br/%7Eroberto/lpeg/) >= 0.12
+
+# Install
+
+Typed Lua must be installed in a standard location; luarocks will do this.
+
+        $ [install luarocks]
+        $ luarocks pack typedlua-scm-1.rockspec
+        $ luarocks install typedlua-scm-1.src.rock
 
 # Usage
 
-    $ tlc [options] [filename]
+        $ tlc [options] [filename]
 
 # Compiler options
 
-    -d	    dump the AST
-    -g	    generate code without type checking
-    -h	    print this help
-    -o name output to file 'name' (default is 'tlc.lua')
-    -p	    print the AST
-    -v	    print current version
+        -d      dump the AST
+        -g      generate code without type checking
+        -h      print this help
+        -o name output to file 'name' (default is 'tlc.lua')
+        -p      print the AST
+        -v      print current version
 
 # License
 
