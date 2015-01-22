@@ -870,7 +870,7 @@ sugar to express the type of methods.
 \dstart
 \begin{align*}
 \textit{interface} ::= & \;\; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
-\textit{typedec} ::= & \;\; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; {\textit{decitem}} \; \textbf{end}\\
 \textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
 \textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
 \textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
@@ -983,10 +983,11 @@ arithmetic expressions:
 
 The type \texttt{Exp} is a recursive type that resembles the
 algebraic data types from functional programming.
-The small set of \texttt{type} predicates introduced by
-Typed Lua also includes a rule that let programmers
-deconstruct unions of table types.
-This specific rule resembles pattern matching from functional programming.
+The small set of \texttt{type} predicates that we mentioned
+in Section \ref{sec:unions} also includes a specific rule
+that is not based on tags.
+This specific rule let programmers discriminate unions of table types
+and resembles the pattern matching from functional programming.
 We can use this feature to write an evaluation function for
 our simple language:
 \begin{verbatim}
@@ -1131,60 +1132,64 @@ the next section.
 
 Lua provides minimal support for object-oriented programming.
 The basic mechanism is the \texttt{:} syntactic sugar for method
-calls and method definitions.
-The Lua interpreter translates \texttt{obj:method(args)} into
-an operation that first evaluates \texttt{obj}, if it is a table
-Lua checks if there is field \texttt{method} in this table,
-and then calls it with the result of evaluating \texttt{obj} as
-the first argument, followed by the result of evaluating the
-argument list in the original expression.
+definitions and method calls.
+In the case of method definitions, the Lua compiler translates
+\texttt{function obj:method(args) end} into an operation that
+assigns a function to the field \texttt{method} in \texttt{obj}.
+This function includes a first parameter named \texttt{self} plus
+any other parameters.
+In the case of method calls, the Lua compiler translates
+\texttt{obj:method(args)} into an operation that first evaluates
+\texttt{obj}, uses \texttt{method} to index \texttt{obj},
+and then calls \texttt{obj.method} with the result of evaluating
+\texttt{obj} as the first argument, followed by the result of
+evaluating the argument list in the original expression.
 
-Typed Lua uses table types along with the \texttt{self} type to
-represent objects, as we show in the following example:
+Typed Lua uses table types along with the type \texttt{self} to
+represent objects.
+We use the following example to discuss this feature:
 \begin{verbatim}
     local Shape = { x = 0.0, y = 0.0 }
-    const function Shape:move (dx:number, dy:number)
+    function Shape:move (dx:number, dy:number)
       self.x = self.x + dx
       self.y = self.y + dy
     end
 \end{verbatim}
 
-This example introduces some features that we must explain
-before we show the type of \texttt{Shape}.
-In Lua, the \texttt{:} syntactic sugar assigns a function to the
-field with a first parameter named \texttt{self}, plus any other
-parameters.
-Typed Lua does the same, and assigns the type \texttt{self} to the
-implicit parameter \texttt{self}.
-Typed Lua also adds the \texttt{const} annotation because the
-\texttt{const} qualifier is necessary for covariance among object types work.
-Under this circumstances, the type of \texttt{Shape} is an object of
-the following type:
+This example shows that Typed Lua assigns the type \texttt{self}
+to the implicit parameter \texttt{self}.
+The type \texttt{self} represents the type of the \emph{receiver}
+in method definitions and method calls.
+In this example, the refinement of table types allows Typed Lua
+to bind the type \texttt{self} with the same type of \texttt{Shape}:
 \begin{verbatim}
     { "x":number, "y":number,
-      const "move":(self, number, number) -> () }
+      "move":(self, number, number) -> () }
 \end{verbatim}
 
-While \texttt{:} is syntactic sugar in plain Lua, Typed Lua uses it
+While \texttt{:} is syntactic sugar in Lua, Typed Lua uses it
 to check method calls, binding any occurrence of the type \texttt{self}
 in the type of the method to the receiver.
 Indexing a method and not immediately calling it with the correct
-receiver is a compile-time error:
+receiver is a compile-time warning:
 \begin{verbatim}
-    Shape.move(Shape, 10, 10)  -- Shape.x = 10 and Shape.y = 10
-    Shape:move(5, 20)          -- Shape.x = 5 and Shape.y = 20
-    local p = Shape.move       -- compile-time error
+    Shape.move(Shape, 10, 10) --> Shape.x = 10 and Shape.y = 10
+    Shape:move(5, 20)         --> Shape.x = 5 and Shape.y = 20
+    local p = Shape.move      --> compile-time warning
 \end{verbatim}
 
 Lua has a mechanism for self-like (or JavaScript-like) delegation of
 missing fields in a table.
 After the call \texttt{setmetatable(t1, \{ \string_\string_index = t2 \})},
 Lua looks up in \texttt{t2} for any missing fields of \texttt{t1}.
+As we mentioned in Section \ref{sec:statistics},
 Lua programmers often use this mechanism to simulate classes.
 
-Typed Lua combines this mechanism along with interfaces to allow
-programmers to define classes in a similar fashion to the definition
-of modules, as we show in the following example:
+Typed Lua combines this mechanism along with type aliases and
+interfaces to allow programmers to define classes in a similar
+fashion to the definition of modules.
+We use the following example to discuss how Typed Lua type checks
+object-oriented code:
 \begin{verbatim}
     interface Shape
       x, y:number
@@ -1205,13 +1210,28 @@ of modules, as we show in the following example:
     return Shape
 \end{verbatim}
 
+In this example, we use an interface to define the type of the class \texttt{Shape}.
+We use the \texttt{const} annotation in the type of the methods
+because it is necessary for covariance among object types work.
+We use a double arrow instead of a single arrow because it is
+syntactic sugar for defining the type of methods,
+as it includes an implicit first type \texttt{self}.
+The double arrow can appear only inside the declaration of
+interfaces and userdata, which we will introduce in the next section.
+This interface definition exports the following object type to the class \texttt{Shape}:
+\begin{verbatim}
+    { "x":number, "y":number,
+      const "new":(self, number, number) -> (self),
+      const "move":(self, number, number) -> () }
+\end{verbatim}
+
 In Typed Lua, \texttt{setmetatable} is a strict primitive.
 Typed Lua only allows calling \texttt{setmetatable} with
 two operands.
-The first operand can be any table \texttt{t1}, but the second operand
-must be a table of the form \texttt{\{ \string_\string_index = t2 \}},
+The first operand can be any table \texttt{t1}, but
+the second operand must be a table of the form
+\texttt{\{ \string_\string_index = t2 \}},
 where \texttt{t2} can be any table.
-
 The reason for being so strict with \texttt{setmetatable} is because
 it is the only mechanism that Typed Lua has to create classes
 as prototype objects.
@@ -1219,31 +1239,32 @@ In a \texttt{setmetatable} expression, if the type of \texttt{t2}
 is a subtype of the type of \texttt{t1}, it changes \texttt{t1} to
 have the same type of \texttt{t2}.
 
-In our example, we use \texttt{setmetatable} to define a constructor
+In the previous example, we use \texttt{setmetatable} to define a constructor
 \texttt{new} to the class \texttt{Shape}.
-The type of \texttt{new} is \texttt{(self, number, number) -> (self)},
-because we use \texttt{setmetatable} to declare \texttt{s} having
-the same type of \texttt{self}.
+Note that we use \texttt{setmetatable} inside \texttt{new} to declare
+the local \texttt{s} having the same type of \texttt{self}.
 
-In the same example, we also declare the interface \texttt{Shape}.
-Notice that we use double arrow instead of single arrow inside the
-definition of the interface \texttt{Shape}.
-The double arrow is syntactic sugar for defining the type of methods,
-as it includes an implicit first parameter of type \texttt{self}.
-The double arrow can appear only inside the declaration of
-interfaces and userdata, which we will introduce in the next section.
-The interface definition allows us to export the type of the class \texttt{Shape},
-which is the same type that is given by the variable \texttt{Shape}:
-\begin{verbatim}
-    { "x":number, "y":number,
-      const "new":(self, number, number) -> (self),
-      const "move":(self, number, number) -> () }
-\end{verbatim}
+Still in the previous example, we are using the refinement of table
+types to build the type of the variable \texttt{Shape},
+as it should work as our object prototype, matching the type
+that the interface declaration exports.
+This means that the local \texttt{Shape} has type
+\texttt{\{"x":number, "y":number\}} inside the definition of \texttt{new}.
+This also makes Typed Lua bind the type of the local \texttt{Shape}
+to the type \texttt{self} inside the definition of \texttt{new},
+allowing us to access fields \texttt{x} and \texttt{y}.
+After the definition of \texttt{new}, the local \texttt{Shape}
+has type
+\texttt{\{"x":number, "y":number, const "new":(self, number, number) -> (self)\}},
+which is the type that Typed Lua binds to the type \texttt{self}
+inside the definition of \texttt{move}.
+Finally, the local \texttt{Shape} has the same type of the
+interface declaration in the last \texttt{return} statement.
 
-In Typed Lua, this style of classes definition allow us to use \texttt{require}
-for creating prototype objects that work as classes,
-along with a shortcut to the table type of the class.
-This allows us to use this shortcut on type annotations,
+In Typed Lua, the style of classes definition from the previous example
+allow us to use \texttt{require} for creating prototype objects that
+work as classes, along with an alias to the table type of the class.
+This allows us to use the exported alias in type annotations,
 as we show in the following example:
 \begin{verbatim}
     local Shape = require "shape"
@@ -1251,9 +1272,8 @@ as we show in the following example:
     local shape2:Shape = Shape:new(10, 10)
 \end{verbatim}
 
-Typed Lua also uses \texttt{setmetatable} to simulate single inheritance,
-as we show in the following example:
-
+Typed Lua also uses \texttt{setmetatable} to simulate single inheritance.
+We use the following example to discuss single inheritance in Typed Lua:
 \begin{verbatim}
     local Shape = require "shape"
     interface Circle
@@ -1275,23 +1295,10 @@ as we show in the following example:
     return Circle
 \end{verbatim}
 
-A call to \texttt{setmetatable} where \texttt{t1} is a table
-constructor assigned to a fresh local variable, and \texttt{t2}
-is not \texttt{self} gives this variable an open type.
-That is the reason why we can add new methods and override
-existing ones in \texttt{Circle}.
-
-In this example, we also call \texttt{setmetatable} to redefine \texttt{new}.
-Notice how we can call the constructor of \texttt{Shape} inside
-the overridden constructor.
-A limitation of this class system is that the overridden constructor
-must be a subtype of the original constructor,
-so the type of \texttt{radius} has to be quite permissive.
-
-In the same example, we also declare the interface \texttt{Circle},
-but with a syntactical overhead to manually include the new and
+In this example, we use an interface to define the type of the class \texttt{Circle},
+but with a syntactical overhead to manually include new and
 overridden methods.
-The interface \texttt{Circle} exports the following type:
+This interface definition exports the following object type to the class \texttt{Circle}:
 \begin{verbatim}
     { "x":number, "y":number, "radius":number,
       const "new":(self, number, number, value) -> (self),
@@ -1299,16 +1306,31 @@ The interface \texttt{Circle} exports the following type:
       const "radius":() -> (number) }
 \end{verbatim}
 
-This table type is a subtype of the table type exported by the interface \texttt{Shape},
-and we can use both shortcuts on type annotations, as we show in the following example:
+In the previous example, we use \texttt{setmetatable} in two different ways.
+In the first case, we use \texttt{setmetatable} to trigger the refinement
+of table types, as we need it to add new methods and override existing ones
+in \texttt{Circle}.
+This is possible because a call to \texttt{setmetatable},
+where \texttt{t1} is a table constructor assigned to a fresh local variable,
+and \texttt{t2} is not \texttt{self} gives this variable an open type.
+In the second case, we use \texttt{setmetatable} to redefine \texttt{new}.
+Note how we can call the constructor of \texttt{Shape} inside
+the overridden constructor.
+A limitation of this class system is that the overridden constructor
+must be a subtype of the original constructor,
+so the type of \texttt{radius} has to be quite permissive.
+
+The type of the class \texttt{Circle} is a subtype of the type of
+the class \texttt{Shape}, and we can use both exported aliases in type
+annotations, as we show in the following example:
 \begin{verbatim}
     local Circle = require "circle"
     local circle1 = Circle:new(0, 5, 10)
     local circle2:Circle = Circle:new(10, 10, 10)
     local circle3:Shape = circle1
     local circle4:Shape = circle2
-    print(circle2:area())                -- 314.15926535898
-    print(circle3:area())                -- compile-time error
+    print(circle2:area())             --> 314.15926535898
+    print(circle3:area())             --> compile-time warning
 \end{verbatim}
 
 In all examples, if we erase all type and \texttt{const} annotations,
@@ -1331,40 +1353,37 @@ on plans for future work anyway.
 \section{Description files}
 \label{sec:tld}
 
-An important feature of Typed Lua is its interface between
-statically and dynamically typed modules.
-This means that the programmer can enjoy some of the benefits of
+Typed Lua allows programmers to create description files
+for exporting statically typed interfaces to dynamically typed modules.
+This means that programmers can have some of the benefits of
 static types even without converting existing Lua modules to Typed Lua,
 as a dynamically typed module can export a statically typed interface,
 and statically typed users of the module have their use of the module
 checked by the compiler.
 
-The Typed Lua compiler also handles description files.
-The programmer can use description files for two purposes:
-export a statically typed interface for an existing Lua
-module, without converting it to Typed Lua,
-or export a statically typed interface for a Lua module
-that is written in C.
+Furthermore, Typed Lua also allows programmers to create description
+files for exporting statically typed interfaces for a Lua modules
+that are written in C.
 
 \begin{figure}[!ht]
 \textbf{The complete syntax of description files}\\
 \dstart
 \begin{align*}
-\textit{description} ::= & \; \textit{desclist}\\
-\textit{desclist} ::= & \; \textit{descitem} \; \{ \textit{descitem} \}\\
-\textit{descitem} ::= & \; \textit{typedid} \; | \;
+\textit{description} ::= & \;\; \textit{desclist}\\
+\textit{desclist} ::= & \;\; \textit{descitem} \; \{ \textit{descitem} \}\\
+\textit{descitem} ::= & \;\; \textit{typedid} \; | \;
   \textit{interface} \; | \;
   \textit{userdata} \; | \;
   \textit{typealias}\\
-\textit{typedid} ::= & \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
-\textit{interface} ::= & \; \textbf{interface} \; \textit{typedec}\\
-\textit{userdata} ::= & \; \textbf{userdata} \; \textit{typedec}\\
-\textit{typedec} ::= & \; \textit{Name} \; { \; \textit{decitem} \; } \; \textbf{end}\\
-\textit{decitem} ::= & \; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
-\textit{idtype} ::= & \; \textit{type} \; | \; \textit{methodtype}\\
-\textit{idlist} ::= & \; \textit{id} \; \{ \; \texttt{`,'} \; \textit{id} \; \}\\
+\textit{typedid} ::= & \;\; [\textbf{const}] \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
+\textit{interface} ::= & \;\; \textbf{interface} \; \textit{typedec}\\
+\textit{userdata} ::= & \;\; \textbf{userdata} \; \textit{typedec}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; {\textit{decitem}} \; \textbf{end}\\
+\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
 \textit{id} ::= & \; [\textbf{const}] \; \textit{Name}\\
-\textit{typealias} ::= & \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
+\textit{typealias} ::= & \;\; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
 \end{align*}
 \dend
 \caption{The concrete syntax of Typed Lua description files}
@@ -1376,21 +1395,16 @@ description files in extended BNF.
 A Typed Lua description file defines the table type that represents
 a certain module and the type names that are exported
 along with this table type.
-We can export a type name through the declaration of an interface,
-userdata, or type alias.
-As we saw, an interface declaration is just a shortcut to a table type
-that represents a record.
+We can export a type name through the declaration of either an interface,
+an userdata, or a type alias.
+As we mentioned in Section \ref{sec:alias}, a type alias declaration
+creates an alias to a more general type, while an interface declaration
+creates an alias to a table type that represents a record.
 An userdata declaration is similar to an interface declaration,
 but it also includes its name as the \emph{brand} of the table type.
 The Typed Lua compiler uses this brand to combine structural with
-nominal type checking, so two different userdata are not subtype
-of each other because they do not share the same brand.
-A type alias declaration is a way to create shortcuts to union types,
-function types, table types, and recursive types.
-
-The Typed Lua compiler searches for a description file when it cannot
-not find the respective Typed Lua file that is the argument of
-\texttt{require}.
+nominal type checking, so two userdata that export exactly the same members,
+are not subtype of each other, because they do not share the same brand.
 
 The following example shows the description file for \texttt{lmd5} \citep{lmd5},
 a MD5 digest library for Lua that is written in C:
@@ -1415,24 +1429,31 @@ a MD5 digest library for Lua that is written in C:
 \end{verbatim}
 
 This description file exports the type \texttt{md5\string_context}
-through the \texttt{userdata} declaration, and the table type
-that represents the module.
-Now we can use the Typed Lua compiler to check for type errors on
-our use of the library:
+through an \texttt{userdata} declaration and the table type that
+represents the type of the module.
+Now we can use the Typed Lua compiler to check for type errors in
+our use of the \texttt{lmd5} library:
 \begin{verbatim}
     local m = require "md5"
     local x = m.new()
     local y = x:clone()
-    local z = m.clone("foo")             -- compile-time error
-    print(x:digest() == m.digest(y))
+    local z = m.clone("foo")          --> compile-time warning
+    print(x:digest() == m.digest(y))  --> true
 \end{verbatim}
 
-In this example there is a type error because the function \texttt{clone}
-expects a value of type \texttt{md5\string_context} instead of a value
-of type \texttt{string}.
+This example shows that the Typed Lua compiler searches for a
+description file when it cannot not find the respective Typed Lua file
+that is the argument of \texttt{require}.
+In this example, the call to \texttt{require} assigns to the local
+\texttt{m} the table type that the description file of the \texttt{lmd5}
+library exports. 
+Thus, the compiler raises a compile-time warning in the fourth line,
+as the function \texttt{clone} expects a value of type
+\texttt{md5\string_context} instead of a value of type \texttt{string}.
 
 The description files are the mechanism that we used to include the
 typing of the Lua standard library inside Typed Lua.
-In Chapter \ref{chap:evaluation} we discuss the issues that we found
-while typing the Lua standard library. 
+In Chapter \ref{chap:evaluation} we will discuss the issues that we
+found while typing the Lua standard library and other case studies,
+which include the \texttt{lmd5} library. 
 
