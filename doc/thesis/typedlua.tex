@@ -870,7 +870,7 @@ sugar to express the type of methods.
 \dstart
 \begin{align*}
 \textit{interface} ::= & \;\; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
-\textit{typedec} ::= & \;\; \textit{Name} \; {\textit{decitem}} \; \textbf{end}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
 \textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
 \textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
 \textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
@@ -1378,11 +1378,11 @@ that are written in C.
 \textit{typedid} ::= & \;\; [\textbf{const}] \; \textit{id} \; \texttt{`:'} \; \textit{type}\\ 
 \textit{interface} ::= & \;\; \textbf{interface} \; \textit{typedec}\\
 \textit{userdata} ::= & \;\; \textbf{userdata} \; \textit{typedec}\\
-\textit{typedec} ::= & \;\; \textit{Name} \; {\textit{decitem}} \; \textbf{end}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
 \textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
 \textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
 \textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
-\textit{id} ::= & \; [\textbf{const}] \; \textit{Name}\\
+\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}\\
 \textit{typealias} ::= & \;\; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}
 \end{align*}
 \dend

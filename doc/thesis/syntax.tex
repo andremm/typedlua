@@ -1,9 +1,9 @@
 This appendix presents the complete syntax of Typed Lua.
 \allowdisplaybreaks
 \begin{align*}
-\textit{chunk} & ::= \; \textit{block}\\
-\textit{block} & ::= \; \{\textit{stat}\} \; [\textit{retstat}]\\
-\textit{stat} & ::= \; \texttt{`;'}\\
+\textit{chunk} ::= & \;\; \textit{block}\\
+\textit{block} ::= & \;\; \{\textit{stat}\} \; [\textit{retstat}]\\
+\textit{stat} ::= & \;\; \texttt{`;'}\\
 & | \; \textit{varlist} \; \texttt{`='} \; \textit{explist}\\
 & | \; \textit{functioncall}\\
 & | \; \textit{label}\\
@@ -23,20 +23,20 @@ This appendix presents the complete syntax of Typed Lua.
 & | \; [\textbf{const}] \; \textbf{function} \; \textit{funcname} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textbf{function} \; \textit{Name} \; \textit{funcbody}\\
 & | \; \textbf{local} \; \textit{namelist} \; [\texttt{`='} \; \textit{explist}]\\
-& | \; [\textbf{local}] \; \textbf{interface} \; \textit{Name} \; \textit{interfacedec} \;
-  \{\textit{interfacedec}\} \; \textbf{end}\\
-\textit{retstat} & ::= \; \textbf{return} \; [\textit{explist}] \; [\texttt{`;'}]\\
-\textit{label} & ::= \; \texttt{`::'} \; \textit{Name} \; \texttt{`::'}\\
-\textit{funcname} & ::= \; \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
-\textit{varlist} & ::= \; [\textbf{const}] \; \textit{var} \;
+& | \; [\textbf{local}] \; \textbf{typealias} \; \textit{Name} \; \texttt{`='} \; \textit{type}\\
+& | \; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
+\textit{retstat} ::= & \;\; \textbf{return} \; [\textit{explist}] \; [\texttt{`;'}]\\
+\textit{label} ::= & \;\; \texttt{`::'} \; \textit{Name} \; \texttt{`::'}\\
+\textit{funcname} ::= & \;\; \textit{Name} \; \{\texttt{`.'} \; \textit{Name}\} \; [\texttt{`:'} \; \textit{Name}]\\
+\textit{varlist} ::= & \;\; [\textbf{const}] \; \textit{var} \;
   \{\texttt{`,'} \; [\textbf{const}] \; \textit{var}\}\\
-\textit{var} & ::= \; \textit{Name} \; | \;
+\textit{var} ::= & \;\; \textit{Name} \; | \;
   \textit{prefixexp} \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; | \;
   \textit{prefixexp} \; \texttt{`.'} \; \textit{Name}\\
-\textit{namelist} & ::= \; \textit{Name} \; [\texttt{`:'} \; \textit{type}] \;
+\textit{namelist} ::= & \;\; \textit{Name} \; [\texttt{`:'} \; \textit{type}] \;
   \{\texttt{`,'} \; \textit{Name} \; [\texttt{`:'} \; \textit{type}]\}\\
-\textit{explist} & ::= \; \textit{exp} \; \{\texttt{`,'} \; \textit{exp}\}\\
-\textit{exp} & ::= \; \textbf{nil} \; | \;
+\textit{explist} ::= & \;\; \textit{exp} \; \{\texttt{`,'} \; \textit{exp}\}\\
+\textit{exp} ::= & \;\; \textbf{nil} \; | \;
   \textbf{false} \; | \;
   \textbf{true} \; | \;
   \textit{Number} \; | \;
@@ -47,38 +47,42 @@ This appendix presents the complete syntax of Typed Lua.
   \textit{tableconstructor} \; | \;
   \textit{exp} \; \textit{binop} \; \textit{exp} \; | \;
   \textit{unop} \; \textit{exp}\\
-\textit{prefixexp} & ::= \; \textit{var} \; | \;
+\textit{prefixexp} ::= & \;\; \textit{var} \; | \;
   \textit{functioncall} \; | \;
   \texttt{`('} \; \textit{exp} \; \texttt{`)'}\\
-\textit{functioncall} & ::= \; \textit{prefixexp} \; \textit{args} \; | \;
+\textit{functioncall} ::= & \;\; \textit{prefixexp} \; \textit{args} \; | \;
   \textit{prefixexp} \; \texttt{`:'} \; \textit{Name} \; \textit{args}\\
-\textit{args} & ::= \; \texttt{`('} \; [\textit{explist}] \; \texttt{`)'} \; | \;
+\textit{args} ::= & \;\; \texttt{`('} \; [\textit{explist}] \; \texttt{`)'} \; | \;
   \textit{tableconstructor} \; | \;
   \textit{String}\\
-\textit{functiondef} & ::= \; \textbf{function} \; \textit{funcbody}\\
-\textit{funcbody} & ::= \; \texttt{`('} \; [\textit{parlist}] \; \texttt{`)'} \;
+\textit{functiondef} ::= & \;\; \textbf{function} \; \textit{funcbody}\\
+\textit{funcbody} ::= & \;\; \texttt{`('} \; [\textit{parlist}] \; \texttt{`)'} \;
   [\texttt{`:'} \; \textit{rettype}] \; \textit{block} \; \textbf{end}\\
-\textit{parlist} & ::= \; \textit{namelist} \; [\texttt{`,'} \; \texttt{`...'} \;
+\textit{parlist} ::= & \;\; \textit{namelist} \; [\texttt{`,'} \; \texttt{`...'} \;
   [\texttt{`:'} \; \textit{type}]] \; | \;
   \texttt{`...'} \; [\texttt{`:'} \; \textit{type}]\\
-\textit{tableconstructor} & ::= \; \texttt{`\{'} \; [\textit{fieldlist}] \; \texttt{`\}'}\\
-\textit{fieldlist} & ::= \; [\textbf{const}] \; \textit{field} \;
+\textit{tableconstructor} ::= & \;\; \texttt{`\{'} \; [\textit{fieldlist}] \; \texttt{`\}'}\\
+\textit{fieldlist} ::= & \;\; [\textbf{const}] \; \textit{field} \;
   \{\textit{fieldsep} \; [\textbf{const}] \; \textit{field}\} \; [\textit{fieldsep}]\\
-\textit{field} & ::= \; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
+\textit{field} ::= & \;\; \texttt{`['} \; \textit{exp} \; \texttt{`]'} \; \texttt{`='} \; \textit{exp} \; | \;
   \textit{Name} \; \texttt{`='} \; \textit{exp} \; | \;
   \textit{exp}\\
-\textit{fieldsep} & ::= \; \texttt{`,'} \; | \; \texttt{`;'}\\
-\textit{binop} & ::= \; \texttt{`+'} \; | \; \texttt{`-'} \; | \; \texttt{`*'} \; | \; \texttt{`/'} \; | \;
-  \texttt{`\textasciicircum'} \; | \; \texttt{`\%'} \; | \; \texttt{`..'}\\
+\textit{fieldsep} ::= & \;\; \texttt{`,'} \; | \; \texttt{`;'}\\
+\textit{binop} ::= & \;\; \texttt{`+'} \; | \; \texttt{`-'} \; | \; \texttt{`*'} \; | \; \texttt{`/'} \; | \;
+  \texttt{`//'} \; | \; \texttt{`\textasciicircum'} \; | \; \texttt{`\%'}\\
+& | \; \texttt{`\&'} \; | \; \texttt{`\textasciitilde'} \; | \; \texttt{`|'} \; | \;
+  \texttt{`>>'} \; | \; \texttt{`<<'} \; | \; \texttt{`..'}\\
 & | \; \texttt{`<'} \; | \; \texttt{`<='} \; | \; \texttt{`>'} \; | \; \texttt{`>='} \; | \;
   \texttt{`=='} \; | \; \texttt{`\textasciitilde='}\\
 & | \; \textbf{and} \; | \; \textbf{or}\\
-\textit{unop} & ::= \; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'}\\
-\textit{interfacedec} & ::= \; [\textbf{const}] \; \textit{Name} \;
-  \{\texttt{`,'} \; [\textbf{const}] \; \textit{Name}\} \; \texttt{`:'} \; \textit{dectype}\\
-\textit{dectype} & ::= \; \textit{type} \; | \; \textit{methodtype}\\
-\textit{type} & ::= \; \textit{primarytype} \; [\texttt{`?'}]\\
-\textit{primarytype} & ::= \; \textit{literaltype} \; | \;
+\textit{unop} ::= & \;\; \texttt{`-'} \; | \; \textbf{not} \; | \; \texttt{`\#'} \; | \; \texttt{`\textasciitilde'}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
+\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
+\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}\\
+\textit{type} ::= & \;\; \textit{primarytype} \; [\texttt{`?'}]\\
+\textit{primarytype} ::= & \;\; \textit{literaltype} \; | \;
   \textit{basetype} \; | \;
   \textbf{nil} \; | \;
   \textbf{value} \; | \;
@@ -88,27 +92,29 @@ This appendix presents the complete syntax of Typed Lua.
 & | \; \textit{functiontype} \; | \;
   \textit{tabletype} \; | \;
   \textit{primarytype} \; \texttt{`|'} \; \textit{primarytype}\\
-\textit{literaltype} & ::= \; \textbf{false} \; | \;
+\textit{literaltype} ::= & \;\; \textbf{false} \; | \;
   \textbf{true} \; | \;
-  \textit{Number} \; | \;
+  \textit{Int} \; | \;
+  \textit{Float} \; | \;
   \textit{String}\\
-\textit{basetype} & ::= \; \textbf{boolean} \; | \;
+\textit{basetype} ::= & \;\; \textbf{boolean} \; | \;
+  \textbf{integer} \; | \;
   \textbf{number} \; | \;
   \textbf{string}\\
-\textit{functiontype} & ::= \; \textit{tupletype} \; \texttt{`->'} \; \textit{rettypelist}\\
-\textit{methodtype} & ::= \; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettypelist}\\
-\textit{tabletype} & ::= \; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
-\textit{tupletype} & ::= \; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
-\textit{typelist} & ::= \; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
-\textit{rettypelist} & ::= \; \textit{unionlist} \; [\texttt{`?'}]\\
-\textit{unionlist} & ::= \; \textit{tupletype} \; | \;
-  \textit{unionlist} \; \texttt{`|'} \; \textit{unionlist}\\
-\textit{tabletypebody} & ::= \; \textit{type} \; | \; \textit{fieldtypelist}\\
-\textit{fieldtypelist} & ::= \; [\textbf{const}] \; \textit{fieldtype} \; \{\texttt{`,'} \; [\textbf{const}] \; \textit{fieldtype}\}\\ 
-\textit{fieldtype} & ::= \; \textit{keytype} \; \texttt{`:'} \; \textit{type}\\
-\textit{keytype} & ::= \; \textit{literaltype} \; | \;
-  \textit{basetype} \; | \;
-  \textbf{value} \; | \;
-  \textbf{any}\\
-\textit{rettype} & ::= \; \textit{type} \; | \; \textit{rettypelist}\\
+\textit{functiontype} ::= & \;\; \textit{tupletype} \; \texttt{`->'} \; \textit{rettype}\\
+\textit{tupletype} ::= & \;\; \texttt{`('} \; [typelist] \; \texttt{`)'}\\
+\textit{typelist} ::= & \;\; \textit{type} \; \{\texttt{`,'} \; \textit{type}\} \; [\texttt{`*'}]\\
+\textit{rettype} ::= & \;\; \textit{type} \; | \;
+  \textit{uniontuple} \; [\texttt{`?'}]\\
+\textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
+  \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}\\
+\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
+\textit{tabletypebody} ::= & \;\; \textit{maptype} \; | \;
+  \textit{recordtype}\\
+\textit{maptype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
+\textit{keytype} ::= & \;\; \textit{basetype} \; | \;
+  \textbf{value}\\
+\textit{recordtype} ::= & \;\; \textit{recordfield} \; \{\texttt{`,'} \; \textit{recordfield}\} \; [\texttt{`,'} \; \textit{type}]\\
+\textit{recordfield} ::= & \;\; [\textbf{const}] \; \textit{literaltype} \; \texttt{`:'} \; \textit{type}\\
+\textit{methodtype} ::= & \;\; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettype}
 \end{align*}
