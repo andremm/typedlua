@@ -8,7 +8,7 @@ to build large applications, as static types detect many bugs
 during the development phase, and also provide better documentation.
 
 In this chapter we present the formalization of Typed Lua's type system.
-Besides its practical contribution, Typed Lua also has some interesting
+Besides its practical contributions, Typed Lua also has some interesting
 contributions to the field of optional type systems for scripting
 languages.
 They are novel type system features that let Typed Lua cover several Lua idioms
@@ -35,6 +35,7 @@ t ::= & & \textsc{first-level types:}\\
 & | \; \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed|open|unique} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.t & \textit{recursive types}\\
+& | \; \phi(t,t) & \textit{filter types}\\
 & | \; \pi_{i}^{x} & \textit{projection types}\\
 %\multicolumn{3}{c}{}\\
 l ::= & & \textsc{{\small literal types:}}\\
@@ -73,10 +74,10 @@ second-level types represent tuples of values that appear in
 assignments and function applications.
 First-level types include literal types, base types, the type $\Nil$,
 the top type $\Value$, the dynamic type $\Any$, the type $\Self$,
-union types, function types, table types, recursive types, and
-projection types.
-Second-level types include the type $\Void$, variadic types,
-tuple types, and unions of tuple types.
+union types, function types, table types, recursive types,
+filter types, and projection types.
+Second-level types include tuple types and unions of tuple types.
+Tuple types include the type $\Void$, variadic types, and pair types.
 Types are ordered by a subtype relationship that we introduce
 in Section \ref{sec:subtyping}, so Lua values may belong to
 several distinct types.
@@ -88,15 +89,15 @@ We will see that literal types are important in our treatment of
 table types as records.
 
 Typed Lua includes four base types: $\Boolean$, $\Integer$, $\Number$, and $\String$.
-The base types $\Boolean$ and $\String$ represent the values that during
-run-time Lua tags as \texttt{boolean} and \texttt{string}, respectively.
+The base types $\Boolean$ and $\String$ represent the values that
+Lua tags as \texttt{boolean} and \texttt{string} during run-time.
 Lua 5.3 introduced two internal representations to the tag \texttt{number}:
 \texttt{integer} for integer numbers and \texttt{float} for real numbers.
 Lua does automatic promotion of \texttt{integer} values to \texttt{float}
 values as needed.
 We introduced the base type $\Number$ to represent \texttt{float} values,
 and the base type $\Integer$ to represent \texttt{integer} values.
-In the next section we will show that $\Integer$ is subtype of $\Number$.
+In the next section we will show that $\Integer$ is a subtype of $\Number$.
 This allows programmers to keep using \texttt{integer} values where
 \texttt{float} values are expected.
 
@@ -121,9 +122,9 @@ of two different types.
 Function types have the form $s \rightarrow s$ and represent Lua functions,
 where $s$ is a second-level type.
 
-Second-level types are tuples of first-level types that can end
-with either an empty tuple or with a variadic type, and
-unions of tuple types.
+Second-level types are either tuple types or unions of tuple types.
+Tuple types are tuples of first-level types that can end with
+either an empty tuple or with a variadic type.
 Typed Lua needs second-level types because tuples are not first-class
 values in Lua, only appearing on argument passing, multiple returns,
 and multiple assignments.
@@ -149,14 +150,14 @@ that we discussed in Section \ref{sec:statistics} showed that most
 of the tables are records, lists, and hashes.
 The type $\Value$ is an option when we need a loose table type.
 For instance, $\{\Value:\Value\}_{closed}$ represents the type of a
-table that both indices and values can have any type.
+table in which both indices and values can have any type.
 Value types can be any first-level type, and can optionally include
 the $\Const$ type to denote immutable values.
 
 We also use the tags \emph{closed}, \emph{open}, and \emph{unique}
 to classify table types.
-The tag \emph{unique} represents tables that have no keys that do not
-inhabit one of the table's key types, and that have no alias.
+The tag \emph{unique} represents tables with no keys that do not
+inhabit one of the table's key types, and with no alias.
 In particular, the type of the table constructor has this tag.
 The tag \emph{open} represents \emph{unique} table types that
 have at least one alias.
@@ -186,12 +187,18 @@ interface declaration as an alias to this type:
     end
 \end{verbatim}
 
+Typed Lua includes filter types as a way to discriminate the type of local
+variables inside conditions.
+In Section \ref{sec:rules} we show in more detail how our type system
+uses them to formalize the \texttt{type} predicates that we mentioned
+in Section \ref{sec:unions}.
+
 Typed Lua includes projection types as a way to project
-unions of tuple types into unions of first-level types,
-as we mentioned in Section \ref{sec:unions}.
+unions of tuple types into unions of first-level types.
 In Section \ref{sec:rules} we show in more detail how our type system
 uses them as a mechanism for handling unions of tuple types,
-when they appear on the right-hand side of the declaration of local variables.
+when they appear on the right-hand side of the declaration of local variables,
+as we mentioned in Section \ref{sec:unions}.
 We also show how this feature allows our type system to constrain
 the type of a local variable that depends on the type of another local variable.
 
@@ -204,7 +211,7 @@ to mix static and dynamic typing.
 Our type system uses subtyping \citep{cardelli1984smi,abadi1996to} to order
 types and consistent-subtyping \citep{siek2007objects,siek2013mutable}
 to allow the interaction between statically and dynamically typed code.
-We explain the subtyping and consistent-subtyping rules along this section.
+We explain the subtyping and consistent-subtyping rules throughout this section.
 However, we focus the discussion on the definition of subtyping because,
 as we mentioned in Section \ref{sec:gradual}, we can combine the
 consistency and subtyping relations to achieve consistent-subtyping.
@@ -276,8 +283,8 @@ the consistent-subtyping rules, and consistent-subtyping is not
 transitive.
 More precisely, we want the subtyping and consistent-subtyping rules
 to differ only in the way they handle the dynamic type.
-Thus, we define the subtyping rules using an algorithmic
-way that is close to the implementation, as this way allows us to use
+Thus, we define the subtyping rules using an algorithmic approach
+that is close to the implementation, as this approach allows us to use
 subtyping to easily formalize consistent-subtyping.
 
 Our type system includes the top type $\Value$,
@@ -350,47 +357,63 @@ second-level types to represent the type of the parameter list
 and the return type.
 Now, we explain their subtyping rules.
 
-The simplest tuple type is the type $\Void$ that is the type of an
-empty tuple and it is subtype only of itself.
-
-The subtyping rule for pair types is standard, but the subtyping rules
-for variadic types are not so obvious:
+The type $\Void$ is a subtype of itself and of a variadic type:
 \[
 \begin{array}{c}
+\mylabel{S-VOID}\\
+\senv \vdash \Void \subtype t{*}
+\end{array}
+\]
+
+A variadic type $t{*}$ represents a sequence of values of type
+$t \cup \Nil$, and the rule \textsc{S-VOID} handles the case where
+a given sequence is empty.
+
+The subtyping rule for pair types is the standard covariant rule:
+\[
 \begin{array}{c}
 \mylabel{S-PAIR}\\
 \dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
        \senv \vdash s_{1} \subtype s_{2}}
       {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
 \end{array}
-\;
+\]
+
+The subtyping rules for variadic types are not so obvious:
+\[
+\begin{array}{c}
 \begin{array}{c}
 \mylabel{S-VARARG1}\\
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
-      {\senv \vdash t_{1}{*} \subtype t_{2}{*}}
+\senv \vdash \Nil{*} \subtype \Void
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{S-VARARG2}\\
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1}{*} \subtype t_{2}{*}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-VARARG3}\\
 \dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2}}
       {\senv \vdash t_{1}{*} \subtype t_{2} \times \Void}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-VARARG3}\\
+\mylabel{S-VARARG4}\\
 \dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil}
       {\senv \vdash t_{1} \times \Void \subtype t_{2}{*}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{S-VARARG4}\\
+\mylabel{S-VARARG5}\\
 \dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \times \Void \;\;\;
        \senv \vdash t_{1}{*} \subtype s_{2}}
       {\senv \vdash t_{1}{*} \subtype t_{2} \times s_{2}}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-VARARG5}\\
+\mylabel{S-VARARG6}\\
 \dfrac{\senv \vdash t_{1} \times \Void \subtype t_{2}{*} \;\;\;
        \senv \vdash s_{1} \subtype t_{2}{*}}
       {\senv \vdash t_{1} \times s_{1} \subtype t_{2}{*}}
@@ -398,24 +421,23 @@ for variadic types are not so obvious:
 \end{array}
 \]
 
-The subtyping rules for pair and variadic types show that they are covariant.
-While we need just one subtyping rule for pair types,
-we need five different subtyping rules for variadic types
+We need six different subtyping rules for variadic types
 to handle all the cases where they can appear.
-The rule \textsc{S-VARARG1} handles the case that both tuple types end
-with variadic types, while the other rules handle the cases that only
-one tuple type ends with a variadic type.
-Note that the case where both tuple types end with the type $\Void$ does
-not require any special rule.
-The rule \textsc{S-VARARG1} shows that $t_{1}{*}$ is subtype of $t_{2}{*}$
-if $t_{1} \cup \Nil$ is subtype of $t_{2} \cup \Nil$.
-This rule explicit includes $\Nil$ in both sides because otherwise
+The rule \textsc{S-VARARG1} is a special rule for handling the
+case where we give a sequence of $\Nil$ to the empty tuple.
+The rule \textsc{S-VARARG2} handles the case where both tuple types end
+with variadic types, and shows that $t_{1}{*}$ is a subtype of $t_{2}{*}$
+if $t_{1} \cup \Nil$ is a subtype of $t_{2} \cup \Nil$.
+This rule explicitly includes $\Nil$ in both sides because otherwise
 $\Nil{*}$ would not be a subtype of several other variadic types.
 For instance, $\Nil{*}$ would not be subtype of $\Number{*}$,
 as $\Nil \not\subtype \Number$.
-In the next section we will show that we use these subtyping relations,
+The other rules handle the cases where only one tuple type ends with a variadic type.
+Note that the case where both tuple types end with the type $\Void$ does
+not require any special rule.
+In the next section we will show that we use these subtyping rules,
 along with the types $\Value$ and $\Nil$, to make our type system reflect
-the semantics of Lua on discarding extra parameters, and
+the semantics of Lua on discarding extra parameters and
 replacing missing parameters.
 
 The subtyping rules for unions of tuple types are similar to the
@@ -458,7 +480,7 @@ standard subtyping rule between records:
 \]
 
 The rule \textsc{S-TABLE1} allows width subtyping between \emph{closed}
-table types, and introduced the auxiliary relation $\subtype_{c}$ to
+table types, and introduces the auxiliary relation $\subtype_{c}$ to
 handle depth subtyping on the type of the values stored in the table fields.
 We need an auxiliary relation because the subtyping of the
 type of the values stored in the table fields changes according to
@@ -505,7 +527,7 @@ For instance,
     local t:{"x":integer, "y":integer?} = { x = 1, y = 2 }
 \end{verbatim}
 would not type check, as the type of the table constructor would not
-be subtype of the type in the annotation.
+be a subtype of the type in the annotation.
 More precisely,
 \[
 \{``x":1, ``y":2\}_{closed} \not\subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
@@ -715,7 +737,12 @@ the type of the table constructor is a subtype of \texttt{Element}:
 & \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
 
-Projection types are subtypes only of themselfs and of $\Value$.
+Filter types are subtypes only of themselves and of $\Value$.
+More precisey, a filter type $\phi(t_{1},t_{2})$ is a subtype of
+the same filter type $\phi(t_{1},t_{2})$, which shares the same
+types $t_{1}$ and $t_{2}$, and it is also a subtype of $\Value$.
+
+Projection types are subtypes only of themselves and of $\Value$.
 More precisely, a projection type $\pi_{i}^{x}$ is a subtype of the
 same projection type $\pi_{i}^{x}$, which shares the same union of
 tuples $x$ and the same index $i$, and it is also a subtype of $\Value$.
@@ -727,7 +754,7 @@ Even though the dynamic type $\Any$ does not interact with subtyping,
 it does interact with consistent-subtyping.
 We present the consistent-subtyping rules as a deduction system for
 the consistent-subtyping relation $\senv \vdash t_{1} \lesssim t_{2}$.
-Like in the subtyping relation, $\senv$ is also a set of pairs of
+As in the subtyping relation, $\senv$ is also a set of pairs of
 recursion variables.
 We define the consistent-subtyping rules for the dynamic type $\Any$
 as follows:
@@ -746,7 +773,7 @@ as follows:
 \]
 
 If we had set the type $\Any$ as both bottom and top types of our
-subtyping relation, then any type $t_{1}$ would be subtype of
+subtyping relation, then any type $t_{1}$ would be a subtype of
 any other type $t_{2}$.
 The consequence of this is that all programs would type check without errors.
 This would happen due to the transitivity of subtyping, that is,
@@ -762,8 +789,8 @@ subtyping and consistent-subtyping, if we implement the subtyping rules
 as we do in this section.
 
 In the implementation of Typed Lua we also use consistent-subtyping to
-normalize and simplify union types, though we let them free in the
-formalization.
+normalize and simplify union types, though we let union types free in
+the formalization.
 For instance, the union type \texttt{boolean|any} results in the
 type \texttt{any}, because \texttt{boolean} is consistent-subtype
 of \texttt{any}.
@@ -837,7 +864,8 @@ me \; | \;
 \vec{e}, me\\
 me ::= & \;\; e(el)_{m} \; | \;
 e{:}n(el)_{m} \; | \;
-{...}_{m}\\
+{...}_{m} \; | \;
+e^{x}\\
 m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; fb \; | \;
 \mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; fb\\
 & | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; fb \; | \;
