@@ -1574,10 +1574,11 @@ function tlchecker.error_msgs (messages, warnings)
       table.insert(l, string.format(error_msg, v.filename, v.l, v.c, v.msg))
     end
   end
-  if #l == 0 then
-    return nil
+  local n = #l
+  if n == 0 then
+    return nil, n
   else
-    return table.concat(l, "\n")
+    return table.concat(l, "\n"), n
   end
 end
 

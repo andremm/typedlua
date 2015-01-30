@@ -120,11 +120,11 @@ if PRINTAST then
   os.exit(0)
 end
 
-error_msg = tlchecker.typecheck(ast, subject, filename, STRICT, INTEGER)
-error_msg = tlchecker.error_msgs(error_msg, WARNINGS)
+local error_msg = tlchecker.typecheck(ast, subject, filename, STRICT, INTEGER)
+local error_msg, status = tlchecker.error_msgs(error_msg, WARNINGS)
 if error_msg then print(error_msg) end
 
 local generated_code = tlcode.generate(ast)
 setcontents(generated_code, OUTPUT)
 
-os.exit(0)
+os.exit(status)
