@@ -1,19 +1,17 @@
 
 We performed some case studies on existing Lua libraries
 to evaluate the applicability of our type system.
-For each library, we used Typed Lua to either rewrite its modules
+For each library, we used Typed Lua to either annotate its modules
 or to write statically typed interfaces to its modules through
 Typed Lua's description files.
 In Section \ref{sec:cases} we present our evaluation results
 and discuss some interesting cases.
 
-We also compared our type system to other type systems,
-as a way to evaluate our contributions.
+We also evaluate our contributions through the revision of related work.
 In Section \ref{sec:relatedwork} we discuss what are the novel
-features introduced by our type system,
-what are the features that it shares with other type systems,
-and whether we can incorporate some interesting features from
-other type systems.
+features of our type system, what are the features that it shares
+with other type systems, and whether we can incorporate some
+interesting features from other type systems.
 
 \section{Case Studies}
 \label{sec:cases}
@@ -21,7 +19,7 @@ other type systems.
 We selected seven case studies to evaluate two aspects of Typed Lua:
 \begin{enumerate}
 \item how precisely it can describe the type of the interface of a module;
-\item if it provides guarantees that the code corresponds to the interface.
+\item whether it provides guarantees that the code matches the interface.
 \end{enumerate}
 
 The Lua Standard Library \citep{luamanual} was our first case study.
@@ -33,11 +31,10 @@ are two Lua features that our type system should handle to allow us
 typing some of the functions that the standard library implements.
 
 The second case study that we chose was the MD5 library \citep{lmd5},
-because it is simple and contains just one module.
-We needed a simple case study to introduce Typed Lua's description
+because we wanted a simple case study to introduce Typed Lua's description
 files and \texttt{userdata} declarations.
 These Typed Lua's mechanisms allow programmers to give statically typed
-interfaces to Lua libraries that are written in C.
+interfaces to Lua libraries.
 
 LuaSocket \citep{luasocket} was the third case study that we used to
 evaluate Typed Lua.
@@ -50,12 +47,11 @@ The first one provides client side HTTP digest authentication for Lua.
 The second one is an extension to the primitive function \texttt{type}.
 The third one is a generator and checker of modulo 11 numbers.
 We randomly selected these libraries to evaluate Typed Lua for
-rewriting existing Lua modules.
+annotating existing Lua modules.
 
 The Typed Lua compiler is the last case study that we evaluated.
-We chose it as a case study because it is a large application.
-In addition, bootstrapping the compiler also provides some
-confidence on the type system.
+We chose the Typed Lua compiler as a case study because it is a large application,
+and bootstrapping the compiler also provides some confidence in the type system.
 
 \begin{table}[!ht]
 \begin{center}
@@ -680,10 +676,10 @@ whether it is \texttt{nil}.
 \section{Related Work}
 \label{sec:relatedwork}
 
-In this section we compare Typed Lua with other projects.
-We split this section into two parts: the first compares Typed Lua
-with other Lua projects, while the second compares Typed Lua with
-other projects that are not related to Lua.
+In this section we review related work.
+We split this section into two parts: in the first part we review
+other Lua projects, while in the second part we review other
+projects that are not related to Lua.
 
 \subsection{Other Lua projects}
 
@@ -698,23 +694,24 @@ styles, and can also provide syntax for turning simple type
 annotations into run-time assertions.
 
 MoonScript \citep{moonscript} is a programming language that supports
-class-based object-oriented programming, and compiles to idiomatic
-Lua code.
-However, it does not perform compile-time type checking.
+class-based object-oriented programming.
+MoonScript compiles to idiomatic Lua code, but 
+it does not perform compile-time type checking.
 
 LuaInspect \citep{luainspect} is a tool that uses MetaLua to perform
-some code analysis, such as flagging unknown global variables and
-table fields, checking the number of function arguments against
-signatures, and inferring function return values, but it does not
-try to analyze object-oriented code and does not perform compile-time
-type checking.
+some code analysis.
+For instance, it flags unknown global variables and table fields,
+it checks the number of function arguments against signatures, and
+it infers function return values.
+However, it does not try to analyze object-oriented code and
+it does not perform compile-time type checking.
 
 Tidal Lock \citep{tidallock} is a prototype of another optional type
 system for Lua, which is written in Metalua.
 Tidal Lock covers a little subset of Lua.
 Statements include declaration of local variables, multiple assignments,
-function application, and the return statement, that is, they do not
-include any control-flow statements.
+function application, and the return statement.
+This means that Tidal Lock does not include any control-flow statement.
 Expressions include primitive literals, table indexing, function application,
 function declaration, and the table constructor, but they do not include
 binary operations.
@@ -732,7 +729,7 @@ in a table type.
 Field types are the feature that allow the refinement of table types in
 Tidal Lock.
 
-Tidal Lock is also a structural type system based on subtyping that has
+Tidal Lock is also a structural type system that relies on subtyping and
 local type inference.
 However, it does not support union types, recursive types, and variadic types.
 It also does not type any object-oriented idiom.
@@ -740,6 +737,11 @@ It also does not type any object-oriented idiom.
 Luacheck \citep{luacheck} is a tool that performs static analysis on Lua code.
 It can flag access to undeclared globals and unused local variables,
 but it does not perform static type checking.
+
+Ravi \citep{ravi} is an experimental Lua dialect.
+Ravi introduces optional static typing for Lua to improve run-time performance.
+To do that, Ravi extends the Lua Virtual Machine to include new
+operations that take into account static type information.
 
 \subsection{Other projects}
 
@@ -796,6 +798,7 @@ The type system of Dart is nominal and includes base types,
 function types, lists, and maps.
 It also supports generics, and the programmer can define
 generic functions, lists, and maps.
+Unlike Typed Lua, Dart is unsound by design.
 
 Even though Dart has optional typing and static types by
 default do not affect run-time semantics, it has an
@@ -812,12 +815,11 @@ It also uses local type inference to deduce the type
 of unannotated expressions.
 The type system of TypeScript is structural, based
 on subtyping, and supports generics.
-It includes the dynamic type, primitive types, function
-types, array types, tuple types, recursive types, and
+It includes the dynamic type, primitive types, union types,
+function types, array types, tuple types, recursive types, and
 object types.
-Unlike Typed Lua, TypeScript does not include union types,
-and it uses arrays to represent variadic functions and
-multiple return values.
+Unlike Typed Lua, TypeScript uses arrays to represent variadic
+functions and multiple return values.
 
 Even though TypeScript is unsound by design,
 \citet{bierman2014typescript} shows how to make TypeScript sound.
