@@ -1612,12 +1612,12 @@ following example, which is a translation of the definition of the class
 \multicolumn{4}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{open} = \{ [``x"] = 0.0, [``y"] = 0.0 \}$}\\
 \multicolumn{4}{l}{$\mathbf{in}$}\\
 & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}new (x:\Number, y:\Number):\Self \times \Void$}\\
-& & \multicolumn{2}{l}{$\mathbf{local} \; s:\{``x":\Number, ``y":\Number\}_{closed} =$}\\
-& & & \multicolumn{1}{l}{$setmetatable(\{\}, \{ [``\string_\string_index"] = self \})$}\\
-& & \multicolumn{2}{l}{$\mathbf{in} \; s[``x"] = x; \; s[``y"] = y; \; \mathbf{return} \; s$}\\
+& & \multicolumn{2}{l}{$\mathbf{local} \; o:\Self = setmetatable(\{\}, \{ [``\string_\string_index"] = self \})$}\\
+& & \multicolumn{2}{l}{$\mathbf{in} \; o[``x"] = x; \; o[``y"] = y; \; \mathbf{return} \; o$}\\
 ; & \multicolumn{3}{l}{$\mathbf{fun} \; s{:}move (x:\Number, y:\Number):\Void$}\\
 & & \multicolumn{2}{l}{$self[``x"] = self[``x"] + x;$}\\
-& & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y$}
+& & \multicolumn{2}{l}{$self[``y"] = self[``y"] + y;$}\\
+& & \multicolumn{2}{l}{$\mathbf{return} \; \mathbf{nothing}$}
 \end{tabular}
 \end{center}
 
@@ -1628,8 +1628,8 @@ Then, we use two method definitions to include $new$ and $move$ into
 our class that now has type
 \begin{align*}
 \{ & ``x":\Number, ``y":\Number,\\
-   & \Const \; ``new":\Self \times \Number \times \Number \rightarrow \Self,\\
-   & \Const \; ``move":\Self \times \Number \times \Number \rightarrow \Void \}_{open}
+   & \Const \; ``new":\Self \times \Number \times \Number \times \Void \rightarrow \Self \times \Void,\\
+   & \Const \; ``move":\Self \times \Number \times \Number \times \Void \rightarrow \Void \}_{open}
 \end{align*}
 
 Inside the definition of the method \emph{new} we use \emph{setmetatable}

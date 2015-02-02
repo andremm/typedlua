@@ -63,7 +63,7 @@ Lua Standard Library & 80 & 6 & 8 & 35 & 129 & 62\% \\
 \hline
 MD5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \hline
-LuaSocket & 109 & 1 & 2 & 11 & 123 & 89\% \\
+LuaSocket & 110 & 1 & 2 & 10 & 123 & 89\% \\
 \hline
 HTTP Digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
 \hline
@@ -111,7 +111,7 @@ we used Typed Lua to type just the interface of each module.
 The \texttt{debug} module is the only one that we did not include in our
 evaluation results, because it provides several functions that violate
 basic assumptions about Lua code \citep{luamanual}.
-For instance, we can use its function \texttt{setlocal} to change the value
+For instance, we can use the function \texttt{debug.setlocal} to change the value
 of a local variable that is not visible in the current scope.
 Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard Library
 (version 5.3).
@@ -148,33 +148,27 @@ os & 9 & 0 & 2 & 0 & 11 & 82\% \\
 
 We could give precise static types to several members of
 the Lua Standard Library, though some of them are still
-hard to type with the current type system.
-Now, we discuss why some modules are difficult to type,
-and what kind of limitations they represent on our type system.
+hard to type with our current type system.
+Now we will discuss why some modules are difficult to type,
+and what kind of limitations they represent in our type system.
 
 The \texttt{base} module was quite hard to type because it
-includes several functions that have a dynamic behavior.
-For instance, the function \texttt{next} traverses all the
-fields of a table, but the order that the indices are
-enumerated is not specified.
-For this reason, it is also difficult to type the function
-\texttt{pairs}, as it uses the function \texttt{next} to
-traverse a table.
-The functions \texttt{getmetatable}, \texttt{rawget}, and
-\texttt{rawset} are other examples of functions that their
-behavior depend on the C implementation.
+includes several functions that rely on reflection.
+For instance, the function \texttt{pairs} traverses all
+keys and values that are stored in a given table.
+As another example, the function \texttt{getmetatable}
+returns the metatable of a given table.
 
-We could not give a precise static type to \texttt{ipairs}
+We could not give a precise static type to \texttt{ipairs},
 because our type system does not have parametric polymorphism.
 This function returns an iterator function that traverses a
 list of elements.
 
-The \texttt{base} module also includes two special cases:
-the functions \texttt{tonumber} and \texttt{collectgarbage}.
+The \texttt{base} module also includes two overloaded functions:
+\texttt{tonumber} and \texttt{collectgarbage}.
 
-The function \texttt{tonumber} is a special case because the
-type of the first parameter depends on the type of the
-second parameter.
+In the case of \texttt{tonumber}, the type of the first parameter
+depends on the type of the second parameter.
 For instance, we can call \texttt{tonumber(1)}, but we cannot
 call \texttt{tonumber(1,2)}.
 More precisely, the first argument of \texttt{tonumber} can be
@@ -182,11 +176,10 @@ a value of any type if it is the only argument, but it must
 be a string if there is a second argument,
 which must be an integer.
 
-The function \texttt{collectgarbage} is a special case because
-its return type depends on the value of the first parameter,
-which should be a string.
-For instance, calling \texttt{collectgarbage("collect")} returns an integer number,
-calling \texttt{collectgarbage("count")} returns a floating point number,
+In the case of \texttt{collectgarbage}, the return type changes
+according to an input literal string.
+For instance, calling \texttt{collectgarbage("collect")} returns an integer,
+calling \texttt{collectgarbage("count")} returns a floating point,
 and calling \texttt{collectgarbage("isrunning")} returns a boolean.
 
 We could not type most of the members of the \texttt{coroutine} module
@@ -206,8 +199,16 @@ We could type most of the members of the \texttt{package} module,
 but we could not type the following tables: \texttt{package.loaded},
 \texttt{package.preload}, and \texttt{package.loaders}.
 The first stores loaded modules, while the others store module \emph{loaders}.
-They are difficult to type because their types are dynamic and
-depend on the modules a program loads.
+They are difficult to type because their types rely on reflection,
+that is, their types depend on the modules a program loads.
+
+The \texttt{string} module was not that hard to type, but it includes
+some functions that we could not type, as they rely on format
+strings.
+For instance, the type of the arguments that we pass to
+\texttt{string.format} depend on the format string we are using.
+It is fine to call \texttt{string.format("\%d", 1)}, but
+\texttt{string.format("\%d", true)} raises a run-time error.
 
 Lua programmers often use the functions of the \texttt{string} module
 in an object-oriented style, and we treat this feature as a
@@ -215,21 +216,13 @@ special case in the implementation.
 For this reason, we did not include the typing of the \texttt{string}
 methods in our evaluation results.
 
-The \texttt{string} module is not that hard to type, but it includes
-some functions that require dependent types.
-For instance, the type of the arguments that we pass to
-\texttt{string.format} depend on the format string we are using.
-It is fine to call \texttt{string.format("\%d", 1)}, but
-\texttt{string.format("\%d", true)} generates a run-time error.
-
-The \texttt{utf8} module was quite straightforward to type,
+The \texttt{utf8} module was straightforward to type,
 as its members are only operations over strings.
 
-The \texttt{table} module is specially difficult to type because
-almost all of its members require parametric polymorphism.
-All the functions of this module either receive or return a list
-of elements, and parametric polymorphism would help us to describe
-them with a generic type.
+The \texttt{table} module was specially difficult to type because
+most of its functions require parametric polymorphism.
+These functions either receive or return a list of elements, and
+parametric polymorphism would help us to describe them with a generic type.
 
 However, the lack of parametric polymorphism did not prevent us from
 giving a precise type to \texttt{table.concat}, as it operates over lists
@@ -249,25 +242,19 @@ we pass more than three arguments, even if the first three arguments
 match its signature.
 
 Even though the \texttt{math} module looks straightforward to type,
-it includes several functions that the return type depend on the input type.
+it includes several overloaded functions.
 For instance, \texttt{math.abs(1)} returns the integer \texttt{1},
 while \texttt{math.abs(1.1)} returns the floating point \texttt{1.1}.
 
-The \texttt{math} module also includes a special case that is hard to type:
+The \texttt{math} module also includes a function that is hard to type:
 the function \texttt{math.random}.
-This function is difficult to type because its type depends on the calling arity.
-Calling \texttt{math.random()} returns a random floating point number
+It is difficult to type because its type depends on the calling arity.
+Calling \texttt{math.random()} returns a random floating point
 between \texttt{0} and \texttt{1}.
 Calling \texttt{math.random(10)} is equivalent to \texttt{math.random(1,10)},
 and returns an integer between this interval.
 This function also does not follow the semantics of Lua on discarding extra arguments,
 and generates a run-time error whenever we pass more than two arguments.
-There is also a problem on its documentation, as it suggests that
-the two integers are optional parameters, but, for \texttt{math.random},
-optional parameters behave in a different way.
-Usually, Lua functions replace optional parameters with a default value
-when they are \texttt{nil}, but \texttt{math.random} generates a run-time
-error instead.
 
 The \texttt{io} module provides operations for manipulating files,
 and these operations can use implicit or explicit file descriptors.
@@ -294,7 +281,7 @@ and it returns the tuple \texttt{(boolean)?} otherwise.
 The method \texttt{file:close} is difficult to type for the same reason.
 
 The functions \texttt{io.read} and \texttt{io.lines} are difficult
-to type because their return types depend on their input types.
+to type because they are overloaded functions.
 For instance, \texttt{io.read("l")} returns a string or \texttt{nil},
 \texttt{io.read("n")} returns a number or \texttt{nil}, and calling
 \texttt{io.read("l", "n")} returns a string or \texttt{nil} and a number or \texttt{nil}.
@@ -302,9 +289,8 @@ The function \texttt{io.lines}, and the methods \texttt{file:read} and
 \texttt{file:lines} are difficult to type for the same reason.
 
 The function \texttt{os.execute} is the only member of the \texttt{os}
-module that we could not give a precise type.
-This function is difficult to type because its return type depend on
-the input type.
+module that we could not give a precise type, as it is an overloaded
+function.
 More precisely, \texttt{os.execute()} returns a boolean, while
 \texttt{os.execute(c)} returns \texttt{(boolean?, string, number)},
 where \texttt{c} is a string that represents the command to be executed.
@@ -338,7 +324,7 @@ md5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \label{tab:evalmd5}
 \end{table}
 
-Even tough it was quite straightforward to type the MD5 library,
+Even tough it was straightforward to type the MD5 library,
 we found a little difference between its documentation and its behavior.
 The documentation suggests that the type of the function \texttt{md5.update}
 is \texttt{(md5\string_context, string) -> (md5\string_context)},
@@ -349,7 +335,7 @@ Reading the source code, we found that its actual type is
 that is, we can pass zero or more strings to \texttt{md5.update}.
 
 This case study shows that type annotations help programmers maintain the
-documentation updated, as the type checker always validate them.
+documentation updated, as the type checker always validates them.
 
 \subsection{LuaSocket}
 
@@ -359,9 +345,9 @@ Lua modules.
 The C core provides TCP and UDP support, while the Lua modules provide
 support for SMTP, HTTP, and FTP client protocols, MIME encoding,
 URL manipulation, and LTN12 filters \citep{nehab2008ltn012}.
-We used Typed Lua's description files to type both parts.
-This is the only case study that we test description files to statically type
-a Lua module instead of rewriting it.
+We used Typed Lua's description files to type both parts, as we also
+wanted to use LuaSocket to test description files to statically type
+the interface of modules that are written in Lua.
 Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
 
 \begin{table}[!ht]
@@ -376,7 +362,7 @@ ftp & 5 & 0 & 1 & 0 & 6 & 83\% \\
 \hline
 http & 4 & 0 & 1 & 0 & 5 & 80\% \\
 \hline
-smtp & 6 & 0 & 0 & 1 & 7 & 86\% \\
+smtp & 7 & 0 & 0 & 0 & 7 & 100\% \\
 \hline
 mime & 17 & 0 & 0 & 0 & 17 & 100\% \\
 \hline
@@ -394,37 +380,37 @@ We could type most of the members in the \texttt{socket} module,
 which is the C core.
 However, this module includes some functions such as
 \texttt{socket.try}, \texttt{socket.protect}, and \texttt{socket.skip}
-that have a dynamic behavior.
-This means that the return type of these functions depend on the
-type of the values that we use to call them.
-For instance, \texttt{socket.skip(0, nil, "hello")} returns the
-tuple \texttt{(nil, "hello")}, \texttt{socket.skip(1, nil, "hello")}
-returns only the string \texttt{"hello"}, and
-\texttt{socket.skip(-1, nil, "hello")} returns the tuple
-\texttt{(-1, nil, "hello")}.
+that are hard to type because they rely on reflection.
+For instance, we can use \texttt{socket.skip} to choose the number of
+values that we want to return.
+As an example, calling \texttt{socket.skip(1, nil, "hello")}
+returns only the string \texttt{"hello"}, because \texttt{1} indicates
+that we do not want to return the first value.
 Passing a negative number to \texttt{socket.skip} can be
 dangerous, as it returns anything that might be in the stack.
-For instance, \texttt{f = socket.skip(-2)} assigns \texttt{socket.skip}
-to \texttt{f}.
+As an example, calling \texttt{socket.skip(-1, nil, "hello")}
+returns the tuple \texttt{(-1, nil, "hello")}, because \texttt{-1} makes
+\texttt{socket.skip} does not skip any values.
+As another example, \texttt{f = socket.skip(-2)} assigns \texttt{socket.skip}
+to \texttt{f}, as \texttt{-2} gets \texttt{socket.skip} from the stack.
 Our type system cannot handle the type of negative numbers, as
-this requires the refinement types from hybrid type checking \citep{flanagan2006htc}.
+this requires more complex types such as the refinement types from
+hybrid type checking \citep{flanagan2006htc}.
 
-We could type most of the members of the modules \texttt{ftp},
-\texttt{http}, and \texttt{smtp}, but we could not precisely type
-the functions \texttt{ftp.get}, \texttt{http.request}, and
-\texttt{smtp.message}.
+We could type most of the members of the modules \texttt{ftp} and
+\texttt{http}, but we could not precisely type
+the functions \texttt{ftp.get} and \texttt{http.request} because
+they are overloaded functions.
 
 The function \texttt{ftp.get} downloads data from a given URL,
-and it is difficult to type because its return type depends on
-the type of its input parameter.
+which can be either a string or a table.
 More precisely, \texttt{ftp.get(url)} returns the tuple
 \texttt{(string) | (nil, string)} if \texttt{url} is a string,
 and it returns the tuple \texttt{(number) | (nil, string)} if
 \texttt{url} is a table.
 
 The function \texttt{http.request} downloads data from a given URL,
-and it is difficult to type because its return type depends on
-the types of its input parameters.
+which can be either a string or a table.
 More precisely, \texttt{http.request(url, body)} returns the tuple
 \texttt{(string, number, \{string:string\}, number) | (nil, string)}
 if \texttt{url} is a string and \texttt{body} is another string or \texttt{nil},
@@ -432,14 +418,9 @@ but it returns the tuple
 \texttt{(number, number, \{string:string\}, number) | (nil, string)}
 if \texttt{url} is a table and \texttt{body} is \texttt{nil}.
 
-The function \texttt{smtp.message} creates a function that sends
-an SMTP message body, and it is difficult to type because of the
-type of the message body, which is recursive and makes harder
-its initialization.
-
 The modules \texttt{mime} and \texttt{ltn12} have a strong connection.
 The \texttt{mime} module offers low-level and high-level filters
-that apply and remove some text encodings.
+that apply and remove some text encoding.
 The low-level filters are written in C, while the high-level filters
 use the function \texttt{ltn12.filter.cycle} along with the low level
 filters to create standard filters.
@@ -447,19 +428,11 @@ filters to create standard filters.
 Even though we could type all the members of the \texttt{mime} module,
 the function \texttt{ltn12.filter.cycle} is the only member of the
 \texttt{ltn12} module that we could not give a precise type.
-This function is difficult to type because the \texttt{mime} low-level
-filters are polymorphic.
+This function is difficult to type because it is polymorphic.
 
+The modules \texttt{smtp} and \texttt{url} were straightforward to type.
+The \texttt{smtp} module provides functions that send e-mails.
 The \texttt{url} module provides functions that manipulate URLs.
-It is straightforward to type, although it defines a table type for
-parsed URLs that is not precise enough.
-This type is problematic because it is a record type where all
-fields are optional, and makes any table type that does not include
-the optional fields statically type check.
-
-This case study shows that abusing of dynamic typing usually impacts
-the users of a module, as they have to keep on checking each return
-value before using it to prevent API misuses.
 
 \subsection{HTTP Digest}
 
@@ -485,11 +458,11 @@ because it is an extension to the \texttt{http} module from LuaSocket.
 The \texttt{http-digest} module only exports the function
 \texttt{http-digest.request}, which extends the function
 \texttt{http.request} with MD5 authentication.
-Like \texttt{http.request}, the return type of \texttt{http-digest.request}
-also depends on the types of its input parameters.
+Like \texttt{http.request}, \texttt{http-digest.request}
+is also an overloaded function.
 
 Even though we could not precisely type the interface that \texttt{http-digest}
-exports, we could use only static types to rewrite it, and they pointed a bug
+exports, we could use only static types to annotate it, and they pointed a bug
 in the code.
 The problem was related to the way the library was loading the MD5 library
 that should be used. 
@@ -522,7 +495,7 @@ The interface of the \texttt{typical} module is straightforward to type,
 as it contains only the function \texttt{typical.type},
 which has the same type of the function \texttt{type}: \texttt{(value) -> (string)}.
 
-However, we hit some limitations of our type system to rewrite this module.
+However, we hit some limitations of our type system while annotating this module.
 First, it uses the function \texttt{getmetatable} to get a table and
 checks whether this table has the field \texttt{\string_\string_type} or not.
 We could not give a precise type to \texttt{getmetatable}, so we used the dynamic
@@ -570,10 +543,10 @@ However, our type system does not support this feature, and we need to
 make explicit calls to the constructor whenever we want to create a
 new instance.
 
-Even though we had these two issues to rewrite the \texttt{mod11} module,
-we could use only static types to rewrite it, and found some interesting
+Even though we had these two issues to annotate the \texttt{mod11} module,
+we could use only static types to annotate it, and we found some interesting
 points.
-The code relies a lot on implicit conversions between strings and numbers,
+The code relies on implicit conversions between strings and numbers,
 and some parts of the code keep on changing the type of local variables.
 These are two practices that may hide bugs.
 
@@ -624,19 +597,14 @@ The interface that this module exports was also straightforward to type.
 
 The \texttt{tllexer} module defines common lexical rules for
 the Typed Lua parser and the description file parser.
-This module is hard to type because it exports LPeg \citep{lpeg,ierusalimschy2009lpeg}
-patterns.
-For instance,
-\begin{verbatim}
-    tllexer.Number = lpeg.C(Hex + Float + Int) / tonumber
-\end{verbatim}
-exports the pattern that matches a number.
-Note that LPeg overloads the definition of arithmetic operators,
-a feature that our type system does not support yet.
-That is the reason why we could not precisely type the LPeg
-patterns that this module exports.
-However, we could type the two error reporting functions that this
-module exports.
+This module is hard to type because it uses LPeg \citep{lpeg,ierusalimschy2009lpeg}
+patterns, and LPeg uses overloaded arithmetic operators to
+build LPeg patterns. 
+We could not precisely type LPeg patterns because our
+type system still does not support overloading arithmetic
+operators.
+In this module, we could only type the two error reporting functions
+that it exports.
 
 The \texttt{tlparser} and \texttt{tldparser} modules implement the Typed Lua
 parser and the description file parser, respectively.
@@ -661,17 +629,17 @@ second specifies what the function actually does without changing
 any type definition.
 
 Traversing the AST would also be problematic if we had not included
-a way to decompose unions of table types, as we mentioned in Section \ref{sec:alias}.
+a way to discriminate unions of table types, as we mentioned in Section \ref{sec:alias}.
 
 Bootstraping the compiler also helped revealing some bugs.
 We found some accesses to undeclared global variables and also
 to undeclared table fields.
 The compiler also helped pointing the places where we should narrow
 a nilable value before using it.
-In fact, this point appeared in all the case studies that we rewrote
-the Lua code.
-This means that Lua programmers often use values before checking
-whether it is \texttt{nil}.
+In fact, this point appeared in all the case studies that we used
+Typed Lua to annotate Lua code.
+This means that Lua programmers often use possibly \texttt{nil} values
+before checking whether it is \texttt{nil}.
 
 \section{Related Work}
 \label{sec:relatedwork}
