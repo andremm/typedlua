@@ -19,6 +19,11 @@ This appendix presents the complete type system of Typed Lua.
 \senv \vdash \True \subtype \Boolean
 \]
 
+\mylabel{S-STRING}
+\[
+\senv \vdash {\it string} \subtype \String
+\]
+
 \mylabel{S-INT1}
 \[
 \senv \vdash {\it int} \subtype \Integer
@@ -32,11 +37,6 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{S-FLOAT}
 \[
 \senv \vdash {\it float} \subtype \Number
-\]
-
-\mylabel{S-STRING}
-\[
-\senv \vdash {\it string} \subtype \String
 \]
 
 \mylabel{S-BASE}
@@ -90,9 +90,82 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-FUNCTION}
 \[
-\dfrac{\senv \vdash p_{2} \subtype p_{1} \;\;\;
-       \senv \vdash r_{1} \subtype r_{2}}
-      {\senv \vdash p_{1} \rightarrow r_{1} \subtype p_{2} \rightarrow r_{2}}
+\dfrac{\senv \vdash s_{3} \subtype s_{1} \;\;\;
+       \senv \vdash s_{2} \subtype s_{4}}
+      {\senv \vdash s_{1} \rightarrow s_{2} \subtype s_{3} \rightarrow s_{4}}
+\]
+
+\mylabel{S-VOID1}
+\[
+\senv \vdash \Void \subtype \Void
+\]
+
+\mylabel{S-VOID2}
+\[
+\senv \vdash \Void \subtype t{*}
+\]
+
+\mylabel{S-PAIR}
+\[
+\dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
+       \senv \vdash s_{1} \subtype s_{2}}
+      {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
+\]
+
+\mylabel{S-VARARG1}
+\[
+\senv \vdash \Nil{*} \subtype \Void
+\]
+
+\mylabel{S-VARARG2}
+\[
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1}{*} \subtype t_{2}{*}}
+\]
+
+\mylabel{S-VARARG3}
+\[
+\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2}}
+      {\senv \vdash t_{1}{*} \subtype t_{2} \times \Void}
+\]
+
+\mylabel{S-VARARG4}
+\[
+\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil}
+      {\senv \vdash t_{1} \times \Void \subtype t_{2}{*}}
+\]
+
+\mylabel{S-VARARG5}
+\[
+\dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \times \Void \;\;\;
+       \senv \vdash t_{1}{*} \subtype s_{2}}
+      {\senv \vdash t_{1}{*} \subtype t_{2} \times s_{2}}
+\]
+
+\mylabel{S-VARARG6}
+\[
+\dfrac{\senv \vdash t_{1} \times \Void \subtype t_{2}{*} \;\;\;
+       \senv \vdash s_{1} \subtype t_{2}{*}}
+      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}{*}}
+\]
+
+\mylabel{S-UNION4}
+\[
+\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
+       \senv \vdash s_{2} \subtype s}
+      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
+\]
+
+\mylabel{S-UNION5}
+\[
+\dfrac{\senv \vdash s \subtype s_{1}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\]
+
+\mylabel{S-UNION6}
+\[
+\dfrac{\senv \vdash s \subtype s_{2}}
+      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
 \]
 
 \mylabel{S-TABLE1}
@@ -101,25 +174,66 @@ This appendix presents the complete type system of Typed Lua.
        \senv \vdash k_{j} \subtype k_{i}' \;\;\;
        \senv \vdash k_{i}' \subtype k_{j} \;\;\;
        \senv \vdash v_{j} \subtype_{c} v_{i}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed|regular} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}} \; m \ge n
 \]
 
 \mylabel{S-TABLE2}
 \[
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{c} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open}}
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \; \forall j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}}
 \]
 
 \mylabel{S-TABLE3}
 \[
-\dfrac{\forall i \in 1..m \; \senv \vdash k_{i} \subtype k_{i}' \;\;\;
-       \senv \vdash v_{i} \subtype_{u} v_{i}' \;\;\;
-       \forall j \in m+1..n \; \senv \vdash \Nil \subtype_{o} v_{j}'}
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \\
+       \exists j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
       {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{m}'{:}v_{m}', ..., k_{n}'{:}v_{n}'\}_{closed|open|unique}}
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{unique|open|closed}}
+\]
+
+\mylabel{S-TABLE4}
+\[
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \; \forall j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}}
+\]
+
+\mylabel{S-TABLE5}
+\[
+\dfrac{\begin{array}{c}
+       \forall i \in 1..m \\
+       \exists j \in 1..n \;
+       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \forall j \in 1..n \; \not\exists i \in 1..m \;
+       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \end{array}}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
+                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{open|closed}}
+\]
+
+\mylabel{S-TABLE6}
+\[
+\dfrac{\forall i \in 1..n \; \exists j \in 1..n \;\;\;
+       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
+       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
+       \senv \vdash v_{j} \subtype_{c} v_{i}'}
+      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
 \]
 
 \mylabel{S-FIELD1}
@@ -143,32 +257,32 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-FIELD4}
 \[
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} v}
-\]
-
-\mylabel{S-FIELD5}
-\[
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} \Const \; v}
-\]
-
-\mylabel{S-FIELD6}
-\[
 \dfrac{\senv \vdash v_{1} \subtype v_{2}}
       {\senv \vdash v_{1} \subtype_{u} v_{2}}
 \]
 
-\mylabel{S-FIELD7}
+\mylabel{S-FIELD5}
 \[
 \dfrac{\senv \vdash v_{1} \subtype v_{2}}
       {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
 \]
 
-\mylabel{S-ASSUMPTION}
+\mylabel{S-FIELD6}
 \[
-\dfrac{x_{1} \subtype x_{2} \in \senv}
-      {\senv \vdash x_{1} \subtype x_{2}}
+\dfrac{\senv \vdash v_{1} \subtype v_{2}}
+      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
+\]
+
+\mylabel{S-FIELD7}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} v}
+\]
+
+\mylabel{S-FIELD8}
+\[
+\dfrac{\senv \vdash \Nil \subtype v}
+      {\senv \vdash \Nil \subtype_{o} \Const \; v}
 \]
 
 \mylabel{S-AMBER}
@@ -177,67 +291,32 @@ This appendix presents the complete type system of Typed Lua.
       {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
 \]
 
-\mylabel{S-AMBERL}
+\mylabel{S-ASSUMPTION}
 \[
-\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
-      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
+\dfrac{x_{1} \subtype x_{2} \in \senv}
+      {\senv \vdash x_{1} \subtype x_{2}}
 \]
 
-\mylabel{S-AMBERR}
+\mylabel{S-UNFOLDR}
 \[
 \dfrac{\senv \vdash t_{1} \subtype [x \mapsto \mu x.t_{2}]t_{2}}
       {\senv \vdash t_{1} \subtype \mu x.t_{2}}
 \]
 
-\mylabel{S-VOID}
+\mylabel{S-UNFOLDL}
 \[
-\senv \vdash \Void \subtype \Void
+\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
+      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
 \]
 
-\mylabel{S-VARARG}
+\mylabel{S-FILTER}
 \[
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
-      {\senv \vdash t_{1}* \subtype t_{2}*}
+\senv \vdash \phi(t_{1},t_{2}) \subtype \phi(t_{1},t_{2})
 \]
 
-\mylabel{S-TUPLE1}
+\mylabel{S-PROJECTION}
 \[
-\dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
-       \senv \vdash s_{1} \subtype s_{2}}
-      {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
-\]
-
-\mylabel{S-TUPLE2}
-\[
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \;\;\;
-       \senv \vdash t_{1}* \subtype s_{2}}
-      {\senv \vdash t_{1}* \subtype t_{2} \times s_{2}}
-\]
-
-\mylabel{S-TUPLE3}
-\[
-\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil \;\;\;
-       \senv \vdash s_{1} \subtype t_{2}*}
-      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}*}
-\]
-
-\mylabel{S-UNION4}
-\[
-\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
-       \senv \vdash s_{2} \subtype s}
-      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
-\]
-
-\mylabel{S-UNION5}
-\[
-\dfrac{\senv \vdash s \subtype s_{1}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
-\]
-
-\mylabel{S-UNION6}
-\[
-\dfrac{\senv \vdash s \subtype s_{2}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\senv \vdash \pi_{i}^{x} \subtype \pi_{i}^{x}
 \]
 
 \section{Consistent-subtyping rules}
@@ -260,597 +339,635 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-SKIP}
 \[
-\env_{1} \vdash \mathbf{skip}:\env_{1}
+\env_{1}, \penv \vdash \mathbf{skip}, \env_{1}
 \]
 
 \mylabel{T-SEQ}
 \[
-\dfrac{\env_{1} \vdash s_{1}:\env_{2} \;\;\;
-       \env_{2} \vdash s_{2}:\env_{3}}
-      {\env_{1} \vdash s_{1} \; ; \; s_{2}:\env_{3}}
+\dfrac{\env_{1}, \penv \vdash s_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash s_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash s_{1} \; ; \; s_{2}, \env_{3}}
 \]
 
 \mylabel{T-ASSIGNMENT}
 \[
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash el:r_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
        r_{1} \lesssim r_{2}}
-      {\env_{1} \vdash \vec{l} = el:\env_{3}}
+      {\env_{1}, \penv \vdash \vec{l} = el,\env_{3}}
 \]
 
 \mylabel{T-WHILE}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
-       closeall(\env_{2}) \vdash s:\env_{3}}
-      {\env_{1} \vdash \mathbf{while} \; e \; \mathbf{do} \; s:closeset(\env_{2}, fav(s))}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
+       closeall(\env_{2}), \penv \vdash s, \env_{3}\\
+       \env_{4} = openset(closeset(\env_{2}, fav(s)),rv(s))
+       \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{while} \; e \; \mathbf{do} \; s,\env_{4}}
 \]
 
-\mylabel{T-IF1}
-\[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
-       closeall(\env_{2}) \vdash s_{1}:\env_{3} \;\;\;
-       closeall(\env_{2}) \vdash s_{2}:\env_{4}}
-      {\env_{1} \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
-\]
-
-\mylabel{T-IF2}
+\mylabel{T-IF}
 \[
 \dfrac{\begin{array}{c}
-       closeall(\env_{1}[n \mapsto \String]) \vdash s_{1}:\env_{2} \\
-       closeall(\env_{1}[n \mapsto filter(\env_{2}(n), \String)) \vdash s_{2}:\env_{3}
-      \end{array}}
-      {\env_{1} \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}:closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2}))}
+       \env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
+       closeall(\env_{2}), \penv \vdash s_{1}:\env_{3} \;\;\;
+       closeall(\env_{2}), \penv \vdash s_{2}:\env_{4} \\
+       \env_{5} = openset(closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2})))
+       \end{array}}
+      {\env_{1} \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
 \]
 
 \mylabel{T-LOCAL}
 \[
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       r_{1} \lesssim \vec{t} \;\;\;
-       \env_{2}[\vec{n} \mapsto \vec{t}] \vdash s:\env_{3}}
-      {\env_{1} \vdash \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s:\env_{3} - \{\vec{n} \mapsto \vec{t}\}}
+\dfrac{\env_{1}, \penv \vdash el:r_{1}, \env_{2} \;\;\;
+       r_{1} \lesssim \vec{t} \times \Value{*} \;\;\;
+       \env_{2}[\vec{n} \mapsto \vec{t}], \penv \vdash s, \env_{3}}
+      {\env_{1}, \penv \vdash \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s, \env_{3} - \{\vec{n} \mapsto \vec{t}\}}
 \]
 
 \mylabel{T-LOCALREC}
 \[
-\dfrac{\env_{1}[n \mapsto t] \vdash f:t_{1}, \env_{2} \;\;\;
+\dfrac{\env_{1}[n \mapsto t], \penv \vdash f:t_{1}, \env_{2} \;\;\;
        t_{1} \lesssim t \;\;\;
-       \env_{2} \vdash s:\env_{3}}
-      {\env_{1} \vdash \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s:\env_{3} - \{n \mapsto t\}}
+       \env_{2}, \penv \vdash s, \env_{3}}
+      {\env_{1}, \penv \vdash \mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s, \env_{3} - \{n \mapsto t\}}
 \]
 
 \mylabel{T-RETURN}
 \[
 \dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       \env_{2}(\ret) = r_{2} \;\;\;
+       \penv(\ret) = r_{2} \;\;\;
        r_{1} \lesssim r_{2}}
-      {\env_{1} \vdash \mathbf{return} \; el:\env_{2}}
+      {\env_{1} \vdash \mathbf{return} \; el, \env_{2}}
 \]
 
-\mylabel{T-STMCALL1}
+\mylabel{T-STMAPPLY1}
 \[
-\dfrac{\env_{1} \vdash e(el)_{m}:r, \env_{2}}
-      {\env_{1} \vdash e(el)_{s}:\env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el)_{m}:r, \env_{2}}
+      {\env_{1}, \penv \vdash e(el)_{s},\env_{2}}
 \]
 
 \mylabel{T-STMINVOKE1}
 \[
-\dfrac{\env_{1} \vdash e{:}n(el)_{m}:r, \env_{2}}
-      {\env_{1} \vdash e{:}n(el)_{s}:\env_{2}}
+\dfrac{\env_{1}, \penv \vdash e{:}n(el)_{m}:r, \env_{2}}
+      {\env_{1}, \penv \vdash e{:}n(el)_{s},\env_{2}}
 \]
 
 \mylabel{T-NIL}
 \[
-\env_{1} \vdash \mathbf{nil}:\Nil, \env_{1}
+\env_{1}, \penv \vdash \mathbf{nil}:\Nil, \env_{1}
 \]
 
 \mylabel{T-FALSE}
 \[
-\env_{1} \vdash \mathbf{false}:\False, \env_{1}
+\env_{1}, \penv \vdash \mathbf{false}:\False, \env_{1}
 \]
 
 \mylabel{T-TRUE}
 \[
-\env_{1} \vdash \mathbf{true}:\True, \env_{1}
+\env_{1}, \penv \vdash \mathbf{true}:\True, \env_{1}
 \]
 
 \mylabel{T-INT}
 \[
-\env_{1} \vdash {\it int}:{\it int}, \env_{1}
+\env_{1}, \penv \vdash {\it int}:{\it int}, \env_{1}
 \]
 
 \mylabel{T-FLOAT}
 \[
-\env_{1} \vdash {\it float}:{\it float}, \env_{1}
+\env_{1}, \penv \vdash {\it float}:{\it float}, \env_{1}
 \]
 
 \mylabel{T-STR}
 \[
-\env_{1} \vdash {\it string}:{\it string}, \env_{1}
+\env_{1}, \penv \vdash {\it string}:{\it string}, \env_{1}
 \]
 
 \mylabel{T-EXPDOTS}
 \[
-\dfrac{\env_{1}({...}) = t}
-      {\env_{1} \vdash {...}_{e}:t, \env_{1}}
+\dfrac{\env_{1}, \penv \vdash {...}_{m}:t{*}, \env_{2}}
+      {\env_{1}, \penv \vdash {...}_{e}:t \cup \Nil, \env_{2}}
 \]
 
 \mylabel{T-FUNCTION1}
 \[
-\dfrac{closeall(\env_{1}[\ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (){:}r \; s:\Void \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (){:}r \; s))}
+\dfrac{closeall(\env_{1}), \penv[\ret \mapsto r] \vdash s, \env_{2}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; (){:}r \; s:\Void \rightarrow r,\\
+       openset(closeset(\env_{1}, fav(\mathbf{fun} \; (){:}r \; s)),rv(\mathbf{fun} \; (){:}r \; s))
+       \end{array}}
 \]
 
 \mylabel{T-FUNCTION2}
 \[
-\dfrac{closeall(\env_{1}[{...} \mapsto t, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; ({...}{:}t){:}r \; s:t{*} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; ({...}{:}t){:}r \; s))}
+\dfrac{closeall(\env_{1}[{...} \mapsto t]), \penv[\ret \mapsto r] \vdash s, \env_{2}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; ({...}{:}t){:}r \; s:t{*} \rightarrow r,\\
+       openset(closeset(\env_{1}, fav(\mathbf{fun} \; ({...}{:}t){:}r \; s)),rv(\mathbf{fun} \; ({...}{:}t){:}r \; s))
+       \end{array}}
 \]
 
 \mylabel{T-FUNCTION3}
 \[
-\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))}
+\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}]), \penv[\ret \mapsto r] \vdash s, \env_{2}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \times \Void \rightarrow r,\\
+       openset(closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s)),rv(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
+       \end{array}}
 \]
 
 \mylabel{T-FUNCTION4}
 \[
-\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, {...} \mapsto t, \ret \mapsto r]) \vdash s:\env_{2}}
-      {\env_{1} \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s: \vec{t} \times t{*} \rightarrow r, closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s))}
-\]
-
-\mylabel{T-FIELD1}
-\[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       t_{1} \subtype \Boolean \cup \Number \cup \String}
-      {\env_{1} \vdash [e_{1}] = e_{2}: t_{1}:super(t_{2}), \env_{3}}
-\]
-
-\mylabel{T-FIELD2}
-\[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       \Nil \not\subtype t_{1}}
-      {\env_{1} \vdash [e_{1}] = e_{2}: \Any:super(t_{2}), \env_{3}}
+\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}, {...} \mapsto t]), \penv[\ret \mapsto r] \vdash s, \env_{2}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s:\vec{t} \times t{*} \rightarrow r,\\
+       openset(closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s)),rv(\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; s))
+       \end{array}}
 \]
 
 \mylabel{T-CONSTRUCTOR1}
 \[
-\env \vdash \{\}:\{\}_{unique}, \env
+\env, \penv \vdash \{\}:\{\}_{unique}, \env
 \]
 
 \mylabel{T-CONSTRUCTOR2}
 \[
-\dfrac{\env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       n = |\;\vec{c}\;| \;\;\;
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique})}
-      {\env \vdash \{\;\vec{c}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique}, \env}
+\dfrac{\env_{i}, \penv \vdash p_{i}:(k_{i},v_{i}), \env_{i+1} \;\;\;
+       n = |\;\vec{p}\;| \;\;\;
+       t = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique} \;\;\;
+       wf(t)}
+      {\env_{1}, \penv \vdash \{\;\vec{p}\;\}:t, \env_{n+1}}
 \]
 
 \mylabel{T-CONSTRUCTOR3}
 \[
-\dfrac{\env \vdash {...}:t, \env}
-      {\env \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
+\dfrac{\env({...}) = t}
+      {\env, \penv \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
 \]
 
 \mylabel{T-CONSTRUCTOR4}
 \[
 \dfrac{\begin{array}{c}
-       \env \vdash c:k_{i}{:}v_{i}, \env_{i} \;\;\;
-       \env \vdash {...}:t, \env \;\;\;
-       n = |\;\vec{c}\;| \\
-       wf(\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t \cup \Nil\}_{unique})
+       \env_{i}, \penv \vdash p_{i}:(k_{i},v_{i}), \env_{i+1} \;\;\;
+       n = |\;\vec{p}\;| \;\;\;
+       \env_{i+1}({...}) = t_{v}\\
+       t = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t_{v} \cup \Nil\}_{unique} \;\;\;
+       wf(t)
        \end{array}}
-      {\env \vdash \{\;\vec{c},\;{...}_{m}\;\}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}v \cup \Nil\}_{unique}, \env}
+      {\env_{1}, \penv \vdash \{\;\vec{p},\;{...}_{m}\;\}:t, \env_{n+1}}
+\]
+
+\mylabel{T-FIELD1}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Boolean}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\]
+
+\mylabel{T-FIELD2}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \Number}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\]
+
+\mylabel{T-FIELD3}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       t_{1} \subtype \String}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\]
+
+\mylabel{T-FIELD4}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (\Value,rt(t_{2})), \env_{3}}
 \]
 
 \mylabel{T-ARITH1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Integer \;\;\;
        t_{2} \subtype \Integer}
-      {\env_{1} \vdash e_{1} + e_{2}:\Integer, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Integer, \env_{3}}
 \]
 
 \mylabel{T-ARITH2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Integer \;\;\;
        t_{2} \subtype \Number}
-      {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Number, \env_{3}}
 \]
 
 \mylabel{T-ARITH3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Number \;\;\;
        t_{2} \subtype \Integer}
-      {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Number, \env_{3}}
 \]
 
 \mylabel{T-ARITH4}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Number \;\;\;
        t_{2} \subtype \Number}
-      {\env_{1} \vdash e_{1} + e_{2}:\Number, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Number, \env_{3}}
 \]
 
 \mylabel{T-ARITH5}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-ARITH6}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:\Any, \env_{3}}
-      {\env_{1} \vdash e_{1} + e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:\Any, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} + e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-CONCAT1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \String \;\;\;
        t_{2} \subtype \String}
-      {\env_{1} \vdash e_{1} \; {..} \; e_{2}:\String, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; {..} \; e_{2}:\String, \env_{3}}
 \]
 
 \mylabel{T-CONCAT2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; {..} \; e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; {..} \; e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-CONCAT3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:\Any, \env_{3}}
-      {\env_{1} \vdash e_{1} \; {..} \; e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:\Any, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; {..} \; e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-EQUAL}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} == e_{2}:\Boolean, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} == e_{2}:\Boolean, \env_{3}}
 \]
 
 \mylabel{T-ORDER1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \Number \;\;\;
        t_{2} \subtype \Number}
-      {\env \vdash e_{1} < e_{2}:\Boolean, \env_{3}}
+      {\env, \penv \vdash e_{1} < e_{2}:\Boolean, \env_{3}}
 \]
 
 \mylabel{T-ORDER2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
        t_{1} \subtype \String \;\;\;
        t_{2} \subtype \String}
-      {\env_{1} \vdash e_{1} < e_{2}:\Boolean}
+      {\env_{1}, \penv \vdash e_{1} < e_{2}:\Boolean}
 \]
 
 \mylabel{T-ORDER3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} < e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} < e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-ORDER4}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:\Any, \env_{3}}
-      {\env_{1} \vdash e_{1} < e_{2}:\Any, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:\Any, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} < e_{2}:\Any, \env_{3}}
 \]
 
 \mylabel{T-AND1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil, \env_{2}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil, \env_{2}}
 \]
 
 \mylabel{T-AND2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:\False, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\False, \env_{2}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2}:\False, \env_{2}}
 \]
 
 \mylabel{T-AND3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       \Nil \not\lesssim t_{1} \;\;\;
-       \False \not\lesssim t_{1}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:t_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil \cup \False, \env_{2}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2}:\Nil \cup \False, \env_{2}}
 \]
 
 \mylabel{T-AND4}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \Nil \not\lesssim t_{1} \;\;\;
+       \False \not\lesssim t_{1}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2}:t_{2}, \env_{3}}
+\]
+
+\mylabel{T-AND5}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2}:t_{1} \cup t_{2}, \env_{3}}
 \]
 
 \mylabel{T-OR1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
        \Nil \not\lesssim t \;\;\;
        \False \not\lesssim t}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{2}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{2}}
 \]
 
 \mylabel{T-OR2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Nil, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
 \]
 
 \mylabel{T-OR3}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\False, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\False, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
 \]
 
 \mylabel{T-OR4}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1} \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil \cup \False, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
+\]
+
+\mylabel{T-OR5}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
 \]
 
 \mylabel{T-NOT1}
 \[
-\dfrac{\env_{1} \vdash e:\Nil, \env_{2}}
-      {\env_{1} \vdash \mathbf{not} \; e:\True, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\Nil, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{not} \; e:\True, \env_{2}}
 \]
 
 \mylabel{T-NOT2}
 \[
-\dfrac{\env_{1} \vdash e:\False, \env_{2}}
-      {\env_{1} \vdash \mathbf{not} \; e:\True, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\False, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{not} \; e:\True, \env_{2}}
 \]
 
 \mylabel{T-NOT3}
 \[
-\dfrac{\env_{1} \vdash e:t \;\;\;
-       \Nil \not\lesssim t \;\;\;
-       \False \not\lesssim t}
-      {\env_{1} \vdash \mathbf{not} \; e:\False, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\Nil \cup \False, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{not} \; e:\True, \env_{2}}
 \]
 
 \mylabel{T-NOT4}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2}}
-      {\env_{1} \vdash \mathbf{not} \; e:\Boolean, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:t \;\;\;
+       \Nil \not\lesssim t \;\;\;
+       \False \not\lesssim t}
+      {\env_{1}, \penv \vdash \mathbf{not} \; e:\False, \env_{2}}
+\]
+
+\mylabel{T-NOT5}
+\[
+\dfrac{\env_{1}, \penv \vdash e:t, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{not} \; e:\Boolean, \env_{2}}
 \]
 
 \mylabel{T-MINUS1}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
        t \subtype \Integer}
-      {\env_{1} \vdash - e:\Integer, \env_{2}}
+      {\env_{1}, \penv \vdash - e:\Integer, \env_{2}}
 \]
 
 \mylabel{T-MINUS2}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
        t \subtype \Number}
-      {\env_{1} \vdash - e:\Number, \env_{2}}
+      {\env_{1}, \penv \vdash - e:\Number, \env_{2}}
 \]
 
 \mylabel{T-MINUS3}
 \[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2}}
-      {\env_{1} \vdash - e:\Any, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\Any, \env_{2}}
+      {\env_{1}, \penv \vdash - e:\Any, \env_{2}}
 \]
 
 \mylabel{T-LEN1}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
        t \subtype \String}
-      {\env_{1} \vdash \# \; e:\Integer, \env_{2}}
+      {\env_{1}, \penv \vdash \# \; e:\Integer, \env_{2}}
 \]
 
 \mylabel{T-LEN2}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e:t, \env_{2} \;\;\;
        t \subtype \{\}_{c}}
-      {\env_{1} \vdash \# \; e:\Integer, \env_{2}}
+      {\env_{1}, \penv \vdash \# \; e:\Integer, \env_{2}}
 \]
 
 \mylabel{T-LEN3}
 \[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2}}
-      {\env_{1} \vdash \# \; e:\Any, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\Any, \env_{2}}
+      {\env_{1}, \penv \vdash \# \; e:\Any, \env_{2}}
 \]
 
 \mylabel{T-EXPAPPLY1}
 \[
-\dfrac{\env_{1} \vdash e(el)_{m}:r, \env_{2}}
-      {\env_{1} \vdash e(el)_{e}:first(r), \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el)_{m}:r, \env_{2}}
+      {\env_{1}, \penv \vdash e(el)_{e}:first(r), \env_{2}}
 \]
 
 \mylabel{T-EXPINVOKE1}
 \[
-\dfrac{\env_{1} \vdash e{:}n(el)_{m}:r, \env_{2}}
-      {\env_{1} \vdash e{:}n(el)_{e}:first(r), \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e{:}n(el)_{m}:r, \env_{2}}
+      {\env_{1}, \penv \vdash e{:}n(el)_{e}:first(r), \env_{2}}
 \]
 
-\mylabel{T-CAST}
+\mylabel{T-COERCE}
 \[
-\dfrac{t \subtype \env_{1}(n)}
-      {\env_{1} \vdash {<}t{>} \; n:t, \env_{1}[n \mapsto t]}
+\dfrac{\env_{1}(n) \subtype t \;\;\;
+       \env_{1}[n \mapsto t], \penv \vdash n_{e}:t_{1}, \env_{2}}
+      {\env_{1}, \penv \vdash {<}t{>} \; n:t_{1}, \env_{2}}
 \]
 
 \mylabel{T-SELF}
 \[
-\dfrac{\env_{1} \vdash e:\Self, \env_{2} \;\;\;
-       \env_{2}(\Self) = t}
-      {\env_{1} \vdash e:t, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\Self, \env_{2} \;\;\;
+       \env_{2}(\self) = t}
+      {\env_{1}, \penv \vdash e:t, \env_{2}}
 \]
 
 \mylabel{T-UNFOLD}
 \[
-\dfrac{\env_{1} \vdash e:\mu x.t, \env_{2}}
-      {\env_{1} \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:\mu x.t, \env_{2}}
+      {\env_{1}, \penv \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
 \]
 
 \mylabel{T-FOLD}
 \[
-\dfrac{\env_{1} \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
-      {\env_{1} \vdash e:\mu x.t, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e:[x \mapsto \mu x.t]t, \env_{2}}
+      {\env_{1}, \penv \vdash e:\mu x.t, \env_{2}}
 \]
 
 \mylabel{T-TERNARY}
 \[
-\dfrac{\env_{1} \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       \env_{3} \vdash e_{3}:t_{2}, \env_{4}}
-      {\env_{1} \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:t_{2}, \env_{4}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
+       \env_{3}, \penv \vdash e_{3}:t_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:t_{2}, \env_{4}}
 \]
 
-\mylabel{T-ID}
+\mylabel{T-IDREAD}
 \[
-\dfrac{\env_{1}(n) = t}
-      {\env_{1} \vdash n:t, \env_{1}}
+\dfrac{\env(n) = t_{1} \;\;\; t_{2} = read(\penv, t_{1})}
+      {\env, \penv \vdash n_{e}:close(t_{2}), \env[n \mapsto open(t_{1})]}
+\]
+
+\mylabel{T-IDWRITE}
+\[
+\dfrac{\env(n) = t_{1} \;\;\; t_{2} = write(t_{1})}
+      {\env, \penv \vdash n_{l}:close(t_{2}), \env[n \mapsto close(t_{2})]}
 \]
 
 \mylabel{T-INDEX1}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3} \;\;\;
-       \exists i \in 1{..}n \; t \lesssim k_{i}}
-      {\env_{1} \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
+\dfrac{\begin{array}{c}
+       \env_{1}(n) = t \;\;\;
+       read(\penv, t) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}\\
+       \env_{1}, \penv \vdash e_{2}:k, \env_{2} \;\;\;
+       \exists i \in 1{..}n \; k \lesssim k_{i}
+       \end{array}}
+      {\env_{1}, \penv \vdash n[e_{2}]:v_{i}, \env_{2}}
 \]
 
 \mylabel{T-INDEX2}
 \[
-\dfrac{\env_{1} \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash e_{2}:t, \env_{3}}
-      {\env_{1} \vdash e_{1}[e_{2}]:\Any, \env_{3}}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2}\\
+       \env_{2}, \penv \vdash e_{2}:k, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; k \lesssim k_{i}
+       \end{array}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
+\]
+
+\mylabel{T-INDEX3}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]:\Any, \env_{3}}
 \]
 
 \mylabel{T-REFINE}
 \[
-\dfrac{\env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{o|u} \;\;\;
-       \env_{1} \vdash e:t_{1}, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; t_{1} \lesssim k_{i}}
-      {\env_{1} \vdash n[e] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, t_{1}{:}t\}_{o|u}]}
+\dfrac{\begin{array}{c}
+       \env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique}\\
+       \env_{1}, \penv \vdash c:k, \env_{2} \;\;\;
+       \not \exists i \in 1..n \; k \lesssim k_{i} \;\;\;
+       v = rt(t)
+       \end{array}}
+      {\env_{1}, \penv \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, k{:}v\}_{open|unique}]}
 \]
 
 \mylabel{T-EXPLIST1}
 \[
-\env \vdash \mathbf{nothing}:\Nil{*}, \env
+\env, \penv \vdash \mathbf{nothing}:\Nil{*}, \env
 \]
 
 \mylabel{T-EXPLIST2}
 \[
-\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+\dfrac{\env, \penv \vdash e_{k}:t_{k}, \env_{k} \;\;\;
        n = |\vec{e}|}
-      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, merge(\env_{1}, ..., \env_{n})}
+      {\env, \penv \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, merge(\env_{1}, ..., \env_{n})}
 \]
 
 \mylabel{T-EXPLIST3}
 \[
-\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
-      {\env \vdash me:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{1}}
+\dfrac{\env, \penv \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
+      {\env, \penv \vdash me:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{1}}
 \]
 
 \mylabel{T-EXPLIST4}
 \[
-\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
-      {\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+\dfrac{\env, \penv \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
+      {\env, \penv \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
 \]
 
 \mylabel{T-EXPLIST5}
 \[
-\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
-       \env \vdash me:r, \env_{n + 1} \;\;\;
-       n = |\vec{e}|}
-      {\env \vdash \vec{e}, me:t_{1} \times ... \times t_{n} \times r, merge(\env_{1}, ..., \env_{n+1})}
-\]
-
-\mylabel{T-EXPLISTSTRICT1}
-\[
-\env \vdash \mathbf{nothing}:\Void, \env
-\]
-
-\mylabel{T-EXPLISTSTRICT2}
-\[
-\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
-       n = |\vec{e}|}
-      {\env \vdash \vec{e}:t_{1} \times ... \times t_{n}, merge(\env_{1}, ..., \env_{n})}
-\]
-
-\mylabel{T-EXPLISTSTRICT3}
-\[
-\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
-      {\env \vdash me:t_{1} \times ... \times t_{n}, \env_{1}}
-\]
-
-\mylabel{T-EXPLISTSTRICT4}
-\[
-\dfrac{\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
-      {\env \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{1}}
-\]
-
-\mylabel{T-EXPLISTSTRICT5}
-\[
-\dfrac{\env \vdash e_{k}:t_{k}, \env_{k} \;\;\;
-       \env \vdash me:r, \env_{n + 1} \;\;\;
+\dfrac{\env, \penv \vdash e_{k}:t_{k}, \env_{k} \;\;\;
+       \env, \penv \vdash me:r, \env_{n + 1} \;\;\;
        n = |\vec{e}|}
       {\env \vdash \vec{e}, me:t_{1} \times ... \times t_{n} \times r, merge(\env_{1}, ..., \env_{n+1})}
 \]
 
 \mylabel{T-APPLY1}
 \[
-\dfrac{\env_{1} \vdash e:p_{1} \rightarrow r, \env_{2} \;\;\;
-       \env_{2} \vdash el:p_{2}, \env_{3} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e(el)_{m}:r, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e:r_{1} \rightarrow r_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash el:r_{3}, \env_{3} \;\;\;
+       r_{3} \lesssim r_{1}}
+      {\env_{1}, \penv \vdash e(el)_{m}:r_{2}, \env_{3}}
 \]
 
 \mylabel{T-APPLY2}
 \[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e_{1}(el)_{m}:\Any{*}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash el:r, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1}(el)_{m}:\Any{*}, \env_{3}}
 \]
 
 \mylabel{T-INVOKE1}
 \[
-\dfrac{\env_{1} \vdash e:t, \env_{2} \;\;\;
-       \env_{2} \vdash e[n]:[\Self \mapsto t]p_{1} \rightarrow r, \env_{3} \;\;\;
-       \env_{3} \vdash el:p_{2}, \env_{4} \;\;\;
-       p_{2} \lesssim p_{1}}
-      {\env_{1} \vdash e{:}n(el)_{m}:r, \env_{4}}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e:t_{s}, \env_{2}\\
+       \env_{2}[\sigma \mapsto t_{s}], \penv \vdash e[n]:\Const \; r_{1} \rightarrow r_{2}, \env_{3}\\
+       \env_{3}[\sigma \mapsto t_{s}], \penv \vdash el:r_{3}, \env_{4} \;\;\;
+       t_{s} \times r_{3} \lesssim r_{1}
+       \end{array}}
+      {\env_{1}, \penv \vdash e{:}n(el)_{m}:[\sigma \mapsto t]r_{2}, \env_{4}}
 \]
 
 \mylabel{T-INVOKE2}
 \[
-\dfrac{\env_{1} \vdash e:\Any, \env_{2} \;\;\;
-       \env_{2} \vdash el:p, \env_{3}}
-      {\env_{1} \vdash e{:}n(el)_{m}:\Any{*}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash el:r, \env_{3}}
+      {\env_{1}, \penv \vdash e{:}n(el)_{m}:\Any{*}, \env_{3}}
 \]
 
 \mylabel{T-DOTS}
 \[
 \dfrac{\env_{1}({...}) = t}
-      {\env_{1} \vdash {...}_{m}:t{*}, \env_{1}}
+      {\env_{1}, \penv \vdash {...}_{m}:t{*}, \env_{1}}
 \]
 

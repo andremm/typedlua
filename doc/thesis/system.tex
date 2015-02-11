@@ -161,8 +161,8 @@ inhabit one of the table's key types, and with no alias.
 In particular, the type of the table constructor has this tag.
 The tag \emph{open} represents \emph{unique} table types that
 have at least one alias.
-The tag \emph{closed} represents \emph{unique} table types
-that may have aliases.
+The tag \emph{closed} represents either \emph{unique} or \emph{open}
+table types that do not allow inserting new keys. 
 In particular, the type of a class has this tag.
 The tag \emph{regular} represents table types that do not provide
 any guarantees about keys with types not listed in the table type.
@@ -346,9 +346,9 @@ The subtyping rule for function types is also standard:
 \[
 \begin{array}{c}
 \mylabel{S-FUNCTION}\\
-\dfrac{\senv \vdash s_{2} \subtype s_{1} \;\;\;
-       \senv \vdash r_{1} \subtype r_{2}}
-      {\senv \vdash s_{1} \rightarrow s_{1} \subtype s_{2} \rightarrow r_{2}}
+\dfrac{\senv \vdash s_{3} \subtype s_{1} \;\;\;
+       \senv \vdash s_{2} \subtype s_{4}}
+      {\senv \vdash s_{1} \rightarrow s_{2} \subtype s_{3} \rightarrow s_{4}}
 \end{array}
 \]
 
@@ -363,13 +363,13 @@ Now, we explain their subtyping rules.
 The type $\Void$ is a subtype of itself and of a variadic type:
 \[
 \begin{array}{c}
-\mylabel{S-VOID}\\
+\mylabel{S-VOID2}\\
 \senv \vdash \Void \subtype t{*}
 \end{array}
 \]
 
 A variadic type $t{*}$ represents a sequence of values of type
-$t \cup \Nil$, and the rule \textsc{S-VOID} handles the case where
+$t \cup \Nil$, and the rule \textsc{S-VOID2} handles the case where
 a given sequence is empty.
 
 The subtyping rule for pair types is the standard covariant rule:
