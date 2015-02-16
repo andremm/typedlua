@@ -222,12 +222,12 @@ end
 local function check_require (env, name, pos, extra_path)
   extra_path = extra_path or ""
   if not env["loaded"][name] then
-    local path = string.gsub(package.path, "[.]lua", ".tl")
+    local path = string.gsub(package.path..";", "[.]lua;", ".tl;")
     local filepath, msg1 = searchpath(extra_path .. name, path)
     if filepath then
       env["loaded"][name] = check_tl(env, name, filepath)
     else
-      path = string.gsub(package.path, "[.]lua", ".tld")
+      path = string.gsub(package.path..";", "[.]lua;", ".tld;")
       local filepath, msg2 = searchpath(extra_path .. name, path)
       if filepath then
         env["loaded"][name] = check_tld(env, name, filepath)
