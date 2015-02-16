@@ -10,7 +10,7 @@ local function spaces (n)
   return string.rep(" ", 2 * n)
 end
 
-local function ident (s, n)
+local function indent (s, n)
   return spaces(n) .. s
 end
 
@@ -161,9 +161,9 @@ function code_exp (exp, fmt)
     local str = "function ("
     str = str .. code_parlist(exp[1], fmt) .. ")\n"
     if not exp[3] then
-      str = str .. code_block(exp[2], fmt) .. ident("end", fmt)
+      str = str .. code_block(exp[2], fmt) .. indent("end", fmt)
     else
-      str = str .. code_block(exp[3], fmt) .. ident("end", fmt)
+      str = str .. code_block(exp[3], fmt) .. indent("end", fmt)
     end
     return str
   elseif tag == "Table" then
@@ -211,43 +211,43 @@ end
 function code_stm (stm, fmt)
   local tag = stm.tag
   if tag == "Do" then
-    local str = ident("do\n", fmt) .. code_block(stm, fmt) .. ident("end", fmt)
+    local str = indent("do\n", fmt) .. code_block(stm, fmt) .. indent("end", fmt)
     return str
   elseif tag == "Set" then
     local str = spaces(fmt)
     str = str .. code_varlist(stm[1], fmt) .. " = " .. code_explist(stm[2], fmt)
     return str
   elseif tag == "While" then
-    local str = ident("while ", fmt) .. code_exp(stm[1], 0) .. " do\n"
-    str = str .. code_block(stm[2], fmt) .. ident("end", fmt)
+    local str = indent("while ", fmt) .. code_exp(stm[1], 0) .. " do\n"
+    str = str .. code_block(stm[2], fmt) .. indent("end", fmt)
     return str
   elseif tag == "Repeat" then
-    local str = ident("repeat\n", fmt)
+    local str = indent("repeat\n", fmt)
     str = str .. code_block(stm[1], fmt)
-    str = str .. ident("until ", fmt)
+    str = str .. indent("until ", fmt)
     str = str .. code_exp(stm[2], fmt)
     return str
   elseif tag == "If" then
-    local str = ident("if ", fmt) .. code_exp(stm[1], 0) .. " then\n"
+    local str = indent("if ", fmt) .. code_exp(stm[1], 0) .. " then\n"
     str = str .. code_block(stm[2], fmt)
     local len = #stm
     if len % 2 == 0 then
       for k=3, len, 2 do
-        str = str .. ident("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
+        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
         str = str .. code_block(stm[k+1], fmt)
       end
     else
       for k=3, len-1, 2 do
-        str = str .. ident("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
+        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
         str = str .. code_block(stm[k+1], fmt)
       end
-      str = str .. ident("else\n", fmt)
+      str = str .. indent("else\n", fmt)
       str = str .. code_block(stm[len], fmt)
     end
-    str = str .. ident("end", fmt)
+    str = str .. indent("end", fmt)
     return str
   elseif tag == "Fornum" then
-    local str = ident("for ", fmt)
+    local str = indent("for ", fmt)
     str = str .. code_var(stm[1], fmt) .. " = " .. code_exp(stm[2], fmt)
     str = str .. ", " .. code_exp(stm[3], fmt)
     if stm[5] then
@@ -256,45 +256,45 @@ function code_stm (stm, fmt)
     else
       str = str .. " do\n" .. code_block(stm[4], fmt)
     end
-    str = str .. ident("end", fmt)
+    str = str .. indent("end", fmt)
     return str
   elseif tag == "Forin" then
-    local str = ident("for ", fmt)
+    local str = indent("for ", fmt)
     str = str .. code_varlist(stm[1], fmt) .. " in "
     str = str .. code_explist(stm[2], fmt) .. " do\n"
     str = str .. code_block(stm[3], fmt)
-    str = str .. ident("end", fmt)
+    str = str .. indent("end", fmt)
     return str
   elseif tag == "Local" then
-    local str = ident("local ", fmt) .. code_varlist(stm[1], fmt)
+    local str = indent("local ", fmt) .. code_varlist(stm[1], fmt)
     if #stm[2] > 0 then
       str = str .. " = " .. code_explist(stm[2], fmt)
     end
     return str
   elseif tag == "Localrec" then
-    local str = ident("local function ", fmt) .. code_var(stm[1][1], fmt)
+    local str = indent("local function ", fmt) .. code_var(stm[1][1], fmt)
     str = str .. " (" .. code_parlist(stm[2][1][1], fmt) .. ")\n"
     if not stm[2][1][3] then
-      str = str .. code_block(stm[2][1][2], fmt) .. ident("end", fmt)
+      str = str .. code_block(stm[2][1][2], fmt) .. indent("end", fmt)
     else
-      str = str .. code_block(stm[2][1][3], fmt) .. ident("end", fmt)
+      str = str .. code_block(stm[2][1][3], fmt) .. indent("end", fmt)
     end
     return str
   elseif tag == "Goto" then
-    local str = ident("goto ", fmt) .. stm[1]
+    local str = indent("goto ", fmt) .. stm[1]
     return str
   elseif tag == "Label" then
-    local str = ident("::", fmt) .. stm[1] .. "::"
+    local str = indent("::", fmt) .. stm[1] .. "::"
     return str
   elseif tag == "Return" then
-    local str = ident("return ", fmt) .. code_explist(stm, fmt)
+    local str = indent("return ", fmt) .. code_explist(stm, fmt)
     return str
   elseif tag == "Break" then
-    return ident("break", fmt)
+    return indent("break", fmt)
   elseif tag == "Call" then
-    return ident(code_call(stm, fmt), fmt)
+    return indent(code_call(stm, fmt), fmt)
   elseif tag == "Invoke" then
-    return ident(code_invoke(stm, fmt), fmt)
+    return indent(code_invoke(stm, fmt), fmt)
   elseif tag == "Interface" then
     return ""
   else
