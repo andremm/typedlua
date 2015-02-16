@@ -168,7 +168,7 @@ local function check_tl (env, name, path)
   io.close(file)
   local ast = assert(tlparser.parse(subject, path, env.strict, env.integer))
   env.subject = subject
-  env.filename = name .. ".tl"
+  env.filename = path
   tlst.begin_function(env)
   check_block(env, ast)
   local t1 = tltype.first(infer_return_type(env))
