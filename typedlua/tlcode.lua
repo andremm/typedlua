@@ -107,11 +107,19 @@ local function code_parlist (parlist, fmt)
   return table.concat(l, ", ")
 end
 
+local function is_simple_key (key)
+  return key.tag == "String" and key[1]:match("^[a-zA-Z_][a-zA-Z0-9_]*$")
+end
+
 local function code_fieldlist (fieldlist, fmt)
   local l = {}
   for k, v in ipairs(fieldlist) do
     if v.tag == "Pair" then
-      l[k] = "[" .. code_exp(v[1], fmt) .. "] = " .. code_exp(v[2], fmt)
+      if is_simple_key(v[1]) then
+        l[k] = v[1][1] .. " = " .. code_exp(v[2], fmt)
+      else
+        l[k] = "[" .. code_exp(v[1], fmt) .. "] = " .. code_exp(v[2], fmt)
+      end
     else
       l[k] = code_exp(v, fmt)
     end
@@ -128,7 +136,11 @@ function code_var (var, fmt)
       local v = { tag = "Id", [1] = var[2][1] }
       return code_exp(v, fmt)
     else
-      return code_exp(var[1], fmt) .. "[" .. code_exp(var[2], fmt) .. "]"
+      if is_simple_key(var[2]) then
+        return code_exp(var[1], fmt) .. "." .. var[2][1]
+      else
+        return code_exp(var[1], fmt) .. "[" .. code_exp(var[2], fmt) .. "]"
+      end
     end
   else
     error("trying to generate code for a variable, but got a " .. tag)
