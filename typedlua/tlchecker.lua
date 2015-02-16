@@ -1075,15 +1075,15 @@ end
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
   check_exp(env, exp1)
-  local r = check_block(env, stm1)
-  return r
+  local r, _, didgoto = check_block(env, stm1)
+  return r, _, didgoto
 end
 
 local function check_repeat (env, stm)
   local stm1, exp1 = stm[1], stm[2]
-  local r = check_block(env, stm1)
+  local r, _, didgoto = check_block(env, stm1)
   check_exp(env, exp1)
-  return r
+  return r, _, didgoto
 end
 
 local function tag2type (t)
@@ -1117,9 +1117,16 @@ local function get_index (u, t, i)
   end
 end
 
+local function is_global_function_call (exp, fn_name)
+   return exp.tag == "Call" and exp[1].tag == "Index" and
+          exp[1][1].tag == "Id" and exp[1][1][1] == "_ENV" and
+          exp[1][2].tag == "String" and exp[1][2][1] == fn_name
+end
+
 local function check_if (env, stm)
   local l = {}
   local rl = {}
+  local isallret = true
   for i = 1, #stm, 2 do
     local exp, block = stm[i], stm[i + 1]
     if block then
@@ -1154,9 +1161,7 @@ local function check_if (env, stm)
           l[name].filter = bkp
         end
       elseif exp.tag == "Op" and exp[1] == "eq" and
-             exp[2].tag == "Call" and exp[2][1].tag == "Index" and
-             exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
-             exp[2][1][2].tag == "String" and exp[2][1][2][1] == "type" and
+             is_global_function_call(exp[2], "type") and
              exp[2][2].tag == "Id" then
         local name = exp[2][2][1]
         l[name] = tlst.get_local(env, name)
@@ -1178,9 +1183,7 @@ local function check_if (env, stm)
         end
       elseif exp.tag == "Op" and exp[1] == "not" and
              exp[2].tag == "Op" and exp[2][1] == "eq" and
-             exp[2][2].tag == "Call" and exp[2][2][1].tag == "Index" and
-             exp[2][2][1][1].tag == "Id" and exp[2][2][1][1][1] == "_ENV" and
-             exp[2][2][1][2].tag == "String" and exp[2][2][1][2][1] == "type" and
+             is_global_function_call(exp[2][2], "type") and
              exp[2][2][2].tag == "Id" then
         local name = exp[2][2][2][1]
         l[name] = tlst.get_local(env, name)
@@ -1197,8 +1200,9 @@ local function check_if (env, stm)
     else
       block = exp
     end
-    local r = check_block(env, block)
+    local r, isret = check_block(env, block)
     table.insert(rl, r)
+    isallret = isallret and isret
     for k, v in pairs(l) do
       if not tltype.isTuple(v.filter) then
         set_type(v, v.filter)
@@ -1210,11 +1214,13 @@ local function check_if (env, stm)
       end
     end
   end
-  for k, v in pairs(l) do
-    if not tltype.isUnionlist(get_type(v)) then
-      set_type(v, v.bkp)
-    else
-      table.insert(get_type(v), v.filter)
+  if not isallret then
+    for k, v in pairs(l) do
+      if not tltype.isUnionlist(get_type(v)) then
+        set_type(v, v.bkp)
+      else
+        table.insert(get_type(v), v.filter)
+      end
     end
   end
   if #stm % 2 == 0 then table.insert(rl, false) end
@@ -1262,10 +1268,10 @@ local function check_fornum (env, stm)
   else
     block = exp3
   end
-  local r = check_block(env, block)
+  local r, _, didgoto = check_block(env, block)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r
+  return r, _, didgoto
 end
 
 local function check_forin (env, idlist, explist, block)
@@ -1292,10 +1298,10 @@ local function check_forin (env, idlist, explist, block)
     local t = tltype.filterUnion(tuple(k), Nil)
     check_local_var(env, v, t, false)
   end
-  local r = check_block(env, block)
+  local r, _, didgoto = check_block(env, block)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r
+  return r, _, didgoto
 end
 
 local function check_id (env, exp)
@@ -1471,7 +1477,7 @@ function check_stm (env, stm)
   elseif tag == "Localrec" then
     return check_localrec(env, stm[1][1], stm[2][1])
   elseif tag == "Goto" then
-    return false
+    return false, nil, true
   elseif tag == "Label" then
     return false
   elseif tag == "Return" then
@@ -1489,17 +1495,27 @@ function check_stm (env, stm)
   end
 end
 
+local function is_exit_point (block)
+  if #block == 0 then return false end
+  local last = block[#block]
+  return last.tag == "Return" or is_global_function_call(last, "error")
+end
+
 function check_block (env, block)
   tlst.begin_scope(env)
   local r = false
   local bkp = env.self
+  local endswithret = true
+  local didgoto, _ = false, nil
   for k, v in ipairs(block) do
-    r = check_stm(env, v)
+    r, _, didgoto = check_stm(env, v)
     env.self = bkp
+    if didgoto then endswithret = false end
   end
+  endswithret = endswithret and is_exit_point(block)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r
+  return r, endswithret, didgoto
 end
 
 local function load_lua_env (env)
