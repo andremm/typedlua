@@ -649,12 +649,31 @@ local function traverse (ast, errorinfo, strict)
   return ast
 end
 
+local function lineno (s, i)
+  if i == 1 then return 1, 1 end
+  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+  local r = #rest
+  return 1 + num, r ~= 0 and r or 1
+end
+
+local function fixup_lin_col(subject, node)
+  if node.pos then
+    node.l, node.c = lineno(subject, node.pos)
+  end
+  for _, child in ipairs(node) do
+    if type(child) == "table" then
+      fixup_lin_col(subject, child)
+    end
+  end
+end
+
 function tlparser.parse (subject, filename, strict, integer)
   local errorinfo = { subject = subject, filename = filename }
   lpeg.setmaxstack(1000)
   if integer and _VERSION ~= "Lua 5.3" then integer = false end
   local ast, error_msg = lpeg.match(G, subject, nil, errorinfo, strict, integer)
   if not ast then return ast, error_msg end
+  fixup_lin_col(subject, ast)
   return traverse(ast, errorinfo, strict)
 end
 

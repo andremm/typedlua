@@ -6,12 +6,12 @@ local tlcode = {}
 local code_block, code_stm, code_exp, code_var
 local code_explist, code_varlist, code_fieldlist, code_idlist
 
-local function spaces (n)
-  return string.rep(" ", 2 * n)
+local function spaces (fmt)
+  return string.rep(" ", 2 * fmt.indent)
 end
 
-local function indent (s, n)
-  return spaces(n) .. s
+local function indent (s, fmt)
+  return spaces(fmt) .. s
 end
 
 local function iscntrl (x)
@@ -159,7 +159,7 @@ function code_exp (exp, fmt)
     return '"' .. fix_str(exp[1]) .. '"'
   elseif tag == "Function" then
     local str = "function ("
-    str = str .. code_parlist(exp[1], fmt) .. ")\n"
+    str = str .. code_parlist(exp[1], fmt) .. ") "
     if not exp[3] then
       str = str .. code_block(exp[2], fmt) .. indent("end", fmt)
     else
@@ -211,37 +211,37 @@ end
 function code_stm (stm, fmt)
   local tag = stm.tag
   if tag == "Do" then
-    local str = indent("do\n", fmt) .. code_block(stm, fmt) .. indent("end", fmt)
+    local str = indent("do ", fmt) .. code_block(stm, fmt) .. indent("end", fmt)
     return str
   elseif tag == "Set" then
     local str = spaces(fmt)
     str = str .. code_varlist(stm[1], fmt) .. " = " .. code_explist(stm[2], fmt)
     return str
   elseif tag == "While" then
-    local str = indent("while ", fmt) .. code_exp(stm[1], 0) .. " do\n"
+    local str = indent("while ", fmt) .. code_exp(stm[1], 0) .. " do "
     str = str .. code_block(stm[2], fmt) .. indent("end", fmt)
     return str
   elseif tag == "Repeat" then
-    local str = indent("repeat\n", fmt)
+    local str = indent("repeat ", fmt)
     str = str .. code_block(stm[1], fmt)
     str = str .. indent("until ", fmt)
     str = str .. code_exp(stm[2], fmt)
     return str
   elseif tag == "If" then
-    local str = indent("if ", fmt) .. code_exp(stm[1], 0) .. " then\n"
+    local str = indent("if ", fmt) .. code_exp(stm[1], 0) .. " then "
     str = str .. code_block(stm[2], fmt)
     local len = #stm
     if len % 2 == 0 then
       for k=3, len, 2 do
-        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
+        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then "
         str = str .. code_block(stm[k+1], fmt)
       end
     else
       for k=3, len-1, 2 do
-        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then\n"
+        str = str .. indent("elseif ", fmt) .. code_exp(stm[k], 0) .. " then "
         str = str .. code_block(stm[k+1], fmt)
       end
-      str = str .. indent("else\n", fmt)
+      str = str .. indent("else ", fmt)
       str = str .. code_block(stm[len], fmt)
     end
     str = str .. indent("end", fmt)
@@ -251,17 +251,17 @@ function code_stm (stm, fmt)
     str = str .. code_var(stm[1], fmt) .. " = " .. code_exp(stm[2], fmt)
     str = str .. ", " .. code_exp(stm[3], fmt)
     if stm[5] then
-      str = str .. ", " .. code_exp(stm[4], fmt) .. " do\n"
+      str = str .. ", " .. code_exp(stm[4], fmt) .. " do "
       str = str .. code_block(stm[5], fmt)
     else
-      str = str .. " do\n" .. code_block(stm[4], fmt)
+      str = str .. " do " .. code_block(stm[4], fmt)
     end
     str = str .. indent("end", fmt)
     return str
   elseif tag == "Forin" then
     local str = indent("for ", fmt)
     str = str .. code_varlist(stm[1], fmt) .. " in "
-    str = str .. code_explist(stm[2], fmt) .. " do\n"
+    str = str .. code_explist(stm[2], fmt) .. " do "
     str = str .. code_block(stm[3], fmt)
     str = str .. indent("end", fmt)
     return str
@@ -273,7 +273,7 @@ function code_stm (stm, fmt)
     return str
   elseif tag == "Localrec" then
     local str = indent("local function ", fmt) .. code_var(stm[1][1], fmt)
-    str = str .. " (" .. code_parlist(stm[2][1][1], fmt) .. ")\n"
+    str = str .. " (" .. code_parlist(stm[2][1][1], fmt) .. ") "
     if not stm[2][1][3] then
       str = str .. code_block(stm[2][1][2], fmt) .. indent("end", fmt)
     else
@@ -302,17 +302,40 @@ function code_stm (stm, fmt)
   end
 end
 
+local function resync_line(node, fmt, out)
+  while node.l > fmt.line do
+    table.insert(out, "\n")
+    fmt.line = fmt.line + 1
+  end
+end
+
 function code_block (block, fmt)
   local l = {}
-  for k, v in ipairs(block) do
-    l[k] = code_stm(v, fmt + 1)
+  local firstline = fmt.line
+  local saveindent = fmt.indent
+  if block[1] and block[1].l > firstline then
+    fmt.indent = fmt.indent + 1
+  else
+    fmt.indent = 0
   end
-  return table.concat(l, "\n") .. "\n"
+  for _, v in ipairs(block) do
+    resync_line(v, fmt, l)
+    table.insert(l, code_stm(v, fmt))
+  end
+  if fmt.line ~= firstline then
+    table.insert(l, "\n")
+    fmt.line = fmt.line + 1
+  else
+    table.insert(l, " ")
+  end
+  fmt.indent = saveindent
+  return table.concat(l)
 end
 
 function tlcode.generate (ast)
   assert(type(ast) == "table")
-  return code_block(ast, -1)
+  local fmt = { line = 1, indent = -1 }
+  return code_block(ast, fmt) .. "\n"
 end
 
 return tlcode
