@@ -12,7 +12,7 @@ Besides its practical contributions, Typed Lua also has some interesting
 contributions to the field of optional type systems for scripting
 languages.
 They are novel type system features that let Typed Lua cover several Lua idioms
-and features, such as refinement of tables, multiple return values,
+and features, such as refinement of tables, multiple assignment, multiple return values,
 and optional parameters.
 
 \section{Types}
@@ -841,22 +841,20 @@ s_{1} \; ; \; s_{2} \; | \;
 m \; | \;
 \mathbf{while} \; e \; \mathbf{do} \; s \; | \;
 \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; n{:}t = f \; \mathbf{in} \; s \; | \;
-\mathbf{return} \; el \; | \;
-e(el)_{s} \; | \;
-e{:}n(el)_{s}\\
+& | \; \mathbf{local} \; \vec{n{:}T} = el \; \mathbf{in} \; s \; | \;
+\mathbf{local} \; \vec{n} = el \; \mathbf{in} \; s \; | \;
+\mathbf{rec} \; n{:}T = f \; \mathbf{in} \; s\\
+& | \; \mathbf{return} \; el \; | \;
+\lfloor a \rfloor_{0}\\
 e ::= & \;\; \mathbf{nil} \; | \;
-c \; | \;
-{...}_{e} \; | \;
-n_{e} \; | \;
+k \; | \;
+\lfloor {...} \rfloor_{1} \; | \;
+n \; | \;
 e_{1}[e_{2}] \; | \;
-{<}t{>} \; n \; | \;
+{<}T{>} \; n \; | \;
 f \; | \;
-\{ \} \; | \;
 \{ \; \vec{p} \; \} \; | \;
-\{ \; {...}_{m} \; \} \; | \;
-\{ \; \vec{p},{...}_{m} \; \}\\
+\{ \; \vec{p},me \; \}\\
 & | \; e_{1} + e_{2} \; | \;
 e_{1} \; {..} \; e_{2} \; | \;
 e_{1} == e_{2} \; | \;
@@ -866,34 +864,26 @@ e_{1} \; \mathbf{or} \; e_{2} \\
 & | \; \mathbf{not} \; e \; | \;
 - e \; | \;
 \# \; e \; | \;
-e(el)_{e} \; | \;
-e{:}n(el)_{e}\\
+\lfloor a \rfloor_{1}\\
 l ::= & \;\; n_{l} \; | \;
 e_{1}[e_{2}] \; | \;
-n[c] \; {<}t{>}\\
-c ::= & \;\; \mathbf{false} \; | \;
+n[k] \; {<}T{>}\\
+k ::= & \;\; \mathbf{false} \; | \;
 \mathbf{true} \; | \;
 {\it int} \; | \;
 {\it float} \; | \;
 {\it string}\\
 p ::= & \;\; [e_{1}] = e_{2}\\
-el ::= & \;\; \mathbf{nothing} \; | \;
-\vec{e} \; | \;
-me \; | \;
-\vec{e}, me \; | \;
-me^{x} \; | \;
-\vec{e}, me^{x}\\
-me ::= & \;\; e(el)_{m} \; | \;
-e{:}n(el)_{m} \; | \;
-{...}_{m}\\
-m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (){:}r \; fb \; | \;
-\mathbf{fun} \; n_{1}{:}n_{2} \; ({...}{:}t){:}r \; fb\\
-& | \; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; fb \; | \;
-\mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
-f ::= & \;\; \mathbf{fun} \; (){:}r \; fb \; | \;
-\mathbf{fun} \; ({...}{:}t){:}r \; fb \; | \;
-\mathbf{fun} \; (\vec{n{:}t}){:}r \; fb \; | \;
-\mathbf{fun} \; (\vec{n{:}t},{...}{:}t){:}r \; fb\\
+el ::= & \;\; \vec{e} \; | \;
+\vec{e}, me\\
+me ::= & \;\; a \; | \;
+{...}\\
+a ::= & \;\; e(el) \; | \;
+e{:}n(el)\\
+m ::= & \;\; \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}T}){:}S \; fb \; | \;
+\mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}T},{...}{:}T){:}S \; fb\\
+f ::= & \;\; \mathbf{fun} \; (\vec{n{:}T}){:}S \; fb \; | \;
+\mathbf{fun} \; (\vec{n{:}t},{...}{:}T){:}S \; fb\\
 fb ::= & \;\; s \;;\; \mathbf{return} \; el\\
 n ::= & \;\; {\it name}\\
 \end{array}

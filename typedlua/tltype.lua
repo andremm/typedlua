@@ -488,6 +488,8 @@ function tltype.checkTypeDec (n, t)
         end
       end
       return true
+    elseif tltype.isUnion(t) then
+      return true
     else
       return nil, "attempt to name a type that is not a table"
     end
@@ -561,14 +563,7 @@ end
 
 -- checkRecursive : (type, string) -> (boolean)
 function tltype.checkRecursive (t, name)
-  if tltype.isTable(t) then
-    for k, v in ipairs(t) do
-      if check_recursive(v[2], name) then return true end
-    end
-    return false
-  else
-    return false
-  end
+  return check_recursive(t, name)
 end
 
 -- subtyping and consistent-subtyping
@@ -970,14 +965,12 @@ function tltype.unionlist2tuple (t)
     end
   end
   local n = { tag = "TTuple" }
-  for i = 1, #l - 1 do
+  for i = 1, #l do
     n[i] = tltype.Union(table.unpack(l[i]))
   end
-  local vs = {}
-  for k, v in ipairs(l[#l]) do
-    table.insert(vs, v[1])
+  if not tltype.isVararg(n[#n]) then
+    n[#n + 1] = tltype.Vararg(tltype.Nil())
   end
-  n[#l] = tltype.Vararg(tltype.Union(table.unpack(vs)))
   return n
 end
 
