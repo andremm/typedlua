@@ -60,7 +60,7 @@ local G = lpeg.P { "TypedLuaDescription";
   TupleType = lpeg.Ct(lpeg.V("Type") * (tllexer.symb(",") * lpeg.V("Type"))^0) *
               (tllexer.symb("*") * lpeg.Cc(true))^-1 /
               tltype.Tuple;
-  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody") * tllexer.symb("}") /
+  TableType = tllexer.symb("{") * lpeg.V("TableTypeBody") * tllexer.symb(",")^-1 * tllexer.symb("}") /
               tltype.Table;
   TableTypeBody = lpeg.V("RecordType") +
                   lpeg.V("HashType") +
