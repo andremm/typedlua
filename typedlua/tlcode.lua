@@ -99,7 +99,7 @@ local function code_parlist (parlist, fmt)
   end
   local k = 1
   for k=1, len do
-    l[k] = code_var(parlist[k])
+    l[k] = code_var(parlist[k], fmt)
   end
   if is_vararg then
     table.insert(l, "...")
