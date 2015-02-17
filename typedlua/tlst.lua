@@ -57,7 +57,7 @@ function tlst.end_scope (env)
   local scope = env.scope
   if scope > 0 then
     for k, v in pairs(env[scope]["local"]) do
-      if v.bkp then
+      if v.assigned and v.bkp then
         v["type"] = v.bkp
       end
       if v["type"] and v["type"].reopen then
