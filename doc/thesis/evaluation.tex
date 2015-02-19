@@ -1,17 +1,11 @@
 
 We performed some case studies on existing Lua libraries
-to evaluate the applicability of our type system.
+to evaluate the design of our type system.
 For each library, we used Typed Lua to either annotate its modules
 or to write statically typed interfaces to its modules through
 Typed Lua's description files.
 In this chapter we present our evaluation results and discuss some
 interesting cases.
-
-We selected seven case studies to evaluate two aspects of Typed Lua:
-\begin{enumerate}
-\item how precisely it can describe the type of the interface of a module;
-\item whether it provides guarantees that the code matches the interface.
-\end{enumerate}
 
 The Lua Standard Library \citep{luamanual} was our first case study.
 We started to think about how we would type its modules at the same time
@@ -27,44 +21,55 @@ files and \texttt{userdata} declarations.
 These Typed Lua's mechanisms allow programmers to give statically typed
 interfaces to Lua libraries.
 
-LuaSocket \citep{luasocket} was the third case study that we used to
-evaluate Typed Lua.
-We chose LuaSocket as a case study because it is the most popular Lua library.
+LuaSocket \citep{luasocket} and LuaFileSystem \citep{luafilesystem} were
+the third and fourth case studies that we used to evaluate Typed Lua.
+We chose them because they are the most popular Lua libraries.
+We wrote a script that builds the dependency graph of Lua libraries
+that are in the LuaRocks repository, and used this dependency graph
+to identify the most popular Lua libraries.
 
-There are three case studies that we randomly selected from the LuaRocks
+We also randomly selected three case studies from the LuaRocks
 repository, they are: HTTP Digest \citep{luahttpdigest},
 Typical \citep{luatypical}, and Mod 11 \citep{luamod11}.
-The first one provides client side HTTP digest authentication for Lua.
-The second one is an extension to the primitive function \texttt{type}.
-The third one is a generator and checker of modulo 11 numbers.
-We randomly selected these libraries to evaluate Typed Lua for
-annotating existing Lua modules.
+The first provides client side HTTP digest authentication for Lua.
+The second is an extension to the primitive function \texttt{type}.
+The third is a generator and checker of modulo 11 numbers.
+We randomly selected three case studies because we wanted to evaluate
+Typed Lua for annotating existing libraries that are writting in Lua,
+as the previous case studies are mostly libraries that are writting in C.
 
 The Typed Lua compiler is the last case study that we evaluated.
-We chose the Typed Lua compiler as a case study because it is a large application,
-and bootstrapping the compiler also provides some confidence in the type system.
+We chose it as a case study because it is a large application.
+Besides, it is a case study that evaluates the evolution of a script
+to a program.
+
+We used these case studies to evaluate two aspects of Typed Lua:
+\begin{enumerate}
+\item how precisely it can describe the type of the interface of a module;
+\item whether it provides guarantees that the code matches the interface.
+\end{enumerate}
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|c|c|}
 \hline
-\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-Lua Standard Library & 80 & 6 & 8 & 35 & 129 & 62\% \\
+Lua Standard Library & 62\% & 5\% & 6\% & 27\% & 129 \\ % 100%
 \hline
-MD5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
+MD5 & 100\% & 0\% & 0\% & 0\% & 13 \\ % 100%
 \hline
-LuaSocket & 110 & 1 & 2 & 10 & 123 & 89\% \\
+LuaSocket & 89\% & 1\% & 2\% & 8\% & 123 \\ % 100%
 \hline
-LuaFileSystem & 17 & 0 & 2 & 0 & 19 & 89\% \\
+LuaFileSystem & 89\% & 0\% & 11\% & 0\% & 19 \\ % 100%
 \hline
-HTTP Digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
+HTTP Digest & 0\% & 0\% & 100\% & 0\% & 1 \\ % 100%
 \hline
-Typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
+Typical & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
 \hline
-Modulo 11 & 7 & 0 & 0 & 2 & 9 & 78\% \\
+Modulo 11 & 78\% & 0\% & 0\% & 22\% & 9 \\ % 100%
 \hline
-Typed Lua Compiler & 144 & 0 & 1 & 9 & 154 & 94\% \\
+Typed Lua Compiler & 93\% & 0\% & 1\% & 6\% & 154 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -75,27 +80,29 @@ Typed Lua Compiler & 144 & 0 & 1 & 9 & 154 & 94\% \\
 Table \ref{tab:evalbycase} summarizes our evaluation results for each
 of the case studies that we used Typed Lua for typing their members.
 We split the members of each case study into four categories:
-\emph{easy}, \emph{poly}, \emph{inter}, and \emph{hard}.
-The \emph{easy} category groups the members that we could give
-a precise static type.
-The \emph{poly} category groups the members that we made minimal
-use of the dynamic type as a replacement for the lack of type parameters.
-The \emph{inter} category groups the members that we could give
-a static type that is not precise enough because they require
-intersection types.
-The \emph{hard} category groups the members that we had to rely
-on the dynamic type because our type system cannot give a precise
-static type to them.
-The last column of the table shows the percentage of members that
-are under the \emph{easy} category for each case study.
-This percentage gives a lower bound on how much static type safety
+\emph{easy}, \emph{poly}, \emph{over}, and \emph{hard}.
+The \emph{easy} category shows the percentage of members that
+we could give a precise static type.
+The \emph{poly} category shows the percentage of members that
+we made minimal use of the dynamic type as a replacement for the
+lack of type parameters.
+The \emph{over} category shows the percentage of members that
+we gave a static type that is not precise enough,
+as these members are overloaded functions that require intersection
+types to describe their precise static types.
+The \emph{hard} category shows the percentage of members that
+we had to rely on the dynamic type because they rely on reflection.
+The last column of the table shows the total number of members
+of each case study.
+The results that we obtained for the \emph{easy} category give
+a lower bound on how much static type safety
 we could add to each one of our case studies.
 
 In the following sections we discuss each case study in more detail.
 For each case study, we split the evaluation results according
-to the modules that each one of them include.
-This separation by case study allows us to better discuss the
-contributions and limitations of our type system.
+to the modules that each one of them include,
+and we discuss the contributions and limitations that these
+evaluation results represent in our type system.
 
 \section{Lua Standard Library}
 
@@ -111,27 +118,27 @@ Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard L
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-base & 9 & 1 & 2 & 14 & 26 & 35\% \\
+base & 34\% & 4\% & 8\% & 54\% & 26 \\ % 100%
 \hline
-coroutine & 1 & 0 & 0 & 6 & 7 & 14\% \\
+coroutine & 14\% & 0\% & 0\% & 86\% & 7 \\ % 100%
 \hline
-package & 5 & 0 & 0 & 3 & 8 & 62\% \\
+package & 62\% & 0\% & 0\% & 38\% & 8 \\ % 100%
 \hline
-string & 12 & 0 & 0 & 4 & 16 & 75\% \\
+string & 75\% & 0\% & 0\% & 25\% & 16 \\ % 100%
 \hline
-utf8 & 6 & 0 & 0 & 0 & 6 & 100\% \\
+utf8 & 100\% & 0\% & 0\% & 0\% & 6 \\ % 100%
 \hline
-table & 1 & 5 & 0 & 1 & 7 & 14\% \\
+table & 15\% & 71\% & 0\% & 14\% & 7 \\ % 100%
 \hline
-math & 22 & 0 & 4 & 1 & 27 & 81\% \\
+math & 81\% & 0\% & 15\% & 4\% & 27 \\ % 100%
 \hline
-io & 15 & 0 & 0 & 6 & 21 & 71\% \\
+io & 71\% & 0\% & 0\% & 29\% & 21 \\ % 100%
 \hline
-os & 9 & 0 & 2 & 0 & 11 & 82\% \\
+os & 82\% & 0\% & 18\% & 0\% & 11 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -305,11 +312,11 @@ Table \ref{tab:evalmd5} summarizes the evaluation results for MD5.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-md5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
+md5 & 100\% & 0\% & 0\% & 0\% & 13 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -345,23 +352,23 @@ Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-socket & 50 & 0 & 0 & 10 & 60 & 83\% \\
+socket & 83\% & 0\% & 0\% & 17\% & 60 \\ % 100%
 \hline
-ftp & 5 & 0 & 1 & 0 & 6 & 83\% \\
+ftp & 83\% & 0\% & 17\% & 0\% & 6 \\ % 100%
 \hline
-http & 4 & 0 & 1 & 0 & 5 & 80\% \\
+http & 80\% & 0\% & 20\% & 0\% & 5 \\ % 100%
 \hline
-smtp & 7 & 0 & 0 & 0 & 7 & 100\% \\
+smtp & 100\% & 0\% & 0\% & 0\% & 7 \\ % 100%
 \hline
-mime & 17 & 0 & 0 & 0 & 17 & 100\% \\
+mime & 100\% & 0\% & 0\% & 0\% & 17 \\ % 100%
 \hline
-ltn12 & 19 & 1 & 0 & 0 & 20 & 95\% \\
+ltn12 & 95\% & 5\% & 0\% & 0\% & 20 \\ % 100%
 \hline
-url & 8 & 0 & 0 & 0 & 8 & 100\% \\
+url & 100\% & 0\% & 0\% & 0\% & 8 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -429,19 +436,29 @@ The \texttt{url} module provides functions that manipulate URLs.
 
 \section{LuaFileSystem}
 
+LuaFileSystem is a library that extends the set of functions
+for manipulating file systems in Lua.
+It contains just the \texttt{lfs} module that is written in C,
+so we used Typed Lua's description file to type it.
+Table \ref{tab:evallfs} summarizes the evaluation results for LuaFileSystem.
+
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-lfs & 17 & 0 & 2 & 0 & 19 & 89\% \\
+lfs & 89\% & 0\% & 11\% & 0\% & 19 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
 \caption{Evaluation results for LuaFileSystem}
 \label{tab:evallfs}
 \end{table}
+
+Even though we could type most of the functions exported by the
+\texttt{lfs} module, we could not type two overloaded functions
+due to the lack of intersection types in our type system.
 
 \section{HTTP Digest}
 
@@ -450,11 +467,11 @@ Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-http-digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
+http-digest & 0\% & 0\% & 100\% & 0\% & 1 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -488,11 +505,11 @@ Table \ref{tab:evaltypical} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
+typical & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -526,11 +543,11 @@ Table \ref{tab:evalmod11} summarizes the evaluation results for Typical.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-mod11 & 7 & 0 & 0 & 2 & 9 & 78\% \\
+mod11 & 78\% & 0\% & 0\% & 22\% & 9 \\ % 100%
 \hline
 \end{tabular}
 \end{center}
@@ -566,25 +583,25 @@ Table \ref{tab:evaltlc} summarizes its evaluation results.
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-tlast & 46 & 0 & 1 & 0 & 47 & 98\% \\
+tlast & 98\% & 0\% & 2\% & 0\% & 47 \\ % 100%
 \hline
-tltype & 65 & 0 & 0 & 0 & 65 & 100\% \\
+tltype & 100\% & 0\% & 0\% & 0\% & 65 \\ % 100%
 \hline
-tlst & 26 & 0 & 0 & 0 & 26 & 100\% \\
+tlst & 100\% & 0\% & 0\% & 0\% & 26 \\ % 100%
 \hline
-tllexer & 2 & 0 & 0 & 9 & 11 & 18\% \\
+tllexer & 18\% & 0\% & 0\% & 82\% & 11 \\ % 100%
 \hline
-tlparser & 1 & 0 & 0 & 0 & 1 & 100\% \\
+tlparser & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
 \hline
-tldparser & 1 & 0 & 0 & 0 & 1 & 100\% \\
+tldparser & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
 \hline
-tlchecker & 2 & 0 & 0 & 0 & 2 & 100\% \\
+tlchecker & 100\% & 0\% & 0\% & 0\% & 2 \\ % 100%
 \hline
-tlcode & 1 & 0 & 0 & 0 & 1 & 100\% \\
+tlcode & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
 \hline
 \end{tabular}
 \end{center}

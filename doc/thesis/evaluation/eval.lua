@@ -53,10 +53,19 @@ local library_name = {
   tlc = "Typed Lua Compiler",
 }
 
-local cat = { "easy", "poly", "inter", "hard" }
+local cat = { "easy", "poly", "over", "hard" }
 
 local function p (x, total)
-  return string.format("%.0f\\%%", ((100 * x) / total))
+  return tonumber(string.format("%.0f", (100 * x) / total))
+end
+
+local function pc (list, total)
+  local easy = p(list[1], total)
+  local poly = p(list[2], total)
+  local over = p(list[3], total)
+  local hard = p(list[4], total)
+  local recon = easy + poly + over + hard
+  return easy, poly, over, hard, recon
 end
 
 local function rows (m)
@@ -123,18 +132,21 @@ end
 local function table_by_library ()
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
+  print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
   print("\\hline")
-  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+  print("\\textbf{Case study} & \\textbf{easy} & \\textbf{poly} & \\textbf{over} & \\textbf{hard} & \\textbf{Total} \\\\")
   print("\\hline")
   for i, k in ipairs(library_list) do
-    local n = library_name[k]
-    io.write(string.format("%s", n))
-    local l = result_by_library[k]
-    for j, v in ipairs(l) do
-      io.write(string.format(" & %d", v))
-    end
-    io.write(string.format(" & %d & %s \\\\", total_by_library[k], p(l[1], total_by_library[k])))
+    local name = library_name[k]
+    local lib = result_by_library[k]
+    local total = total_by_library[k]
+    local easy, poly, over, hard, recon = pc(lib, total)
+    io.write(string.format("%s", name))
+    io.write(string.format(" & %d\\%%", easy))
+    io.write(string.format(" & %d\\%%", poly))
+    io.write(string.format(" & %d\\%%", over))
+    io.write(string.format(" & %d\\%%", hard))
+    io.write(string.format(" & %d \\\\ %% %d%%", total, recon))
     io.write("\n\\hline\n")
   end
   print("\\end{tabular}")
@@ -146,59 +158,28 @@ end
 
 local function table_by_module ()
   local t = {}
-  print("\\begin{table}[!ht]")
-  print("\\begin{center}")
-  print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
-  print("\\hline")
-  print("\\textbf{Case study} & \\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
-  print("\\hline")
-  for i, m in ipairs(result_by_module) do
-    local l = string.match(module_list[i], "(%w+)[.]%w+")
-    if not t[l] then
-      local r = rows(l .. "[.]")
-      t[l] = i - 1 + r
-      io.write(string.format("\\multirow{%d}{*}{%s}\n", r, library_name[l]))
-    end
-    local module_name = string.match(module_list[i], "%w+[.](%w+)")
-    io.write(string.format("& %s", module_name))
-    for j, v in ipairs(m) do
-      io.write(string.format(" & %d", v))
-    end
-    io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
-    if i ~= t[l] then
-      io.write("\n\\cline{2-8}\n")
-    else
-      io.write("\n\\hline\n")
-    end
-  end
-  print("\\end{tabular}")
-  print("\\end{center}")
-  print("\\caption{Evaluation results for each module}")
-  print("\\label{tab:evalbymod}")
-  print("\\end{table}")
-end
-
-local function table_split_by_module ()
-  local t = {}
   for i, m in ipairs(result_by_module) do
     local l = string.match(module_list[i], "(%w+)[.]%w+")
     if not t[l] then
       print("---")
       print("\\begin{table}[!ht]")
       print("\\begin{center}")
-      print("\\begin{tabular}{|c|c|c|c|c|c|c|}")
+      print("\\begin{tabular}{|c|c|c|c|c|c|}")
       print("\\hline")
-      print("\\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{inter} & \\textbf{hard} & \\textbf{Total} & \\textbf{\\%} \\\\")
+      print("\\textbf{Module} & \\textbf{easy} & \\textbf{poly} & \\textbf{over} & \\textbf{hard} & \\textbf{Total} \\\\")
       print("\\hline")
       local r = rows(l .. "[.]")
       t[l] = i - 1 + r
     end
     local module_name = string.match(module_list[i], "%w+[.](%w+)")
+    local total = total_by_module[i]
+    local easy, poly, over, hard, recon = pc(m, total)
     io.write(string.format("%s", module_name))
-    for j, v in ipairs(m) do
-      io.write(string.format(" & %d", v))
-    end
-    io.write(string.format(" & %d & %s \\\\", total_by_module[i], p(m[1], total_by_module[i])))
+    io.write(string.format(" & %d\\%%", easy))
+    io.write(string.format(" & %d\\%%", poly))
+    io.write(string.format(" & %d\\%%", over))
+    io.write(string.format(" & %d\\%%", hard))
+    io.write(string.format(" & %d \\\\ %% %d%%", total, recon))
     io.write("\n\\hline\n")
     if i == t[l] then
       print("\\end{tabular}")
@@ -215,8 +196,7 @@ Available options are:
 -ll	generate log by library
 -lm	generate log by module
 -tl	generate table by library
--tm	generate table by module
--ts	generate table split by module]]
+-tm	generate table by module]]
 
 if #arg ~= 1 then
   print(usage)
@@ -235,8 +215,6 @@ elseif opt == "-tl" then
   table_by_library()
 elseif opt == "-tm" then
   table_by_module()
-elseif opt == "-ts" then
-  table_split_by_module()
 else
   print(usage)
   os.exit(1)
