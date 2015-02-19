@@ -161,12 +161,16 @@ local function check_unused_locals (env)
   end
 end
 
-local function check_tl (env, name, path)
+local function check_tl (env, name, path, pos)
   local file = io.open(path, "r")
   local subject = file:read("*a")
   local s, f = env.subject, env.filename
   io.close(file)
-  local ast = assert(tlparser.parse(subject, path, env.strict, env.integer))
+  local ast, msg = tlparser.parse(subject, path, env.strict, env.integer)
+  if not ast then
+    typeerror(env, "syntax", msg, pos)
+    return Any
+  end
   env.subject = subject
   env.filename = path
   tlst.begin_function(env)
@@ -201,8 +205,12 @@ local function check_userdata (env, stm)
   end
 end
 
-local function check_tld (env, name, path)
-  local ast = assert(tldparser.parse(path, env.strict, env.integer))
+local function check_tld (env, name, path, pos)
+  local ast, msg = tldparser.parse(path, env.strict, env.integer)
+  if not ast then
+    typeerror(env, "syntax", msg, pos)
+    return Any
+  end
   local t = tltype.Table()
   for k, v in ipairs(ast) do
     local tag = v.tag
@@ -225,19 +233,23 @@ local function check_require (env, name, pos, extra_path)
     local path = string.gsub(package.path..";", "[.]lua;", ".tl;")
     local filepath, msg1 = searchpath(extra_path .. name, path)
     if filepath then
-      env["loaded"][name] = check_tl(env, name, filepath)
+      env["loaded"][name] = check_tl(env, name, filepath, pos)
     else
       path = string.gsub(package.path..";", "[.]lua;", ".tld;")
       local filepath, msg2 = searchpath(extra_path .. name, path)
       if filepath then
-        env["loaded"][name] = check_tld(env, name, filepath)
+        env["loaded"][name] = check_tld(env, name, filepath, pos)
       else
         env["loaded"][name] = Any
-        local m = require(name)
-        if not m then
-          local msg = "could not load '%s'%s%s"
-          msg = string.format(msg, name, msg1, msg2)
-          typeerror(env, "load", msg, pos)
+        local s, m = pcall(require, name)
+        if not s then
+          if string.find(m, "syntax error") then
+            typeerror(env, "syntax", m, pos)
+          else
+            local msg = "could not load '%s'%s%s%s"
+            msg = string.format(msg, name, msg1, msg2, m)
+            typeerror(env, "load", msg, pos)
+          end
         end
       end
     end
