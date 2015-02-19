@@ -56,6 +56,8 @@ MD5 & 13 & 0 & 0 & 0 & 13 & 100\% \\
 \hline
 LuaSocket & 110 & 1 & 2 & 10 & 123 & 89\% \\
 \hline
+LuaFileSystem & 17 & 0 & 2 & 0 & 19 & 89\% \\
+\hline
 HTTP Digest & 0 & 0 & 1 & 0 & 1 & 0\% \\
 \hline
 Typical & 1 & 0 & 0 & 0 & 1 & 100\% \\
@@ -424,6 +426,22 @@ This function is difficult to type because it is polymorphic.
 The modules \texttt{smtp} and \texttt{url} were straightforward to type.
 The \texttt{smtp} module provides functions that send e-mails.
 The \texttt{url} module provides functions that manipulate URLs.
+
+\section{LuaFileSystem}
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{inter} & \textbf{hard} & \textbf{Total} & \textbf{\%} \\
+\hline
+lfs & 17 & 0 & 2 & 0 & 19 & 89\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for LuaFileSystem}
+\label{tab:evallfs}
+\end{table}
 
 \section{HTTP Digest}
 
