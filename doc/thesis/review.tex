@@ -173,7 +173,7 @@ object-oriented programming.
 Dart has a nominal type system, while TypeScript has a structural
 one, but both are unsound by design.
 For instance, Dart has covariant arrays, while TypeScript has
-covariant function return types,
+covariant parameter types in function signatures,
 besides the interaction between statically and dynamically
 typed code that is also unsound.
 
@@ -182,7 +182,7 @@ each language ends up implementing its optional type system in
 its own way.
 Strongtalk, Dart, and TypeScript provide an informal description of
 their optional type systems rather than a formal one.
-In the next section we shall see that we can use some features
+In the next section we will show that we can use some features
 of gradual typing \citep{siek2006gradual,siek2007objects} to
 formalize optional type systems.
 
@@ -193,9 +193,9 @@ The main goal of gradual typing \citep{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
 language.
 To do that, \citet{siek2006gradual} extended the simply typed
-lambda calculus with the dynamic type $?$, as we shall see in
+lambda calculus with the dynamic type $?$, as we can see in
 Figure \ref{fig:gtlc}.
-In gradual typing, type annotations are optional, so an untyped
+In gradual typing, type annotations are optional, and an untyped
 variable is syntactic sugar for a variable whose declared type is
 the dynamic type $?$, that is, $\lambda x.e$ is equivalent to $\lambda x{:}?.e$.
 Under these circumstances, we view gradual typing as a way to add
@@ -205,16 +205,16 @@ a dynamic type to statically typed languages.
 \dstart
 $$
 \begin{array}{llr}
-t ::= & & \emph{types}\\
-& \;\; \Number & \emph{base type number}\\
-& | \; \String & \emph{base type string}\\
-& | \; ? & \emph{dynamic type}\\
-& | \; t \rightarrow t & \emph{function types}\\
-e ::= & & \emph{expressions}\\
-& \;\; l & \emph{literals}\\
-& | \; x & \emph{variables}\\
-& | \; \lambda x{:}t{.}e & \emph{abstractions}\\
-& | \; e_{1} e_{2} & \emph{application}
+T ::= & & \textsc{types}\\
+& \;\; \Number & \textit{base type number}\\
+& | \; \String & \textit{base type string}\\
+& | \; ? & \textit{dynamic type}\\
+& | \; T \rightarrow T & \textit{function types}\\
+e ::= & & \textsc{expressions}\\
+& \;\; l & \textit{literals}\\
+& | \; x & \textit{variables}\\
+& | \; \lambda x{:}T{.}e & \textit{abstractions}\\
+& | \; e_{1} e_{2} & \textit{application}
 \end{array}
 $$
 \dend
@@ -223,7 +223,7 @@ $$
 \end{figure}
 
 The central idea of gradual typing is the \emph{consistency}
-relation, written $t_{1} \sim t_{2}$.
+relation, written $T_{1} \sim T_{2}$.
 The consistency relation allows implicit conversions to and from the
 dynamic type, and disallows conversions between inconsistent types
 \citep{siek2006gradual}.
@@ -239,20 +239,20 @@ it is neither commutative nor transitive.
 $$
 \begin{array}{c}
 \begin{array}{c}
-t \sim t \mylabel{C-REFL}
+T \sim T \mylabel{C-REFL}
 \end{array}
 \;
 \begin{array}{c}
-t \sim \;? \mylabel{C-DYNR}
+T \sim \;? \mylabel{C-DYNR}
 \end{array}
 \;
 \begin{array}{c}
-? \sim t \mylabel{C-DYNL}
+? \sim T \mylabel{C-DYNL}
 \end{array}
 \\ \\
 \begin{array}{c}
-\dfrac{t_{3} \sim t_{1} \;\;\; t_{2} \sim t_{4}}
-      {t_{1} \rightarrow t_{2} \sim t_{3} \rightarrow t_{4}} \mylabel{C-FUNC}
+\dfrac{T_{3} \sim T_{1} \;\;\; T_{2} \sim T_{4}}
+      {T_{1} \rightarrow T_{2} \sim T_{3} \rightarrow T_{4}} \mylabel{C-FUNC}
 \end{array}
 \end{array}
 $$
@@ -279,12 +279,12 @@ type of a variable $x$.
 The rule \textsc{T-LIT} uses the directive $type$ to get the type of
 a literal $l$.
 The rule \textsc{T-ABS} evaluates the expression $e$ with an environment
-$\env$ that binds the variable $x$ to the type $t_{1}$, and the resulting
-type is the the function type $t_{1} \rightarrow t_{2}$.
-The rule \textsc{T-APP1} handles function calls where the type of the
+$\env$ that binds the variable $x$ to the type $T_{1}$, and the resulting
+type is the the function type $T_{1} \rightarrow T_{2}$.
+The rule \textsc{T-APP1} handles function calls where the type of a
 function is dynamically typed; in this case, the argument type may have
 any type and the resulting type has the dynamic type.
-The rule \textsc{T-APP2} handles function calls where the type of the
+The rule \textsc{T-APP2} handles function calls where the type of a
 function is statically typed; in this case, the argument type should
 be consistent with the argument type of the function's signature.
 
@@ -292,23 +292,23 @@ be consistent with the argument type of the function's signature.
 \dstart
 $$
 \begin{matrix}
-\dfrac{\env(x) = t}
-      {\env \vdash x:t} \mylabel{T-VAR}
+\dfrac{\env(x) = T}
+      {\env \vdash x:T} \mylabel{T-VAR}
 \;\;\;
-\dfrac{type(l) = t}
-      {\env \vdash l:t} \mylabel{T-LIT}
+\dfrac{type(l) = T}
+      {\env \vdash l:T} \mylabel{T-LIT}
 \\ \\
-\dfrac{\env, x:t_{1} \vdash e:t_{2}}
-      {\env \vdash \lambda x:t_{1}.e:t_{1} \rightarrow t_{2}} \mylabel{T-ABS}
+\dfrac{\env[x \mapsto T_{1}] \vdash e:T_{2}}
+      {\env \vdash \lambda x:T_{1}.e:T_{1} \rightarrow T_{2}} \mylabel{T-ABS}
 \;\;\;
 \dfrac{\env \vdash e_{1}:\;? \;\;\;
-       \env \vdash e_{2}:t}
+       \env \vdash e_{2}:T}
       {\env \vdash e_{1} e_{2}:\;?} \mylabel{T-APP1}
 \\ \\
-\dfrac{\env \vdash e_{1}:t_{1} \rightarrow t_{2} \;\;\;
-       \env \vdash e_{2}:t_{3} \;\;\;
-       t_{3} \sim t_{1}}
-      {\env \vdash e_{1} e_{2}:t_{2}} \mylabel{T-APP2}
+\dfrac{\env \vdash e_{1}:T_{1} \rightarrow T_{2} \;\;\;
+       \env \vdash e_{2}:T_{3} \;\;\;
+       T_{3} \sim T_{1}}
+      {\env \vdash e_{1} e_{2}:T_{2}} \mylabel{T-APP2}
 \end{matrix}
 $$
 \dend
@@ -328,7 +328,7 @@ and injections, and \citet{thatte1990qst} relies on subtyping.
 The subtyping relation $\subtype$ is actually a pitfall on Thatte's
 quasi-static typing, because it sets the dynamic type
 as the top and the bottom of the subtying relation:
-$t \subtype \;?$ and $? \subtype t$.
+$T \subtype \;?$ and $? \subtype T$.
 Subtyping is transitive, so we know that
 \[
 \frac{\Number \subtype \;? \;\;\;
@@ -340,7 +340,7 @@ accepts programs that should be rejected.
 
 Later, \citet{siek2007objects} reported that the consistency relation is
 orthogonal to the subtyping relation, so we can combine them to achieve
-the \emph{consistent-subtyping} relation, written $t_{1} \lesssim t_{2}$.
+the \emph{consistent-subtyping} relation, written $T_{1} \lesssim T_{2}$.
 This relation is essential for designing gradual type systems for
 object-oriented languages.
 Like the consistency relation, and unlike the subtyping relation,
@@ -371,8 +371,8 @@ $$
 \end{array}
 \;
 \begin{array}{c}
-\dfrac{t_{3} \subtype t_{1} \;\;\; t_{2} \subtype t_{4}}
-      {t_{1} \rightarrow t_{2} \subtype t_{3} \rightarrow t_{4}} \mylabel{S-FUN}
+\dfrac{T_{3} \subtype T_{1} \;\;\; T_{2} \subtype T_{4}}
+      {T_{1} \rightarrow T_{2} \subtype T_{3} \rightarrow T_{4}} \mylabel{S-FUN}
 \end{array}
 \end{array}
 $$
@@ -383,7 +383,7 @@ $$
 
 Figure \ref{fig:subtyping} presents the subtyping relation for the simply
 typed lambda calculus extended with the dynamic type $?$.
-Even though we could have used the reflexive rule $t \subtype t$ to express
+Even though we could have used the reflexive rule $T \subtype T$ to express
 the rules \textsc{S-NUM}, \textsc{S-STR}, and \textsc{S-ANY},
 we did not combine them into a single rule to make explicit the
 neutrality of the dynamic type $?$ to the subtyping rules.
@@ -536,9 +536,9 @@ relation while Alore combines subtyping along with the consistency
 relation to define a \emph{consistent-or-subtype} relation.
 The consistent-or-subtype relation is different from the
 consistent-subtyping relation of \citet{siek2007objects}, but it is
-also written $t_{1} \lesssim t_{2}$.
-The consistent-or-subtype relation holds when $t_{1} \sim t_{2}$
-or $t_{1} <: t_{2}$, where $<:$ is transitive and $\sim$ is not.
+also written $T_{1} \lesssim T_{2}$.
+The consistent-or-subtype relation holds when $T_{1} \sim T_{2}$
+or $T_{1} <: T_{2}$, where $<:$ is transitive and $\sim$ is not.
 Alore also extends its optional type system to include optional
 monitoring of run-time type errors in the gradual typing style.
 

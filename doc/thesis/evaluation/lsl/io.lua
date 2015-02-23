@@ -2,7 +2,7 @@ return {
   stdin = 1,
   stdout = 1,
   stderr = 1,
-  close = 4,
+  close = 3,
   flush = 1,
   input = 1,
   lines = 4,
@@ -14,7 +14,7 @@ return {
   ["type"] = 1,
   write = 1,
   -- file methods
-  close_m = 4,
+  close_m = 3,
   flush_m = 1,
   lines_m = 4,
   read_m = 4,

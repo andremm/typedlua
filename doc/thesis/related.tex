@@ -1,9 +1,9 @@
-In this chapter we review related work as a way to indentify the novel
+In this chapter we review related work as a way to identify the novel
 features of our type system, what are the features that it shares with
 other type systems, and whether we can incorporate some interesting
 features from other type systems.
-We split this chapter into two parts: in the first part we review
-other Lua projects, while in the second part we review other
+We split this chapter into two sections: in the first section we review
+other Lua projects, while in the second section we review other
 projects that are not related to Lua.
 
 \section{Other Lua projects}
@@ -34,7 +34,7 @@ it does not perform compile-time type checking.
 Tidal Lock \citep{tidallock} is a prototype of another optional type
 system for Lua, which is written in Metalua.
 Tidal Lock covers a little subset of Lua.
-Statements include declaration of local variables, multiple assignments,
+Statements include declaration of local variables, multiple assignment,
 function application, and the return statement.
 This means that Tidal Lock does not include any control-flow statement.
 Expressions include primitive literals, table indexing, function application,
@@ -59,6 +59,39 @@ local type inference.
 However, it does not support union types, recursive types, and variadic types.
 It also does not type any object-oriented idiom.
 
+Sol \citep{sol} is an experimental optional type system for Lua.
+Its type system is similar to ours, as it includes literal types,
+union types, and function types that handle variadic functions.
+However, it does not handle the refinement of tables and it
+includes different types for tables.
+Sol types tables as lists, maps, and objects.
+Its object types handle a specific object-oriented idiom that
+Sol introduces.
+
+Lua Analyzer \citep{luaanalyzer} is an optional type system for Lua
+that is specially designed to work in the Löve Studio,
+an IDE for game developing using the Löve framework.
+It works in Lua 5.1 only, and uses type annotations inside comments.
+It is unsound by design because its dynamic type is both
+top and bottom in the subtyping relation.
+
+Lua Analyzer shares some features with Typed Lua, and also
+has some interesting features that we do not have in Typed Lua.
+It has similar rules for handling the \texttt{or} idiom and
+discriminating union types inside conditions.
+However, these rules are limited to the \texttt{nil} tag only.
+It also includes different types for typing tables.
+It includes regular record types that maps names to types,
+array types, and map types.
+Even though it does not support the refinement of tables,
+it allows the definition of nominal table types that simulate classes.
+This system allows it to type check custom class systems,
+which are common in Lua.
+Function types also support multiple return values and
+variadic functions, but they do not support overloading the
+return type.
+Recently, it included experimental support for type aliases and generics.
+
 Luacheck \citep{luacheck} is a tool that performs static analysis on Lua code.
 It can flag access to undeclared globals and unused local variables,
 but it does not perform static type checking.
@@ -67,6 +100,8 @@ Ravi \citep{ravi} is an experimental Lua dialect.
 Ravi introduces optional static typing for Lua to improve run-time performance.
 To do that, Ravi extends the Lua Virtual Machine to include new
 operations that take into account static type information.
+Currently, Ravi extends the Lua Virtual Machine to support few types:
+\texttt{int}, \texttt{double}, arrays of integers, and arrays of doubles.
 
 \section{Other projects}
 
@@ -194,6 +229,20 @@ type of class declarations and instances, respectively.
 It also uses local type inference.
 Besides static type checking, Reticulated Python also introduces
 three different approaches for inserting run-time assertions.
+
+Mypy \citep{mypy} is an optional type system for Python.
+The type system of mypy is similar to the type system of
+Reticulated Python, but mypy does not insert run-time checks
+and it has parametric polymorphism.
+In contrast, Reticulated Python can type variadic functions,
+but mypy cannot.
+Recently, Guido van Rossum, Python's author, proposed a
+standard syntax for type annotations in Python \citep{PEP483}
+that is extremely inspired by mypy \citep{PEP484}.
+The main goal of this proposal is to make easier building
+static analysis tools for Python.
+Typing \citep{typing} is a tool that is being developed to
+implement this proposal.
 
 Hack \citep{hack} is a new programming language that runs on the
 Hip Hop Virtual Machine (HHVM).

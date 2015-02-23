@@ -2,7 +2,7 @@
 Typed Lua description file for table manipulation
 ]]
 
-concat : ({string|number}, string?, integer?, integer?) -> (string)
+concat : ({string}|{number}|{integer}|{string|number}|{string|integer}, string?, integer?, integer?) -> (string)
 insert : ({any}, any, any) -> ()
 move : ({any}, integer, integer, integer, {any}?) -> ({any})
 pack : (any*) -> ({"n":number, number:any})

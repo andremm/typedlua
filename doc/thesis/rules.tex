@@ -6,7 +6,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-LITERAL}
 \[
-\senv \vdash l \subtype l
+\senv \vdash L \subtype L
 \]
 
 \mylabel{S-FALSE}
@@ -41,7 +41,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-BASE}
 \[
-\senv \vdash b \subtype b
+\senv \vdash B \subtype B
 \]
 
 \mylabel{S-NUMBER}
@@ -56,7 +56,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-VALUE}
 \[
-\senv \vdash t \subtype \Value
+\senv \vdash T \subtype \Value
 \]
 
 \mylabel{S-ANY}
@@ -71,28 +71,28 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-UNION1}
 \[
-\dfrac{\senv \vdash t_{1} \subtype t \;\;\;
-       \senv \vdash t_{2} \subtype t}
-      {\senv \vdash t_{1} \cup t_{2} \subtype t}
+\dfrac{\senv \vdash T_{1} \subtype T \;\;\;
+       \senv \vdash T_{2} \subtype T}
+      {\senv \vdash T_{1} \cup T_{2} \subtype T}
 \]
 
 \mylabel{S-UNION2}
 \[
-\dfrac{\senv \vdash t \subtype t_{1}}
-      {\senv \vdash t \subtype t_{1} \cup t_{2}}
+\dfrac{\senv \vdash T \subtype T_{1}}
+      {\senv \vdash T \subtype T_{1} \cup T_{2}}
 \]
 
 \mylabel{S-UNION3}
 \[
-\dfrac{\senv \vdash t \subtype t_{2}}
-      {\senv \vdash t \subtype t_{1} \cup t_{2}}
+\dfrac{\senv \vdash T \subtype T_{2}}
+      {\senv \vdash T \subtype T_{1} \cup T_{2}}
 \]
 
 \mylabel{S-FUNCTION}
 \[
-\dfrac{\senv \vdash s_{3} \subtype s_{1} \;\;\;
-       \senv \vdash s_{2} \subtype s_{4}}
-      {\senv \vdash s_{1} \rightarrow s_{2} \subtype s_{3} \rightarrow s_{4}}
+\dfrac{\senv \vdash S_{3} \subtype S_{1} \;\;\;
+       \senv \vdash S_{2} \subtype S_{4}}
+      {\senv \vdash S_{1} \rightarrow S_{2} \subtype S_{3} \rightarrow S_{4}}
 \]
 
 \mylabel{S-VOID1}
@@ -102,14 +102,14 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-VOID2}
 \[
-\senv \vdash \Void \subtype t{*}
+\senv \vdash \Void \subtype T{*}
 \]
 
 \mylabel{S-PAIR}
 \[
-\dfrac{\senv \vdash t_{1} \subtype t_{2} \;\;\;
-       \senv \vdash s_{1} \subtype s_{2}}
-      {\senv \vdash t_{1} \times s_{1} \subtype t_{2} \times s_{2}}
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+       \senv \vdash P_{1} \subtype P_{2}}
+      {\senv \vdash T_{1} \times P_{1} \subtype T_{2} \times P_{2}}
 \]
 
 \mylabel{S-VARARG1}
@@ -119,74 +119,75 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-VARARG2}
 \[
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2} \cup \Nil}
-      {\senv \vdash t_{1}{*} \subtype t_{2}{*}}
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
+      {\senv \vdash T_{1}{*} \subtype T_{2}{*}}
 \]
 
 \mylabel{S-VARARG3}
 \[
-\dfrac{\senv \vdash t_{1} \cup \Nil \subtype t_{2}}
-      {\senv \vdash t_{1}{*} \subtype t_{2} \times \Void}
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2}}
+      {\senv \vdash T_{1}{*} \subtype T_{2} \times \Void}
 \]
 
 \mylabel{S-VARARG4}
 \[
-\dfrac{\senv \vdash t_{1} \subtype t_{2} \cup \Nil}
-      {\senv \vdash t_{1} \times \Void \subtype t_{2}{*}}
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil}
+      {\senv \vdash T_{1} \times \Void \subtype T_{2}{*}}
 \]
 
 \mylabel{S-VARARG5}
 \[
-\dfrac{\senv \vdash t_{1}{*} \subtype t_{2} \times \Void \;\;\;
-       \senv \vdash t_{1}{*} \subtype s_{2}}
-      {\senv \vdash t_{1}{*} \subtype t_{2} \times s_{2}}
+\dfrac{\senv \vdash T_{1}{*} \subtype T_{2} \times \Void \;\;\;
+       \senv \vdash T_{1}{*} \subtype P_{2}}
+      {\senv \vdash T_{1}{*} \subtype T_{2} \times P_{2}}
 \]
 
 \mylabel{S-VARARG6}
 \[
-\dfrac{\senv \vdash t_{1} \times \Void \subtype t_{2}{*} \;\;\;
-       \senv \vdash s_{1} \subtype t_{2}{*}}
-      {\senv \vdash t_{1} \times s_{1} \subtype t_{2}{*}}
+\dfrac{\senv \vdash T_{1} \times \Void \subtype T_{2}{*} \;\;\;
+       \senv \vdash P_{1} \subtype T_{2}{*}}
+      {\senv \vdash T_{1} \times P_{1} \subtype T_{2}{*}}
 \]
 
 \mylabel{S-UNION4}
 \[
-\dfrac{\senv \vdash s_{1} \subtype s \;\;\;
-       \senv \vdash s_{2} \subtype s}
-      {\senv \vdash s_{1} \sqcup s_{2} \subtype s}
+\dfrac{\senv \vdash S_{1} \subtype S \;\;\;
+       \senv \vdash S_{2} \subtype S}
+      {\senv \vdash S_{1} \sqcup S_{2} \subtype S}
 \]
 
 \mylabel{S-UNION5}
 \[
-\dfrac{\senv \vdash s \subtype s_{1}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\dfrac{\senv \vdash S \subtype S_{1}}
+      {\senv \vdash S \subtype S_{1} \sqcup S_{2}}
 \]
 
 \mylabel{S-UNION6}
 \[
-\dfrac{\senv \vdash s \subtype s_{2}}
-      {\senv \vdash s \subtype s_{1} \sqcup s_{2}}
+\dfrac{\senv \vdash S \subtype S_{2}}
+      {\senv \vdash S \subtype S_{1} \sqcup S_{2}}
 \]
 
 \mylabel{S-TABLE1}
 \[
 \dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
-       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
-       \senv \vdash v_{j} \subtype_{c} v_{i}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{closed|regular} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}} \; m \ge n
+       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
+       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
+       \senv \vdash V_{j} \subtype_{c} V_{i}'}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}} \; m \ge n
 \]
 
 \mylabel{S-TABLE2}
 \[
 \dfrac{\begin{array}{c}
        \forall i \in 1..m \; \forall j \in 1..n \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
        \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
 \]
 
 \mylabel{S-TABLE3}
@@ -194,24 +195,24 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\begin{array}{c}
        \forall i \in 1..m \\
        \exists j \in 1..n \;
-       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{u} v_{j}' \\
+       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
        \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{unique} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{unique|open|closed}}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}}
 \]
 
 \mylabel{S-TABLE4}
 \[
 \dfrac{\begin{array}{c}
        \forall i \in 1..m \; \forall j \in 1..n \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
        \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{regular}}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
 \]
 
 \mylabel{S-TABLE5}
@@ -219,76 +220,77 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\begin{array}{c}
        \forall i \in 1..m \\
        \exists j \in 1..n \;
-       \senv \vdash k_{i} \subtype k_{j}' \land \senv \vdash v_{i} \subtype_{c} v_{j}' \\
+       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
        \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash k_{i} \subtype k_{j}' \to \senv \vdash \Nil \subtype_{o} v_{j}'
+       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{m}{:}v_{m}\}_{open} \subtype
-                    \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{open|closed}}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}}
 \]
 
 \mylabel{S-TABLE6}
 \[
 \dfrac{\forall i \in 1..n \; \exists j \in 1..n \;\;\;
-       \senv \vdash k_{j} \subtype k_{i}' \;\;\;
-       \senv \vdash k_{i}' \subtype k_{j} \;\;\;
-       \senv \vdash v_{j} \subtype_{c} v_{i}'}
-      {\senv \vdash \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed} \subtype \{k_{1}'{:}v_{1}', ..., k_{n}'{:}v_{n}'\}_{closed}}
+       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
+       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
+       \senv \vdash V_{j} \subtype_{c} V_{i}'}
+      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \subtype
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{fixed}}
 \]
 
 \mylabel{S-FIELD1}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2} \;\;\;
-       \senv \vdash v_{2} \subtype v_{1}}
-      {\senv \vdash v_{1} \subtype_{c} v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2} \;\;\;
+       \senv \vdash V_{2} \subtype V_{1}}
+      {\senv \vdash V_{1} \subtype_{c} V_{2}}
 \]
 
 \mylabel{S-FIELD2}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash \Const \; v_{1} \subtype_{c} \Const \; v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+      {\senv \vdash \Const \; V_{1} \subtype_{c} \Const \; V_{2}}
 \]
 
 \mylabel{S-FIELD3}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{c} \Const \; v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+      {\senv \vdash V_{1} \subtype_{c} \Const \; V_{2}}
 \]
 
 \mylabel{S-FIELD4}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{u} v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+      {\senv \vdash V_{1} \subtype_{u} V_{2}}
 \]
 
 \mylabel{S-FIELD5}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash \Const \; v_{1} \subtype_{u} \Const \; v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+      {\senv \vdash \Const \; V_{1} \subtype_{u} \Const \; V_{2}}
 \]
 
 \mylabel{S-FIELD6}
 \[
-\dfrac{\senv \vdash v_{1} \subtype v_{2}}
-      {\senv \vdash v_{1} \subtype_{u} \Const \; v_{2}}
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+      {\senv \vdash V_{1} \subtype_{u} \Const \; V_{2}}
 \]
 
 \mylabel{S-FIELD7}
 \[
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} v}
+\dfrac{\senv \vdash \Nil \subtype V}
+      {\senv \vdash \Nil \subtype_{o} V}
 \]
 
 \mylabel{S-FIELD8}
 \[
-\dfrac{\senv \vdash \Nil \subtype v}
-      {\senv \vdash \Nil \subtype_{o} \Const \; v}
+\dfrac{\senv \vdash \Nil \subtype V}
+      {\senv \vdash \Nil \subtype_{o} \Const \; V}
 \]
 
 \mylabel{S-AMBER}
 \[
-\dfrac{\senv[x_{1} \subtype x_{2}] \vdash t_{1} \subtype t_{2}}
-      {\senv \vdash \mu x_{1}.t_{1} \subtype \mu x_{2}.t_{2}}
+\dfrac{\senv[x_{1} \subtype x_{2}] \vdash T_{1} \subtype T_{2}}
+      {\senv \vdash \mu x_{1}.T_{1} \subtype \mu x_{2}.T_{2}}
 \]
 
 \mylabel{S-ASSUMPTION}
@@ -299,19 +301,19 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{S-UNFOLDR}
 \[
-\dfrac{\senv \vdash t_{1} \subtype [x \mapsto \mu x.t_{2}]t_{2}}
-      {\senv \vdash t_{1} \subtype \mu x.t_{2}}
+\dfrac{\senv \vdash T_{1} \subtype [x \mapsto \mu x.T_{2}]T_{2}}
+      {\senv \vdash T_{1} \subtype \mu x.T_{2}}
 \]
 
 \mylabel{S-UNFOLDL}
 \[
-\dfrac{\senv \vdash [x \mapsto \mu x.t_{1}]t_{1} \subtype t_{2}}
-      {\senv \vdash \mu x.t_{1} \subtype t_{2}}
+\dfrac{\senv \vdash [x \mapsto \mu x.T_{1}]T_{1} \subtype T_{2}}
+      {\senv \vdash \mu x.T_{1} \subtype T_{2}}
 \]
 
 \mylabel{S-FILTER}
 \[
-\senv \vdash \phi(t_{1},t_{2}) \subtype \phi(t_{1},t_{2})
+\senv \vdash \phi(T_{1},T_{2}) \subtype \phi(T_{1},T_{2})
 \]
 
 \mylabel{S-PROJECTION}
@@ -325,12 +327,12 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{C-ANY1}
 \[
-\senv \vdash t \lesssim \Any
+\senv \vdash T \lesssim \Any
 \]
 
 \mylabel{C-ANY2}
 \[
-\senv \vdash \Any \lesssim t
+\senv \vdash \Any \lesssim T
 \]
 
 \section{Typing rules}
