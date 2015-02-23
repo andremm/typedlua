@@ -9,6 +9,7 @@ function tlst.new_env (subject, filename, strict)
   local env = {}
   env.subject = subject
   env.filename = filename
+  env.parent = filename
   env.strict = strict
   env.integer = false
   env.messages = {}

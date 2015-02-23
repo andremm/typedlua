@@ -233,7 +233,12 @@ local function check_require (env, name, pos, extra_path)
     local path = string.gsub(package.path..";", "[.]lua;", ".tl;")
     local filepath, msg1 = searchpath(extra_path .. name, path)
     if filepath then
-      env["loaded"][name] = check_tl(env, name, filepath, pos)
+      if string.find(filepath, env.parent) then
+        env["loaded"][name] = Any
+        typeerror(env, "load", "circular require", pos)
+      else
+        env["loaded"][name] = check_tl(env, name, filepath, pos)
+      end
     else
       path = string.gsub(package.path..";", "[.]lua;", ".tld;")
       local filepath, msg2 = searchpath(extra_path .. name, path)
@@ -1587,7 +1592,7 @@ function tlchecker.error_msgs (messages, warnings)
   assert(type(messages) == "table")
   assert(type(warnings) == "boolean")
   local l = {}
-  local error_msg = "%s:%d:%d: type error, %s"
+  local msg = "%s:%d:%d: %s, %s"
   local skip_error = { any = true,
     mask = true,
     unused = true,
@@ -1596,10 +1601,10 @@ function tlchecker.error_msgs (messages, warnings)
     local tag = v.tag
     if skip_error[tag] then
       if warnings then
-        table.insert(l, string.format(error_msg, v.filename, v.l, v.c, v.msg))
+        table.insert(l, string.format(msg, v.filename, v.l, v.c, "warning", v.msg))
       end
     else
-      table.insert(l, string.format(error_msg, v.filename, v.l, v.c, v.msg))
+      table.insert(l, string.format(msg, v.filename, v.l, v.c, "type error", v.msg))
     end
   end
   local n = #l
