@@ -3979,6 +3979,27 @@ r = typecheck(s)
 assert(r == e)
 
 s = [=[
+function x() : (number, boolean)|(string, number)
+   if 0 > 1 then
+      return 1, true
+   else
+      return "wat", 9
+   end
+end
+
+local foo, bar = x()
+if foo then
+   local bla = foo .. " world"
+end
+]=]
+e = [=[
+test.lua:11:16: type error, attempt to concatenate a '(number | string)'
+]=]
+
+r = typecheck(s)
+assert(r == e)
+
+s = [=[
 local t:{string:number} = { foo = 1 }
 local x:number? = t.foo
 local y:number = t["bar"] or 0
