@@ -4540,7 +4540,7 @@ s = [=[
 zero,um = false,true
 ]=]
 e = [=[
-zero, um = false, true
+zero, um = false, true 
 ]=]
 
 r = generate(s)
@@ -4550,7 +4550,7 @@ s = [=[
 n,s = 1, "alo"
 ]=]
 e = [=[
-n, s = 1, "alo"
+n, s = 1, "alo" 
 ]=]
 
 r = generate(s)
@@ -4560,7 +4560,7 @@ s = [=[
 t = ...,nil
 ]=]
 e = [=[
-t = ..., nil
+t = ..., nil 
 ]=]
 
 r = generate(s)
@@ -4570,7 +4570,7 @@ s = [=[
 a = 2 * 3 + 5
 ]=]
 e = [=[
-a = 2 * 3 + 5
+a = 2 * 3 + 5 
 ]=]
 
 r = generate(s)
@@ -4580,7 +4580,7 @@ s = [=[
 a = (2 * 3) + 5
 ]=]
 e = [=[
-a = (2 * 3) + 5
+a = (2 * 3) + 5 
 ]=]
 
 r = generate(s)
@@ -4590,7 +4590,7 @@ s = [=[
 a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 e = [=[
-a = 1 - 2 / 3 % 4 ^ 5
+a = 1 - 2 / 3 % 4 ^ 5 
 ]=]
 
 r = generate(s)
@@ -4600,7 +4600,7 @@ s = [=[
 c = "alo" .. "mundo" 
 ]=]
 e = [=[
-c = "alo" .. "mundo"
+c = "alo" .. "mundo" 
 ]=]
 
 r = generate(s)
@@ -4621,6 +4621,7 @@ c = 1 < 2
 d = 1 <= 2
 e = 2 < 1
 f = 2 <= 1
+
 ]=]
 
 r = generate(s)
@@ -4630,7 +4631,7 @@ s = [=[
 a = not 1 and 2 or 3
 ]=]
 e = [=[
-a = not (1) and 2 or 3
+a = not (1) and 2 or 3 
 ]=]
 
 r = generate(s)
@@ -4640,7 +4641,7 @@ s = [=[
 t = { 1, 2, 3 }
 ]=]
 e = [=[
-t = {1, 2, 3}
+t = {1, 2, 3} 
 ]=]
 
 r = generate(s)
@@ -4652,17 +4653,7 @@ s = [=[
 do do do do do end end end end end
 ]=]
 e = [=[
-do
-  do
-    do
-      do
-        do
-
-        end
-      end
-    end
-  end
-end
+do do do do do  end end end end end 
 ]=]
 
 r = generate(s)
@@ -4674,9 +4665,7 @@ s = [=[
 for i=1, 10 do break end
 ]=]
 e = [=[
-for i = 1, 10 do
-  break
-end
+for i = 1, 10 do break end 
 ]=]
 
 r = generate(s)
@@ -4686,9 +4675,7 @@ s = [=[
 for i=1,10,-1 do break end
 ]=]
 e = [=[
-for i = 1, 10, -(1) do
-  break
-end
+for i = 1, 10, -(1) do break end 
 ]=]
 
 r = generate(s)
@@ -4698,9 +4685,7 @@ s = [=[
 for k,v in pairs({}) do end
 ]=]
 e = [=[
-for k, v in pairs({}) do
-
-end
+for k, v in pairs({}) do  end 
 ]=]
 
 r = generate(s)
@@ -4712,9 +4697,7 @@ s = [=[
 function f ():(nil*) end
 ]=]
 e = [=[
-f = function ()
-
-end
+f = function ()  end 
 ]=]
 
 r = generate(s)
@@ -4724,9 +4707,7 @@ s = [=[
 function f () end
 ]=]
 e = [=[
-f = function ()
-
-end
+f = function ()  end 
 ]=]
 
 r = generate(s)
@@ -4736,9 +4717,7 @@ s = [=[
 function f (a) return a end
 ]=]
 e = [=[
-f = function (a)
-  return a
-end
+f = function (a) return a end 
 ]=]
 
 r = generate(s)
@@ -4748,9 +4727,7 @@ s = [=[
 function f (a, b, c) end
 ]=]
 e = [=[
-f = function (a, b, c)
-
-end
+f = function (a, b, c)  end 
 ]=]
 
 r = generate(s)
@@ -4760,9 +4737,7 @@ s = [=[
 function f (a, b, c, ...) end
 ]=]
 e = [=[
-f = function (a, b, c, ...)
-
-end
+f = function (a, b, c, ...)  end 
 ]=]
 
 r = generate(s)
@@ -4772,9 +4747,7 @@ s = [=[
 function f (...) end
 ]=]
 e = [=[
-f = function (...)
-
-end
+f = function (...)  end 
 ]=]
 
 r = generate(s)
@@ -4784,9 +4757,7 @@ s = [=[
 local function f () end
 ]=]
 e = [=[
-local function f ()
-
-end
+local function f ()  end 
 ]=]
 
 r = generate(s)
@@ -4796,9 +4767,7 @@ s = [=[
 local function f (a) return a end
 ]=]
 e = [=[
-local function f (a)
-  return a
-end
+local function f (a) return a end 
 ]=]
 
 r = generate(s)
@@ -4808,9 +4777,7 @@ s = [=[
 local function f (a, b, c) end
 ]=]
 e = [=[
-local function f (a, b, c)
-
-end
+local function f (a, b, c)  end 
 ]=]
 
 r = generate(s)
@@ -4820,9 +4787,7 @@ s = [=[
 local function f (a, b, c, ...) end
 ]=]
 e = [=[
-local function f (a, b, c, ...)
-
-end
+local function f (a, b, c, ...)  end 
 ]=]
 
 r = generate(s)
@@ -4832,9 +4797,7 @@ s = [=[
 local function f (...) end
 ]=]
 e = [=[
-local function f (...)
-
-end
+local function f (...)  end 
 ]=]
 
 r = generate(s)
@@ -4847,10 +4810,9 @@ do goto eof end
 :: eof ::
 ]=]
 e = [=[
-do
-  goto eof
-end
+do goto eof end
 ::eof::
+
 ]=]
 
 r = generate(s)
@@ -4864,9 +4826,10 @@ if 1 then
 end
 ]=]
 e = [=[
-if 1 then
+if 1 then 
   return 1
 end
+
 ]=]
 
 r = generate(s)
@@ -4880,11 +4843,12 @@ else
 end
 ]=]
 e = [=[
-if 1 then
+if 1 then 
   return 1
-else
+else 
   return 2
 end
+
 ]=]
 
 r = generate(s)
@@ -4902,15 +4866,16 @@ elseif 4 then
 end
 ]=]
 e = [=[
-if 1 then
+if 1 then 
   return 1
-elseif 2 then
+elseif 2 then 
   return 2
-elseif 3 then
+elseif 3 then 
   return 3
-elseif 4 then
+elseif 4 then 
   return 4
 end
+
 ]=]
 
 r = generate(s)
@@ -4930,17 +4895,18 @@ else
 end
 ]=]
 e = [=[
-if 1 then
+if 1 then 
   return 1
-elseif 2 then
+elseif 2 then 
   return 2
-elseif 3 then
+elseif 3 then 
   return 3
-elseif 4 then
+elseif 4 then 
   return 4
-else
+else 
   return 5
 end
+
 ]=]
 
 r = generate(s)
@@ -4969,26 +4935,27 @@ else
 end
 ]=]
 e = [=[
-if 1 then
-  if "hello" then
+if 1 then 
+  if "hello" then 
     return "hello"
   end
   return 1
-elseif 2 then
+elseif 2 then 
   return 2
-elseif 3 then
-  if "foo" then
+elseif 3 then 
+  if "foo" then 
     return "foo"
   end
   return 3
-elseif 4 then
+elseif 4 then 
   return 4
-else
-  if "bar" then
+else 
+  if "bar" then 
     return "bar"
   end
   return 5
 end
+
 ]=]
 
 r = generate(s)
@@ -5001,16 +4968,9 @@ if type(x) == "nil" then print("error") else x = x + 1 end
 ]=]
 e = [=[
 local x
-if not (x) then
-  print("error")
-else
-  x = x + 1
-end
-if type(x) == "nil" then
-  print("error")
-else
-  x = x + 1
-end
+if not (x) then print("error") else x = x + 1 end
+if type(x) == "nil" then print("error") else x = x + 1 end
+
 ]=]
 
 r = generate(s)
@@ -5022,7 +4982,7 @@ s = [=[
 local a:any?
 ]=]
 e = [=[
-local a
+local a 
 ]=]
 
 r = generate(s)
@@ -5032,7 +4992,7 @@ s = [=[
 local a:any?, b:any?, c:any?
 ]=]
 e = [=[
-local a, b, c
+local a, b, c 
 ]=]
 
 r = generate(s)
@@ -5042,7 +5002,7 @@ s = [=[
 local a = 1
 ]=]
 e = [=[
-local a = 1
+local a = 1 
 ]=]
 
 r = generate(s)
@@ -5052,7 +5012,7 @@ s = [=[
 local a, b:any? = 1
 ]=]
 e = [=[
-local a, b = 1
+local a, b = 1 
 ]=]
 
 r = generate(s)
@@ -5064,9 +5024,7 @@ s = [=[
 repeat break until true
 ]=]
 e = [=[
-repeat
-  break
-until true
+repeat break until true 
 ]=]
 
 r = generate(s)
@@ -5080,9 +5038,10 @@ while 1 do
 end
 ]=]
 e = [=[
-while 1 do
+while 1 do 
   break
 end
+
 ]=]
 
 r = generate(s)
@@ -5137,36 +5096,49 @@ print_l(e)
 ]=]
 e = [=[
 
-local function insert_s (e, v)
-  return {["info"] = v, ["next"] = e}
+
+
+
+
+local function insert_s (e, v) 
+  return {info = v, next = e}
 end
-local function insert_f (e, v)
-  if e then
-    e["next"] = insert_f(e["next"],v)
+
+local function insert_f (e, v) 
+  if e then 
+    e.next = insert_f(e.next,v)
     return e
   end
-  return {["info"] = v, ["next"] = e}
+  return {info = v, next = e}
 end
-local function print_l (e)
-  if e then
-    print(e["info"])
-    print_l(e["next"])
+
+local function print_l (e) 
+  if e then 
+    print(e.info)
+    print_l(e.next)
   end
 end
+
 local e
+
 e = insert_s(e,2)
 e = insert_s(e,1)
 e = insert_s(e,3)
 e = insert_s(e,4)
 e = insert_s(e,0)
+
 print_l(e)
+
 e = nil
+
 e = insert_f(e,2)
 e = insert_f(e,1)
 e = insert_f(e,3)
 e = insert_f(e,4)
 e = insert_f(e,0)
+
 print_l(e)
+
 ]=]
 
 r = generate(s)
@@ -5201,23 +5173,31 @@ print_tree(a)
 ]=]
 e = [=[
 
-local function create (v, l, r)
-  return {["info"] = v, ["left"] = l, ["right"] = r}
+
+
+
+
+local function create (v, l, r) 
+  return {info = v, left = l, right = r}
 end
-local function print_tree (t)
-  if t then
-    print(t["info"])
-    print_tree(t["left"])
-    print_tree(t["right"])
+
+local function print_tree (t) 
+  if t then 
+    print(t.info)
+    print_tree(t.left)
+    print_tree(t.right)
   end
 end
+
 local a1 = create("d")
 local a2 = create("b",nil,a1)
 local a3 = create("e")
 local a4 = create("f")
 local a5 = create("c",a3,a4)
 local a = create("a",a2,a5)
+
 print_tree(a)
+
 ]=]
 
 r = generate(s)
@@ -5275,34 +5255,54 @@ circle2:area()
 ]=]
 e = [=[
 
-local Shape = {["x"] = 0, ["y"] = 0}
-Shape["new"] = function (self, x, y)
-  local s = setmetatable({},{["__index"] = self})
-  s["x"] = x
-  s["y"] = y
+
+
+
+
+
+local Shape = {x = 0, y = 0}
+
+Shape.new = function (self, x, y) 
+  local s = setmetatable({},{__index = self})
+  s.x = x
+  s.y = y
   return s
 end
-Shape["move"] = function (self, dx, dy)
-  self["x"] = self["x"] + dx
-  self["y"] = self["y"] + dy
+
+Shape.move = function (self, dx, dy) 
+  self.x = self.x + dx
+  self.y = self.y + dy
 end
+
 local shape1 = Shape:new(0,5)
 local shape2 = Shape:new(10,10)
 
-local Circle = setmetatable({},{["__index"] = Shape})
-Circle["radius"] = 0
-Circle["new"] = function (self, x, y, radius)
-  local c = setmetatable(Shape:new(x,y),{["__index"] = self})
-  c["radius"] = tonumber(radius) or 0
+
+
+
+
+
+
+
+local Circle = setmetatable({},{__index = Shape})
+
+Circle.radius = 0
+
+Circle.new = function (self, x, y, radius) 
+  local c = setmetatable(Shape:new(x,y),{__index = self})
+  c.radius = tonumber(radius) or 0
   return c
 end
-Circle["area"] = function (self)
-  return 3.14 * self["radius"] * self["radius"]
+
+Circle.area = function (self) 
+  return 3.14 * self.radius * self.radius
 end
+
 local circle1 = Circle:new(0,5,10)
 local circle2 = Circle:new(10,10,15)
 circle1:area()
 circle2:area()
+
 ]=]
 
 r = generate(s)
