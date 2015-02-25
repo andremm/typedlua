@@ -1150,68 +1150,84 @@ local function check_if (env, stm)
       check_exp(env, exp)
       if exp.tag == "Id" then
         local name = exp[1]
-        l[name] = tlst.get_local(env, name)
-        if not tltype.isUnionlist(get_type(l[name])) then
-          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-          l[name].filter = Nil
-          set_type(l[name], tltype.filterUnion(get_type(l[name]), Nil))
+        local var = tlst.get_local(env, name)
+        if not tltype.isUnionlist(get_type(var)) then
+          if not var.bkp then var.bkp = get_type(var) end
+          var.filter = Nil
+          set_type(var, tltype.filterUnion(get_type(var), Nil))
+          l[name] = var
         else
-          local i = get_index(get_type(l[name]), Nil, l[name].i)
-          l[name].filter = table.remove(get_type(l[name]), i)
+          local idx = get_index(get_type(var), Nil, var.i)
+          if idx then
+            var.filter = table.remove(get_type(var), idx)
+            l[name] = var
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "not" and exp[2].tag == "Id" then
         local name = exp[2][1]
-        l[name] = tlst.get_local(env, name)
-        if not tltype.isUnionlist(get_type(l[name])) then
-          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-          if not l[name].filter then
-            l[name].filter = tltype.filterUnion(get_type(l[name]), Nil)
+        local var = tlst.get_local(env, name)
+        if not tltype.isUnionlist(get_type(var)) then
+          if not var.bkp then var.bkp = get_type(var) end
+          if not var.filter then
+            var.filter = tltype.filterUnion(get_type(var), Nil)
           else
-            l[name].filter = tltype.filterUnion(l[name].filter, Nil)
+            var.filter = tltype.filterUnion(var.filter, Nil)
           end
-          set_type(l[name], Nil)
+          set_type(var, Nil)
+          l[name] = var
         else
-          local i = get_index(get_type(l[name]), Nil, l[name].i)
-          l[name].filter = table.remove(get_type(l[name]), i)
-          local bkp = table.remove(get_type(l[name]))
-          table.insert(get_type(l[name]), l[name].filter)
-          l[name].filter = bkp
+          local idx = get_index(get_type(var), Nil, var.i)
+          if idx then
+            var.filter = table.remove(get_type(var), idx)
+            local bkp = table.remove(get_type(var))
+            table.insert(get_type(var), var.filter)
+            var.filter = bkp
+            l[name] = var
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "eq" and
              is_global_function_call(exp[2], "type") and
              exp[2][2].tag == "Id" then
         local name = exp[2][2][1]
-        l[name] = tlst.get_local(env, name)
+        local var = tlst.get_local(env, name)
         local t = tag2type(get_type(exp[3]))
-        if not tltype.isUnionlist(get_type(l[name])) then
-          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-          if not l[name].filter then
-            l[name].filter = tltype.filterUnion(get_type(l[name]), t)
+        if not tltype.isUnionlist(get_type(var)) then
+          if not var.bkp then var.bkp = get_type(var) end
+          if not var.filter then
+            var.filter = tltype.filterUnion(get_type(var), t)
           else
-            l[name].filter = tltype.filterUnion(l[name].filter, t)
+            var.filter = tltype.filterUnion(var.filter, t)
           end
-          set_type(l[name], t)
+          set_type(var, t)
+          l[name] = var
         else
-          local i = get_index(get_type(l[name]), t, l[name].i)
-          l[name].filter = table.remove(get_type(l[name]), i)
-          local bkp = table.remove(get_type(l[name]))
-          table.insert(get_type(l[name]), l[name].filter)
-          l[name].filter = bkp
+          local idx = get_index(get_type(var), t, var.i)
+          if idx then
+            var.filter = table.remove(get_type(var), idx)
+            local bkp = table.remove(get_type(var))
+            table.insert(get_type(var), var.filter)
+            var.filter = bkp
+            l[name] = var
+          end
         end
       elseif exp.tag == "Op" and exp[1] == "not" and
              exp[2].tag == "Op" and exp[2][1] == "eq" and
              is_global_function_call(exp[2][2], "type") and
              exp[2][2][2].tag == "Id" then
         local name = exp[2][2][2][1]
-        l[name] = tlst.get_local(env, name)
+        local var = tlst.get_local(env, name)
         local t = tag2type(get_type(exp[2][3]))
-        if not tltype.isUnionlist(get_type(l[name])) then
-          if not l[name].bkp then l[name].bkp = get_type(l[name]) end
-          l[name].filter = t
-          set_type(l[name], tltype.filterUnion(get_type(l[name]), t))
+        if not tltype.isUnionlist(get_type(var)) then
+          if not var.bkp then var.bkp = get_type(var) end
+          var.filter = t
+          set_type(var, tltype.filterUnion(get_type(var), t))
+          l[name] = var
         else
-          local i = get_index(get_type(l[name]), t, l[name].i)
-          l[name].filter = table.remove(get_type(l[name]), i)
+          local idx = get_index(get_type(var), t, var.i)
+          if idx then
+            var.filter = table.remove(get_type(var), idx)
+            l[name] = var
+          end
         end
       end
     else
