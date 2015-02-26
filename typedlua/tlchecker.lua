@@ -399,6 +399,8 @@ local function check_and (env, exp)
     set_type(exp, tltype.Union(t2, Nil))
   elseif tltype.isUnion(t1, False) then
     set_type(exp, tltype.Union(t2, False))
+  elseif tltype.isBoolean(t1) then
+    set_type(exp, tltype.Union(t2, False))
   else
     set_type(exp, tltype.Union(t1, t2))
   end
