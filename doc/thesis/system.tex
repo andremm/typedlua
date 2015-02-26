@@ -834,13 +834,30 @@ results in the union type \texttt{number|nil}, because
 
 In this section we use a reduced core of Typed Lua to present the
 most interesting rules of our type system.
-This core limits control flow to if and while statements,
-has explicit type annotations, and explicit scope for variables.
-It also has explicit method declarations and explicit method calls
-instead of treating them as syntactic sugar.
-We use this reduced core because it simplifies the presentation
-of our type system.
 Appendix \ref{app:rules} presents the full set of typing rules.
+
+Our core limits control flow to if and while statements;
+it has explicit type annotations, explicit scope for variables,
+explicit method declarations, and explicit method calls.
+Here is a list of features that are not present in our reduced core:
+\begin{itemize}
+\item labels and goto statements are not present because they
+are difficult to handle along with our simplified form of
+\emph{flow typing}, and they are out of the scope for now;
+\item explicit blocks are not present because we are already using
+explicit scope for variables;
+\item other loop structures such as repeat-until, numeric for,
+and generic for are not present because we can use while to
+express them;
+\item fields in the table constructor are reduced to a single
+form because we can use this form to express the missing forms; 
+\item arithmetic operators are reduced to addition and unary minus
+because the other operators have similar typing rules;
+\item relational operators are reduced to equality and less than
+because the other operators have similar typing rules;
+\item bitwise operators are not present because they are similar
+to integer arithmetic operators.
+\end{itemize}
 
 \begin{figure}[!ht]
 \textbf{Abstract Syntax}\\
@@ -908,42 +925,48 @@ $$
 Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
 It splits the syntactic categories as follows:
 $s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$el$ are expression lists, $c$ are literal constants, $p$ are table fields,
+$el$ are expression lists, $k$ are literal constants, $p$ are table fields,
 $me$ are expressions with multiple results, $f$ are function declarations,
-$m$ are method declarations, $n$ are variable names,
-$t$ are first-level types, and $r$ are second-level types.
-The notation $\vec{n{:}t}$ denotes the non-empty list
-$n_{1}{:}t_{1}, ..., n_{n}{:}t_{n}$.
+$m$ are method declarations, $a$ are function and method applications,
+$n$ are variable names, $T$ are first-level types, and $S$ are second-level types.
+The notation $\vec{n{:}T}$ denotes the list $n_{1}{:}T_{1}, ..., n_{n}{:}T_{n}$,
+where $n$ can be zero.
 
-Our reduced core also splits function application, method application, and
-the vararg expression (${...}$) into different syntactic categories.
-It uses $e(el)_{s}$ to denote function applications that produce no value
-because they appear as statements,
-$e(el)_{e}$ to denote function applications that produce only one value,
-even if the function application returns multiple values,
-and $e(el)_{m}$ to denote function applications that produces as many values
-as the function application returns.
-It uses the same categories for method applications.
-For vararg expressions, it only uses ${...}_{e}$ and ${...}_{m}$,
-as the vararg expression cannot appear as a statement.
+Our reduced core includes two statements for declaring local variables.
+One with explicit type annotations, and another without type annotations.
+While we use the former to show how our type system handles the declaration
+of annoatted variables, we use the latter to show how our type system
+handles the declaration of unannotated variables through local type inference
+and also the introduction of projection types.
+
+Our reduced core also includes a truncation operator $\lfloor \rfloor$ for
+function applications, method applications, and the vararg expression.
+We use $\lfloor a \rfloor_{0}$ to denote function and method applications
+that produce no value because they appear as statements.
+We use $\lfloor a \rfloor_{1}$ to denote function and method applications
+that produce only one value, even if the function or method application
+returns mutiple values.
+We use $\lfloor {...} \rfloor_{1}$ to denote a vararg expression that
+produces only one value, as it can appear in the middle of an
+expression list.
 
 We also include two kinds of type coercions in our core language:
-the left-hand value $n[c] \; {<}t{>}$ and the expression ${<}t{>} \;n$.
+the left-hand value $n[k] \; {<}T{>}$ and the expression ${<}T{>} \;n$.
 Both allow the refinement of table types.
 We also split variable names into two categories to have safe aliasing
 of tables in the presence of refinement.
-We use $n_{e}$ when they appear as expressions and $n_{l}$ when they
+We use $n$ when they appear as expressions and $n_{l}$ when they
 appear as left-hand values.
 
 We present the typing rules as a deduction system for the typing relations
-$\env_{1}, \penv \vdash s, \env_{2}$ and $\env_{1}, \penv \vdash e : t, \env_{2}$.
+$\env_{1}, \penv \vdash s, \env_{2}$ and $\env_{1}, \penv \vdash e : T, \env_{2}$.
 We use the first one for typing statements and the second one for typing expressions.
 The first relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, typing a statement $s$ produces
 a new type environment $\env_{2}$.
 The second relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, typing a expression $e$ has
-type $t$ and produces a new type environment $\env_{2}$.
+and a projection environment $\penv$, typing an expression $e$ has
+type $T$ and produces a new type environment $\env_{2}$.
 We need two typing relations because only expressions have types,
 though expressions and statements can modify a type environment.
 
@@ -954,10 +977,10 @@ Thus, we need two environments because $\env$ maps variables to first-level type
 while $\penv$ maps variables to second-level types.
 We will show how our type system uses the environment $\penv$ for
 handling projection types.
-We use $\env_{1}[n \mapsto t]$ to extend the environment $\env_{1}$
-with the variable $n$ that maps to type $t$.
-We use $\penv[x \mapsto r]$ to extend the environment $\penv$ with
-the variable $x$ that maps to the second-level type $r$.
+We use $\env_{1}[n \mapsto T]$ to extend the environment $\env_{1}$
+with the variable $n$ that maps to type $T$.
+We use $\penv[x \mapsto S]$ to extend the environment $\penv$ with
+the variable $x$ that maps to the second-level type $S$.
 
 \subsection{Assignment and function application}
 \label{sec:assignment}
@@ -968,9 +991,9 @@ tuple types along with consistent-subtyping to type check this Lua feature:
 \begin{array}{c}
 \mylabel{T-ASSIGNMENT}\\
 \begin{array}{c}
-\dfrac{\env_{1}, \penv \vdash el:r_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash \vec{l}:r_{2}, \env_{3} \;\;\;
-       r_{1} \lesssim r_{2}}
+\dfrac{\env_{1}, \penv \vdash el:S_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash \vec{l}:S_{2}, \env_{3} \;\;\;
+       S_{1} \lesssim S_{2}}
       {\env_{1}, \penv \vdash \vec{l} = el,\env_{3}}
 \end{array}
 \end{array}
@@ -1001,16 +1024,16 @@ We define the rule \textsc{T-LHSLIST} as follows:
 \[
 \begin{array}{c}
 \mylabel{T-LHSLIST}\\
-\dfrac{\env, \penv \vdash l_{i}:t_{i}, \env_{i} \;\;\;
+\dfrac{\env, \penv \vdash l_{i}:T_{i}, \env_{i} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
        n = |\;\vec{l}\;|}
-      {\env, \penv \vdash \vec{l}:t_{1} \times ... \times t_{n} \times \Value{*}, \env_{m}}
+      {\env, \penv \vdash \vec{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
 \end{array}
 \]
 
 First, this rule uses the same environment $\env$ to type check each
 left-hand side value $l_{i}$.
-Then, it takes each type $t_{i}$ and builds the tuple type for
+Then, it takes each type $T_{i}$ and builds the tuple type for
 the assignment rule, placing $\Value{*}$ in the end.
 Table refinement can change the type environment while typing each left-hand value.
 Thus, we use a partial auxiliary function \emph{merge} to collect
@@ -1020,10 +1043,10 @@ The rule \textsc{T-EXPLIST2} is similar to \textsc{T-LHSLIST}:
 \[
 \begin{array}{c}
 \mylabel{T-EXPLIST2}\\
-\dfrac{\env, \penv \vdash e_{i}:t_{i}, \env_{i} \;\;\;
+\dfrac{\env, \penv \vdash e_{i}:T_{i}, \env_{i} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
        n = |\;\vec{e}\;|}
-      {\env, \penv \vdash \vec{e}:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{m}}
+      {\env, \penv \vdash \vec{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
 \end{array}
 \]
 
@@ -1035,21 +1058,21 @@ an expression list is just an expression that may produce multiple values:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-EXPLIST3}\\
-\dfrac{\env_{1}, \penv \vdash me:t_{1} \times ... \times t_{n} \times \Void, \env_{2}}
-      {\env_{1}, \penv \vdash me:t_{1} \times ... \times t_{n} \times \Nil{*}, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Void, \env_{2}}
+      {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-EXPLIST4}\\
-\dfrac{\env_{1}, \penv \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{2}}
-      {\env_{1}, \penv \vdash me:t_{1} \times ... \times t_{n}{*}, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
+      {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
 \end{array}
 \end{array}
 \]
 
 As an example, these rules allow our type system to type check the following example:
 \[
-x, y, z = f()_{m}
+x, y, z = f()
 \]
 
 In this example, we are assuming that $x$, $y$, $z$, and $f$ are in
@@ -1064,7 +1087,7 @@ Thus, the example type checks because
 
 Conversely,
 \[
-x = f()_{m}
+x = f()
 \]
 type checks because
 \[
@@ -1077,10 +1100,10 @@ are expressions that produce multiple values:
 \[
 \begin{array}{c}
 \mylabel{T-APPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e:r_{1} \rightarrow r_{2}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash el:r_{3}, \env_{3} \;\;\;
-       r_{3} \lesssim r_{1}}
-      {\env_{1}, \penv \vdash e(el)_{m}:r_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e:S_{1} \rightarrow S_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash el:S_{3}, \env_{3} \;\;\;
+       S_{3} \lesssim S_{1}}
+      {\env_{1}, \penv \vdash e(el):S_{2}, \env_{3}}
 \end{array}
 \]
 
@@ -1091,14 +1114,14 @@ or expressions that produce only one value:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-STMAPPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e(el)_{m}:r, \env_{2}}
-      {\env_{1}, \penv \vdash e(el)_{s},\env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el):S, \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{0},\env_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-EXPAPPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e(el)_{m}:r, \env_{2}}
-      {\env_{1}, \penv \vdash e(el)_{e}:first(r), \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el):S, \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{1}:first(S), \env_{2}}
 \end{array}
 \end{array}
 \]
@@ -1109,16 +1132,16 @@ while the rule \textsc{T-EXPAPPLY1} uses the auxiliary function
 We can define \emph{first} inductively as follows:
 \begin{align*}
 first(\Void) & = \Nil\\
-first(t{*}) & = t \cup \Nil\\
-first(t \times r) & = t\\
-first(r_{1} \sqcup r_{2}) & = first(r_{1}) \cup first(r_{2})
+first(T{*}) & = T \cup \Nil\\
+first(T \times P) & = T\\
+first(S_{1} \sqcup S_{2}) & = first(S_{1}) \cup first(S_{2})
 \end{align*}
 
 Assuming that $f$ is a local function in the environment, and that $f$ has type
 $\String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Value{*} \rightarrow \Integer{*}$,
 the function call
 \[
-f(``foo")_{m}
+f(``foo")
 \]
 type checks through the rule \textsc{T-APPLY1}, because
 \[
@@ -1126,7 +1149,7 @@ type checks through the rule \textsc{T-APPLY1}, because
 \]
 and the function call
 \[
-f(``foo",1,2,3)_{m}
+f(``foo",1,2,3)
 \]
 also type checks through the rule \textsc{T-APPLY1}, because
 \[
@@ -1138,7 +1161,7 @@ For instance, assuming that $f$ has type
 $\String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Void \rightarrow \Integer{*}$,
 the function call
 \[
-f(``foo")_{m}
+f(``foo")
 \]
 type checks through the rule \textsc{T-APPLY1}, because
 \[
@@ -1146,7 +1169,7 @@ type checks through the rule \textsc{T-APPLY1}, because
 \]
 but the function call
 \[
-f(``foo",1,2,3)_{m}
+f(``foo",1,2,3)
 \]
 does not type check through the rule \textsc{T-APPLY1}, because
 \[
@@ -1166,7 +1189,7 @@ For instance, assuming that $f$ has type
 $\Integer \times \Integer \times \Void \rightarrow \Integer \times \Void$,
 the function call
 \[
-f(1)_{m}
+f(1)
 \]
 does not type check through the rule \textsc{T-APPLY1}, because
 \[
@@ -1174,7 +1197,7 @@ does not type check through the rule \textsc{T-APPLY1}, because
 \]
 and the function call
 \[
-f(1,2,3)_{m}
+f(1,2,3)
 \]
 also does not type check through the rule \textsc{T-APPLY1}, because
 \[
@@ -1183,6 +1206,18 @@ also does not type check through the rule \textsc{T-APPLY1}, because
 
 \subsection{Tables and refinement}
 \label{sec:refinement}
+
+Our abstract syntax reduces the syntactic forms of the table constructor
+into two forms: $\{\;\vec{p}\;\}$ and $\{\;\vec{p},me\;\}$.
+The first uses a list of table fields $p_{1}, ..., p_{n}$,
+where $p$ is $[e_{1}] = e_{2}$ and $n$ can be zero.
+The second uses a list of table fields and an expression that can
+produce multiple values.
+We did not include in the abstract syntax a table constructor that uses
+lists of expressions, because we can express this form using lists of
+table fields.
+For instance, we can use the table constructor
+$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to express $\{ ``x", ``y", ``z" \}$.
 
 The simplest expression involving tables in the empty table constructor.
 Its type checking rule is straightforward:
@@ -1193,42 +1228,33 @@ Its type checking rule is straightforward:
 \end{array}
 \]
 
-Our abstract syntax reduces the more complex uses of the table
-constructor into three forms: $\{\;\vec{p}\;\}$, $\{\;{...}_{m}\;\}$,
-and $\{\;\vec{p},{...}_{m}\;\}$.
-The first one uses a list of table fields $[e_{1}] = e_{2}$,
-the second one uses just the vararg expression, and the third one uses both.
-We did not include in the abstract syntax a table constructor
-that uses a list of expressions, because we can express it using the first form.
-For instance, we can use the table constructor
-$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ to express $\{ ``x", ``y", ``z" \}$.
-
-The rule \textsc{T-CONSTRUCTOR2} type checks a table type of the first form:
+The rule \textsc{T-CONSTRUCTOR2} type checks a table type with a non-empty
+list of table fields:
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
-\dfrac{\env_{i}, \penv \vdash p_{i}:(k_{i},v_{i}), \env_{i+1} \;\;\;
+\dfrac{\env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
        n = |\;\vec{p}\;| \;\;\;
-       t = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{unique} \;\;\;
-       wf(t)}
-      {\env_{1}, \penv \vdash \{\;\vec{p}\;\}:t, \env_{n+1}}
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
+       wf(T)}
+      {\env_{1}, \penv \vdash \{\;\vec{p}\;\}:T, \env_{n+1}}
 \end{array}
 \]
 
 First, the rule \textsc{T-CONSTRUCTOR2} uses the auxiliary relation
-$\env_{1}, \penv \vdash p : (k,v), \env_{2}$ to type check each table
+$\env_{1}, \penv \vdash p : (K,V), \env_{2}$ to type check each table
 field $p_{i}$.
 This auxiliary relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, typing a table field $p$
-produces the pair $(k,v)$ and a new type environment $\env_{2}$. 
-In the pair $(k,v)$, $k$ is type key type, while $v$ is the value type.
+produces the pair $(K,V)$ and a new type environment $\env_{2}$. 
+In the pair $(K,V)$, $K$ is the key type, while $V$ is the value type.
 
-Then, the rule \textsc{T-CONSTRUCTOR2} uses each pair $(k_{i},v_{i})$
+Then, the rule \textsc{T-CONSTRUCTOR2} uses each pair $(K_{i},V_{i})$
 to build the table type that express the type of the given constructor, and
 uses the predicate \emph{wf} to check whether this table type is well-formed.
 Formally, a table type is well-formed if it obeys the following rule:
 \[
-\forall i \not\exists j \; i \not= j \wedge k_{i} \lesssim k_{j}
+\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
 \]
 
 Well-formed table types avoid ambiguity.
@@ -1251,37 +1277,37 @@ or $\String$, respectively:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-FIELD1}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       t_{1} \subtype \Boolean}
-      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+       T_{1} \subtype \Boolean}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-FIELD2}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       t_{1} \subtype \Number}
-      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+       T_{1} \subtype \Number}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-FIELD3}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3} \;\;\;
-       t_{1} \subtype \String}
-      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (t_{1},rt(t_{2})), \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+       T_{1} \subtype \String}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \end{array}
 \end{array}
 \]
 
-These rules use the function \emph{rt} in the type of the value
-because our type system allows only \emph{regular} table types to
+These rules use the function \emph{close} in the type of the value
+because our type system allows only \emph{closed} table types to
 appear in the type of the values.
-The function \emph{rt} promotes all table types to \emph{regular}.
+The function \emph{close} promotes all table types to \emph{closed}.
 We made this restriction because our type system does not keep track
 of aliases to table fields.
-This means that allowing \emph{unique}, \emph{open}, and \emph{closed}
+This means that allowing \emph{unique}, \emph{open}, and \emph{fixed}
 table types to appear in the type of the values would allow the creation
 of unsafe aliases.
 
@@ -1289,9 +1315,9 @@ The rule \textsc{T-FIELD4} is a fallback for the previous rules:
 \[
 \begin{array}{c}
 \mylabel{T-FIELD4}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (\Value,rt(t_{2})), \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3}}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (\Value,close(T_{2})), \env_{3}}
 \end{array}
 \]
 
@@ -1300,10 +1326,10 @@ as the type of the key whenever a key has a type that is neither a
 subtype of $\Boolean$, nor a subtype of $\Number$, nor a subtype of $\String$.
 
 As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
-has type $\{``x":1, ``y":\{``z":2\}_{regular}\}_{unique}$ through the rules
+has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through the rules
 \textsc{T-FIELD3} and \textsc{T-CONSTRUCTOR2}.
 
-Typed Lua handles arrays as hashes that map integers to some type $t$.
+Typed Lua handles arrays as hashes that map integers to some type $T$.
 In Lua, programmers often use the vararg expression to initialize arrays.
 The rules \textsc{T-CONSTRUCTOR3} and \textsc{T-CONSTRUCTOR4} define
 the behavior of the vararg expression for this case:
@@ -1311,20 +1337,20 @@ the behavior of the vararg expression for this case:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR3}\\
-\dfrac{\env({...}) = t}
-      {\env, \penv \vdash \{{...}_{m}\}:\{\Integer{:}t \cup \Nil\}_{unique}, \env}
+\dfrac{\env({...}) = T}
+      {\env, \penv \vdash \{{...}\}:\{\Integer{:}T \cup \Nil\}_{unique}, \env}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR4}\\
 \dfrac{\begin{array}{c}
-       \env_{i}, \penv \vdash p_{i}:(k_{i},v_{i}), \env_{i+1} \;\;\;
+       \env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
        n = |\;\vec{p}\;| \;\;\;
-       \env_{i+1}({...}) = t_{v}\\
-       t = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, \Integer{:}t_{v} \cup \Nil\}_{unique} \;\;\;
-       wf(t)
+       \env_{i+1}({...}) = T_{v}\\
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, \Integer{:}T_{v} \cup \Nil\}_{unique} \;\;\;
+       wf(T)
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\vec{p},\;{...}_{m}\;\}:t, \env_{n+1}}
+      {\env_{1}, \penv \vdash \{\;\vec{p},\;{...}\;\}:T, \env_{n+1}}
 \end{array}
 \end{array}
 \]
@@ -1333,17 +1359,17 @@ The rule \textsc{T-CONSTRUCTOR3} type checks the case where we use
 only the vararg expression inside a table constructor to initialize
 an array.
 If we assume that $...$ is in the environment and has type $\String$,
-the table constructor $\{{...}_{m}\}$ has type $\{\Integer:\String \cup \Nil\}_{unique}$
+the table constructor $\{{...}\}$ has type $\{\Integer:\String \cup \Nil\}_{unique}$
 through the rule \textsc{T-CONSTRUCTOR3}.
 
 The rule \textsc{T-CONSTRUCTOR4} type checks the case where we use
 the table constructor as a record that includes an array part.
 If we assume that $...$ is in the environment and has type $\String$,
-the table constructor $\{[``x"] = ``foo", [``y"] = \mathbf{true}, {...}_{m}\}$
+the table constructor $\{[``x"] = ``foo", [``y"] = \mathbf{true}, {...}\}$
 has type $\{``x":``foo", ``y":\mathbf{true}, \Integer:\String \cup \Nil\}_{unique}$
 through the rule \textsc{T-CONSTRUCTOR4}.
 As another example, the rule \textsc{T-CONSTRUCTOR4} does not type check
-the table constructor $\{ [1] = ``foo", [10] = \mathbf{true}, {...}_{m} \}$,
+the table constructor $\{ [1] = ``foo", [10] = \mathbf{true}, {...} \}$,
 because the keys $1$ and $10$ overlap the array part,
 and the resulting table type is not well-formed.
 
@@ -1378,12 +1404,12 @@ Rule \textsc{T-REFINE} type checks this use of refinement:
 \begin{array}{c}
 \mylabel{T-REFINE}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n} \}_{open|unique}\\
-       \env_{1}, \penv \vdash c:k, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; k \lesssim k_{i} \;\;\;
-       v = rt(t)
+       \env_{1}(n) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
+       \env_{1}, \penv \vdash k:K, \env_{2} \;\;\;
+       \not \exists i \in 1..n \; K \lesssim K_{i} \;\;\;
+       V = close(T)
        \end{array}}
-      {\env_{1}, \penv \vdash n[c] {<}t{>}:t, \env_{2}[n \mapsto \{ k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}, k{:}v\}_{open|unique}]}
+      {\env_{1}, \penv \vdash n[k] {<}T{>}:V, \env_{2}[n \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
 \end{array}
 \]
 
@@ -1398,13 +1424,13 @@ In Lua, the assignment \texttt{v = v + 1} translates to
 is not a local variable, where \texttt{\string_ENV} is a table
 that stores the global environment.
 For this reason, Typed Lua treats accesses to global variables as field accesses
-to an open table in the top-level scope.
+to an \emph{open} table in the top-level scope.
 For instance,
 \[
 \string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``y"] \; {<}\Integer{>} = 1
 \]
 uses field assignment to add fields $``x"$ and $``y"$ to $\string_ENV$.
-In this example and in the next examples we assume that
+In this example and in the next examples, we assume that
 $\string_ENV$ is in the environment and has type $\{\}_{open}$.
 Therefore, after these field assignments $\string_ENV$ has type
 $\{``x":\String, ``y":\Integer\}_{open}$.
@@ -1418,14 +1444,14 @@ For instance,
 does not type check, as we are trying to add $``x"$ twice.
 
 We also do not allow the refinement of table types to introduce
-fields with table types that are not \emph{regular}.
+fields with table types that are not \emph{closed}.
 For instance,
 \begin{center}
 \begin{tabular}{l}
 $\string_ENV[``x"] \; {<}\{\}_{unique}{>} = \{\}$
 \end{tabular}
 \end{center}
-refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{regular}\}_{open}$.
+refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{closed}\}_{open}$.
 Currently, our type system can only track \emph{unique} and
 \emph{open} table types that are bound to local variables.
 
@@ -1447,8 +1473,8 @@ Aliasing an \emph{unique} or an \emph{open} table type produces a
 \[
 \begin{array}{c}
 \mylabel{T-IDREAD}\\
-\dfrac{\env(n) = t_{1} \;\;\; t_{2} = read(\penv, t_{1})}
-      {\env, \penv \vdash n_{e}:close(t_{2}), \env[n \mapsto open(t_{1})]}
+\dfrac{\env(n) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env, \penv \vdash n:close(T_{2}), \env[n \mapsto open(T_{1})]}
 \end{array}
 \]
 
@@ -1465,11 +1491,11 @@ types.
 
 The following example does not type check, as aliasing $a$ produces
 the type $\{``foo":\Integer\}_{closed}$ that is not a subtype of
-$\{``foo":\Integer \cup \Nil\}_{regular}$, the type of $b$:
+$\{``foo":\Integer \cup \Nil\}_{closed}$, the type of $b$:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{``foo":\Integer\}_{unique} = \{ [``foo"] = 5 \} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``foo":\Integer \cup \Nil \}_{regular} = a \; \mathbf{in}$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``foo":\Integer \cup \Nil \}_{closed} = a \; \mathbf{in}$}\\
 & & \multicolumn{1}{l}{$b[``foo"] = \mathbf{nil}$}
 \end{tabular}
 \end{center}
@@ -1501,8 +1527,8 @@ rule \textsc{T-IDWRITE}:
 \[
 \begin{array}{c}
 \mylabel{T-IDWRITE}\\
-\dfrac{\env(n) = t_{1} \;\;\; t_{2} = write(t_{1})}
-      {\env, \penv \vdash n_{l}:close(t_{2}), \env[n \mapsto close(t_{2})]}
+\dfrac{\env(n) = T_{1} \;\;\; T_{2} = write(T_{1})}
+      {\env, \penv \vdash n_{l}:close(T_{2}), \env[n \mapsto close(T_{2})]}
 \end{array}
 \]
 
@@ -1511,7 +1537,7 @@ the auxiliary function \emph{write} because it may be accessing an
 identifier that is bound to a filter or projection type.
 As we mentioned in Section \ref{sec:unions}, assignments restore
 discriminated union types to their original types, and
-function \emph{write} also works in this purpose.
+function \emph{write} works in this purpose.
 
 As an example,
 \begin{center}
@@ -1534,29 +1560,29 @@ changing table types in these operations, as they cannot create aliases:
 \begin{array}{c}
 \mylabel{T-INDEX1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = t \;\;\;
-       read(\penv, t) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}\\
-       \env_{1}, \penv \vdash e_{2}:k, \env_{2} \;\;\;
-       \exists i \in 1{..}n \; k \lesssim k_{i}
+       \env_{1}(n) = T \;\;\;
+       read(\penv, T) = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}\\
+       \env_{1}, \penv \vdash e_{2}:K, \env_{2} \;\;\;
+       \exists i \in 1{..}n \; K \lesssim K_{i}
        \end{array}}
-      {\env_{1}, \penv \vdash n[e_{2}]:v_{i}, \env_{2}}
+      {\env_{1}, \penv \vdash n[e_{2}]:V_{i}, \env_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-INDEX2}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e_{1}:\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}, \env_{2}\\
-       \env_{2}, \penv \vdash e_{2}:k, \env_{3} \;\;\;
-       \exists i \in 1{..}n \; k \lesssim k_{i}
+       \env_{1}, \penv \vdash e_{1}:\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}, \env_{2}\\
+       \env_{2}, \penv \vdash e_{2}:K, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; K \lesssim K_{i}
        \end{array}}
-      {\env_{1}, \penv \vdash e_{1}[e_{2}]:v_{i}, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]:V_{i}, \env_{3}}
 \end{array}
 \end{array}
 \]
 
 A second form of refinement happens when we want to use an
 \emph{unique} or \emph{open} table type in a context that expects a
-\emph{closed} or \emph{regular} table type with a different shape.
+\emph{fixed} or \emph{closed} table type with a different shape.
 This kind of refinement allows programmers to add optional fields
 or merge existing fields.
 To do that, Typed Lua includes a type coercion expression that
@@ -1564,9 +1590,9 @@ obeys the \textsc{T-COERCE} rule below:
 \[
 \begin{array}{c}
 \mylabel{T-COERCE}\\
-\dfrac{\env_{1}(n) \subtype t \;\;\;
-       \env_{1}[n \mapsto t], \penv \vdash n_{e}:t_{1}, \env_{2}}
-      {\env_{1}, \penv \vdash {<}t{>} \; n:t_{1}, \env_{2}}
+\dfrac{\env_{1}(n) \subtype T \;\;\;
+       \env_{1}[n \mapsto T], \penv \vdash n:T_{1}, \env_{2}}
+      {\env_{1}, \penv \vdash {<}T{>} \; n:T_{1}, \env_{2}}
 \end{array}
 \]
 
@@ -1576,7 +1602,7 @@ The rule \textsc{T-COERCE} allows our type system to type check the following ex
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
 & \multicolumn{2}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
 & \multicolumn{2}{l}{$a[``y"] \; {<}\String{>} = ``bar";$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{regular} =$}\\
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{closed} =$}\\
 & & \multicolumn{1}{l}{${<}\{``x":\String, ``y":\String \cup \Nil\}_{open}{>} \; a \; \mathbf{in} \; a[``z"] \; {<}\Integer{>} = 1$}
 \end{tabular}
 \end{center}
@@ -1586,7 +1612,7 @@ the type of $a$ from $\{``x":\String, ``y":\String\}_{unique}$ to
 $\{``x":\String, ``y":\String \cup \Nil\}_{open}$, and results in
 $\{``x":\String, ``y":\String \cup \Nil\}_{closed}$,
 which is a subtype of
-$\{``x":\String, ``y":\String \cup \Nil\}_{regular}$, the type of $b$.
+$\{``x":\String, ``y":\String \cup \Nil\}_{closed}$, the type of $b$.
 We can continue to refine the type of $a$ after aliasing it to $b$,
 as it still holds an \emph{open} table.
 At the end of this example, $a$ has type
@@ -1598,10 +1624,10 @@ The rule \textsc{T-FUNCTION3} illustrates this case:
 \[
 \begin{array}{c}
 \mylabel{T-FUNCTION3}\\
-\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{t}]), \penv[\ret \mapsto r] \vdash s, \env_{2}}
+\dfrac{closeall(\env_{1}[\vec{n} \mapsto \vec{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}}
       {\begin{array}{c}
-       \env_{1}, \penv \vdash \mathbf{fun} \; (\vec{n{:}t}){:}r \; s:\vec{t} \times \Void \rightarrow r,\\
-       openset(closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s)),rv(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
+       \env_{1}, \penv \vdash \mathbf{fun} \; (\vec{n{:}T}){:}S \; s:\vec{T} \times \Void \rightarrow S,\\
+       openset(closeset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s))
        \end{array}}
 \end{array}
 \]
@@ -1611,22 +1637,23 @@ the type of variables before type checking a nested scope and
 also to change the type of assigned and referenced variables after
 type checking a nested scope.
 The function \emph{closeall} closes all \emph{unique} and \emph{open}
-table types.
+table types; it also restores all filter types to their original type.
 The function \emph{closeset} closes a given set of free assigned variables,
-which is given by the function \emph{fav}.
+which is given by the function \emph{fav};
+it also uses this set to restore filter types to their original type.
 The function \emph{openset} changes from \emph{unique} to \emph{open}
 a given set of referenced variables, which is given by the function \emph{rv}.
 
 This rule also extends the environment $\penv$, bounding the special
-variable $\ret$ to the return type $r$.
+variable $\ret$ to the return type $S$.
 Rule \textsc{T-RETURN} uses the type that is bound to $\ret$ in
 $\penv$ to type check return statements:
 \[
 \begin{array}{c}
 \mylabel{T-RETURN}\\
-\dfrac{\env_{1} \vdash el:r_{1}, \env_{2} \;\;\;
-       \penv(\ret) = r_{2} \;\;\;
-       r_{1} \lesssim r_{2}}
+\dfrac{\env_{1} \vdash el:S_{1}, \env_{2} \;\;\;
+       \penv(\ret) = S_{2} \;\;\;
+       S_{1} \lesssim S_{2}}
       {\env_{1} \vdash \mathbf{return} \; el, \env_{2}}
 \end{array}
 \]
@@ -1638,7 +1665,7 @@ As an example, rule \textsc{T-FUNCTION3} prevents the following unsafe example t
 & \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Void \rightarrow \Integer \times \Void =$}\\
 & & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Void$}\\
 & & & \multicolumn{1}{l}{$b = a \;;\; \mathbf{return} \; x + 1$}\\
-& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])_{s}$}
+& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
 \end{tabular}
 \end{center}
 
@@ -1669,16 +1696,16 @@ type checks method definitions:
 \begin{array}{c}
 \mylabel{T-METHOD3}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n_{1}) = t_{s} \;\;\; t_{s} = \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}\}_{unique|open}\\
-       \env_{1}, \penv \vdash n_{2} : l, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; l \lesssim k_{i}\\
-       closeall(\env_{1}[self \mapsto \Self, \vec{n} \mapsto \vec{t}, \self \mapsto t_{s}]),
-       \penv[\ret \mapsto r] \vdash s, \env_{3}\\
-       t_{o} = \{k_{i}{:}v_{i}, ..., k_{n}{:}v_{n}, l{:}\Const \; \Self \times \vec{t} \times \Void \rightarrow r\}_{unique|open}
+       \env_{1}(n_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
+       \env_{1}, \penv \vdash n_{2} : L, \env_{2} \;\;\;
+       \not \exists i \in 1..n \; L \lesssim K_{i}\\
+       closeall(\env_{1}[self \mapsto \Self, \vec{n} \mapsto \vec{T}, \self \mapsto T_{s}]),
+       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, L{:}\Const \; \Self \times \vec{T} \times \Void \rightarrow S\}_{unique|open}
        \end{array}}
       {\begin{array}{c}
-       \env_{1}, \penv \vdash \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}t}){:}r \; s,\\
-       openset(closeset(\env_{1}[n_{1} \mapsto t_{o}], fav(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s)),rv(\mathbf{fun} \; (\vec{n{:}t}){:}r \; s))
+       \env_{1}, \penv \vdash \mathbf{fun} \; n_{1}{:}n_{2} \; (\vec{n{:}T}){:}S \; s,\\
+       openset(closeset(\env_{1}[n_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s))
        \end{array}}
 \end{array}
 \]
@@ -1718,8 +1745,8 @@ This is possible because we include the rule \textsc{T-SELF}:
 \begin{array}{c}
 \mylabel{T-SELF}\\
 \dfrac{\env_{1}, \penv \vdash e:\Self, \env_{2} \;\;\;
-       \env_{2}(\self) = t}
-      {\env_{1}, \penv \vdash e:t, \env_{2}}
+       \env_{2}(\self) = T}
+      {\env_{1}, \penv \vdash e:T, \env_{2}}
 \end{array}
 \]
 
@@ -1748,16 +1775,16 @@ while rule \textsc{T-SETMETATABLE3} allows overriding a constructor:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-SETMETATABLE2}\\
-\dfrac{\env(n) = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed}}
-      {\env, \penv \vdash setmetatable(\{\}, \{[``\string_\string_index"] = n\}):\{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{open}, \env}
+\dfrac{\env(n) = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed}}
+      {\env, \penv \vdash setmetatable(\{\}, \{[``\string_\string_index"] = n\}):\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{open}, \env}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-SETMETATABLE3}\\
-\dfrac{\env_{1}, \penv \vdash e = t, \env_{2} \;\;\;
-       t = \{k_{1}{:}v_{1}, ..., k_{n}{:}v_{n}\}_{closed} \;\;\;
-       \env_{1}(n) = \Self \;\;\; \env_{1}(\sigma) \subtype t}
-      {\env_{1}, \penv \vdash setmetatable(e, \{[``\string_\string_index"] = n\}):\Self, \env_{2}[\sigma \mapsto t]}
+\dfrac{\env_{1}, \penv \vdash e = T, \env_{2} \;\;\;
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \;\;\;
+       \env_{1}(n) = \Self \;\;\; \env_{1}(\sigma) \subtype T}
+      {\env_{1}, \penv \vdash setmetatable(e, \{[``\string_\string_index"] = n\}):\Self, \env_{2}[\sigma \mapsto T]}
 \end{array}
 \end{array}
 \]
@@ -1770,12 +1797,12 @@ are expressions that produce multiple values:
 \begin{array}{c}
 \mylabel{T-INVOKE1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e:t_{s}, \env_{2}\\
-       \env_{2}[\sigma \mapsto t_{s}], \penv \vdash e[n]:\Const \; r_{1} \rightarrow r_{2}, \env_{3}\\
-       \env_{3}[\sigma \mapsto t_{s}], \penv \vdash el:r_{3}, \env_{4} \;\;\;
-       t_{s} \times r_{3} \lesssim r_{1}
+       \env_{1}, \penv \vdash e:T_{s}, \env_{2}\\
+       \env_{2}[\sigma \mapsto T_{s}], \penv \vdash e[n]:\Const \; S_{1} \rightarrow S_{2}, \env_{3}\\
+       \env_{3}[\sigma \mapsto T_{s}], \penv \vdash el:S_{3}, \env_{4} \;\;\;
+       T_{s} \times S_{3} \lesssim S_{1}
        \end{array}}
-      {\env_{1}, \penv \vdash e{:}n(el)_{m}:[\sigma \mapsto t]r_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash e{:}n(el):[\sigma \mapsto T]S_{2}, \env_{4}}
 \end{array}
 \]
 
@@ -1786,14 +1813,14 @@ or expressions that produce only one value:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-STMINVOKE1}\\
-\dfrac{\env_{1}, \penv \vdash e{:}n(el)_{m}:r, \env_{2}}
-      {\env_{1}, \penv \vdash e{:}n(el)_{s},\env_{2}}
+\dfrac{\env_{1}, \penv \vdash e{:}n(el):S, \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e{:}n(el) \rfloor_{0}, \env_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-EXPINVOKE1}\\
-\dfrac{\env_{1}, \penv \vdash e{:}n(el)_{m}:r, \env_{2}}
-      {\env_{1}, \penv \vdash e{:}n(el)_{e}:first(r), \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e{:}n(el):S, \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e{:}n(el) \rfloor_{1}:first(S), \env_{2}}
 \end{array}
 \end{array}
 \]
@@ -1805,7 +1832,7 @@ ensure that only one value is produced.
 As an example, assuming that the object $o$ is in the environment and
 has the type of the class $Shape$, the method call
 \[
-o{:}move(10, 10)_{m}
+o{:}move(10, 10)
 \]
 type checks through the rule \textsc{T-INVOKE1}, because
 \[
@@ -1818,122 +1845,55 @@ the type $\Self$ before type checking a method call.
 \subsection{Filters and projections}
 \label{sec:fap}
 
-In Section \ref{sec:unions} we mentioned that our type system 
-includes union types to encode three common Lua idioms:
-the use of optional values, the overloading based on the tags of
-input parameters, and the overloading on the return type of functions.
-Now, we will discuss how our type system uses the $\mathbf{or}$
-operator to handle optional values, how it uses filter types to
-discriminate unions of first-level types, and how it uses
-projection types to discriminate overloaded return types,
-which are unions of second-level types.
+A common idiom that programmers use in Lua is to use the function
+\texttt{type} to execute different actions according to the type of
+a parameter, and our type system uses filter types to handle this idiom.
 
-Typed Lua includes five typing rules for handling the $\mathbf{or}$
-logical operator and its common idioms:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{T-OR1}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
-       \Nil \not\lesssim t \;\;\;
-       \False \not\lesssim t}
-      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-OR2}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
-      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-OR3}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:\False, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
-      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-OR4}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:\Nil \cup \False, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
-      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:t, \env_{3}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-OR5}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t_{2}, \env_{3}}
-      {\env_{1}, \penv \vdash e_{1} \; \mathbf{or} \; e_{2}:filter(filter(t_{1}, \Nil), \False) \cup t_{2}, \env_{3}}
-\end{array}
-\end{array}
-\]
-
-Rule \textsc{T-OR1} is the rule that defines the short circuit.
-We use the consistent-subtyping relation in this rule to guarantee that
-the type system checks the second expression when the first one
-has the dynamic type, as it can be hiding a false value.
-
-Rules \textsc{T-OR2}, \textsc{T-OR3}, and \textsc{T-OR4} guarantee
-that the final result is the type of the second expression, because the
-first one is certainly a false value.
-
-Rule \textsc{T-OR5} is the most general rule, but it is also
-the rule that handles the common $\mathbf{or}$ idioms.
-It uses the auxiliary function \emph{filter} to filter possible false
-values that might be part of the type of the first expression.
-We can use pattern matching to the define the recursive function
-\emph{filter} as follows:
-\begin{align*}
-filter(t_{1} \cup t_{2}, t_{1}) & = filter(t_{2}, t_{1})\\
-filter(t_{1} \cup t_{2}, t_{2}) & = filter(t_{1}, t_{2})\\
-filter(t_{1} \cup t_{2}, t_{3}) & = filter(t_{1}, t_{3}) \cup filter(t_{2}, t_{3})\\
-filter(t_{1}, t_{2}) & = t_{1}
-\end{align*}
-
-Rule \textsc{T-OR5} allows our type system to type check the following example:
+As an example, assuming that \emph{rep} is in the environment and has type
+$\String \times \Integer \times \String \cup \Nil \times \Void \rightarrow \String \times \Void$,
+our type system type checks the following program:
 \begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; x:\String \cup \Nil = \mathbf{nothing} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{local} \; y:\String = x \; \mathbf{or} \; ``Hello"$}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; f:\String \times \String \cup \Integer \times \Void \rightarrow \String \times \Void =$}\\
+& \multicolumn{3}{l}{$\mathbf{fun} \; (a:\String, b:\String \cup \Integer):\String \times \Void$}\\
+& & \multicolumn{2}{l}{$\mathbf{local} \; r:\String = ``" \; \mathbf{in}$}\\
+& & & \multicolumn{1}{l}{$\mathbf{if} \; type(b) == ``string" \; \mathbf{then} \; r = a \;{..}\;b \; \mathbf{else} \; r = rep(a, b)\; ;$}\\
+& & & \multicolumn{1}{l}{$\mathbf{return} \; r$}\\
+\multicolumn{4}{l}{$\mathbf{in} \; \lfloor f(``foo", 2) \rfloor_{0}$}
 \end{tabular}
 \end{center}
 
-Without the \emph{filter} function,
-the expression $x \; \mathbf{or} \; ``Hello"$ would have type
-$\String \cup \Nil \cup ``Hello"$.
-The \emph{filter} function removes the type $\Nil$ from the result,
-leaving the type $\String \cup ``Hello"$.
-This means that type checking the expression $x \; \mathbf{or} \; ``Hello"$
-results in the type $\String$, because union types are disjoint and
-$``Hello" \lesssim \String$.
-
-Another common idiom that programmers use in Lua is to overload
-the type of function parameters, and use the function \texttt{type}
-to execute different actions according to their types.
-The rule \textsc{T-IF2} shows the case where our type system
-discriminates an union of first-level types based on the tag \texttt{string}:
+This example type checks through rule \textsc{T-IF2}, that is,
+this rule handles the case where our type system discriminates
+an union of first-level types based on the tag \texttt{string}:
 \[
 \begin{array}{c}
 \mylabel{T-IF2}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = t_{1} \cup t_{2}\\
-       closeall(\env_{1}[n \mapsto \phi(t,\String)]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[n \mapsto \phi(t,filter(t, \String))), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[n \mapsto t], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(n) = T_{1} \cup T_{2}\\
+       closeall(\env_{1})[n \mapsto \phi(T,\String)], \penv \vdash s_{1}, \env_{2} \\
+       closeall(\env_{1})[n \mapsto \phi(T,filter(T, \String)), \penv \vdash s_{2}, \env_{3}\\
+       \env_{4} = openset(closeset(\env_{1}[n \mapsto T], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
       \end{array}}
       {\env_{1}, \penv \vdash \mathbf{if} \; type(n) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-
 \end{array}
 \]
 
 In Typed Lua, \emph{type} is a primitive that triggers a type change.
 In the rule \textsc{T-IF2}, the type of a variable $n$ changes from
-$t_{1} \cup t_{2}$ to $\phi(t_{1} \cup t_{2},\String)$ inside the
+$T_{1} \cup T_{2}$ to $\phi(T_{1} \cup T_{2},\String)$ inside the
 $\mathbf{if}$ branch, and it changes the type of a variable $n$ from
-$t_{1} \cup t_{2}$ to $\phi(t,filter(t_{1} \cup t_{2},\String))$
+$T_{1} \cup T_{2}$ to $\phi(T,filter(T_{1} \cup T_{2},\String))$
 inside the $\mathbf{else}$ branch.
+
+We can use pattern matching to the define the recursive function
+\emph{filter} as follows:
+\begin{align*}
+filter(T_{1} \cup T_{2}, T_{1}) & = filter(T_{2}, T_{1})\\
+filter(T_{1} \cup T_{2}, T_{2}) & = filter(T_{1}, T_{2})\\
+filter(T_{1} \cup T_{2}, T_{3}) & = filter(T_{1}, T_{3}) \cup filter(T_{2}, T_{3})\\
+filter(T_{1}, T_{2}) & = T_{1}
+\end{align*}
 
 Rule \textsc{T-IF2} changes the type of a local variable $n$ to a
 filter type because it gives the discriminated type when we use $n$ as
@@ -1947,9 +1907,9 @@ Now, we will give the definition of these functions.
 
 We can define \emph{read} as follows:
 \begin{align*}
-read(\penv, \phi(t_{1},t_{2})) & = t_{2}\\
-read(\penv, \pi_{i}^{x}) & = proj(\penv, x, i)\\
-read(\penv, t) & = t
+read(\penv, \phi(T_{1},T_{2})) & = T_{2}\\
+read(\penv, \pi_{i}^{x}) & = proj(\penv(x), i)\\
+read(\penv, T) & = T
 \end{align*}
 
 The function \emph{read} uses the auxiliary function \emph{proj}
@@ -1960,27 +1920,13 @@ projection types to handle overloaded return types.
 
 We can define \emph{write} as follows:
 \begin{align*}
-write(\phi(t_{1},t_{2})) & = t_{1}\\
-write(t) & = t
+write(\phi(T_{1},T_{2})) & = T_{1}\\
+write(T) & = T
 \end{align*}
 
-As an example, assuming that \emph{rep} is in the environment and has type
-$\String \times \Integer \times \String \cup \Nil \times \Void \rightarrow \String \times \Void$,
-the following code type checks through rule \textsc{T-IF2}:
-\begin{center}
-\begin{tabular}{llll}
-\multicolumn{4}{l}{$\mathbf{local} \; o:\String \times \String \cup \Integer \times \Void \rightarrow \String \times \Void =$}\\
-& \multicolumn{3}{l}{$\mathbf{fun} \; (a:\String, b:\String \cup \Integer):\String \times \Void$}\\
-& & \multicolumn{2}{l}{$\mathbf{local} \; r:\String = ``" \; \mathbf{in}$}\\
-& & & \multicolumn{1}{l}{$\mathbf{if} \; type(b) == ``string" \; \mathbf{then} \; r = a \;{..}\;b \; \mathbf{else} \; r = rep(a, b)_{e}\; ;$}\\
-& & & \multicolumn{1}{l}{$\mathbf{return} \; r$}\\
-\multicolumn{4}{l}{$\mathbf{in} \; o(``foo", 2)_{s}$}
-\end{tabular}
-\end{center}
-
-In this example, the type of $b$ changes to
-$\phi(\String \cup \Integer, \String)$ inside the $\mathbf{if}$ branch, and
-it changes to $\phi(\String \cup \Integer, \Integer)$ inside the $\mathbf{else}$ branch.
+In our previous example, the type of $b$ is
+$\phi(\String \cup \Integer, \String)$ inside the $\mathbf{if}$ branch,
+and it is $\phi(\String \cup \Integer, \Integer)$ inside the $\mathbf{else}$ branch.
 Thus, reading $b$ results in the type $\String$ inside the $\mathbf{if}$ branch,
 and it results in the type $\Integer$ inside the $\mathbf{else}$ branch.
 Outside the condition, $b$ has its original type: $\String \cup \Integer$.
@@ -2005,8 +1951,8 @@ $\Value{*} \rightarrow \Void$,
 the following code type checks in our type system:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; q:\pi_{1}^{x}, r:\pi_{2}^{x} = idiv(1, 2)_{m}^{x} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; print(q + r)_{s} \; \mathbf{else} \; print(``ERROR: " \; .. \; r)_{s}$}
+\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(1, 2) \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; \lfloor print(q + r) \rfloor_{0} \; \mathbf{else} \; \lfloor print(``ERROR: " \; .. \; r) \rfloor_{0}$}
 \end{tabular}
 \end{center}
 
@@ -2014,41 +1960,40 @@ There are three typing rules involved in the type checking of this example,
 which we will explain now.
 
 First, that example uses rule \textsc{T-EXPLIST6} for type checking
-$idiv(1, 2)_{m}^{x}$:
+$idiv(1, 2)$:
 \[
 \begin{array}{c}
 \mylabel{T-EXPLIST6}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash me^{x}:r, \env_{2}\\
-       r = t_{1} \times ... \times t_{n} \times \Void \sqcup t_{1}' \times ... \times t_{n}' \times \Void
+       \env_{1}, \penv \vdash me:S, \env_{2}\\
+       S = T_{1} \times ... \times T_{n} \times \Void \sqcup T_{1}' \times ... \times T_{n}' \times \Void
        \end{array}}
-      {\env_{1}, \penv \vdash me^{x}:\pi_{1}^{x} \times ... \times \pi_{n}^{x} \times \Nil{*}, \env_{2}, (x,r)}
+      {\env_{1}, \penv \vdash me:\pi_{1}^{x} \times ... \times \pi_{n}^{x} \times \Nil{*}, \env_{2}, (x,S)}
 \end{array}
 \]
 
 Rule \textsc{T-EXPLIST6} uses the auxiliary relation
-$\env_{1}, \penv \vdash el : r_{1}, \env_{2}, (x,r_{2})$.
+$\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
 This relation means that given a type environment $\env_{1}$ and
 a projection environment $\penv$, an expression list $el$ has type
-$r_{1}$ and produces a new type environment $\env_{2}$ and
-produces a pair $(x,r_{2})$.
+$S_{1}$ and produces a new type environment $\env_{2}$ and
+produces a pair $(x,S_{2})$.
 This pair means that the last expression of an expression list $el$
-produces a second-level type $r_{2}$ that should be bound to
+produces a second-level type $S_{2}$ that should be bound to
 a variable $x$ in the projection environment,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
 
-Our type system uses this pair to allow rule \textsc{T-LOCAL} to bound
-a second-level type $r_{2}$ to a variable $x$ in $\penv$,
-after rule \textsc{T-LOCAL} checks whether the type of an expression
-list $el$ matches the types in the annotations:
+Our type system uses that pair to allow rule \textsc{T-LOCAL} to bound
+a second-level type $S_{2}$ to a variable $x$ in $\penv$:
 \[
 \begin{array}{c}
 \mylabel{T-LOCAL}\\
-\dfrac{\env_{1}, \penv \vdash el:r_{1}, \env_{2}, (x,r_{2}) \;\;\;
-       r_{1} \lesssim \vec{t} \times \Value{*} \;\;\;
-       \env_{2}[\vec{n} \mapsto \vec{t}], \penv[x \mapsto r_{2}] \vdash s, \env_{3}}
-      {\env_{1}, \penv \vdash \mathbf{local} \; \vec{n{:}t} = el \; \mathbf{in} \; s, \env_{3} - \{\vec{n} \mapsto \vec{t}\}}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash el:T_{1} \times ... \times T_{n}{*}, \env_{2}, (x,S)\\
+       \env_{2}[n_{1} \mapsto T_{1}, ..., n_{n-1} \mapsto T_{n-1}], \penv[x \mapsto S] \vdash s, \env_{3}
+       \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{local} \; \vec{n} = el \; \mathbf{in} \; s, \env_{3} - \{\vec{n} \mapsto \vec{T}\}}
 \end{array}
 \]
 
@@ -2063,9 +2008,9 @@ discriminates a projection type based on the tag \texttt{nil}:
 \begin{array}{c}
 \mylabel{T-IF3}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = \pi_{i}^{x} \;\;\; \penv(x) = r\\
-       closeall(\env_{1}), \penv[x \mapsto fpt(r,\Nil,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto gpt(r,\Nil,i)] \vdash s_{2}, \env_{3} \\
+       \env_{1}(n) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
+       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
+       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
        \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
       \end{array}}
       {\env_{1}, \penv \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
@@ -2111,13 +2056,13 @@ to handle the overloading of arithmetic operations:
 \begin{array}{c}
 \mylabel{T-ARITH5}\\
 \dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:t, \env_{3}}
+       \env_{2}, \penv \vdash e_{2}:T, \env_{3}}
       {\env_{1}, \penv \vdash e_{1} + e_{2}:\Any, \env_{3}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-ARITH6}\\
-\dfrac{\env_{1}, \penv \vdash e_{1}:t, \env_{2} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{1}:T, \env_{2} \;\;\;
        \env_{2}, \penv \vdash e_{2}:\Any, \env_{3}}
       {\env_{1}, \penv \vdash e_{1} + e_{2}:\Any, \env_{3}}
 \end{array}
