@@ -1264,42 +1264,53 @@ local function check_if (env, stm)
   return r
 end
 
+local function infer_int(t)
+  return tltype.isInt(t) or tltype.isInteger(t)
+end
+
 local function check_fornum (env, stm)
   local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
-  id[2] = Number
-  set_type(id, Number)
-  tlst.begin_scope(env)
-  tlst.set_local(env, id)
   check_exp(env, exp1)
-  local t = get_type(exp1)
+  local t1 = get_type(exp1)
   local msg = "'for' initial value must be a number"
-  if tltype.subtype(t, Number) then
-  elseif tltype.consistent_subtype(t, Number) then
+  if tltype.subtype(t1, Number) then
+  elseif tltype.consistent_subtype(t1, Number) then
     typeerror(env, "any", msg, exp1.pos)
   else
     typeerror(env, "fornum", msg, exp1.pos)
   end
   check_exp(env, exp2)
-  t = get_type(exp2)
+  local t2 = get_type(exp2)
   msg = "'for' limit must be a number"
-  if tltype.subtype(t, Number) then
-  elseif tltype.consistent_subtype(t, Number) then
+  if tltype.subtype(t2, Number) then
+  elseif tltype.consistent_subtype(t2, Number) then
     typeerror(env, "any", msg, exp2.pos)
   else
     typeerror(env, "fornum", msg, exp2.pos)
   end
+  local int_step = true
   if block then
     check_exp(env, exp3)
-    t = get_type(exp3)
+    local t3 = get_type(exp3)
     msg = "'for' step must be a number"
-    if tltype.subtype(t, Number) then
-    elseif tltype.consistent_subtype(t, Number) then
+    if not infer_int(t3) then
+      int_step = false
+    end
+    if tltype.subtype(t3, Number) then
+    elseif tltype.consistent_subtype(t3, Number) then
       typeerror(env, "any", msg, exp3.pos)
     else
       typeerror(env, "fornum", msg, exp3.pos)
     end
   else
     block = exp3
+  end
+  tlst.begin_scope(env)
+  tlst.set_local(env, id)
+  if infer_int(t1) and infer_int(t2) and int_step then
+    set_type(id, Integer)
+  else
+    set_type(id, Number)
   end
   local r, _, didgoto = check_block(env, block)
   check_unused_locals(env)
