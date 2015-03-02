@@ -3183,7 +3183,7 @@ s = [=[
 for i = 1, 10 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i":`TBase number, `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i", `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3193,7 +3193,7 @@ s = [=[
 for i = 10, 1, -1 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i":`TBase number, `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i", `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3703,7 +3703,7 @@ for n = x, x, x do end
 for k in x do end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TAny }, { `Number "1" } }, `Fornum{ `Id "n":`TBase number, `Id "x", `Id "x", `Id "x", {  } }, `Forin{ { `Id "k" }, { `Id "x" }, {  } } }
+{ `Local{ { `Id "x":`TAny }, { `Number "1" } }, `Fornum{ `Id "n", `Id "x", `Id "x", `Id "x", {  } }, `Forin{ { `Id "k" }, { `Id "x" }, {  } } }
 ]=]
 
 r = typecheck(s)
@@ -3929,7 +3929,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i", `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -4111,7 +4111,7 @@ for i = 1, #t do
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "len", `Id "t" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "t", `Id "i" } } } } }
+{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Fornum{ `Id "i", `Number "1", `Op{ "len", `Id "t" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "t", `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)

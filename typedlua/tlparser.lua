@@ -368,13 +368,13 @@ local function traverse_break (env, stm)
 end
 
 local function traverse_forin (env, stm)
-  tlst.begin_loop(env)
-  tlst.begin_scope(env)
-  for k, v in ipairs(stm[1]) do
-    tlst.set_local(env, v)
-  end
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
+  tlst.begin_loop(env)
+  tlst.begin_scope(env)
+  for _, v in ipairs(stm[1]) do
+    tlst.set_local(env, v)
+  end
   status, msg = traverse_block(env, stm[3])
   if not status then return status, msg end
   tlst.end_scope(env)
@@ -384,22 +384,23 @@ end
 
 local function traverse_fornum (env, stm)
   local status, msg
-  tlst.begin_loop(env)
-  tlst.begin_scope(env)
-  tlst.set_local(env, stm[1])
   status, msg = traverse_exp(env, stm[2])
   if not status then return status, msg end
   status, msg = traverse_exp(env, stm[3])
   if not status then return status, msg end
+  local block
   if stm[5] then
     status, msg = traverse_exp(env, stm[4])
     if not status then return status, msg end
-    status, msg = traverse_block(env, stm[5])
-    if not status then return status, msg end
+    block = stm[5]
   else
-    status, msg = traverse_block(env, stm[4])
-    if not status then return status, msg end
+    block = stm[4]
   end
+  tlst.begin_loop(env)
+  tlst.begin_scope(env)
+  tlst.set_local(env, stm[1])
+  status, msg = traverse_block(env, block)
+  if not status then return status, msg end
   tlst.end_scope(env)
   tlst.end_loop(env)
   return true
