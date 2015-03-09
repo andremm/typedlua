@@ -1008,10 +1008,10 @@ type checks through the following rules:
 \\ \\
 \begin{array}{c}
 \mylabel{T-EXPLIST1}\\
-\dfrac{\env, \penv \vdash e_{i}:T_{i}, \env_{i} \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
-       n = |\;\overline{e}\;|}
-      {\env, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
+\dfrac{\env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       n = |\;\overline{e}\;| \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1})}
+      {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
 \end{array}
 \\ \\
 \begin{array}{c}
@@ -1231,10 +1231,10 @@ list of table fields:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
 \dfrac{\env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
-       n = |\;\vec{p}\;| \;\;\;
+       n = |\;\overline{p}\;| \;\;\;
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T)}
-      {\env_{1}, \penv \vdash \{\;\vec{p}\;\}:T, \env_{n+1}}
+      {\env_{1}, \penv \vdash \{\;\overline{p}\;\}:T, \env_{n+1}}
 \end{array}
 \]
 
@@ -1303,12 +1303,12 @@ Rule \textsc{T-REFINE} type checks this use of refinement:
 \begin{array}{c}
 \mylabel{T-REFINE}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
+       \env_{1}(id) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
        \env_{1}, \penv \vdash k:K, \env_{2} \;\;\;
        \not \exists i \in 1..n \; K \lesssim K_{i} \;\;\;
        V = close(T)
        \end{array}}
-      {\env_{1}, \penv \vdash n[k] {<}T{>}:V, \env_{2}[n \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
+      {\env_{1}, \penv \vdash id[k] {<}T{>}:V, \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
 \end{array}
 \]
 
@@ -1374,14 +1374,14 @@ Rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this behavior:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-IDREAD1}\\
-\dfrac{\env(n) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash n:close(T_{2}), \env[n \mapsto open(T_{1})]}
+\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env, \penv \vdash id:close(T_{2}), \env[id \mapsto open(T_{1})]}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-IDREAD2}\\
-\dfrac{\env(n) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash n:fix(T_{2}), \env[n \mapsto fix(T_{1})]}
+\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env, \penv \vdash id:fix(T_{2}), \env[id \mapsto fix(T_{1})]}
 \end{array}
 \end{array}
 \]
@@ -1444,8 +1444,8 @@ rule \textsc{T-IDWRITE}:
 \[
 \begin{array}{c}
 \mylabel{T-IDWRITE}\\
-\dfrac{\env(n) = T_{1} \;\;\; T_{2} = write(T_{1})}
-      {\env, \penv \vdash n_{l}:close(T_{2}), \env[n \mapsto close(T_{2})]}
+\dfrac{\env(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
+      {\env, \penv \vdash id_{l}:close(T_{2}), \env[id \mapsto close(T_{2})]}
 \end{array}
 \]
 
@@ -1481,12 +1481,12 @@ changing table types in these operations, as they cannot create aliases:
 \begin{array}{c}
 \mylabel{T-INDEX1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = T \;\;\;
+       \env_{1}(id) = T \;\;\;
        read(\penv, T) = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}\\
        \env_{1}, \penv \vdash e_{2}:K, \env_{2} \;\;\;
        \exists i \in 1{..}n \; K \lesssim K_{i}
        \end{array}}
-      {\env_{1}, \penv \vdash n[e_{2}]:V_{i}, \env_{2}}
+      {\env_{1}, \penv \vdash id[e_{2}]:V_{i}, \env_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
@@ -1511,9 +1511,9 @@ obeys the \textsc{T-COERCE} rule below:
 \[
 \begin{array}{c}
 \mylabel{T-COERCE}\\
-\dfrac{\env_{1}(n) \subtype T \;\;\;
-       \env_{1}[n \mapsto T], \penv \vdash n:T_{1}, \env_{2}}
-      {\env_{1}, \penv \vdash {<}T{>} \; n:T_{1}, \env_{2}}
+\dfrac{\env_{1}(id) \subtype T \;\;\;
+       \env_{1}[id \mapsto T], \penv \vdash id:T_{1}, \env_{2}}
+      {\env_{1}, \penv \vdash {<}T{>} \; id:T_{1}, \env_{2}}
 \end{array}
 \]
 
@@ -1541,19 +1541,19 @@ $\{``x":\String, ``y":\String \cup \Nil, ``z":\Integer\}_{open}$.
 
 We also need to make sure to close all \emph{unique} and \emph{open}
 table types before we type check a nested scope.
-The rule \textsc{T-FUNCTION3} illustrates this case:
+The rule \textsc{T-FUNCTION1} illustrates this case:
 \[
 \begin{array}{c}
-\mylabel{T-FUNCTION3}\\
-\dfrac{crall(\env_{1}[\vec{n} \mapsto \vec{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}}
-      {\begin{array}{c}
-       \env_{1}, \penv \vdash \mathbf{fun} \; (\vec{n{:}T}){:}S \; s:\vec{T} \times \Void \rightarrow S,\\
-       openset(crset(\env_{1}, fav(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\vec{n{:}T}){:}S \; s))
+\mylabel{T-FUNCTION1}\\
+\dfrac{\begin{array}{c}
+       crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
+       \env_{3} = openset(crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{3}}
 \end{array}
 \]
 
-Rule \textsc{T-FUNCTION3} uses some auxiliary functions to change
+Rule \textsc{T-FUNCTION1} uses some auxiliary functions to change
 the type of variables before type checking a nested scope and
 also to change the type of assigned and referenced variables after
 type checking a nested scope.
@@ -1654,11 +1654,11 @@ $\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
 $(x,\Integer \times \Integer \times \Void \sqcup \Nil \times \String \times \Void)$. 
 
 Our type system uses the pair $(x,S_{2})$ to allow rule
-\textsc{T-LOCAL} to bound a union of second-level types $S_{2}$
+\textsc{T-LOCAL2} to bound a union of second-level types $S_{2}$
 to a variable $x$ in $\penv$:
 \[
 \begin{array}{c}
-\mylabel{T-LOCAL}\\
+\mylabel{T-LOCAL2}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash el:S_{1}, \env_{2}, (x,S_{2})\\
        \env_{2}[id_{1} \mapsto infer(S_{1},1), ..., id_{n} \mapsto infer(S_{1},n)], \penv[x \mapsto S_{2}] \vdash s, \env_{3} \;\;\;
@@ -1684,12 +1684,12 @@ discriminates a projection type based on the tag \texttt{nil}:
 \begin{array}{c}
 \mylabel{T-IF3}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(n) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
+       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
        closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
        closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
        \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; n \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
 \end{array}
 \]
 
