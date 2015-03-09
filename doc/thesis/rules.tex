@@ -1032,6 +1032,14 @@ This appendix presents the complete type system of Typed Lua.
       {\env_{1}, \penv \vdash id[k] {<}T{>}:V, \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
 \]
 
+\mylabel{T-LHSLIST}
+\[
+\dfrac{\env_{i}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
+       n = |\;\overline{l}\;|}
+      {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
+\]
+
 \mylabel{T-EXPLIST1}
 \[
 \dfrac{\env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;

@@ -854,7 +854,8 @@ form because we can use this form to express the missing forms;
 \item arithmetic operators are reduced to addition only
 because the other operators have similar typing rules;
 \item relational operators are reduced to equality and less than
-because the other operators have similar typing rules;
+because inequality has similar typing rules to equality and
+other relational operators have similar typing rules to less than;
 \item bitwise operators are reduced to bitwise and only
 because the other operators have similar typing rules.
 \end{itemize}
@@ -933,15 +934,15 @@ where $n$ can be zero.
 
 Our reduced core includes two statements for declaring local variables,
 one with and another without type annotations.
-While we use the former to show how our type system handles the declaration
-of annoatated variables, we use the latter to show how our type system
+While we use the former to formalize how our type system handles the declaration
+of annotated variables, we use the latter to formalize how our type system
 handles the declaration of unannotated variables through local type inference
 and also the introduction of projection types.
 
 Our reduced core also includes a truncation operator $\lfloor \rfloor$ for
 function applications, method applications, and the vararg expression.
 We use $\lfloor a \rfloor_{0}$ to denote function and method applications
-that produce no value because they appear as statements.
+that produce no value, because they appear as statements.
 We use $\lfloor me \rfloor_{1}$ to denote function applications,
 method applications, and vararg expressions that produce only one value,
 even if they return mutiple values.
@@ -1009,17 +1010,17 @@ type checks through the following rules:
 \begin{array}{c}
 \mylabel{T-EXPLIST1}\\
 \dfrac{\env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       n = |\;\overline{e}\;| \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n+1})}
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
+       n = |\;\overline{e}\;|}
       {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-LHSLIST}\\
-\dfrac{\env, \penv \vdash l_{i}:T_{i}, \env_{i} \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n}) \;\;\;
+\dfrac{\env_{i}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{l}\;|}
-      {\env, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
+      {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
 \end{array}
 \end{array}
 \]
@@ -1044,7 +1045,7 @@ Thus, the rules that type check lists of expressions and lists of
 left-hand values use a partial auxiliary function \emph{merge} to collect
 all environment changes in a new environment $\env_{m}$, if there are no conflicts.
 
-The previous example type checks through these rules because
+Our previous example type checks through these rules because
 \[
 1 \times ``foo" \times \Nil{*} \lesssim \Integer \times \String \times \Value{*}
 \]
@@ -1057,8 +1058,13 @@ x, y, z = 1, ``foo"
 \]
 type checks because
 \[
-\Integer \times \String \times \Nil{*} \lesssim \Integer \times \String \times \String \cup \Nil \times \Value{*}
+1 \times ``foo" \times \Nil{*} \lesssim \Integer \times \String \times \String \cup \Nil \times \Value{*}
 \]
+
+Note how $\Nil{*}$ replaces any missing values.
+This example type checks because $\Nil{*}$ produces as many $\Nil$
+values as we need, and $\Nil$ is consistent with $\String \cup \Nil$,
+which is the type of $z$.
 
 Conversely, the assignment
 \[
@@ -1066,8 +1072,12 @@ x = 1, ``foo"
 \]
 type checks because
 \[
-\Integer \times \String \times \Nil{*} \lesssim \Integer \times \Value{*}
+1 \times ``foo" \times \Nil{*} \lesssim \Integer \times \Value{*}
 \]
+
+Note how $\Value{*}$ discards extra values.
+This example type checks because $\Value{*}$ discards as many extra
+values as we need, and $``foo"$ is consistent with $\Value$.
 
 Our type system includes $\Nil{*}$ in the type of an expression list only
 if its type does not end in another variadic type $T{*}$.
@@ -1134,7 +1144,7 @@ first(T \times P) & = T\\
 first(S_{1} \sqcup S_{2}) & = first(S_{1}) \cup first(S_{2})
 \end{align*}
 
-Assuming that $f$ is a local function in the environment, and that $f$ has type
+As an example, assuming that $f$ is a local function in the environment, and that $f$ has type
 $\String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Value{*} \rightarrow \Integer{*}$,
 the function call
 \[
@@ -1173,7 +1183,7 @@ does not type check through the rule \textsc{T-APPLY1}, because
 ``foo" \times 1 \times 2 \times 3 \times \Nil{*} \not\lesssim \String \times \Integer \cup \Nil \times \Integer \cup \Nil \times \Void
 \]
 
-When our type system type checks an expression list,
+We just mentioned that when our type system type checks an expression list,
 it always includes $\Nil{*}$ in the end of the type of this expression list
 if its type does not end in a variadic type.
 This behavior preserves the semantics of Lua on replacing missing values,
@@ -1269,10 +1279,12 @@ Well-formed table types also do not allow \emph{unique} and
 We made this restriction because our type system does not keep
 track of aliases to table fields.
 This means that allowing \emph{unique} and \emph{open} table
-types to appear in the type of the value would allow the
+types to appear in the type of a value would allow the
 creation of unsafe aliases.
+As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$.
 
-After discussing the typing rules of the table constructor,
+After presenting some typing rules of the table constructor,
 we start the discussion of the rules that define the most
 unusual feature of our type system: the refinement of table types.
 The first kind of refinement allows programmers to add new
@@ -1286,10 +1298,10 @@ following example:
     person.lastname = "Reed"
 \end{verbatim}
 
-We translate this example to our reduced core as follows:
+We can translate this example to our reduced core as follows:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; person:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
+\multicolumn{2}{l}{$\mathbf{local} \; person = \{\} \; \mathbf{in}$}\\
 & \multicolumn{1}{l}{$person[``firstname"] \; {<}\String{>} = ``Lou";$}\\
 & \multicolumn{1}{l}{$person[``lastname"] \; {<}\String{>} = ``Reed"$}
 \end{tabular}
@@ -1325,7 +1337,9 @@ that stores the global environment.
 For this reason, Typed Lua treats accesses to global variables as field accesses
 to an \emph{open} table in the top-level scope.
 In the following examples we assume that $\string_ENV$ is in the
-environment and has type $\{\}_{open}$. For instance,
+environment and has type $\{\}_{open}$.
+
+As an example,
 \[
 \string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``y"] \; {<}\Integer{>} = 1
 \]
@@ -1369,7 +1383,14 @@ the same field to $\string_ENV$, but with different types:
 Aliasing an \emph{unique} or an \emph{open} table type can produce
 either a \emph{closed} or a \emph{fixed} table type, depending on
 the context that we are using a variable.
-Rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this behavior:
+As we mentioned in Sections \ref{sec:oop} and \ref{sec:subtyping},
+we need \emph{fixed} table types to type classes in object-oriented programming.
+In the implementation we fix the aliasing of \emph{unique} and \emph{open}
+table types that appear in a return statement, and in other cases we
+close the aliasing of \emph{unique} and \emph{open} table types.
+However, in the formalization we chose to define this behavior not
+deterministically, as it makes easier the presentation of this behavior.
+Rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this non-deterministic behavior:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -1392,7 +1413,10 @@ As we mentioned in Section \ref{sec:unions}, our type system includes
 a small set of \texttt{type} predicates that allow programmers to
 discriminate union types, and our type system uses filter and projection
 types in the definition of these predicates to handle the discrimination
-of unions of first-level and second-level types.
+of unions types.
+While filter types discriminate unions of first-level types, projection
+types discriminate unions of second-level types and project unions of
+second-level types into unions of first-level types.
 We can define \emph{read} as follows:
 \begin{align*}
 read(\penv, \phi(T_{1},T_{2})) & = T_{2}\\
@@ -1406,9 +1430,7 @@ second-level types and an index from a projection type.
 In Section \ref{sec:fap} we will discuss how our type system uses
 projection types to handle overloaded return types.
 
-The following example does not type check, as aliasing $a$ produces
-the type $\{``foo":\Integer\}_{closed}$ that is not a subtype of
-$\{``foo":\Integer \cup \Nil\}_{closed}$, the type of $b$:
+As an example,
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{``foo":\Integer\}_{unique} = \{ [``foo"] = 5 \} \; \mathbf{in}$}\\
@@ -1416,6 +1438,15 @@ $\{``foo":\Integer \cup \Nil\}_{closed}$, the type of $b$:
 & & \multicolumn{1}{l}{$b[``foo"] = \mathbf{nil}$}
 \end{tabular}
 \end{center}
+does not type check,
+as aliasing $a$ produces the type $\{``foo":\Integer\}_{closed}$
+that is not a subtype of $\{``foo":\Integer \cup \Nil\}_{closed}$,
+the type of $b$.
+Our type system has this behavior to warn programmers about
+potential unsafe behaviors after this kind of alias.
+In this example, it is unsafe to assign $\mathbf{nil}$ to the field
+$`foo"$ of $b$, as it changes the value that is stored in the field
+$``foo"$ of $a$.
 
 As another example,
 \begin{center}
@@ -1428,8 +1459,6 @@ As another example,
 \end{center}
 does not type check, as aliasing $a$ produces the type $\{\}_{closed}$
 that is not a subtype of $\{\}_{open}$, the type of $b$.
-Our type system has this behavior to warn programmers about
-potential unsafe behaviors after this kind of alias.
 In this example, it is unsafe to add the field $``x"$ to $b$,
 as it changes the value that is stored in the field $``x"$ of $a$.
 
@@ -1579,7 +1608,7 @@ $\penv$ to type check return statements:
 \end{array}
 \]
 
-As an example, rule \textsc{T-FUNCTION3} prevents the following unsafe example to type check:
+As an example, rule \textsc{T-FUNCTION1} prevents the following unsafe example to type check:
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique}, b:\{\}_{unique} = \{\}, \{\} \; \mathbf{in}$}\\
@@ -1631,8 +1660,8 @@ $idiv(1, 2)$:
 \begin{array}{c}
 \mylabel{T-EXPLIST6}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash me:S, \env_{2}\\
-       S = T_{1} \times ... \times T_{n} \times \Void \sqcup T_{1}' \times ... \times T_{n}' \times \Void
+       \env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Void \sqcup T_{1}' \times ... \times T_{n}' \times \Void, \env_{2}\\
+       S = T_{1} \times ... \times T_{n} \times \Nil{*} \sqcup T_{1}' \times ... \times T_{n}' \times \Nil{*}
        \end{array}}
       {\env_{1}, \penv \vdash me:\pi_{1}^{x} \times ... \times \pi_{n}^{x} \times \Nil{*}, \env_{2}, (x,S)}
 \end{array}
@@ -1645,17 +1674,17 @@ a projection environment $\penv$, we can check that an expression
 list $el$ has type $S_{1}$ and produces a new type environment $\env_{2}$
 and produces a pair $(x,S_{2})$.
 This pair means that the last expression of an expression list $el$
-produces a union of second-level types $S_{2}$ that sould be bound
-to a variable $x$ in the projection environment,
+produces an union of second-level types $S_{2}$ that sould be bound
+to a variable $x$ in the projection environment $\penv$,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
 In our example, we can check that $idiv(1, 2)$ has type
 $\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
-$(x,\Integer \times \Integer \times \Void \sqcup \Nil \times \String \times \Void)$. 
+$(x,\Integer \times \Integer \times \Nil{*} \sqcup \Nil \times \String \times \Nil{*})$. 
 
 Our type system uses the pair $(x,S_{2})$ to allow rule
 \textsc{T-LOCAL2} to bound a union of second-level types $S_{2}$
-to a variable $x$ in $\penv$:
+to a variable $x$ in the projection environment $\penv$:
 \[
 \begin{array}{c}
 \mylabel{T-LOCAL2}\\
@@ -1671,12 +1700,21 @@ to a variable $x$ in $\penv$:
 This rule uses the auxiliary function \emph{infer} to get the
 first-level types of each variable that should be introduced in
 the type environment for type checking $s$.
-In our example, $q$ gets type $\pi_{1}^{x}$ and $r$ gets type
-$\pi_{2}^{x}$.
-After type checking the statement $s$, rule \textsc{T-LOCAL} produces a
-new environment without the variables that it introduced before type checking $s$.
+After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
+new type environment $\env_{3}$ without the variables that it introduced
+before type checking $s$.
+In our example, we can check that declaring $q$ and $r$
+bounds the projection type $\pi_{1}^{x}$ to $q$ and
+bounds the projection type $\pi_{2}^{x}$ to $r$, where the projection variable $x$ bounds to 
+\[
+\Integer \times \Integer \times \Nil{*} \sqcup \Nil \times \String \times \Nil{*}
+\]
+in the projection environment $\penv$. 
+This means that $q$ uses $\pi_{1}^{x}$ to project its type into the
+union type $\Integer \cup \Nil$, while $r$ uses $\pi_{2}^{x}$ to
+project its type into the union $\Integer \cup \String$.
 
-Introducing a variable $x$ in the projection environment allows our
+Introducing a projection variable $x$ in the projection environment allows our
 type system to discriminate projection types $\pi_{i}^{x}$.
 The rule \textsc{T-IF3} shows the case where our type system
 discriminates a projection type based on the tag \texttt{nil}:
@@ -1696,18 +1734,19 @@ discriminates a projection type based on the tag \texttt{nil}:
 Rule \textsc{T-IF3} uses the auxiliary functions \emph{fpt} and \emph{gpt}
 to filter a projection $x$, affecting all variables that bind to the same projection.
 For instance, our previous example type checks through rule \textsc{T-IF3},
-because it makes the rule \textsc{T-IF3} use the function call
+because it uses the information provided by the projection type $\pi_{1}^{x}$,
+which is the type of $q$, to make the rule \textsc{T-IF3} use the function call
 \[
-fpt(\Integer \times \Integer \times \Void \sqcup \Nil \times \String \times \Void, \Nil, 1)
+fpt(\Integer \times \Integer \times \Nil{*} \sqcup \Nil \times \String \times \Nil{*}, \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
-$\Integer \times \Integer \times \Void$ inside the $\mathbf{if}$ branch,
+$\Integer \times \Integer \times \Nil{*}$ inside the $\mathbf{if}$ branch,
 and the function call
 \[
-gpt(\Integer \times \Integer \times \Void \sqcup \Nil \times \String \times \Void, \Nil, 1)
+gpt(\Integer \times \Integer \times \Nil{*} \sqcup \Nil \times \String \times \Nil{*}, \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
-$\Nil \times \String \times \Void$ inside the $\mathbf{else}$ branch.
+$\Nil \times \String \times \Nil{*}$ inside the $\mathbf{else}$ branch.
 Thus, reading $q$ and $r$ projects $\pi_{1}^{x}$ to $\Integer$ and
 $\pi_{2}^{x}$ to $\Integer$ inside the $\mathbf{if}$ branch,
 but it projects $\pi_{1}^{x}$ to $\Nil$ and $\pi_{2}^{x}$ to $\String$
