@@ -833,7 +833,10 @@ results in the union type \texttt{number|nil}, because
 \label{sec:rules}
 
 In this section we use a reduced core of Typed Lua to present the
-most interesting rules of our type system.
+typing rules that type check multiple assignment, table refinement,
+and overloading on the return type of functions.
+We limit this section to the rules that type check these features
+because these rules are the most interesting rules of our type system.
 Appendix \ref{app:rules} presents the full set of typing rules.
 
 Our core limits control flow to if and while statements;
@@ -945,7 +948,7 @@ We use $\lfloor a \rfloor_{0}$ to denote function and method applications
 that produce no value, because they appear as statements.
 We use $\lfloor me \rfloor_{1}$ to denote function applications,
 method applications, and vararg expressions that produce only one value,
-even if they return mutiple values.
+even if they return multiple values.
 
 We also include two kinds of type coercions in our core language:
 the left-hand value $id[k] \; {<}T{>}$ and the expression ${<}T{>} \;id$.
@@ -1044,8 +1047,12 @@ change the type environment while typing an expression or a left-hand value.
 Thus, the rules that type check lists of expressions and lists of
 left-hand values use a partial auxiliary function \emph{merge} to collect
 all environment changes in a new environment $\env_{m}$, if there are no conflicts.
+In Section \ref{sec:refinement} we will also show that we can only change the
+environment to add new table fields in a table type, and we cannot change the
+type of a variable or a table field which is already present in a table type.
 
-Our previous example type checks through these rules because
+Back to our previous example, it type checks through these three rules
+that we just mentioned because
 \[
 1 \times ``foo" \times \Nil{*} \lesssim \Integer \times \String \times \Value{*}
 \]
@@ -1231,7 +1238,7 @@ Its type checking rule is straightforward:
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR1}\\
-\env, \penv \vdash \{\}:\{\}_{unique}, \env
+\env_{1}, \penv \vdash \{\}:\{\}_{unique}, \env_{1}
 \end{array}
 \]
 
@@ -1241,12 +1248,15 @@ list of table fields:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
 \dfrac{\env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
-       n = |\;\overline{p}\;| \;\;\;
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
-       wf(T)}
+       wf(T) \;\;\;
+       n = |\;\overline{p}\;|}
       {\env_{1}, \penv \vdash \{\;\overline{p}\;\}:T, \env_{n+1}}
 \end{array}
 \]
+
+As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$.
 
 First, the rule \textsc{T-CONSTRUCTOR2} uses the auxiliary relation
 $\env_{1}, \penv \vdash p : (K,V), \env_{2}$ to type check each table
@@ -1254,7 +1264,7 @@ field $p_{i}$.
 This auxiliary relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, we can check a table field $p$
 producing a pair $(K,V)$ and a new type environment $\env_{2}$. 
-In the pair $(K,V)$, $K$ is the key type, while $V$ is the value type.
+In a pair $(K,V)$, $K$ is the key type, while $V$ is the value type.
 
 Then, the rule \textsc{T-CONSTRUCTOR2} uses each pair $(K_{i},V_{i})$
 to build the table type that express the type of a given constructor, and
@@ -1281,8 +1291,6 @@ track of aliases to table fields.
 This means that allowing \emph{unique} and \emph{open} table
 types to appear in the type of a value would allow the
 creation of unsafe aliases.
-As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
-has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$.
 
 After presenting some typing rules of the table constructor,
 we start the discussion of the rules that define the most
@@ -1374,7 +1382,8 @@ We can also use multiple assignment to refine table types:
 
 This example type checks because all the environment changes are consistent, and
 $``foo" \times 1 \times \Nil{*} \lesssim \String \times \Integer \times \Value{*}$.
-However, the next example does not type check because it tries to add
+By consistent we mean that we are only adding new fields.
+Nevertheless, the next example does not type check because it tries to add
 the same field to $\string_ENV$, but with different types:
 \[
 \string_ENV[``x"] \; {<}\String{>}, \string_ENV[``x"] \; {<}\Integer{>} = ``foo", 1
@@ -1395,14 +1404,14 @@ Rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this non-deterministic be
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-IDREAD1}\\
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash id:close(T_{2}), \env[id \mapsto open(T_{1})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-IDREAD2}\\
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash id:fix(T_{2}), \env[id \mapsto fix(T_{1})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env_{1}, \penv \vdash id:fix(T_{2}), \env_{1}[id \mapsto fix(T_{1})]}
 \end{array}
 \end{array}
 \]
@@ -1445,7 +1454,7 @@ the type of $b$.
 Our type system has this behavior to warn programmers about
 potential unsafe behaviors after this kind of alias.
 In this example, it is unsafe to assign $\mathbf{nil}$ to the field
-$`foo"$ of $b$, as it changes the value that is stored in the field
+$``foo"$ of $b$, as it changes the value that is stored in the field
 $``foo"$ of $a$.
 
 As another example,
@@ -1473,16 +1482,16 @@ rule \textsc{T-IDWRITE}:
 \[
 \begin{array}{c}
 \mylabel{T-IDWRITE}\\
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
-      {\env, \penv \vdash id_{l}:close(T_{2}), \env[id \mapsto close(T_{2})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
+      {\env_{1}, \penv \vdash id_{l}:close(T_{2}), \env_{1}[id \mapsto close(T_{2})]}
 \end{array}
 \]
 
 This rule uses the auxiliary function \emph{write} because it may be
-accessing an identifier that is bound to a filter or projection type.
-As we mentioned in Section \ref{sec:unions}, assignments restore
-discriminated union types to their original types, and
-function \emph{write} works in this purpose.
+accessing an identifier that is bound to a filter type.
+As we mentioned in Sections \ref{sec:unions} and \ref{sec:alias},
+assignments restore discriminated union types to their original types,
+and function \emph{write} works in this purpose.
 We can define \emph{write} as follows:
 \begin{align*}
 write(\phi(T_{1},T_{2})) & = T_{1}\\
@@ -1500,10 +1509,17 @@ As an example,
 \end{tabular}
 \end{center}
 does not type check because we cannot add the field $``x"$ to $b$,
-as its type is \emph{closed}, and thus does not allow changing the
-value that is stored in the field $``x"$ of $a$.
+as its type is \emph{closed} through \textsc{T-IDWRITE}.
+Aliasing $a$ changes the type of $a$ from $\emph{unique}$ to
+$\emph{open}$, and that is the reason why we can add the field
+$``x"$ to the type of $a$.
+Aliasing $a$ also produces the type $\{\}_{closed}$, which is
+the same type that $b$ has in left-hand side of the assignment.
+After the assignment, the type of $b$ is \emph{closed} and thus
+does not allow changing the value that is stored in the field
+$``x"$ of $a$.
 
-We also have different rules for type checking table indexing to avoid
+Our type system also has different rules for type checking table indexing to avoid
 changing table types in these operations, as they cannot create aliases:
 \[
 \begin{array}{c}
@@ -1530,6 +1546,7 @@ changing table types in these operations, as they cannot create aliases:
 \end{array}
 \]
 
+
 A second form of refinement happens when we want to use an
 \emph{unique} or \emph{open} table type in a context that expects a
 \emph{fixed} or \emph{closed} table type with a different shape.
@@ -1545,6 +1562,11 @@ obeys the \textsc{T-COERCE} rule below:
       {\env_{1}, \penv \vdash {<}T{>} \; id:T_{1}, \env_{2}}
 \end{array}
 \]
+
+Note that rule \textsc{T-COERCE} only allows changing the type
+of a variable if the new type is a supertype of the previous type,
+and the resulting type is always \emph{fixed} or \emph{closed}
+to prevent the creation of unsafe aliases.
 
 The rule \textsc{T-COERCE} allows our type system to type check the following example:
 \begin{center}
@@ -1587,10 +1609,10 @@ the type of variables before type checking a nested scope and
 also to change the type of assigned and referenced variables after
 type checking a nested scope.
 The function \emph{crall} closes all \emph{unique} and \emph{open}
-table types; it also restores filter types to their original type.
+table types; it also restores filter types to their original types.
 The function \emph{crset} closes a given set of free assigned variables,
 which is given by the function \emph{fav}, and
-it also uses this set to restore filter types to their original type.
+it also uses this set to restore filter types to their original types.
 The function \emph{openset} changes from \emph{unique} to \emph{open}
 a given set of referenced variables, which is given by the function \emph{rv}.
 
@@ -1644,7 +1666,7 @@ As an example, lets assume that \emph{idiv} and \emph{print} are functions
 in the environment.
 The function \emph{idiv} has type
 $\Integer \times \Integer \times \Void \rightarrow \Integer \times \Integer \times \Void \sqcup \Nil \times \String \times \Void$,
-while the function \emph{print} thas type
+while the function \emph{print} has type
 $\Value{*} \rightarrow \Void$.
 Our type system uses three typing rules to type check the following program:
 \begin{center}
@@ -1674,7 +1696,7 @@ a projection environment $\penv$, we can check that an expression
 list $el$ has type $S_{1}$ and produces a new type environment $\env_{2}$
 and produces a pair $(x,S_{2})$.
 This pair means that the last expression of an expression list $el$
-produces an union of second-level types $S_{2}$ that sould be bound
+produces an union of second-level types $S_{2}$ that should be bound
 to a variable $x$ in the projection environment $\penv$,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
@@ -1710,9 +1732,11 @@ bounds the projection type $\pi_{2}^{x}$ to $r$, where the projection variable $
 \Integer \times \Integer \times \Nil{*} \sqcup \Nil \times \String \times \Nil{*}
 \]
 in the projection environment $\penv$. 
-This means that $q$ uses $\pi_{1}^{x}$ to project its type into the
-union type $\Integer \cup \Nil$, while $r$ uses $\pi_{2}^{x}$ to
-project its type into the union $\Integer \cup \String$.
+After assigning projection types to $q$ and $r$, reading $q$ will
+use the projection type $\pi_{1}^{x}$ to project the type of $q$
+into the union type $\Integer \cup \Nil$, while reading $r$ will
+use the projection type $\pi_{2}^{x}$ to project the type of $r$
+into the union type $\Integer \cup \String$.
 
 Introducing a projection variable $x$ in the projection environment allows our
 type system to discriminate projection types $\pi_{i}^{x}$.

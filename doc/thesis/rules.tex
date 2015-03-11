@@ -620,14 +620,14 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-IDREAD1}
 \[
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash id:close(T_{2}), \env[id \mapsto open(T_{1})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
 \]
 
 \mylabel{T-IDREAD2}
 \[
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env, \penv \vdash id:fix(T_{2}), \env[id \mapsto fix(T_{1})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
+      {\env_{1}, \penv \vdash id:fix(T_{2}), \env_{1}[id \mapsto fix(T_{1})]}
 \]
 
 \mylabel{T-INDEX1}
@@ -685,15 +685,15 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-CONSTRUCTOR1}
 \[
-\env, \penv \vdash \{\}:\{\}_{unique}, \env
+\env_{1}, \penv \vdash \{\}:\{\}_{unique}, \env_{1}
 \]
 
 \mylabel{T-CONSTRUCTOR2}
 \[
 \dfrac{\env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
-       n = |\;\overline{p}\;| \;\;\;
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
-       wf(T)}
+       wf(T) \;\;\;
+       n = |\;\overline{p}\;|}
       {\env_{1}, \penv \vdash \{\;\overline{p}\;\}:T, \env_{n+1}}
 \]
 
@@ -1017,8 +1017,8 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-IDWRITE}
 \[
-\dfrac{\env(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
-      {\env, \penv \vdash id_{l}:close(T_{2}), \env[id \mapsto close(T_{2})]}
+\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
+      {\env_{1}, \penv \vdash id_{l}:close(T_{2}), \env_{1}[id \mapsto close(T_{2})]}
 \]
 
 \mylabel{T-REFINE}
