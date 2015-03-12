@@ -325,13 +325,17 @@ function code_block (block, fmt)
   local l = {}
   local firstline = fmt.line
   local saveindent = fmt.indent
-  if block[1] and block[1].l > firstline then
+  if block[1] and block[1].l and block[1].l > firstline then
     fmt.indent = fmt.indent + 1
   else
     fmt.indent = 0
   end
   for _, v in ipairs(block) do
-    resync_line(v, fmt, l)
+    if v.l then
+      resync_line(v, fmt, l)
+    else
+      table.insert(l, "\n")
+    end
     table.insert(l, code_stm(v, fmt))
   end
   if fmt.line ~= firstline then
