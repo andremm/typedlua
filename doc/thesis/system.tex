@@ -885,16 +885,16 @@ id \; | \;
 e_{1}[e_{2}] \; | \;
 {<}T{>} \; id \; | \;
 f \; | \;
-\{ \; \overline{p} \; \} \; | \;
-\{ \; \overline{p},me \; \} \; | \;
-e_{1} + e_{2} \; | \;
-e_{1} \; {..} \; e_{2} \\
-& | \; e_{1} == e_{2} \; | \;
+\{ \; \overline{[e_{1}] = e_{2}} \; \} \; | \;
+\{ \; \overline{[e_{1}] = e_{2}},me \; \} \\
+& | \; e_{1} + e_{2} \; | \;
+e_{1} \; {..} \; e_{2} \; | \;
+e_{1} == e_{2} \; | \;
 e_{1} < e_{2} \; | \;
 e_{1} \;\&\; e_{2} \; | \;
 e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \; | \;
-\mathbf{not} \; e \; | \;
+e_{1} \; \mathbf{or} \; e_{2} \\
+& | \; \mathbf{not} \; e \; | \;
 \# \; e \; | \;
 \lfloor me \rfloor_{1}\\
 l ::= & \;\; id_{l} \; | \;
@@ -905,19 +905,150 @@ k ::= & \;\; \mathbf{false} \; | \;
 {\it int} \; | \;
 {\it float} \; | \;
 {\it string}\\
-p ::= & \;\; [e_{1}] = e_{2}\\
 el ::= & \;\; \overline{e} \; | \;
 \overline{e}, me\\
 me ::= & \;\; a \; | \;
 {...}\\
 a ::= & \;\; e(el) \; | \;
 e{:}n(el)\\
-m ::= & \;\; \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T}){:}S \; fb \; | \;
-\mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T},{...}{:}T){:}S \; fb\\
-f ::= & \;\; \mathbf{fun} \; (\overline{id{:}T}){:}S \; fb \; | \;
-\mathbf{fun} \; (\overline{id{:}T},{...}{:}T){:}S \; fb\\
-fb ::= & \;\; s \;;\; \mathbf{return} \; el\\
-id ::= & \;\; {\it name}\\
+m ::= & \;\; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el\\
+f ::= & \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el\\
+pl ::= & \;\; \overline{id{:}T} \; | \;
+\overline{id{:}T},{...}{:}T\\
+\end{array}
+$$
+\dend
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax1}
+\end{figure}
+
+\begin{figure}[!ht]
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rlr}
+s ::= & & \textsc{statements:}\\
+& \;\; \mathbf{skip} \;
+| \; s_{1} \; ; \; s_{2} \;
+| \; \overline{l} = el & \\
+& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
+| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \\
+& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s \;
+| \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \\
+& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s \;
+| \; \mathbf{return} \; el \;
+| \; \lfloor a \rfloor_{0} & \\
+& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
+e ::= & & \textsc{expressions:}\\
+& \;\; \mathbf{nil} \;
+| \; k \;
+| \; id \;
+| \; e_{1}[e_{2}] \;
+| \; {<}T{>} \; id \;
+| \; f & \\
+& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
+| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \\
+& | \; e_{1} + e_{2} \;
+| \; e_{1} \; {..} \; e_{2} \;
+| \; e_{1} == e_{2} \;
+| \; e_{1} < e_{2} & \\
+& | \; e_{1} \;\&\; e_{2} \;
+| \; e_{1} \; \mathbf{and} \; e_{2} \;
+| \; e_{1} \; \mathbf{or} \; e_{2} \;
+| \; \mathbf{not} \; e \;
+| \; \# \; e & \\
+& | \; \lfloor me \rfloor_{1} & \\
+l ::= & & \textsc{left-hand values:}\\
+& \;\; id_{l} \; | \;
+e_{1}[e_{2}] \; | \;
+id[k] \; {<}T{>} & \\
+k ::= & & \textsc{literal constants:}\\
+& \;\; \mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
+{\it string} & \\
+el ::= & & \textsc{expression lists:}\\
+& \;\; \overline{e} \; | \;
+\overline{e}, me & \\
+me ::= & & \textsc{multiple results:}\\
+& \;\; a \; | \;
+{...} & \\
+a ::= & & \textsc{applications:}\\
+& \;\; e(el) \; | \;
+e{:}n(el) & \\
+f ::= & & \textsc{function declarations:}\\
+& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
+pl ::= & & \textsc{parameter lists:}\\
+& \;\; \overline{id{:}T} \; | \;
+\overline{id{:}T},{...}{:}T & \\
+\end{array}
+$$
+\dend
+\caption{Typed Lua abstract syntax}
+\label{fig:syntax2}
+\end{figure}
+
+\begin{figure}[!ht]
+\textbf{Abstract Syntax}\\
+\dstart
+$$
+\begin{array}{rlr}
+s ::= & & \textsc{statements:}\\
+& \;\; \mathbf{skip} \;
+| \; s_{1} \; ; \; s_{2} & \textit{skip and sequence}\\
+& | \; \overline{l} = el & \textit{multiple assignment}\\
+& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
+| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
+& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s \;
+| \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s & \textit{recursive function} \\
+& | \; \mathbf{return} \; el & \textit{return} \\
+& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
+& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
+e ::= & & \textsc{expressions:}\\
+& \;\; \mathbf{nil} \;
+| \; k & \textit{nil and other literals}\\
+& | \; id & \textit{variable reading}\\
+& | \; e_{1}[e_{2}] & \textit{table reading}\\
+& | \; {<}T{>} \; id & \textit{type coercion}\\
+& | \; f & \textit{function declaration}\\
+& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
+| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \textit{table constructor}\\
+& | \; e_{1} + e_{2} \;
+| \; e_{1} \; {..} \; e_{2} \;
+| \; e_{1} == e_{2} \;
+| \; e_{1} < e_{2} & \textit{binary operations}\\
+& | \; e_{1} \;\&\; e_{2} \;
+| \; e_{1} \; \mathbf{and} \; e_{2} \;
+| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
+& | \; \mathbf{not} \; e \;
+| \; \# \; e & \textit{unary operations} \\
+& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
+l ::= & & \textsc{left-hand values:}\\
+& \;\; id_{l} & \textit{variable writing}\\
+& | \; e_{1}[e_{2}] & \textit{table writing}\\
+& | \; id[k] \; {<}T{>} & \textit{type coercion}\\
+k ::= & & \textsc{literal constants:}\\
+& \;\; \mathbf{false} \; | \;
+\mathbf{true} \; | \;
+{\it int} \; | \;
+{\it float} \; | \;
+{\it string} & \\
+el ::= & & \textsc{expression lists:}\\
+& \;\; \overline{e} \; | \;
+\overline{e}, me & \\
+me ::= & & \textsc{multiple results:}\\
+& \;\; a & \textit{application}\\
+& | \; {...} & \textit{vararg expression}\\
+a ::= & & \textsc{applications:}\\
+& \;\; e(el) & \textit{function application}\\
+& | \; e{:}n(el) & \textit{method application}\\
+f ::= & & \textsc{function declarations:}\\
+& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
+pl ::= & & \textsc{parameter lists:}\\
+& \;\; \overline{id{:}T} \; | \;
+\overline{id{:}T},{...}{:}T & \\
 \end{array}
 $$
 \dend
