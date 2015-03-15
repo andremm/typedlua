@@ -42,8 +42,8 @@ option to choose between static and dynamic typing:
 approaches for blending static and dynamic typing in the same
 language.
 The aim of both approaches is to offer programmers the option
-to use type annotations where static typing is needed and to avoid
-them where dynamic typing is sufficient.
+to use type annotations where static typing is needed,
+allowing the incremental migration from dynamic to static typing.
 The difference between these two approaches is the way they treat
 run-time semantics.
 While optional type systems do not affect run-time semantics,
@@ -119,9 +119,9 @@ checked by its optional type system.
 An application language is a programming language that helps
 programmers develop applications from scratch until these
 applications evolve into complex systems rather than just scripts.
-We shall see that Typed Lua introduces the refinement of
-tables to support the common way that Lua programmers use
-them to represent both modules and objects.
+We will show that Typed Lua introduces the refinement of
+tables to support the common idioms that Lua programmers use
+to encode both modules and objects.
 
 We also believe that Typed Lua helps programmers give more
 formal documentation to already existing Lua code, as static types
@@ -162,16 +162,16 @@ shed some light on optional type systems for scripting languages
 in general, as Lua is a small scripting language that shares
 some features with other scripting languages such as JavaScript.
 
-In Chapter \ref{chap:review} we review the literature about static
-and dynamic typing in the same language, we discuss the differences
+This work is split into seven chapters.
+In Chapter \ref{chap:review} we review the literature about blending
+static and dynamic typing in the same language, we discuss the differences
 between optional type systems and gradual typing, and we also
 present the results of our survey on Lua idioms.
 In Chapter \ref{chap:typedlua} we use code examples to present the
 design of Typed Lua.
-In Chapter \ref{chap:system} we use typing rules to present the
-formalization of Typed Lua.
-In Chapter \ref{chap:evaluation} we discuss some case studies that
-we used to evaluate our design, and we also compare our design
-to related work.
+In Chapter \ref{chap:system} we present our type system.
+In Chapter \ref{chap:evaluation} we discuss the evaluation
+results that we obtained while using Typed Lua to type existing Lua code.
+In Chapter \ref{chap:related} we present some related work.
 In Chapter \ref{chap:conc} we outline our contributions.
 

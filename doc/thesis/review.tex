@@ -164,7 +164,7 @@ type system.
 Dart \citep{dart} and TypeScript \citep{typescript} are new
 languages that are designed with an optional type system.
 Both use JavaScript as their code generation target because
-their main purpose is web development.
+their main purpose is Web development.
 In fact, Dart is a new class-based object-oriented language with
 optional type annotations and semantics that resembles the
 semantics of Smalltalk, while TypeScript is a strict superset of
@@ -205,12 +205,12 @@ a dynamic type to statically typed languages.
 \dstart
 $$
 \begin{array}{llr}
-T ::= & & \textsc{types}\\
+T ::= & & \textsc{types:}\\
 & \;\; \Number & \textit{base type number}\\
 & | \; \String & \textit{base type string}\\
 & | \; ? & \textit{dynamic type}\\
 & | \; T \rightarrow T & \textit{function types}\\
-e ::= & & \textsc{expressions}\\
+e ::= & & \textsc{expressions:}\\
 & \;\; l & \textit{literals}\\
 & | \; x & \textit{variables}\\
 & | \; \lambda x{:}T{.}e & \textit{abstractions}\\
@@ -423,8 +423,8 @@ $$
 \label{fig:consistent-subtyping}
 \end{figure}
 
-Figure \ref{fig:consistent-subtyping} combines consistency and subtyping to
-compose the consistent-subtyping relation for the simply typed
+Figure \ref{fig:consistent-subtyping} combines the consistency and subtyping
+relations to compose the consistent-subtyping relation for the simply typed
 lambda calculus extended with the dynamic type $?$.
 When we combine consistency and subtyping, we are making subtyping handle
 what casts are safe among static types, and we are making consistency
@@ -470,7 +470,7 @@ from the real error.
 to handle this issue, and \citet{ahmed2011bfa} extended
 blame calculus with polymorphism.
 Blame calculus is an intermediate language to integrate
-static and dynamic typing that uses the blame tracking approach
+static and dynamic typing along with the blame tracking approach
 proposed by \citet{findler2002chf}.
 
 On the one hand, blame calculus solves the issue regarding
@@ -505,7 +505,7 @@ may have types and methods as attributes, and can have a state
 ActionScript \citep{moock2007as3} is one the first languages that
 incorporated gradual typing to its implementation and
 Perl 6 \citep{tang2007pri} is also being designed with gradual typing,
-though there is little documentation about the gradual type systems
+though there is few documentation about the gradual type systems
 of these languages.
 
 \section{Approaches that are often called Gradual Typing}

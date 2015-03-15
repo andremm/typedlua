@@ -833,10 +833,9 @@ results in the union type \texttt{number|nil}, because
 \label{sec:rules}
 
 In this section we use a reduced core of Typed Lua to present the
-typing rules that type check multiple assignment, table refinement,
+most interesting rules of our type system.
+These rules type check multiple assignment, table refinement,
 and overloading on the return type of functions.
-We limit this section to the rules that type check these features
-because these rules are the most interesting rules of our type system.
 Appendix \ref{app:rules} presents the full set of typing rules.
 
 Our core limits control flow to if and while statements;
@@ -844,150 +843,25 @@ it has explicit type annotations, explicit scope for variables,
 explicit method declarations, and explicit method calls.
 Here is a list of features that are not present in our reduced core:
 \begin{itemize}
-\item labels and goto statements are not present because they
-are difficult to handle along with our simplified form of
-\emph{flow typing}, and they are out of scope for now;
-\item explicit blocks are not present because we are already using
-explicit scope for variables;
+\item labels and goto statements (they are difficult to handle along
+with our simplified form of \emph{flow typing}, and they are out of
+scope for now);
+\item explicit blocks (we are already using explicit scope for variables);
 \item other loop structures such as repeat-until, numeric for,
-and generic for are not present because we can use while to
-express them;
-\item fields in the table constructor are reduced to a single
-form because we can use this form to express the missing forms; 
-\item arithmetic operators are reduced to addition only
-because the other operators have similar typing rules;
-\item relational operators are reduced to equality and less than
-because inequality has similar typing rules to equality and
-other relational operators have similar typing rules to less than;
-\item bitwise operators are reduced to bitwise and only
-because the other operators have similar typing rules.
+and generic for (we can use while to express them);
+\item table fields other than $[e_{1}] = e_{2}$
+(we can use this form to express the missing forms); 
+\item arithmetic operators other than $+$
+(other arithmetic operators have similar typing rules);
+\item relational operators other than $==$ and $<$
+(inequality has similar typing rules to $==$ and
+other relational operators have similar typing rules to $<$);
+\item bitwise operators other than $\&$
+(other bitwise operators have similar typing rules).
 \end{itemize}
 
-\begin{figure}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rl}
-s ::= & \;\; \mathbf{skip} \; | \;
-s_{1} \; ; \; s_{2} \; | \;
-\overline{l} = el \; | \;
-m \; | \;
-\mathbf{while} \; e \; \mathbf{do} \; s \; | \;
-\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}\\
-& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s \; | \;
-\mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s \; | \;
-\mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s\\
-& | \; \mathbf{return} \; el \; | \;
-\lfloor a \rfloor_{0}\\
-e ::= & \;\; \mathbf{nil} \; | \;
-k \; | \;
-id \; | \;
-e_{1}[e_{2}] \; | \;
-{<}T{>} \; id \; | \;
-f \; | \;
-\{ \; \overline{[e_{1}] = e_{2}} \; \} \; | \;
-\{ \; \overline{[e_{1}] = e_{2}},me \; \} \\
-& | \; e_{1} + e_{2} \; | \;
-e_{1} \; {..} \; e_{2} \; | \;
-e_{1} == e_{2} \; | \;
-e_{1} < e_{2} \; | \;
-e_{1} \;\&\; e_{2} \; | \;
-e_{1} \; \mathbf{and} \; e_{2} \; | \;
-e_{1} \; \mathbf{or} \; e_{2} \\
-& | \; \mathbf{not} \; e \; | \;
-\# \; e \; | \;
-\lfloor me \rfloor_{1}\\
-l ::= & \;\; id_{l} \; | \;
-e_{1}[e_{2}] \; | \;
-id[k] \; {<}T{>}\\
-k ::= & \;\; \mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{\it int} \; | \;
-{\it float} \; | \;
-{\it string}\\
-el ::= & \;\; \overline{e} \; | \;
-\overline{e}, me\\
-me ::= & \;\; a \; | \;
-{...}\\
-a ::= & \;\; e(el) \; | \;
-e{:}n(el)\\
-m ::= & \;\; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el\\
-f ::= & \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el\\
-pl ::= & \;\; \overline{id{:}T} \; | \;
-\overline{id{:}T},{...}{:}T\\
-\end{array}
-$$
-\dend
-\caption{Typed Lua abstract syntax}
-\label{fig:syntax1}
-\end{figure}
-
-\begin{figure}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rlr}
-s ::= & & \textsc{statements:}\\
-& \;\; \mathbf{skip} \;
-| \; s_{1} \; ; \; s_{2} \;
-| \; \overline{l} = el & \\
-& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
-| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \\
-& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s \;
-| \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \\
-& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s \;
-| \; \mathbf{return} \; el \;
-| \; \lfloor a \rfloor_{0} & \\
-& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
-e ::= & & \textsc{expressions:}\\
-& \;\; \mathbf{nil} \;
-| \; k \;
-| \; id \;
-| \; e_{1}[e_{2}] \;
-| \; {<}T{>} \; id \;
-| \; f & \\
-& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
-| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \\
-& | \; e_{1} + e_{2} \;
-| \; e_{1} \; {..} \; e_{2} \;
-| \; e_{1} == e_{2} \;
-| \; e_{1} < e_{2} & \\
-& | \; e_{1} \;\&\; e_{2} \;
-| \; e_{1} \; \mathbf{and} \; e_{2} \;
-| \; e_{1} \; \mathbf{or} \; e_{2} \;
-| \; \mathbf{not} \; e \;
-| \; \# \; e & \\
-& | \; \lfloor me \rfloor_{1} & \\
-l ::= & & \textsc{left-hand values:}\\
-& \;\; id_{l} \; | \;
-e_{1}[e_{2}] \; | \;
-id[k] \; {<}T{>} & \\
-k ::= & & \textsc{literal constants:}\\
-& \;\; \mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{\it int} \; | \;
-{\it float} \; | \;
-{\it string} & \\
-el ::= & & \textsc{expression lists:}\\
-& \;\; \overline{e} \; | \;
-\overline{e}, me & \\
-me ::= & & \textsc{multiple results:}\\
-& \;\; a \; | \;
-{...} & \\
-a ::= & & \textsc{applications:}\\
-& \;\; e(el) \; | \;
-e{:}n(el) & \\
-f ::= & & \textsc{function declarations:}\\
-& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
-pl ::= & & \textsc{parameter lists:}\\
-& \;\; \overline{id{:}T} \; | \;
-\overline{id{:}T},{...}{:}T & \\
-\end{array}
-$$
-\dend
-\caption{Typed Lua abstract syntax}
-\label{fig:syntax2}
-\end{figure}
+Our reduced core does not lose much expressiveness, as it can express
+any Lua program except those that use labels and goto statements.
 
 \begin{figure}[!ht]
 \textbf{Abstract Syntax}\\
@@ -1059,9 +933,9 @@ $$
 Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
 It splits the syntactic categories as follows:
 $s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$el$ are expression lists, $k$ are literal constants, $p$ are table fields,
-$me$ are expressions with multiple results, $f$ are function declarations,
-$m$ are method declarations, $a$ are function and method applications,
+$k$ are literal constants, $el$ are expression lists,
+$me$ are expressions with multiple results, $a$ are function and method applications,
+$f$ are function declarations, $pl$ are parameter lists,
 $id$ are variable names, $T$ are first-level types, and $S$ are second-level types.
 The notation $\overline{id{:}T}$ denotes the list $id_{1}{:}T_{1}, ..., id_{n}{:}T_{n}$,
 where $n$ can be zero.
@@ -1089,29 +963,36 @@ of tables in the presence of refinement.
 We use $id$ when variable names appear as expressions and $id_{l}$ when
 variable names appear as left-hand values.
 
-We present the typing rules as a deduction system for the typing relations
-$\env_{1}, \penv \vdash s, \env_{2}$ and $\env_{1}, \penv \vdash e : T, \env_{2}$.
-We use the first one for typing statements and the second one for typing expressions.
-The first relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, we can check a statement $s$
-producing a new type environment $\env_{2}$.
-The second relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, we can check that an expression $e$ has
-type $T$ and produces a new type environment $\env_{2}$.
-
 Even though we can assign only first-level types to variables,
 functions and methods can return unions of second-level types,
 and our type system should be able to project these unions of
 second-level types into unions of first-level types.
-To do that, we use projection types and the environment $\penv$ that
-maps projection variables to second-level types, while the
-environment $\env$ maps variables to first-level types.
-We will show how our type system uses the environment $\penv$ for
-handling projection types in Section \ref{sec:fap}.
+We use two different environments to handle this feature.
+The first environment is the type environment $\env$ that maps
+variables to first-level types.
 We use $\env_{1}[id \mapsto T]$ to extend the environment $\env_{1}$
 with the variable $id$ that maps to type $T$.
-We use $\penv[x \mapsto S]$ to extend the environment $\penv$ with
-the projection variable $x$ that maps to the second-level type $S$.
+The second environment is the projection environment $\penv$ that
+maps projection variables to second-level types.
+We use $\penv[x \mapsto S]$ to extend the environment $\penv$
+with the projection variable $x$ that maps to type $S$.
+In Section \ref{sec:fap} we will show how our type system uses the
+projection environment $\penv$ for handling projection types,
+and also for projecting unions of second-level types into
+unions of first-level types.
+
+We present the typing rules as a deduction system for two typing relations,
+one for typing statements and another for typing expressions.
+
+We use the relation $\env_{1}, \penv \vdash s, \env_{2}$ for typing statements.
+This relation means that given a type environment $\env_{1}$
+and a projection environment $\penv$, we can check that a statement $s$
+produces a new type environment $\env_{2}$.
+
+We use the relation $\env_{1}, \penv \vdash e : T, \env_{2}$ for typing expressions.
+This relation means that given a type environment $\env_{1}$
+and a projection environment $\penv$, we can check that an expression $e$ has
+type $T$ and produces a new type environment $\env_{2}$.
 
 \subsection{Assignment and function application}
 \label{sec:assignment}
