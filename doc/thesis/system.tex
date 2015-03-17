@@ -7,13 +7,13 @@ This is a benefit to programmers that use dynamically typed languages
 to build large applications, as static types detect many bugs
 during the development phase, and also provide better documentation.
 
-In this chapter we present the formalization of Typed Lua's type system.
+In this chapter we present the abstract syntax of Typed Lua types,
+the subtyping rules, and the most interesting typing rules.
 Besides its practical contributions, Typed Lua also has some interesting
 contributions to the field of optional type systems for scripting
 languages.
 They are novel type system features that let Typed Lua cover several Lua idioms
-and features, such as refinement of tables, multiple assignment, multiple return values,
-and optional parameters.
+and features, such as refinement of tables, multiple assignment, and multiple return values.
 
 \section{Types}
 \label{sec:types}
@@ -116,7 +116,7 @@ As we mentioned in Section \ref{sec:oop}, we need the type
 $\Self$ to prevent programs from indexing a method without
 calling it with the correct receiver.
 
-Union types $T_{1} \cup T_{2}$ represent types that can hold a value
+Union types $T_{1} \cup T_{2}$ represent data types that can hold a value
 of two different types.
 
 Function types have the form $S_{1} \rightarrow S_{2}$ and represent Lua functions,
@@ -192,15 +192,19 @@ interface declaration as an alias to this type:
 
 Typed Lua includes filter types as a way to discriminate the type of local
 variables inside conditions.
-In Section \ref{sec:fap} we show in more detail how our type system
-uses them to formalize the \texttt{type} predicates that we mentioned
-in Section \ref{sec:unions}.
+Our type system uses filter types to formalize the \texttt{type} predicates
+that we mentioned in Section \ref{sec:unions}.
+This means that \texttt{type} predicates use filter types of the form
+$\phi(T_{1},T_{2})$ to discriminate local variables that are bound to
+union types.
+In a filter type $\phi(T_{1},T_{2})$, $T_{1}$ is the original type and
+$T_{2}$ is the discriminated type.
 
 Typed Lua includes projection types as a way to project
 unions of tuple types into unions of first-level types.
-In Section \ref{sec:fap} we show in more detail how our type system
+In Section \ref{sec:fap} we will show in more detail how our type system
 uses them as a mechanism for handling unions of tuple types,
-when they appear on the right-hand side of the declaration of local variables,
+when they appear in the right-hand side of the declaration of local variables,
 as we mentioned in Section \ref{sec:unions}.
 We also show how this feature allows our type system to constrain
 the type of a local variable that depends on the type of another local variable.
@@ -548,7 +552,7 @@ More precisely,
 
 Simply promoting the type of each table value to its supertype would
 not overcome this limitation, as it still would give to the table constructor
-a regular table type without covariant mutable fields.
+a \emph{closed} table type without covariant mutable fields.
 Thus, programmers would not be able to use the table constructor to
 initialize a variable with a table type that includes an optional field.
 Using the previous example,
@@ -703,8 +707,7 @@ but it allows depth subtyping on $\Const$ fields:
 \]
 
 In the next section we will show in more detail how our type system
-uses these tags to handle the refinement of table types and idiomatic
-object-oriented code.
+uses these tags to handle the refinement of table types.
 
 We use the \emph{Amber rule} \citep{cardelli1986amber} to define
 subtyping between recursive types:
@@ -937,8 +940,7 @@ $k$ are literal constants, $el$ are expression lists,
 $me$ are expressions with multiple results, $a$ are function and method applications,
 $f$ are function declarations, $pl$ are parameter lists,
 $id$ are variable names, $T$ are first-level types, and $S$ are second-level types.
-The notation $\overline{id{:}T}$ denotes the list $id_{1}{:}T_{1}, ..., id_{n}{:}T_{n}$,
-where $n$ can be zero.
+The notation $\overline{id{:}T}$ denotes the list $id_{1}{:}T_{1}, ..., id_{n}{:}T_{n}$.
 
 Our reduced core includes two statements for declaring local variables,
 one with and another without type annotations.
@@ -1008,7 +1010,7 @@ the type of the left-hand side.
 
 As an example, lets assume that $x$ and $y$ are variables in the
 environment with types $\Integer$ and $\String$.
-Let us see how our type system type checks the following assignment
+Let us see how our type system type checks the following assignment:
 \[
 x, y = 1, ``foo"
 \]
@@ -1022,13 +1024,14 @@ missing values.
 The rules that type check expression lists introduce the type
 $\Nil{*}$ to let the right-hand side produce fewer values than
 expected in the left-hand side.
-Our example uses the rule \textsc{T-EXPLIST1} which is the rule
-that type checks an expression list where all expressions can
-only produce a single value:
+Our example uses the rule \textsc{T-EXPLIST1} to type check
+the right-hand side of the assignment.
+The rule \textsc{T-EXPLIST1} is the rule that type checks an
+expression list where all expressions can only produce a single value:
 \[
 \begin{array}{c}
 \mylabel{T-EXPLIST1}\\
-\dfrac{\env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{e}\;|}
       {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
@@ -1044,19 +1047,20 @@ In Section \ref{sec:refinement} we will also show that we can only change the
 environment to add new table fields in a table type, and we cannot change the
 type of a variable or a table field which is already present in a table type.
 
-Then, our type system type checks the list of left-hand values.
+After type checking the right-hand side, our type system type checks the list
+of left-hand values.
 In our example, the left-hand side of the assignment has type 
 $\Integer \times \String \times \Value{*}$.
 Note that our type system uses the type $\Value{*}$ to discard extra values.
 The rule that type checks lists of left-hand values introduces the type
 $\Value{*}$ to let the right-hand side produce more values than
 expected in the left-hand side.
-Our example uses the rule \textsc{T-LHSLIST} which is the rule that type
+Our example uses the rule \textsc{T-LHSLIST} to type
 checks a list of left-hand values:
 \[
 \begin{array}{c}
 \mylabel{T-LHSLIST}\\
-\dfrac{\env_{i}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{l}\;|}
       {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
@@ -1147,7 +1151,7 @@ are expressions that produce multiple values:
 
 We also use the rule \textsc{T-APPLY1} as the base case for the rules
 that handle the cases where function applications are either statements
-or expressions that produce only one value.
+that produce no value or expressions that produce only one value.
 The rule \textsc{T-STMAPPLY1} discards the produced values,
 while the rule \textsc{T-EXPAPPLY1} uses the auxiliary function
 \emph{first} to ensure that only one value is produced:
@@ -1195,6 +1199,8 @@ also type checks through the rule \textsc{T-APPLY1}, because
 \]
 
 Our type system also catches arity mismatch.
+To do that, we end the input type of a funcion with type $\Void$
+instead of $\Value{*}$.
 For instance, let us assume that $f$ has type
 $\String \times (\Integer \cup \Nil) \times (\Integer \cup \Nil) \times \Void \rightarrow \Integer{*}$.
 The function call
@@ -1428,7 +1434,7 @@ the context that we are using a variable.
 As we mentioned in Sections \ref{sec:oop} and \ref{sec:subtyping},
 we need \emph{fixed} table types to type classes in object-oriented programming.
 In the implementation we fix the aliasing of \emph{unique} and \emph{open}
-table types that appear in a return statement, and in other cases we
+table types that appear in a top-level return statement, and in other cases we
 close the aliasing of \emph{unique} and \emph{open} table types.
 However, in the formalization we chose to define this behavior not
 deterministically, as it makes easier the presentation of this behavior.
@@ -1698,7 +1704,7 @@ The function \emph{idiv} has type
 As we mentioned in Section \ref{sec:unions}, \emph{idiv} performs
 integer division.
 In case of success, it returns two integers: the result and the remainder.
-In case of failure, it returns $\Nil$ plus an error message that indicates
+In case of failure, it returns $\Nil$ plus an error message that describes
 the error.
 The function \emph{print} is a variadic function of type
 $\Value{*} \rightarrow \Void$.
@@ -1753,7 +1759,7 @@ where the projection variable $x$ bounds to
 (\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})
 \]
 in the projection environment $\penv$.
-Rule \textsc{T-LOCAL2} captures this intuition:
+Rule \textsc{T-LOCAL2} illustrates this intuition:
 \[
 \begin{array}{c}
 \mylabel{T-LOCAL2}\\
@@ -1778,7 +1784,7 @@ use the projection type $\pi_{1}^{x}$ to project the type of $q$
 into the union type $\Integer \cup \Nil$, while reading $r$ will
 use the projection type $\pi_{2}^{x}$ to project the type of $r$
 into the union type $\Integer \cup \String$.
-However, we want to discriminate these variables to check whether
+Now, we may want to discriminate these variables to check whether
 the function call returned with success.
 
 Introducing a projection variable $x$ in the projection environment allows our
