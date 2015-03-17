@@ -1187,23 +1187,6 @@ as we discuss in the next section.
 \section{Object-Oriented Programming}
 \label{sec:oop}
 
-\begin{figure}[!ht]
-\textbf{Classes}\\
-\dstart
-\begin{align*}
-\textit{interface} ::= & \;\; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
-\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
-\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
-\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
-\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
-\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}\\
-\textit{methodtype} ::= & \;\; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettype}
-\end{align*}
-\dend
-\caption{The concrete syntax of Typed Lua interfaces}
-\label{fig:classes}
-\end{figure}
-
 Lua provides minimal support for object-oriented programming.
 The basic mechanism is the \texttt{:} syntactic sugar for method
 definitions and method calls.
@@ -1219,8 +1202,8 @@ and then calls \texttt{obj.method} with the result of evaluating
 \texttt{obj} as the first argument, followed by the result of
 evaluating the argument list in the original expression.
 
-Typed Lua uses table types along with the type \texttt{self} to
-represent objects.
+Typed Lua uses table types along with the type
+\texttt{self} to represent objects.
 We use the following example to discuss this feature:
 \begin{verbatim}
     local Shape = { x = 0.0, y = 0.0 }
@@ -1259,70 +1242,38 @@ After the call \texttt{setmetatable(t1, \{ \string_\string_index = t2 \})},
 Lua looks up in \texttt{t2} for any missing fields of \texttt{t1}.
 As we mentioned in Section \ref{sec:statistics},
 Lua programmers often use this mechanism to simulate classes.
-
-Typed Lua combines this mechanism along with type aliases and
-interfaces to allow programmers to define classes in a similar
-fashion to the definition of modules.
-We use the following example to discuss how Typed Lua type checks
-object-oriented code:
+We will use the following example to discuss this feature:
 \begin{verbatim}
-    interface Shape
-      x, y:number
-      const new:(number, number) => (self)
-      const move:(number, number) => ()
-    end
     local Shape = { x = 0.0, y = 0.0 }
-    const function Shape:new (x:number, y:number)
-      local s = setmetatable({}, { __index = self })
+    const function Shape:new (x:number, y:number):self
+      local s:self = setmetatable({}, { __index = self })
       s.x = x
       s.y = y
       return s
     end
-    const function Shape:move (dx:number, dy:number)
+    const function Shape:move (dx:number, dy:number):()
       self.x = self.x + dx
       self.y = self.y + dy
     end
     return Shape
 \end{verbatim}
 
-In this example, we use an interface to define the type of the class \texttt{Shape}.
-We use the \texttt{const} annotation in the type of the methods
-because it is necessary for covariance among object types work.
-We use a double arrow instead of a single arrow because it is
-syntactic sugar for defining the type of methods,
-as it includes an implicit first type \texttt{self}.
-The double arrow can appear only inside the declaration of
-interfaces and userdata, which we will introduce in the next section.
-This interface definition exports the following object type to the class \texttt{Shape}:
-\begin{verbatim}
-    { "x":number, "y":number,
-      const "new":(self, number, number) -> (self),
-      const "move":(self, number, number) -> () }
-\end{verbatim}
-
-In Typed Lua, \texttt{setmetatable} is a strict primitive.
-Typed Lua only allows calling \texttt{setmetatable} with
-two operands.
-The first operand can be any table \texttt{t1}, but
-the second operand must be a table of the form
-\texttt{\{ \string_\string_index = t2 \}},
-where \texttt{t2} can be any table.
+In Typed Lua, \texttt{setmetatable} is a strict primitive
+that obeys three typing rules.
 The reason for being so strict with \texttt{setmetatable} is because
 it is the only mechanism that Typed Lua has to create classes
 as prototype objects.
-In a \texttt{setmetatable} expression, if the type of \texttt{t2}
-is a subtype of the type of \texttt{t1}, it changes \texttt{t1} to
-have the same type of \texttt{t2}.
 
-In the previous example, we use \texttt{setmetatable} to define a constructor
-\texttt{new} to the class \texttt{Shape}.
-Note that we use \texttt{setmetatable} inside \texttt{new} to declare
-the local \texttt{s} having the same type of \texttt{self}.
+The first \texttt{setmetatable} rule appears in our previous example.
+In a \texttt{setmetatable} expression
+\texttt{setmetatable(\{\},\{\string_\string_index = id\})},
+if \texttt{id} has type \texttt{self} then the expression also also has type \texttt{self}.
+We will explain the other two rules while we explain how
+Typed Lua type checks single inheritance.
 
-Still in the previous example, we are using the refinement of table
-types to build the type of the variable \texttt{Shape},
-as it should work as our object prototype, matching the type
-that the interface declaration exports.
+In our example, we are using the refinement of table types to
+build the type of the variable \texttt{Shape},
+as it should work as our class.
 This means that the local \texttt{Shape} has type
 \texttt{\{"x":number, "y":number\}} inside the definition of \texttt{new}.
 This also makes Typed Lua bind the type of the local \texttt{Shape}
@@ -1333,10 +1284,25 @@ has type
 \texttt{\{"x":number, "y":number, const "new":(self, number, number) -> (self)\}},
 which is the type that Typed Lua binds to the type \texttt{self}
 inside the definition of \texttt{move}.
-Finally, the local \texttt{Shape} has the same type of the
-interface declaration in the last \texttt{return} statement.
+We use the \texttt{const} annotation in the type of the methods
+because it is necessary for covariance among object types work.
+Finally, the last \texttt{return} statement fixes the type of
+\texttt{Shape} because \emph{fixed} table types do not allow width
+subtyping, and this behavior allows Typed Lua to use the refinment
+of table types to type check single inheritance, as we will see in
+this section.
 
-In Typed Lua, the style of classes definition from the previous example
+A return statement that appears in the top-level also exports
+a type alias to be used in type annotations.
+For instance, our example exports the following type alias:
+\begin{verbatim}
+    typealias Shape =
+      <{ "x":number, "y":number,
+         const "new":(self, number, number) -> (self),
+         const "move":(self, number, number) -> () }>
+\end{verbatim}
+
+The style of classes definition from the previous example
 allow us to use \texttt{require} for creating prototype objects that
 work as classes, along with an alias to the table type of the class.
 This allows us to use the exported alias in type annotations,
@@ -1347,53 +1313,104 @@ as we show in the following example:
     local shape2:Shape = Shape:new(10, 10)
 \end{verbatim}
 
+Typed Lua also includes a \texttt{class} construct that programmers
+can use to document the type of the classes they export..
+Figure \ref{fig:classes} shows the concrete syntax of the
+\texttt{class} construct.
+
+\begin{figure}[!ht]
+\textbf{Classes}\\
+\dstart
+\begin{align*}
+\textit{class} ::= & \;\; [\textbf{local}] \; \textbf{class} \; \textit{typedec}\\
+\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
+\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
+\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
+\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}\\
+\textit{methodtype} ::= & \;\; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettype}
+\end{align*}
+\dend
+\caption{The concrete syntax of Typed Lua classes}
+\label{fig:classes}
+\end{figure}
+
+As an example, we can use the following \texttt{class} declaration to
+document the type \texttt{Shape} from the previous example:
+\begin{verbatim}
+    class Shape
+      x, y:number
+      const new:(number, number) => (self)
+      const move:(number, number) => ()
+    end
+\end{verbatim}
+
+We use a double arrow instead of a single arrow because it is
+syntactic sugar for defining the type of methods,
+as it includes an implicit first type \texttt{self}.
+The double arrow can appear only inside the declaration of
+classes and userdata, which we will introduce in the next section.
+
 Typed Lua also uses \texttt{setmetatable} to simulate single inheritance.
 We use the following example to discuss single inheritance in Typed Lua:
 \begin{verbatim}
     local Shape = require "shape"
-    interface Circle
-      x, y, radius:number
-      const new:(number, number, value) => (self)
-      const move:(number, number) => ()
-      const area:() => (number)
-    end
     local Circle = setmetatable({}, { __index = Shape })
     Circle.radius = 0.0
-    const function Circle:new (x:number, y:number, radius:value)
-      local c = setmetatable(Shape:new(x, y), { __index = self })
+    const function Circle:new (x:number, y:number, radius:value):self
+      local c:self = setmetatable(Shape:new(x, y), { __index = self })
       c.radius = tonumber(radius) or 0.0
       return c
     end
-    const function Circle:area ()
+    const function Circle:area ():number
       return math.pi * self.radius * self.radius
     end
     return Circle
 \end{verbatim}
 
-In this example, we use an interface to define the type of the class \texttt{Circle},
-but with a syntactical overhead to manually include new and
-overridden methods.
-This interface definition exports the following object type to the class \texttt{Circle}:
-\begin{verbatim}
-    { "x":number, "y":number, "radius":number,
-      const "new":(self, number, number, value) -> (self),
-      const "move":(self, number, number) -> (),
-      const "radius":() -> (number) }
-\end{verbatim}
-
-In the previous example, we use \texttt{setmetatable} in two different ways.
-In the first case, we use \texttt{setmetatable} to trigger the refinement
-of table types, as we need it to add new methods and override existing ones
-in \texttt{Circle}.
-This is possible because a call to \texttt{setmetatable},
-where \texttt{t1} is a table constructor assigned to a fresh local variable,
-and \texttt{t2} is not \texttt{self} gives this variable an open type.
-In the second case, we use \texttt{setmetatable} to redefine \texttt{new}.
-Note how we can call the constructor of \texttt{Shape} inside
-the overridden constructor.
+In this example, we use the other two \texttt{setmetatable} rules.
+The second rule appears to trigger the refinement of table types,
+as we need this rule to add new methods and also to override
+existing methods in \texttt{Circle}.
+In a \texttt{setmetatable} expression
+\texttt{setmetatable(\{\},\{\string_\string_index = id\})},
+if \texttt{id} has a \emph{fixed} table type then it is safe to
+produce an equivalent \emph{open} table type, as \emph{fixed}
+table types do not allow hiding fields.
+The third rule appears to redefine the constructor \texttt{new}.
+In a \texttt{setmetatable} expression
+\texttt{setmetatable(e,\{\string_\string_index = id\})},
+if \texttt{e} has a \emph{fixed} table type \texttt{t}, \texttt{id} has
+type \texttt{self}, and the type bound to \texttt{self} is a subtype of
+\texttt{t}, then the expression has type \texttt{self}.
+Note how we can use this rule to call the constructor of \texttt{Shape}
+inside the overridden constructor.
 A limitation of this class system is that the overridden constructor
 must be a subtype of the original constructor,
 so the type of \texttt{radius} has to be quite permissive.
+
+Like in the preivous example, the last return statement in the
+top-level exports a \emph{fixed} table type, which we could
+document through the following class declaration:
+\begin{verbatim}
+    class Circle
+      x, y, radius:number
+      const new:(number, number, value) => (self)
+      const move:(number, number) => ()
+      const area:() => (number)
+    end
+\end{verbatim}
+
+Note that this class definition introduces a syntactical overhead
+to manually include new and overriden methods.
+This class definition is equivalent to the alias that exports the
+following \emph{fixed} table type to the class \texttt{Circle}:
+\begin{verbatim}
+    <{ "x":number, "y":number, "radius":number,
+       const "new":(self, number, number, value) -> (self),
+       const "move":(self, number, number) -> (),
+       const "radius":() -> (number) }>
+\end{verbatim}
 
 The type of the class \texttt{Circle} is a subtype of the type of
 the class \texttt{Shape}, and we can use both exported aliases in type
@@ -1409,8 +1426,7 @@ annotations, as we show in the following example:
 \end{verbatim}
 
 In all examples, if we erase all type and \texttt{const} annotations,
-and type declarations, they become valid Lua code, which run with the
-same semantics as Typed Lua code.
+they become valid Lua code, which run with the same semantics as Typed Lua code.
 
 The current version of Typed Lua has some limitations regarding
 the use of \texttt{setmetatable} that are on plans for future work.
