@@ -101,7 +101,7 @@ Ravi introduces optional static typing for Lua to improve run-time performance.
 To do that, Ravi extends the Lua Virtual Machine to include new
 operations that take into account static type information.
 Currently, Ravi extends the Lua Virtual Machine to support few types:
-\texttt{int}, \texttt{double}, arrays of integers, and arrays of doubles.
+\texttt{integer}, \texttt{number}, arrays of integers, and arrays of numbers.
 
 \section{Other projects}
 
@@ -118,7 +118,7 @@ It is a novel way to use type predicates in control flow statements
 to refine union types.
 Occurrence typing is not sound in the presence of mutation.
 As these kinds of checks are common in other languages, related systems
-have appeared \citep{guha2011tlc,winther2011gtp,pearce2013ccf}. 
+have appeared \citep{guha2011tlc,winther2011gtp,pearce2013ccf}.
 
 The type system of Typed Racket also includes function types, recursive
 types, and structure types.
@@ -212,7 +212,7 @@ The type system also relies on subtyping and consistent-subtyping.
 Gradualtalk inserts run-time checks that ensure dynamically
 typed code does not violate statically typed code.
 \citet{allende2013cis} perform a carefull evaluation about
-cast insertion on Gradualtalk.
+cast insertion in Gradualtalk.
 They report that usually cast insertions impact on execution
 performance, so Gradualtalk also has an option that allows
 programmers to turn them off, downgrading Gradualtalk
