@@ -55,7 +55,7 @@ We used these case studies to evaluate two aspects of Typed Lua:
 \hline
 \textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-Lua Standard Library & 62\% & 6\% & 9\% & 23\% & 129 \\ % 100%
+Lua Standard Library & 64\% & 5\% & 8\% & 23\% & 129 \\ % 100%
 \hline
 MD5 & 100\% & 0\% & 0\% & 0\% & 13 \\ % 100%
 \hline
@@ -79,6 +79,7 @@ Typed Lua Compiler & 93\% & 0\% & 1\% & 6\% & 154 \\ % 100%
 
 Table \ref{tab:evalbycase} summarizes our evaluation results for each
 of the case studies that we used Typed Lua for typing their members.
+An exported member is any Lua value that a module might export.
 We split the members of each case study into four categories:
 \emph{easy}, \emph{poly}, \emph{over}, and \emph{hard}.
 The \emph{easy} category shows the percentage of members that
@@ -91,7 +92,7 @@ we gave a static type that is not precise enough,
 as these members are overloaded functions that require intersection
 types to describe their precise static types.
 The \emph{hard} category shows the percentage of members that
-we had to rely on the dynamic type because they rely on reflection.
+we could not give a precise static type.
 The last column of the table shows the total number of members
 of each case study.
 The results that we obtained for the \emph{easy} category give
@@ -122,7 +123,7 @@ Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard L
 \hline
 \textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
 \hline
-base & 35\% & 12\% & 8\% & 45\% & 26 \\ % 100%
+base & 35\% & 4\% & 8\% & 53\% & 26 \\ % 100%
 \hline
 coroutine & 14\% & 0\% & 0\% & 86\% & 7 \\ % 100%
 \hline
@@ -136,7 +137,7 @@ table & 14\% & 72\% & 14\% & 0\% & 7 \\ % 100%
 \hline
 math & 81\% & 0\% & 19\% & 0\% & 27 \\ % 100%
 \hline
-io & 71\% & 0\% & 10\% & 19\% & 21 \\ % 100%
+io & 81\% & 0\% & 0\% & 19\% & 21 \\ % 100%
 \hline
 os & 82\% & 0\% & 18\% & 0\% & 11 \\ % 100%
 \hline
@@ -159,8 +160,7 @@ There are some functions in the \texttt{base} module that
 we could not give a precise static type because our type
 system does not have parametric polymorphism,
 as the \emph{poly} category shows.
-This is the case of \texttt{ipairs}, \texttt{rawget}, and
-\texttt{rawset}.
+This is the case of \texttt{ipairs}.
 
 The \texttt{base} module also includes some overloaded functions,
 as the \emph{over} category shows.
@@ -168,11 +168,13 @@ We could not type these functions because our type system does
 not include intersection types.
 This is the case of \texttt{tonumber} and \texttt{collectgarbage}.
 
-In the case of \texttt{tonumber}, the type of the first parameter
-depends on the type of the second parameter.
+In the case of \texttt{tonumber}, it has two different types:
+\texttt{(value) -> (number)} and \texttt{(string, integer) -> (number)}.
+This means that the type of the first parameter depends on the
+type of the second parameter.
 For instance, we can call \texttt{tonumber(1)}, but we cannot
 call \texttt{tonumber(1,2)}.
-More precisely, the first argument of \texttt{tonumber} can be
+Note that the first argument of \texttt{tonumber} can be
 a value of any type if it is the only argument, but it must
 be a string if there is a second argument,
 which must be an integer.
@@ -192,9 +194,9 @@ Lua has one-shot delimited continuations \citep{james2011yield}
 in the form of \emph{coroutines} \citep{moura2009rc}, and
 effect systems \citep{nielson1999type} are an approach that we
 could use to describe control transfers with continuations.
-However, for now, coroutines are out of the scope of our type
-system, and we use an empty \emph{userdata} declaration
-to represent the type \emph{thread}.
+However, for now, coroutines are out of scope of our type
+system, and we use an empty \texttt{userdata} declaration
+to represent the type \texttt{thread}.
 
 Still, we could give a precise static type to one function in
 the \texttt{coroutine} module, as the \emph{easy} category shows.
@@ -204,7 +206,7 @@ coroutine is yieldable.
 
 We could give precise static types to the constants and functions
 of the \texttt{package} module, but we could not give precise static
-to the following tables:
+types to the following tables that it exports:
 \texttt{package.loaded}, \texttt{package.preload}, and \texttt{package.loaders}.
 The first stores loaded modules, while the others store module \emph{loaders}.
 They are difficult to type because their types rely on reflection,
@@ -219,14 +221,6 @@ For instance, the type of the arguments that we pass to
 It is fine to call \texttt{string.format("\%d", 1)}, but
 \texttt{string.format("\%d", true)} raises a run-time error.
 These functions that rely on format strings are in the \emph{hard} category.
-
-Lua programmers often use the functions of the \texttt{string} module
-in an object-oriented style.
-For instance, \texttt{string.len("foo")} and \texttt{("foo"):len()}
-produce the same result.
-We did not include the typing of the \texttt{string} methods in our
-evaluation results, because we treat this feature as a special case
-in the implementation.
 
 The \texttt{utf8} module was straightforward to type,
 as its members are only operations over strings.
@@ -249,11 +243,11 @@ not give a precise static type because it is an overloaded function,
 as the \emph{over} category shows.
 This function is \texttt{table.insert}, and its type depends on
 the calling arity.
-More precisely, calling \texttt{table.insert(l, v)} inserts the
+That is, calling \texttt{table.insert(l, v)} inserts the
 element \texttt{v} at the end of the list \texttt{l},
 while \texttt{table.insert(l, p, v)} inserts the element \texttt{v}
 at the position \texttt{p} of the list \texttt{l},
-but generates a run-time error when \texttt{p} is out of bounds.
+and generates a run-time error when \texttt{p} is out of bounds.
 This function also does not follow the semantics of Lua on
 discarding extra arguments, and generates a run-time error whenever
 we pass more than three arguments, even if the first three arguments
@@ -265,16 +259,18 @@ For instance, the functions \texttt{math.abs} and \texttt{math.random}
 are in this category.
 
 In the case of \texttt{math.abs},
-calling \texttt{math.abs(1)} returns the integer \texttt{1},
-while \texttt{math.abs(1.1)} returns the floating point \texttt{1.1}.
-Even though we gave this function the type \texttt{(number) -> (number)},
+it has two different types: \texttt{(integer) -> (integer)} and
+\texttt{(number) -> (number)}.
+Even though we gave this function the more general type \texttt{(number) -> (number)},
 it is not precise enough because the return type is always \texttt{number}
 independently of the argument type.
 In other words, the return type should be \texttt{integer} when
 the argument type is also \texttt{integer}, and the return type
 should be \texttt{number} when the argument type is also \texttt{number}.
 
-In the case of \texttt{math.random}, its type depends on the calling arity.
+In the case of \texttt{math.random}, it also has two different types:
+\texttt{() -> (number)} and \texttt{(integer, integer?) -> (integer)}.
+This means that the type of \texttt{math.random} depends on the calling arity.
 Calling \texttt{math.random()} returns a random floating point
 between \texttt{0} and \texttt{1}.
 Calling \texttt{math.random(10)} is equivalent to \texttt{math.random(1,10)},
@@ -287,29 +283,17 @@ The \texttt{io} module provides operations for manipulating files,
 and these operations can use implicit or explicit file descriptors.
 The implicit operations are functions in the \texttt{io} table,
 while the explicit operations are methods of a file descriptor.
-We used an \emph{userdata} declaration to introduce the type
+We used an \texttt{userdata} declaration to introduce the type
 \texttt{file} for representing the type of a file descriptor
 and its methods.
 The evaluation results include both implicit and explicit operations.
 
 We could give precise static types to most of the members of the
-\texttt{io} module, but its categories \emph{over} and \emph{hard}
-show that it includes several members that we could not give a precise
-static type.
-While the function \texttt{io.close} and the method \texttt{file:close}
-are in the \emph{over} category,
-the functions \texttt{io.read} and \texttt{io.lines} are
+\texttt{io} module, but the \emph{hard} category shows that it
+includes some members that we could not give a precise static type.
+The functions \texttt{io.read} and \texttt{io.lines} are
 in the \emph{hard} category along with the methods
 \texttt{file:read} and \texttt{file:lines}.
-
-We could not precisely type \texttt{io.close} because it is
-an overloaded function.
-This means that its return type depends on whether the file handle
-that is being closed was created with \texttt{io.popen}.
-Calling \texttt{io.close(f)} returns the tuple \texttt{(boolean?, string, number)}
-when \texttt{f} was created with \texttt{io.popen},
-but it returns the tuple \texttt{(boolean)?} otherwise.
-The method \texttt{file:close} has the same issue.
 
 We could not precisely type \texttt{io.read} because its return type
 relies on format strings.
@@ -450,7 +434,7 @@ if \texttt{url} is a table and \texttt{body} is \texttt{nil}.
 
 The modules \texttt{mime} and \texttt{ltn12} have a strong connection.
 The \texttt{mime} module offers low-level and high-level filters
-that apply and remove some text encoding.
+that apply and remove some text encodings.
 The low-level filters are written in C, while the high-level filters
 use the function \texttt{ltn12.filter.cycle} along with the low-level
 filters to create standard filters.
@@ -469,7 +453,7 @@ The \texttt{url} module provides functions that manipulate URLs.
 LuaFileSystem is a library that extends the set of functions
 for manipulating file systems in Lua.
 It contains just the \texttt{lfs} module that is written in C,
-so we used Typed Lua's description file to type it.
+so we used Typed Lua's description files to type it.
 Table \ref{tab:evallfs} summarizes the evaluation results for LuaFileSystem.
 
 \begin{table}[!ht]
@@ -518,8 +502,8 @@ Like \texttt{http.request}, \texttt{http-digest.request}
 is also an overloaded function.
 
 Even though we could not precisely type the interface that \texttt{http-digest}
-exports, we could use only static types to annotate it, and they pointed a bug
-in the code.
+exports, we could use only static types to annotate this module,
+and they pointed a bug in the code.
 The problem was related to the way the library was loading the MD5 library
 that should be used. 
 This part of the code checks the existence of three different MD5 libraries
@@ -569,7 +553,7 @@ but our type system also has limited support to \texttt{ipairs}, and generates
 a warning when we try to use the indexed value inside the \texttt{for} body.
 As we mentioned in this chapter, we use the dynamic type as a replacement for
 the lack of type parameters.
-This means that we get warnings inside an \texttt{ipairs} iteration because
+This means that we get warnings inside an \texttt{ipairs} iteration, because
 all iterated elements have the dynamic type.
 We removed this warning using the numeric \texttt{for} to perform the same loop.
 
@@ -676,8 +660,8 @@ Even though they use LPeg to implement the grammar rules,
 they only export a parsing function.
 Both use LPeg to parse a string and return the corresponding AST.
 
-The interface that the \texttt{tlchecker} and \texttt{tlcode}
-modules export are also straightforward to type.
+We could type the interfaces that modules \texttt{tlchecker} and
+\texttt{tlcode} export.
 The former traverses the AST to perform type checking,
 while the latter traverses the AST to perform code generation.
 
@@ -687,13 +671,15 @@ This kind of functions often appear in compilers construction
 to traverse the data structures that they use.
 However, Typed Lua still does not support mutually recursive functions.
 A way to overcome this limitation was to predeclare these functions
-with an empty body, and then redeclare them with they actual body.
+with an empty body, and then redeclare them with their actual body.
 The first declaration specifies the function type, while the
 second specifies what the function actually does without changing
 any type definition.
 
 Traversing the AST would also be problematic if we had not included
 a way to discriminate unions of table types, as we mentioned in Section \ref{sec:alias}.
+Without a way to discriminate a union of table types, any attempt
+to index this union of table types would generate a warning.
 
 Bootstraping the compiler also helped revealing some bugs.
 We found some accesses to undeclared global variables and also
