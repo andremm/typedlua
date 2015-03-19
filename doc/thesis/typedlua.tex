@@ -84,8 +84,7 @@ We explain all Typed Lua types and syntactical extensions in this chapter.
   \textit{uniontuple} \; [\texttt{`?'}]\\
 \textit{uniontuple} ::= & \;\; \textit{tupletype} \; | \;
   \textit{uniontuple} \; \texttt{`|'} \; \textit{uniontuple}\\
-\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'} \; | \;
-  \texttt{`<\{'} \; [\textit{tabletypebody}] \; \texttt{`\}>'}\\
+\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
 \textit{tabletypebody} ::= & \;\; \textit{maptype} \; | \;
   \textit{recordtype}\\
 \textit{maptype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
@@ -185,8 +184,8 @@ instead of the base type \texttt{integer}, because this would generate
 a warning when we try to assign other integer value to the variable \texttt{x}.
 Still, programmers can use literal types in type annotations if
 they need a variable that has a very specific type.
-In Section \ref{sec:tables} we will see in more detail that literal
-types are essential to type Lua tables.
+In Section \ref{sec:tables} we will see in more detail that literal types
+are essential to type Lua tables.
 
 Typed Lua assigns the type \texttt{any} to the unannotated declarations
 that it does not infer a more specific type.
@@ -391,6 +390,12 @@ is \texttt{(integer, integer, string, nil*)}, which is
 consistent with the type of the left-hand side
 \texttt{(integer, integer, string, value*)}.
 
+Typed Lua always includes \texttt{nil*} in the end of the type
+of an expression list that does not end in a varidic type.
+This behavior preserves the semantics of Lua on replacing missing values,
+and it is necessary when we omit optional parameters in a function call.
+We will discuss optional parameters in the next section.
+
 We can also type variadic functions.
 For instance,
 \begin{verbatim}
@@ -480,7 +485,7 @@ The call \texttt{message("Typed Lua")} compiles without
 any warnings in both modes, because the argument list
 \texttt{("Typed Lua", nil*)} is consistent with the input type
 \texttt{(string, string|nil, value*)} in the default mode,
-and it is also consistent with the input type 
+and it is also consistent with the input type
 \texttt{(string, string|nil)} in the strict mode.
 The compiler includes \texttt{nil*} in the tail of
 an argument list in both modes, as it is necessary
@@ -597,8 +602,7 @@ However, the form that appears in our example is much more succinct and idiomati
 Note that the type \texttt{integer} is restricted to Lua 5.3,
 as we use the function \texttt{math.type} to decide whether a number is integer.
 
-Typed Lua does not allow assignments to variables that hold a projection type,
-unless the union has been discriminated down to a single value.
+Typed Lua does not allow assignments to variables that hold a projection type.
 Unrestricted assignment to these variables would be unsound,
 as it could break the dependency relation among the types in each tuple
 that is part of the union.
@@ -616,7 +620,7 @@ Next, we show an example:
     end
 \end{verbatim}
 
-This example shows that we cannot write a function that is
+This example means that we cannot write a function that is
 guaranteed to return a number when we pass a number and
 guaranteed to return a string when we pass a string.
 Even though we could use intersection types to express the type
@@ -643,8 +647,7 @@ arrays, and records.
 \textbf{Table types}\\
 \dstart
 \begin{align*}
-\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'} \; | \;
-  \texttt{`<\{'} \; [\textit{tabletypebody}] \; \texttt{`\}>'}\\
+\textit{tabletype} ::= & \;\; \texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}\\
 \textit{tabletypebody} ::= & \;\; \textit{maptype} \; | \;
   \textit{recordtype}\\
 \textit{maptype} ::= & \;\; [\textit{keytype} \; \texttt{`:'}] \; \textit{type}\\
@@ -664,23 +667,10 @@ maps, arrays, or records with an optional array part.
 We made this design choice due to the results that we obtained
 about the usage of the table constructor, which we discussed
 in Section \ref{sec:statistics}.
-
-Even though Typed Lua includes two different forms for annotating
-a table, in this section we only discuss the form
-$\texttt{`\{'} \; [\textit{tabletypebody}] \; \texttt{`\}'}$.
-We call this form \emph{closed} table type because it
-represents table types that do not provide
-any guarantees about keys with types not listed in the table type.
-In Sections \ref{sec:modules} and \ref{sec:oop} we will show that
-we use the syntax $\texttt{`<\{'} \; [\textit{tabletypebody}] \; \texttt{`\}>'}$
+Later in this chapter we will show that we use the syntax of records
 to type modules and objects.
-We call this form \emph{fixed} table type because it
-represents tables with no keys that do not inhabit one of the table's
-key types, and can have safe aliases.
 We will also show that we need the \texttt{const} modifier while
 typing object-oriented code.
-In the next chapter we formalize and discuss in more detail the
-different table types that our type system has.
 
 The table type \texttt{\{k:t\}} represents the type of a map
 from values of type \texttt{k} to values of type \texttt{t|nil}.
@@ -728,8 +718,8 @@ while the type of \texttt{x}, \texttt{y}, and \texttt{z} is
 \texttt{string|nil}.
 An inconvenient aspect of making the types of maps and arrays always
 include the type \texttt{nil} is to overload the programmers,
-as they need to use \texttt{or} or \texttt{if} to narrow the type of
-the elements they are accessing.
+as they need to use the logical \texttt{or} operator or the \texttt{if}
+statement to narrow the type of the elements they are accessing.
 
 The table type
 $\texttt{\{l}{_\texttt{1}}\texttt{:t}_{\texttt{1}}
@@ -751,13 +741,17 @@ variable declaration unannotated and let local type inference assign
 a more specific table type to the variable.
 If we remove the annotation in the previous example, the compiler uses the
 syntax of records to infer the following table type to \texttt{days}:
-\texttt{\{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string\}}.
+\begin{verbatim}
+    { 1:string, 2:string, 3:string, 4:string,
+      5:string, 6:string, 7:string }
+\end{verbatim}
 
 When we use the syntax of records to type an array, the compiler
 raises a warning when we try to access an index that is out of bounds.
-In the previous example, both \texttt{days[8]} and \texttt{days[i]}
-raise warnings, as both the literal type \texttt{8} and the base type
-\texttt{integer} do not map to any value.
+In the previous example, the expressions \texttt{days[8]} and \texttt{days[i]}
+would raise warnings if we had used the records syntax,
+as both the literal type \texttt{8} and the base type
+\texttt{integer} would not map to any value.
 
 We can also use the syntax of records to type heterogeneous tuples:
 \begin{verbatim}
@@ -798,16 +792,13 @@ the programmer to change the type of the value that \texttt{person} points to.
 Typed Lua tags a variable that holds a table type as either
 \emph{unique}, \emph{open}, \emph{fixed}, or \emph{closed}.
 If a variable gets its type from a table constructor then it is
-\emph{unique}, otherwise it can be either \emph{fixed} or
-\emph{closed}.
-In this section we discuss the cases that produce \emph{closed}
-table types, while in Sections \ref{sec:modules} and \ref{sec:oop}
-we will discuss the cases that produce \emph{fixed} table types
-to describe the type of modules and classes.
+\emph{unique}, otherwise it is \emph{closed}.
 Any alias to \emph{unique} variables makes them \emph{open}, as we use the
 tag \emph{open} to keep track of \emph{unique} variables that are aliased.
 In the previous example, \texttt{person} has an \emph{unique} type
 because it has no alias.
+In Section \ref{sec:oop} we will show that we use the tag
+\emph{fixed} to describe the type of classes.
 Typed Lua also has different subtyping rules that handle these
 different tags.
 We explain these tags and their subtyping rules in more detail
@@ -858,13 +849,12 @@ that is stored in \texttt{person.firstname}, regardless of its type.
 Taking the changes individually looks fine, but the truth is that
 aliasing makes one of them unsound.
 
-We can create aliases to \emph{open} variables, but they are always
-\emph{closed}.
+We can create aliases to \emph{open} variables, but they are always \emph{closed}.
 Any mutation in the original reference and in the aliased reference
 is not a problem, as the type of the original reference can only
 add new fields.
-For mutable fields this means that the type of the field cannot
-change after it is added to the type of the table.
+For mutable fields this means that the type of a field cannot
+change after it is added to the type of a table.
 In our previous example, the second line changes the type of
 \texttt{person} from \emph{unique} to \emph{open} and makes the type of
 \texttt{bogus} \emph{closed}.
@@ -887,6 +877,9 @@ The call to \texttt{spoil} erases the field \texttt{firstname} from
 \texttt{person}, and makes the last line break the guarantees
 provided by the statically typed code.
 
+In Section \ref{sec:refinement} we present the formalization of the
+rules that type check the refinement of table types.
+
 \section{Type aliases and interfaces}
 \label{sec:alias}
 
@@ -907,18 +900,20 @@ Figure \ref{fig:aliases} shows the concrete syntax of the
 \end{figure}
 
 As an example, the following declaration defines the type \texttt{Person}
-as an alias to the \emph{closed} table type \texttt{\{"firstname":string, "lastname":string\}}
+as an alias to the table type \texttt{\{"firstname":string, "lastname":string\}}
 in the remainder of the current scope:
 \begin{verbatim}
-    local typealias Person = {"firstname":string,
-                              "lastname":string}
+    local typealias Person = {"firstname":string, "lastname":string}
 \end{verbatim}
 
 Typed Lua also includes \emph{interfaces} as syntactic sugar to aliases
-for \emph{closed} table types that specify records, as writing table types can be unwieldy
+for table types that specify records, as writing table types can be unwieldy
 when records get bigger and the types of record fields get more complicated.
 Figure \ref{fig:interfaces} shows the concrete syntax of the
 \texttt{interface} construct.
+In Section \ref{sec:oop} we will show that we can also use \emph{interface} to
+document the type of objects, and that \emph{methodtype} is syntactic
+sugar to express the type of methods.
 
 \begin{figure}[!ht]
 \textbf{Interfaces}\\
@@ -926,7 +921,8 @@ Figure \ref{fig:interfaces} shows the concrete syntax of the
 \begin{align*}
 \textit{interface} ::= & \;\; [\textbf{local}] \; \textbf{interface} \; \textit{typedec}\\
 \textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
-\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{type}\\
+\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
+\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
 \textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
 \textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}
 \end{align*}
@@ -972,8 +968,8 @@ checking types.
 
 Even though the interface declaration may look redundant due to
 the type alias declaration, it has a more convenient syntax
-for declaring \emph{closed} table types that express records.
-For this reason, it worth having two different constructs;
+for declaring table types that express records.
+For this reason, it worth having two different constructs,
 one specifically for records and another for more general types.
 
 The \texttt{interface} and \texttt{typealias} constructs also allow
@@ -995,7 +991,7 @@ inserts an element at the beginning of a list:
     end
 \end{verbatim}
 
-We need an explicit type declaration on the return type because
+We need an explicit type declaration in the return type because
 the Typed Lua compiler cannot infer recursive types, though
 it has subtyping rules to check that the inferred return type
 matches the annotation.
@@ -1109,19 +1105,20 @@ The local variable \texttt{RADIANS\string_PER\string_DEGREE}
 is private because we did not include it in the list of exported members. 
 The \texttt{return} at the end of the source file gives the type of the module:
 \begin{verbatim}
-    <{ "deg":(number) -> (number),
-       "rad":(number) -> (number),
-       "pow":(number, number) -> (number) }>
+    { "deg":(number) -> (number),
+      "rad":(number) -> (number),
+      "pow":(number, number) -> (number) }
 \end{verbatim}
 
 Typed Lua always fixes \emph{unique} and \emph{open} table types
-that appear in a return statement.
-Typed Lua has this behavior to ensure that modules and classes
-always implement \emph{fixed} table types.
+that appear in a top-level return statement.
+This means that modules have \emph{fixed} table types in Typed Lua.
+Typed Lua has this behavior to ensure that classes always implement
+\emph{fixed} table types.
 In the next section we will show that we build classes in a
 similar way that we use to build modules, and we will also show
 that classes should have \emph{fixed} table types to allow safe
-inheritance.
+single inheritance.
 
 Another idiomatic way for defining modules in Lua is to declare an
 empty table at the begin of the source file,
@@ -1144,8 +1141,7 @@ The following example illustrates this case in Typed Lua:
 \end{verbatim}
 
 In this example, Typed Lua uses the refinement of table types to
-allow the programmer to incrementally build the type of the module
-\texttt{mymath}.
+incrementally build the type of the module \texttt{mymath}.
 The variable \texttt{RADIANS\string_PER\string_DEGREE}
 is private because we declared it as local to the module. 
 The \texttt{return} at the end of the source file gives the
@@ -1164,7 +1160,7 @@ In Typed Lua, \texttt{require} is a primitive that statically type checks
 a given module to infer the type of this module.
 This means that the type of its input parameter must be a literal string,
 as Typed Lua uses this literal string to find the source file that
-implements a given module.
+implements the given module.
 To statically type check a module, Typed Lua follows the same rules
 that Lua follows to load a module.
 Typed Lua first checks whether the module is already statically type checked.
@@ -1180,9 +1176,9 @@ In our previous example, the call to \texttt{require} assigns the type
 of the module \texttt{mymath} to the local \texttt{mymath},
 so Typed Lua can catch misuses of the module.
 
-The way that Typed Lua handles modules using \emph{fixed} table types
-is also relevant for supporting object-oriented programming,
-as we discuss in the next section.
+The way that Typed Lua handles modules using \emph{fixed} table types is
+also relevant for supporting object-oriented programming, as we discuss in
+the next section.
 
 \section{Object-Oriented Programming}
 \label{sec:oop}
@@ -1196,13 +1192,13 @@ assigns a function to the field \texttt{method} in \texttt{obj}.
 This function includes a first parameter named \texttt{self} plus
 any other parameters.
 In the case of method calls, the Lua compiler translates
-\texttt{obj:method(args)} into an operation that first evaluates
+\texttt{obj:method(args)} into an operation that evaluates
 \texttt{obj}, uses \texttt{method} to index \texttt{obj},
 and then calls \texttt{obj.method} with the result of evaluating
 \texttt{obj} as the first argument, followed by the result of
 evaluating the argument list in the original expression.
 
-Typed Lua uses table types along with the type
+Typed Lua uses \emph{closed} table types along with the type
 \texttt{self} to represent objects.
 We use the following example to discuss this feature:
 \begin{verbatim}
@@ -1217,7 +1213,7 @@ Typed Lua assigns the type \texttt{self} to the implicit parameter \texttt{self}
 The type \texttt{self} represents the type of the \emph{receiver}
 in method definitions and method calls.
 In this example, Typed Lua binds the type \texttt{self} to
-the table type \texttt{\{"x":number, "y":number\}} inside \texttt{move}.
+the \emph{closed} table type \texttt{\{"x":number, "y":number\}} inside \texttt{move}.
 This example also uses the refinement of table types to build the
 type of \texttt{Shape}:
 \begin{verbatim}
@@ -1267,7 +1263,7 @@ as prototype objects.
 The first \texttt{setmetatable} rule appears in our previous example.
 In a \texttt{setmetatable} expression
 \texttt{setmetatable(\{\},\{\string_\string_index = id\})},
-if \texttt{id} has type \texttt{self} then the expression also also has type \texttt{self}.
+if \texttt{id} has type \texttt{self} then the expression also has type \texttt{self}.
 We will explain the other two rules while we explain how
 Typed Lua type checks single inheritance.
 
@@ -1286,59 +1282,17 @@ which is the type that Typed Lua binds to the type \texttt{self}
 inside the definition of \texttt{move}.
 We use the \texttt{const} annotation in the type of the methods
 because it is necessary for covariance among object types work.
-Finally, the last \texttt{return} statement fixes the type of
-\texttt{Shape} because \emph{fixed} table types do not allow width
+Finally, the top-level \texttt{return} statement fixes the type of
+\texttt{Shape}, because \emph{fixed} table types do not allow width
 subtyping, and this behavior allows Typed Lua to use the refinment
 of table types to type check single inheritance, as we will see in
 this section.
 
-A return statement that appears in the top-level also exports
-a type alias to be used in type annotations.
-For instance, our example exports the following type alias:
+A return statement that appears in the top-level also exports an
+interface which we can use in type annotations.
+For instance, our previous example exports the following interface:
 \begin{verbatim}
-    typealias Shape =
-      <{ "x":number, "y":number,
-         const "new":(self, number, number) -> (self),
-         const "move":(self, number, number) -> () }>
-\end{verbatim}
-
-The style of classes definition from the previous example
-allow us to use \texttt{require} for creating prototype objects that
-work as classes, along with an alias to the table type of the class.
-This allows us to use the exported alias in type annotations,
-as we show in the following example:
-\begin{verbatim}
-    local Shape = require "shape"
-    local shape1 = Shape:new(0, 5)
-    local shape2:Shape = Shape:new(10, 10)
-\end{verbatim}
-
-Typed Lua also includes a \texttt{class} construct that programmers
-can use to document the type of the classes they export..
-Figure \ref{fig:classes} shows the concrete syntax of the
-\texttt{class} construct.
-
-\begin{figure}[!ht]
-\textbf{Classes}\\
-\dstart
-\begin{align*}
-\textit{class} ::= & \;\; [\textbf{local}] \; \textbf{class} \; \textit{typedec}\\
-\textit{typedec} ::= & \;\; \textit{Name} \; \{\textit{decitem}\} \; \textbf{end}\\
-\textit{decitem} ::= & \;\; \textit{idlist} \; \texttt{`:'} \; \textit{idtype}\\
-\textit{idtype} ::= & \;\; \textit{type} \; | \; \textit{methodtype}\\
-\textit{idlist} ::= & \;\; \textit{id} \; \{\texttt{`,'} \; \textit{id}\}\\
-\textit{id} ::= & \;\; [\textbf{const}] \; \textit{Name}\\
-\textit{methodtype} ::= & \;\; \textit{tupletype} \; \texttt{`=>'} \; \textit{rettype}
-\end{align*}
-\dend
-\caption{The concrete syntax of Typed Lua classes}
-\label{fig:classes}
-\end{figure}
-
-As an example, we can use the following \texttt{class} declaration to
-document the type \texttt{Shape} from the previous example:
-\begin{verbatim}
-    class Shape
+    interface Shape
       x, y:number
       const new:(number, number) => (self)
       const move:(number, number) => ()
@@ -1349,9 +1303,25 @@ We use a double arrow instead of a single arrow because it is
 syntactic sugar for defining the type of methods,
 as it includes an implicit first type \texttt{self}.
 The double arrow can appear only inside the declaration of
-classes and userdata, which we will introduce in the next section.
+interfaces and userdata, which we will introduce in the next section.
 
-Typed Lua also uses \texttt{setmetatable} to simulate single inheritance.
+The style of classes definition from the previous example
+allows us to use \texttt{require} for creating prototype objects that
+work as classes, along with an alias to the object type.
+This allows us to use the exported alias in type annotations,
+as we show in the following example:
+\begin{verbatim}
+    local Shape = require "shape"
+    local shape1 = Shape:new(0, 5)
+    local shape2:Shape = Shape:new(10, 10)
+\end{verbatim}
+
+Note that \texttt{Shape} has a \emph{fixed} table type, because it
+describes the type of the class \texttt{Shape}, but \texttt{shape1}
+and \texttt{shape2} have \emph{closed} table types, because they
+describe the type of objects from the class \texttt{Shape}.
+Now, we will see that we need \emph{fixed} table types to allow
+\texttt{setmetatable} to simulate single inheritance.
 We use the following example to discuss single inheritance in Typed Lua:
 \begin{verbatim}
     local Shape = require "shape"
@@ -1372,28 +1342,38 @@ In this example, we use the other two \texttt{setmetatable} rules.
 The second rule appears to trigger the refinement of table types,
 as we need this rule to add new methods and also to override
 existing methods in \texttt{Circle}.
+The third rule appears to redefine the constructor \texttt{new}.
+
 In a \texttt{setmetatable} expression
 \texttt{setmetatable(\{\},\{\string_\string_index = id\})},
 if \texttt{id} has a \emph{fixed} table type then it is safe to
 produce an equivalent \emph{open} table type, as \emph{fixed}
 table types do not allow hiding fields.
-The third rule appears to redefine the constructor \texttt{new}.
+In our example, it is safe to use the type of \texttt{Shape}
+to initialize \texttt{Circle}, openning the type of \texttt{Circle}
+to allow the refinement of table types to build the type of
+the class \texttt{Circle}.
+
 In a \texttt{setmetatable} expression
-\texttt{setmetatable(e,\{\string_\string_index = id\})},
-if \texttt{e} has a \emph{fixed} table type \texttt{t}, \texttt{id} has
-type \texttt{self}, and the type bound to \texttt{self} is a subtype of
-\texttt{t}, then the expression has type \texttt{self}.
+\texttt{setmetatable(e:(el),\{\string_\string_index = id\})},
+if the expression \texttt{e:(el)} has a \emph{closed} table type \texttt{t},
+\texttt{id} has type \texttt{self}, and the type bound to \texttt{self}
+is a subtype of \texttt{t}, then the expression has type \texttt{self}.
 Note how we can use this rule to call the constructor of \texttt{Shape}
 inside the overridden constructor.
 A limitation of this class system is that the overridden constructor
 must be a subtype of the original constructor,
 so the type of \texttt{radius} has to be quite permissive.
+Also note that this is the only form of refinement that allows
+changing the type of a table field, if the new type is a subtype
+of the previous type.
 
-Like in the preivous example, the last return statement in the
-top-level exports a \emph{fixed} table type, which we could
-document through the following class declaration:
+Like in the example that we introduced the class \texttt{Shape},
+in the example that we introduced the class \texttt{Circle},
+the top-level return statement exports an
+interface which we can use in type annotations:
 \begin{verbatim}
-    class Circle
+    interface Circle
       x, y, radius:number
       const new:(number, number, value) => (self)
       const move:(number, number) => ()
@@ -1401,20 +1381,17 @@ document through the following class declaration:
     end
 \end{verbatim}
 
-Note that this class definition introduces a syntactical overhead
-to manually include new and overriden methods.
-This class definition is equivalent to the alias that exports the
-following \emph{fixed} table type to the class \texttt{Circle}:
-\begin{verbatim}
-    <{ "x":number, "y":number, "radius":number,
-       const "new":(self, number, number, value) -> (self),
-       const "move":(self, number, number) -> (),
-       const "radius":() -> (number) }>
-\end{verbatim}
+Even though the class \texttt{Circle} is not a subtype of the
+class \texttt{Shape}, because \emph{fixed} table types do not
+have width subtyping, the objects that have the exported type
+\texttt{Circle} are subtypes of the objects that have the
+exported type \texttt{Shape}, because \emph{closed} table types
+have width subtyping.
+We discuss \emph{fixed} and \emph{closed} table types in more
+detail in the next chapter.
 
-The type of the class \texttt{Circle} is a subtype of the type of
-the class \texttt{Shape}, and we can use both exported aliases in type
-annotations, as we show in the following example:
+We can use both exported aliases in type annotations, as we
+show in the following example:
 \begin{verbatim}
     local Circle = require "circle"
     local circle1 = Circle:new(0, 5, 10)
@@ -1441,6 +1418,7 @@ Our classes system also does not support multiple inheritance
 and does not offer privacy rules, but these limitations are not
 on plans for future work anyway.
 
+\newpage
 \section{Description files}
 \label{sec:tld}
 
@@ -1501,6 +1479,7 @@ because they do not share the same brand.
 The following example shows the description file for \texttt{lmd5} \citep{lmd5},
 a MD5 digest library for Lua that is written in C:
 \begin{verbatim}
+
     userdata md5_context
       __tostring : (self) -> (string)
       clone : (self) -> (self)
@@ -1533,7 +1512,7 @@ our use of the \texttt{lmd5} library:
     print(x:digest() == m.digest(y))  --> true
 \end{verbatim}
 
-This example shows that the Typed Lua compiler searches for a
+The Typed Lua compiler searches for a
 description file when it cannot not find the respective Typed Lua file
 that is the argument of \texttt{require}.
 In this example, the call to \texttt{require} assigns to the local
