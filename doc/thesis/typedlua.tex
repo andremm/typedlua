@@ -163,7 +163,7 @@ uses only the type of the local expression.
 For local variables, Typed Lua uses the type of the initialization
 expression to assign a more specific type to an unannotated local variable.
 For local functions, Typed Lua uses the type of the returned expression
-to assign a more specific type to an uannotated return type.
+to assign a more specific type to an unannotated return type.
 This means that we can rewrite the previous example as follows:
 \begin{verbatim}
     local function succ (n:integer)
@@ -410,7 +410,7 @@ with \texttt{(string*)}.
 The call \texttt{v("hello", "world")} compiles without any warnings
 in the default and strict modes because \texttt{("hello", "world", nil*)}
 and \texttt{("hello", "world")} are consistent with \texttt{(string*)}.
-The call \texttt{v(...)} compiles withouth any warnings in both
+The call \texttt{v(...)} compiles without any warnings in both
 operation modes because the type of the argument list is \texttt{(string*)},
 assuming that the vararg expression (\texttt{...}) has type \texttt{string}.
 
@@ -1284,7 +1284,7 @@ We use the \texttt{const} annotation in the type of the methods
 because it is necessary for covariance among object types work.
 Finally, the top-level \texttt{return} statement fixes the type of
 \texttt{Shape}, because \emph{fixed} table types do not allow width
-subtyping, and this behavior allows Typed Lua to use the refinment
+subtyping, and this behavior allows Typed Lua to use the refinement
 of table types to type check single inheritance, as we will see in
 this section.
 
@@ -1350,7 +1350,7 @@ if \texttt{id} has a \emph{fixed} table type then it is safe to
 produce an equivalent \emph{open} table type, as \emph{fixed}
 table types do not allow hiding fields.
 In our example, it is safe to use the type of \texttt{Shape}
-to initialize \texttt{Circle}, openning the type of \texttt{Circle}
+to initialize \texttt{Circle}, opening the type of \texttt{Circle}
 to allow the refinement of table types to build the type of
 the class \texttt{Circle}.
 

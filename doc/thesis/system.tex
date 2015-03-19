@@ -1199,7 +1199,7 @@ also type checks through the rule \textsc{T-APPLY1}, because
 \]
 
 Our type system also catches arity mismatch.
-To do that, we end the input type of a funcion with type $\Void$
+To do that, we end the input type of a function with type $\Void$
 instead of $\Value{*}$.
 For instance, let us assume that $f$ has type
 $\String \times (\Integer \cup \Nil) \times (\Integer \cup \Nil) \times \Void \rightarrow \Integer{*}$.
@@ -1436,8 +1436,8 @@ we need \emph{fixed} table types to type classes in object-oriented programming.
 In the implementation we fix the aliasing of \emph{unique} and \emph{open}
 table types that appear in a top-level return statement, and in other cases we
 close the aliasing of \emph{unique} and \emph{open} table types.
-However, in the formalization we chose to define this behavior not
-deterministically, as it makes easier the presentation of this behavior.
+However, in the formalization we chose to define this behavior in
+a not deterministic way, as it makes easier the presentation of this behavior.
 
 As an example,
 \begin{center}
