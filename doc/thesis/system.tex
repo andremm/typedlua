@@ -886,8 +886,8 @@ s ::= & & \textsc{statements:}\\
 e ::= & & \textsc{expressions:}\\
 & \;\; \mathbf{nil} \;
 | \; k & \textit{nil and other literals}\\
-& | \; id & \textit{variable reading}\\
-& | \; e_{1}[e_{2}] & \textit{table reading}\\
+& | \; id & \textit{variable access}\\
+& | \; e_{1}[e_{2}] & \textit{table access}\\
 & | \; {<}T{>} \; id & \textit{type coercion}\\
 & | \; f & \textit{function declaration}\\
 & | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
@@ -903,8 +903,8 @@ e ::= & & \textsc{expressions:}\\
 | \; \# \; e & \textit{unary operations} \\
 & | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
 l ::= & & \textsc{left-hand values:}\\
-& \;\; id_{l} & \textit{variable writing}\\
-& | \; e_{1}[e_{2}] & \textit{table writing}\\
+& \;\; id_{l} & \textit{variable assignment}\\
+& | \; e_{1}[e_{2}] & \textit{table assignment}\\
 & | \; id[k] \; {<}T{>} & \textit{type coercion}\\
 k ::= & & \textsc{literal constants:}\\
 & \;\; \mathbf{false} \; | \;
@@ -1313,12 +1313,13 @@ table constructor with a non-empty list of table fields:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
 \dfrac{\begin{array}{c}
-       \env_{i}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T) \;\;\;
-       n = |\;\overline{[e_{1}] = e_{2}}\;|
+       n = |\;\overline{[e_{1}] = e_{2}}\;| \\
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) 
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{n+1}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
 \end{array}
 \]
 
@@ -1340,6 +1341,7 @@ field assignment.
 For instance, in Section \ref{sec:tables} we presented the
 following example:
 \begin{verbatim}
+
     local person = {}
     person.firstname = "Lou"
     person.lastname = "Reed"
