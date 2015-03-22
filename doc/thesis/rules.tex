@@ -321,10 +321,6 @@ This appendix presents the complete type system of Typed Lua.
 \senv \vdash \pi_{i}^{x} \subtype \pi_{i}^{x}
 \]
 
-\section{Consistent-subtyping rules}
-
-\noindent
-
 \mylabel{C-ANY1}
 \[
 \senv \vdash T \lesssim \Any
@@ -384,6 +380,42 @@ This appendix presents the complete type system of Typed Lua.
        crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, {...} \mapsto T, \self \mapsto T_{s}]),
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
        T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, L{:}\Const \; \Self \times \overline{T} \times T{*} \rightarrow S\}_{unique|open}\\
+       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       \end{array}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T},{...}{:}T){:}S \; s, \env_{4}\\
+       \end{array}}
+\]
+
+\mylabel{T-METHOD3}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open} \;\;\;
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
+       crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, \self \mapsto T_{s}]),
+       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+       \exists i \in 1..n \; L \subtype K_{i} \wedge K_{i} \subtype L \;\;\;
+       \Const \; \Self \times \overline{T} \times \Void \rightarrow S \subtype V_{i}\\
+       V_{i} = \Const \; \Self \times \overline{T} \times \Void \rightarrow S\\
+       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
+       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       \end{array}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T}){:}S \; s, \env_{4}\\
+       \end{array}}
+\]
+
+\mylabel{T-METHOD2}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open} \;\;\;
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
+       crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, {...} \mapsto T, \self \mapsto T_{s}]),
+       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+       \exists i \in 1..n \; L \subtype K_{i} \wedge K_{i} \subtype L \;\;\;
+       \Const \; \Self \times \overline{T} \times T{*} \rightarrow S \subtype V_{i}\\
+       V_{i} = \Const \; \Self \times \overline{T} \times T{*} \rightarrow S\\
+       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
        \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
@@ -690,53 +722,57 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-CONSTRUCTOR2}
 \[
-\dfrac{\env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T) \;\;\;
-       n = |\;\overline{p}\;|}
-      {\env_{1}, \penv \vdash \{\;\overline{p}\;\}:T, \env_{n+1}}
+       n = |\;\overline{[e_{1}] = e_{2}}\;| \\
+       \env_{m} = merge(\env_{1}, ..., \env_{n+1})
+       \end{array}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
 \]
 
 \mylabel{T-CONSTRUCTOR3}
 \[
 \dfrac{\begin{array}{c}
-       \env_{i}, \penv \vdash p_{i}:(K_{i},V_{i}), \env_{i+1} \;\;\;
-       n = |\;\overline{p}\;| \;\;\;
-       \env_{n+1}, \penv \vdash me : T_{1} \times ... \times T_{m} \times T_{m+1}{*}, \env_{m}\\
-       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, 1:T_{1}, ..., m:T_{m}, \Integer:T_{m+1} \cup \Nil\}_{unique} \;\;\;
-       wf(T)
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
+       \env_{1}, \penv \vdash me : T_{1} \times ... \times T_{m} \times T_{m+1}{*}, \env_{n+2}\\
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, 1:T_{1}, ..., m:T_{m}, \Integer:T_{m+1} \cup \Nil\}_{unique}\\
+       wf(T) \;\;\;
+       n = |\;\overline{[e_{1}] = e_{2}}\;| \;\;\;
+       \env_{m} = merge(\env_{1}, ..., \env_{n+2})
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{p},me\;\}:T, \env_{m}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
 \]
 
 \mylabel{T-FIELD1}
 \[
-\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{2}:T_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{1}:T_{1}, \env_{3} \;\;\;
        T_{1} \subtype \Boolean}
       {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \]
 
 \mylabel{T-FIELD2}
 \[
-\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{2}:T_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{1}:T_{1}, \env_{3} \;\;\;
        T_{1} \subtype \Number}
       {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \]
 
 \mylabel{T-FIELD3}
 \[
-\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{2}:T_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{1}:T_{1}, \env_{3} \;\;\;
        T_{1} \subtype \String}
       {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (T_{1},close(T_{2})), \env_{3}}
 \]
 
 \mylabel{T-FIELD4}
 \[
-\dfrac{\env_{1}, \penv \vdash e_{1}:T_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash e_{2}:T_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e_{2}:T_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{1}:T_{1}, \env_{3}}
       {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (\Value,close(T_{2})), \env_{3}}
 \]
 
@@ -1034,7 +1070,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-LHSLIST}
 \[
-\dfrac{\env_{i}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{l}\;|}
       {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
@@ -1042,7 +1078,7 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-EXPLIST1}
 \[
-\dfrac{\env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
        \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{e}\;|}
       {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
@@ -1063,8 +1099,8 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-EXPLIST4}
 \[
 \dfrac{\begin{array}{c}
-       \env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{n+1}, \penv \vdash me:T_{n+1} \times ... \times T_{m} \times \Void, \env_{n+2}\\
+       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{m} \times \Void, \env_{n+2}\\
        \env_{m} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
        n = |\;\overline{e}\;|
        \end{array}}
@@ -1074,8 +1110,8 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-EXPLIST5}
 \[
 \dfrac{\begin{array}{c}
-       \env_{i}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{n+1}, \penv \vdash me:T_{n+1} \times ... \times T_{m}{*}, \env_{n+2}\\
+       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{m}{*}, \env_{n+2}\\
        \env_{m} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
        n = |\;\overline{e}\;|
        \end{array}}
@@ -1152,7 +1188,7 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-SETMETATABLE3}
 \[
 \dfrac{\env_{1}, \penv \vdash e = T, \env_{2} \;\;\;
-       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \;\;\;
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{closed} \;\;\;
        \env_{1}(id) = \Self \;\;\; \env_{1}(\sigma) \subtype T}
       {\env_{1}, \penv \vdash setmetatable(e, \{[``\string_\string_index"] = id\}):\Self, \env_{2}[\sigma \mapsto T]}
 \]
@@ -1176,5 +1212,4 @@ This appendix presents the complete type system of Typed Lua.
        \env_{3}, \penv \vdash e_{3}:T_{2}, \env_{4}}
       {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:T_{2}, \env_{4}}
 \]
-
 
