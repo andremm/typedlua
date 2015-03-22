@@ -1508,6 +1508,16 @@ to project a union of first-level types, based on an union of
 second-level types and an index from a projection type.
 In Section \ref{sec:fap} we will discuss how our type system uses
 projection types to handle overloaded return types.
+We can define \emph{proj} as follows:
+\begin{align*}
+proj(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+\begin{array}{ll}
+T_{i} & \text{if $i < n$}\\
+T_{i} \cup \Nil & \text{if $i = n$}
+\end{array} \right.
+\\
+proj(S_{1} \sqcup S_{2}, i) & = proj(S_{1}, i) \cup proj(S_{2}, i)
+\end{align*}
 
 We also need to close \emph{unique} and \emph{open} tables that
 appear in the left-hand side of assignments, as leaving them
@@ -1775,11 +1785,35 @@ Rule \textsc{T-LOCAL2} illustrates this intuition:
 \]
 
 This rule uses the auxiliary function \emph{infer} to get the
-first-level types of each variable that should be introduced in
+most general first-level types of each variable that should be introduced in
 the type environment for type checking $s$.
 After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
 new type environment $\env_{3}$ without the variables that it introduced
 before type checking $s$.
+We can define \emph{infer} as follows:
+\begin{align*}
+infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+\begin{array}{ll}
+general(T_{i}) & \text{if $i < n$}\\
+general(T_{n} \cup \Nil) & \text{if $i >= n$}
+\end{array} \right.
+\\ \\
+general(\False) & = \Boolean\\
+general(\True) & = \Boolean\\
+general({\it int}) & = \Integer\\
+general({\it float}) & = \Number\\
+general({\it string}) & = \String\\
+general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
+general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
+general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
+general(\mu x.T) & = \mu x.general(T)\\
+general(T) & = T\\
+\\
+general2(\Void) & = \Void\\
+general2(T{*}) & = general(T){*}\\
+general2(T \times P) & = general(T) \times general2(P)\\
+general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
+\end{align*}
 
 After assigning projection types to $q$ and $r$, reading $q$ will
 use the projection type $\pi_{1}^{x}$ to project the type of $q$
