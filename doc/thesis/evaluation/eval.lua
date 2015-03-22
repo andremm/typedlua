@@ -129,6 +129,17 @@ local function log_by_module ()
   end
 end
 
+local function log_total ()
+  local modules, members, easy = 0, 0, 0
+  for i, m in ipairs(result_by_module) do
+    modules = modules + 1
+    members = members + total_by_module[i]
+    easy = easy + m[1]
+  end
+  local total = p(easy, members)
+  print(modules, members, total)
+end
+
 local function table_by_library ()
   print("\\begin{table}[!ht]")
   print("\\begin{center}")
@@ -215,6 +226,8 @@ elseif opt == "-tl" then
   table_by_library()
 elseif opt == "-tm" then
   table_by_module()
+elseif opt == "-total" then
+  log_total()
 else
   print(usage)
   os.exit(1)
