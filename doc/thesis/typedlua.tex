@@ -1301,7 +1301,7 @@ For instance, our previous example exports the following interface:
 
 We use a double arrow instead of a single arrow because it is
 syntactic sugar for defining the type of methods,
-as it includes an implicit first type \texttt{self}.
+as it includes an implicit first input type \texttt{self}.
 The double arrow can appear only inside the declaration of
 interfaces and userdata, which we will introduce in the next section.
 
@@ -1355,15 +1355,15 @@ to allow the refinement of table types to build the type of
 the class \texttt{Circle}.
 
 In a \texttt{setmetatable} expression
-\texttt{setmetatable(e:(el),\{\string_\string_index = id\})},
-if the expression \texttt{e:(el)} has a \emph{closed} table type \texttt{t},
+\texttt{setmetatable(e,\{\string_\string_index = id\})},
+if the expression \texttt{e} has a \emph{closed} table type \texttt{t},
 \texttt{id} has type \texttt{self}, and the type bound to \texttt{self}
 is a subtype of \texttt{t}, then the expression has type \texttt{self}.
 Note how we can use this rule to call the constructor of \texttt{Shape}
 inside the overridden constructor.
 A limitation of this class system is that the overridden constructor
 must be a subtype of the original constructor,
-so the type of \texttt{radius} has to be quite permissive.
+so the type of the input parameter \texttt{radius} has to be quite permissive.
 Also note that this is the only form of refinement that allows
 changing the type of a table field, if the new type is a subtype
 of the previous type.
