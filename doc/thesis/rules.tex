@@ -1213,3 +1213,177 @@ This appendix presents the complete type system of Typed Lua.
       {\env_{1}, \penv \vdash e_{1} \; \mathbf{and} \; e_{2} \; \mathbf{or} \; e_{3}:T_{2}, \env_{4}}
 \]
 
+\section{Auxiliary functions}
+
+\noindent
+
+\begin{align*}
+first(\Void) & = \Nil\\
+first(T{*}) & = T \cup \Nil\\
+first(T \times P) & = T\\
+first(S_{1} \sqcup S_{2}) & = first(S_{1}) \cup first(S_{2})
+\\ \\
+read(\penv, \phi(T_{1},T_{2})) & = T_{2}\\
+read(\penv, \pi_{i}^{x}) & = proj(\penv(x), i)\\
+read(\penv, T) & = T
+\\ \\
+write(\phi(T_{1},T_{2})) & = T_{1}\\
+write(T) & = T
+\\ \\
+infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+\begin{array}{ll}
+general(T_{i}) & \text{if $i < n$}\\
+general(T_{n} \cup \Nil) & \text{if $i >= n$}
+\end{array} \right.
+\\ \\
+general(\False) & = \Boolean\\
+general(\True) & = \Boolean\\
+general({\it int}) & = \Integer\\
+general({\it float}) & = \Number\\
+general({\it string}) & = \String\\
+general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
+general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
+general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
+general(\mu x.T) & = \mu x.general(T)\\
+general(T) & = T\\
+\\
+general2(\Void) & = \Void\\
+general2(T{*}) & = general(T){*}\\
+general2(T \times P) & = general(T) \times general2(P)\\
+general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
+\\ \\
+proj(T_{1} \times ... \times T_{n} \times T{*}, i) & =  T_{i} \;\;\; \text{if $i <= n$}\\
+proj(S_{1} \sqcup S_{2}, i) & = proj(S_{1}, i) \cup proj(S_{2}, i)
+\\ \\
+filter(T_{1} \cup T_{2}, T_{1}) & = filter(T_{2}, T_{1})\\
+filter(T_{1} \cup T_{2}, T_{2}) & = filter(T_{1}, T_{2})\\
+filter(T_{1} \cup T_{2}, T_{3}) & = filter(T_{1}, T_{3}) \cup filter(T_{2}, T_{3})\\
+filter(T_{1}, T_{2}) & = T_{1}
+\\ \\
+close(T_{1} \cup T_{2}) & = close(T_{1}) \cup close(T_{2})\\
+close(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}) & = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{closed} \\
+close(T) & = T
+\\ \\
+fix(T_{1} \cup T_{2}) & = fix(T_{1}) \cup fix(T_{2})\\
+fix(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}) & = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \\
+fix(T) & = T
+\\ \\
+open(T_{1} \cup T_{2}) & = open(T_{1}) \cup open(T_{2})\\
+open(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique}) & = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{open} \\
+open(T) & = T
+\end{align*}
+
+\begin{align*}
+fpt(T_{1} \times .... \times T_{n}{*} \sqcup T_{1}' \times ... \times T_{n}'{*}, T, i) & = T_{1}' \times ... \times T_{n}'{*}
+\end{align*}
+
+\begin{align*}
+gpt(T_{1} \times .... \times T_{n}{*} \sqcup T_{1}' \times ... \times T_{n}'{*}, T, i) & = T_{1} \times ... \times T_{n}{*}
+\end{align*}
+
+\begin{align*}
+closeall(\env[id_{1} \mapsto T_{1}, ..., id_{n} \mapsto T_{n}]) & = \env[id_{1} \mapsto close(T_{1}), ..., id_{n} \mapsto close(T_{n})]
+\end{align*}
+
+\begin{align*}
+crall(\env[id_{1} \mapsto T_{1}, ..., id_{n} \mapsto T_{n}]) & = \env[id_{1} \mapsto close(write(T_{1})), ..., id_{n} \mapsto close(write(T_{n}))]
+\end{align*}
+
+\begin{align*}
+closeset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto close(\env(id_{1})), ..., id_{n} \mapsto close(\env(id_{n}))]
+\end{align*}
+
+\begin{align*}
+crset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto close(write(\env(id_{1}))), ..., id_{n} \mapsto close(write(\env(id_{n})))]
+\end{align*}
+
+\begin{align*}
+openset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto open(\env(id_{1})), ..., id_{n} \mapsto open(\env(id_{n}))]
+\end{align*}
+
+\begin{align*}
+merge(\env_{1}[id_{1} \mapsto T_{1}, ..., id_{n} \mapsto T_{n}], \env_{2}[id_{1} \mapsto T_{1}', ..., id_{n} \mapsto T_{n}']) & =\\
+\env_{3}[id_{1} \mapsto merget(T_{1}, T_{1}'), ..., id_{n} \mapsto merget(T_{n}, T_{n}')]
+\end{align*}
+
+\begin{align*}
+merget(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{tag},\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K'{:}V'\}_{tag}) & = \\
+\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V, K'{:}V'\}_{tag}\\
+merget(T,T') & = T' \; \text{if \; $T \subtype T'$}
+\end{align*}
+
+\begin{align*}
+fav(\mathbf{skip}) & = \emptyset\\
+fav(s_{1} \;;\; s_{2}) & = fav(s_{1}) \cup fav(s_{2})\\
+fav(\overline{l} = el) & = fav(\overline{l}) \cup fav(el)\\
+fav(\mathbf{while} \; e \; \mathbf{do} \; s) & = fav(s)\\
+fav(\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}) & = fav(s_{1}) \cup fav(s_{2})\\
+fav(\mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s) & = fav(s)\\
+fav(\mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s) & = fav(el) \cup fav(s)\\
+fav(\mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s) & = fav(f) \cup fav(s)\\
+fav(\mathbf{return} \; el) & = fav(el)\\
+fav(\lfloor a \rfloor_{0}) & = fav(a)\\
+fav(\mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el) & = fav(s) \cup fav(el)\\
+fav(\mathbf{nil}) & = \emptyset\\
+fav(k) & = \emptyset\\
+fav(id) & = \emptyset\\
+fav(e_{1}[e_{2}]) & = \emptyset\\
+fav({<}T{>} \; id) & = \emptyset\\
+fav(\mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el) & = fav(s) \cup fav(el)\\
+fav(\{ \; \overline{[e_{1}] = e_{2}} \; \}) & = fav(\overline{e_{1}}) \cup fav(\overline{e_{2}})\\
+fav(\{ \; \overline{[e_{1}] = e_{2}},me \; \}) & = fav(\overline{e_{1}}) \cup fav(\overline{e_{2}}) \cup fav(me)\\
+fav(e_{1} + e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} \; {..} \; e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} == e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} < e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} \;\&\; e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} \; \mathbf{and} \; e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(e_{1} \; \mathbf{or} \; e_{2}) & = fav(e_{1}) \cup fav(e_{2})\\
+fav(\mathbf{not} \; e) & = fav(e)\\
+fav(\# \; e) & = fav(e)\\
+fav(\lfloor me \rfloor_{1}) & = fav(me)\\
+fav(id_{l}) & = \{ id \}\\
+fav(id[k] \; {<}T{>}) & = \emptyset\\
+fav(e(el)) & = fav(e) \cup fav(el)\\
+fav(e{:}n(el)) & = fav(e) \cup fav(el)\\
+fav({...}) & = \emptyset
+\end{align*}
+
+\begin{align*}
+rv(\mathbf{skip}) & = \emptyset\\
+rv(s_{1} \;;\; s_{2}) & = rv(s_{1}) \cup rv(s_{2})\\
+rv(\overline{l} = el) & = rv(\overline{l}) \cup rv(el)\\
+rv(\mathbf{while} \; e \; \mathbf{do} \; s) & = rv(e) \cup rv(s)\\
+rv(\mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}) & = rv(e) \cup rv(s_{1}) \cup rv(s_{2})\\
+rv(\mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s) & = rv(el) \cup rv(s)\\
+rv(\mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s) & = rv(el) \cup rv(s)\\
+rv(\mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s) & = rv(f) \cup rv(s)\\
+rv(\mathbf{return} \; el) & = rv(el)\\
+rv(\lfloor a \rfloor_{0}) & = rv(a)\\
+rv(\mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el) & = rv(s) \cup rv(el)\\
+rv(\mathbf{nil}) & = \emptyset\\
+rv(k) & = \emptyset\\
+rv(id) & = \{ id \}\\
+rv(e_{1}[e_{2}]) & = \emptyset\\
+rv({<}T{>} \; id) & = \emptyset\\
+rv(\mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el) & = rv(s) \cup rv(el)\\
+rv(\{ \; \overline{[e_{1}] = e_{2}} \; \}) & = rv(\overline{e_{1}}) \cup rv(\overline{e_{2}})\\
+rv(\{ \; \overline{[e_{1}] = e_{2}},me \; \}) & = rv(\overline{e_{1}}) \cup rv(\overline{e_{2}}) \cup rv(me)\\
+rv(e_{1} + e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} \; {..} \; e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} == e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} < e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} \;\&\; e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} \; \mathbf{and} \; e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(e_{1} \; \mathbf{or} \; e_{2}) & = rv(e_{1}) \cup rv(e_{2})\\
+rv(\mathbf{not} \; e) & = rv(e)\\
+rv(\# \; e) & = rv(e)\\
+rv(\lfloor me \rfloor_{1}) & = rv(me)\\
+rv(id_{l}) & = \emptyset\\
+rv(id[k] \; {<}T{>}) & = \emptyset\\
+rv(e(el)) & = rv(e) \cup rv(el)\\
+rv(e{:}n(el)) & = rv(e) \cup rv(el)\\
+rv({...}) & = \emptyset
+\end{align*}
+
+
