@@ -7,16 +7,15 @@ interfaces, and modules.
 
 # Requirements for running the compiler
 
-1. lua >= 5.1
-1. [lpeg](http://www.inf.puc-rio.br/%7Eroberto/lpeg/) >= 0.12
+1. Lua >= 5.1
+1. [LPeg](http://www.inf.puc-rio.br/%7Eroberto/lpeg/) >= 0.12
 
 # Install
 
-Typed Lua must be installed in a standard location; luarocks will do this.
+Typed Lua must be installed in a standard location; [LuaRocks](http://luarocks.org) will do this, and will also install the LPeg dependency automatically.
 
         $ [install luarocks]
-        $ luarocks pack typedlua-scm-1.rockspec
-        $ luarocks install typedlua-scm-1.src.rock
+        $ luarocks install typedlua-scm-1.rockspec
 
 # Usage
 
