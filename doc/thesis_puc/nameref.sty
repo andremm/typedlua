@@ -1,0 +1,290 @@
+%%
+%% This is file `nameref.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% nameref.dtx  (with options: `package')
+%% 
+\def\filedate{2001/01/27}
+\def\fileversion{2.19}
+%% This file is part of the `Hyperref Bundle'.
+%% -------------------------------------------
+%%
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%%
+%% The list of all files belonging to the `Hyperref Bundle' is
+%% given in the file `manifest.txt'.
+\ProvidesPackage{nameref}[\filedate\space v\fileversion
+  \space Cross-referencing by name of section]
+\def\strip@period#1.\relax#2\@@@{#1}
+\newif\ifNR@showkeys
+\NR@showkeysfalse
+\@ifpackageloaded{showkeys}{%
+  \begingroup
+    \@ifundefined{SK@@label}{%
+    }{%
+      \global\NR@showkeystrue
+    }%
+  \endgroup
+}{}
+\def\label#1{%
+  \@bsphack
+  \begingroup
+    \let\label\@gobble
+    \def\ref{\protect\ref}%
+    \edef\@currentlabstr{%
+      \expandafter\strip@prefix\meaning\@currentlabelname
+    }%
+    \protected@write\@auxout{}{%
+      \string\newlabel{#1}{%
+        {\@currentlabel}%
+        {\thepage}%
+        {\expandafter\strip@period\@currentlabstr\relax.\relax\@@@}%
+        {\@currentHref}{}%
+      }%
+    }%
+  \endgroup
+  \@esphack
+}%
+\ifNR@showkeys
+  \def\label#1{%
+    \@bsphack
+    \SK@\SK@@label{#1}%
+    \begingroup
+      \let\label\@gobble
+      \def\ref{\protect\ref}%
+      \edef\@currentlabstr{%
+        \expandafter\strip@prefix\meaning\@currentlabelname
+      }%
+      \protected@write\@auxout{}{%
+        \string\newlabel{#1}{%
+          {\@currentlabel}%
+          {\thepage}%
+          {\expandafter\strip@period\@currentlabstr\relax.\relax\@@@}%
+          {\@currentHref}{}%
+        }%
+      }%
+    \endgroup
+    \@esphack
+  }%
+\fi
+\let\ltx@label\label
+\@ifundefined{slabel}{}{%
+  \def\slabel#1{%
+    \@bsphack
+    \if@filesw
+      {%
+        \let\label\@gobble
+        \def\ref{\protect\ref}%
+        \edef\@currentlabstr{%
+          \expandafter\strip@prefix\meaning\@currentlabelname
+        }%
+        \let\thepage\relax
+        \def\protect{\noexpand\noexpand\noexpand}%
+        \edef\@tempa{%
+          \write\@auxout{%
+            \string\newlabel{#1}{%
+              {\thesubequation}%
+              {\thepage}%
+              {\expandafter\strip@period
+                \@currentlabstr\relax.\relax\@@@}%
+              {\@currentHref}{}%
+            }%
+          }%
+        }%
+        \expandafter
+      }%
+      \@tempa
+      \if@nobreak\ifvmode\nobreak\fi\fi
+    \fi
+    \@esphack
+  }%
+}
+\def\@writetocindents@{%
+  \begingroup
+  \@for\@tempa:=-1,0,1,2,3\do{%
+    \immediate\write\@auxout{%
+      \string\newlabel{tocindent\@tempa}{%
+        \csname r@tocindent\@tempa\endcsname{}{}{}{}%
+      }%
+    }%
+  }%
+  \endgroup}
+\let\NR@sect\@sect
+\newcounter{section@level}
+\def\@sect#1#2#3#4#5#6[#7]#8{%
+  \setcounter{section@level}{#2}%
+  \def\@currentlabelname{#7}%
+  \NR@sect{#1}{#2}{#3}{#4}{#5}{#6}[{#7}]{\Sectionformat{#8}{#2}}%
+}
+\let\NR@ssect\@ssect
+\def\@ssect#1#2#3#4#5{%
+  \def\@currentlabelname{#5}%
+  \NR@ssect{#1}{#2}{#3}{#4}{\Sectionformat{#5}{#1}}%
+}
+\let\NR@part\@part
+\def\@part[#1]#2{%
+  \def\@currentlabelname{#1}%
+  \NR@part[{#1}]{#2}%
+}
+\let\NR@chapter\@chapter
+\def\@chapter[#1]#2{%
+  \def\@currentlabelname{#1}%
+  \NR@chapter[{#1}]{#2}%
+}
+\let\NR@schapter\@schapter
+\def\@schapter#1{%
+  \def\@currentlabelname{#1}%
+  \NR@schapter{#1}%
+}
+\def\@currentlabelname{}
+\def\@currentHref{}
+\long\def\@firstoffive#1#2#3#4#5{#1}
+\long\def\@secondoffive#1#2#3#4#5{#2}
+\long\def\@thirdoffive#1#2#3#4#5{#3}
+\long\def\@fourthoffive#1#2#3#4#5{#4}
+\long\def\@fifthoffive#1#2#3#4#5{#5}
+\providecommand*\@safe@activestrue{}%
+\providecommand*\@safe@activesfalse{}%
+\def\T@ref#1{%
+  \@safe@activestrue
+  \expandafter\@setref\csname r@#1\endcsname\@firstoffive{#1}%
+  \@safe@activesfalse
+}%
+\def\T@pageref#1{%
+  \@safe@activestrue
+  \expandafter\@setref\csname r@#1\endcsname\@secondoffive{#1}%
+  \@safe@activesfalse
+}%
+\ifNR@showkeys
+  \ifx\SK@ref\@empty
+  \else
+    \def\T@ref#1{%
+      \@safe@activestrue
+      \SK@\SK@@ref{#1}%
+      \expandafter\@setref\csname r@#1\endcsname\@firstoffive{#1}%
+      \@safe@activesfalse
+    }%
+    \def\T@pageref#1{%
+      \@safe@activestrue
+      \SK@\SK@@ref{#1}%
+      \expandafter\@setref\csname r@#1\endcsname\@secondoffive{#1}%
+      \@safe@activesfalse
+    }%
+  \fi
+\fi
+\providecommand\ref{\protect\T@ref}
+\providecommand\pageref{\protect\T@pageref}
+\def\T@nameref#1{%
+  \@safe@activestrue
+  \expandafter\@setref\csname r@#1\endcsname\@thirdoffive{#1}%
+  \@safe@activesfalse
+}%
+\ifNR@showkeys
+  \ifx\SK@ref\@empty
+  \else
+    \def\T@nameref#1{%
+      \@safe@activestrue
+      \SK@\SK@@ref{#1}%
+      \expandafter\@setref\csname r@#1\endcsname\@thirdoffive{#1}%
+      \@safe@activesfalse
+    }%
+  \fi
+\fi
+\def\nameref{\protect\T@nameref}
+\def\Nameref#1{`\nameref{#1}' on page~\pageref{#1}}
+\providecommand\Sectionformat[2]{#1}
+\ifx\csname @@vpageref\endcsname\relax
+\else
+  \def\@@vpageref#1[#2]#3{%
+    \leavevmode\unskip
+    \global\advance\c@vrcnt\@ne
+    \@ifundefined{r@\the\c@vrcnt @vr}%
+      {\@namedef{r@\the\c@vrcnt @vr}{{??}{??}{??}{??}{??}}}{}%
+    \edef\@tempa{%
+      \expandafter\expandafter\expandafter
+      \@secondoffive\csname r@\the\c@vrcnt @vr\endcsname
+    }%
+    \@ifundefined{r@\the\c@vrcnt @xvr}%
+      {\@namedef{r@\the\c@vrcnt @xvr}{{??}{??}{??}{??}{??}}}{}%
+    \edef\@tempb{%
+      \expandafter\expandafter\expandafter
+      \@secondoffive\csname r@\the\c@vrcnt @xvr\endcsname
+    }%
+    {%
+      \let\@currentlabel\@empty
+      \expandafter\label\expandafter{\the\c@vrcnt @xvr}%
+    }%
+    \ifx\@tempa\@tempb
+    \else
+      \vref@err{%
+        \noexpand\vref at page boundary
+        \@tempb-\@tempa\space (may loop)%
+      }%
+    \fi
+    \@ifundefined{r@#3}{\@namedef{r@#3}{{??}{??}{??}{??}{??}}}{}%
+    \edef\@tempb{%
+      \expandafter\expandafter\expandafter
+      \@secondoffive\csname r@#3\endcsname
+    }%
+    \space
+    \ifx\@tempa\@tempb
+      #1%
+    \else
+      #2%
+      \is@pos@number\@tempb{%
+        \is@pos@number\@tempa{%
+          \@tempcnta\@tempa
+          \advance\@tempcnta\@ne
+        }{%
+          \@tempcnta\maxdimen
+        }%
+        \ifnum \@tempb =\@tempcnta
+          \ifodd\@tempcnta
+            \if@twoside
+              \reftextfaceafter
+            \else
+              \reftextafter
+            \fi
+          \else
+            \reftextafter
+          \fi
+        \else
+          \advance\@tempcnta-2
+          \ifnum \@tempb =\@tempcnta
+            \ifodd\@tempcnta
+              \reftextbefore
+            \else
+              \if@twoside
+                \reftextfacebefore
+              \else
+                \reftextbefore
+              \fi
+            \fi
+          \else
+            \reftextfaraway{#3}%
+          \fi
+        \fi
+      }{%
+        \reftextfaraway{#3}%
+      }%
+    \fi
+    {%
+      \let\@currentlabel\@empty
+      \expandafter\label\expandafter{\the\c@vrcnt @vr}%
+    }%
+  }%
+  \DeclareRobustCommand\vnameref[1]{%
+    \unskip~\nameref{#1}%
+    \@vpageref[\unskip]{#1}%
+  }
+\fi
+\endinput
+%%
+%% End of file `nameref.sty'.

@@ -1,0 +1,138 @@
+%%
+%% This is file `noaccent.def',
+%%
+%% 
+%% It may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.2
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% This file may only be distributed together with a copy of the LaTeX
+%% base system. You may however distribute the LaTeX base system without
+%% such generated files.
+%% 
+%% The list of all files belonging to the LaTeX base distribution is
+%% given in the file `manifest.txt'. See also `legal.txt' for additional
+%% information.
+%% 
+%% \CharacterTable
+%%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%%   Digits        \0\1\2\3\4\5\6\7\8\9
+%%   Exclamation   \!     Double quote  \     Hash (number) \#
+%%   Dollar        \$     Percent       \%     Ampersand     \&
+%%   Acute accent  \'     Left paren    \(     Right paren   \)
+%%   Asterisk      \*     Plus          \+     Comma         \,
+%%   Minus         \-     Point         \.     Solidus       \/
+%%   Colon         \:     Semicolon     \;     Less than     \<
+%%   Equals        \=     Greater than  \>     Question mark \?
+%%   Commercial at \@     Left bracket  \[     Backslash     \\
+%%   Right bracket \]     Circumflex    \     Underscore    \_
+%%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%%   Right brace   \}     Tilde         \~}
+\ProvidesFile{noaccent.def}
+   [2003/11/25 v0.1 Input encoding file ]
+\makeatletter
+\DeclareInputText{160}{}
+\DeclareInputText{161}{}
+\DeclareInputText{162}{c}
+\DeclareInputText{163}{L}
+\DeclareInputText{164}{}
+\DeclareInputText{165}{y}
+\DeclareInputText{166}{}
+\DeclareInputText{167}{S}
+\DeclareInputText{168}{}
+\DeclareInputText{169}{c}
+\DeclareInputText{170}{}
+\DeclareInputText{171}{}
+\DeclareInputText{172}{}
+\DeclareInputText{173}{-}
+\DeclareInputText{174}{R}
+\DeclareInputText{175}{}
+\DeclareInputText{176}{d}
+\DeclareInputText{177}{}
+\DeclareInputText{178}{}
+\DeclareInputText{179}{}
+\DeclareInputText{180}{}
+\DeclareInputText{181}{}
+\DeclareInputText{182}{P}
+\DeclareInputText{183}{,}
+\DeclareInputText{184}{}
+\DeclareInputText{185}{}
+\DeclareInputText{186}{}
+\DeclareInputText{187}{}
+\DeclareInputText{188}{1/4}
+\DeclareInputText{189}{1/2}
+\DeclareInputText{190}{3/4}
+\DeclareInputText{191}{}
+\DeclareInputText{192}{A}
+\DeclareInputText{193}{A}
+\DeclareInputText{194}{A}
+\DeclareInputText{195}{A}
+\DeclareInputText{196}{A}
+\DeclareInputText{197}{A}
+\DeclareInputText{198}{AE}
+\DeclareInputText{199}{C}
+\DeclareInputText{200}{E}
+\DeclareInputText{201}{E}
+\DeclareInputText{202}{E}
+\DeclareInputText{203}{E}
+\DeclareInputText{204}{I}
+\DeclareInputText{205}{I}
+\DeclareInputText{206}{I}
+\DeclareInputText{207}{I}
+\DeclareInputText{208}{DH}
+\DeclareInputText{209}{N}
+\DeclareInputText{210}{O}
+\DeclareInputText{211}{O}
+\DeclareInputText{212}{O}
+\DeclareInputText{213}{O}
+\DeclareInputText{214}{O}
+\DeclareInputText{215}{O}
+\DeclareInputText{216}{O}
+\DeclareInputText{217}{U}
+\DeclareInputText{218}{U}
+\DeclareInputText{219}{U}
+\DeclareInputText{220}{U}
+\DeclareInputText{221}{Y}
+\DeclareInputText{222}{TH}
+\DeclareInputText{223}{ss}
+\DeclareInputText{224}{a}
+\DeclareInputText{225}{a}
+\DeclareInputText{226}{a}
+\DeclareInputText{227}{a}
+\DeclareInputText{228}{a}
+\DeclareInputText{229}{a}
+\DeclareInputText{230}{ae}
+\DeclareInputText{231}{c}
+\DeclareInputText{232}{e}
+\DeclareInputText{233}{e}
+\DeclareInputText{234}{e}
+\DeclareInputText{235}{e}
+\DeclareInputText{236}{i}
+\DeclareInputText{237}{i}
+\DeclareInputText{238}{i}
+\DeclareInputText{239}{i}
+\DeclareInputText{240}{dh}
+\DeclareInputText{241}{n}
+\DeclareInputText{242}{o}
+\DeclareInputText{243}{o}
+\DeclareInputText{244}{o}
+\DeclareInputText{245}{o}
+\DeclareInputText{246}{o}
+\DeclareInputText{247}{o}
+\DeclareInputText{248}{o}
+\DeclareInputText{249}{u}
+\DeclareInputText{250}{u}
+\DeclareInputText{251}{u}
+\DeclareInputText{252}{u}
+\DeclareInputText{253}{y}
+\DeclareInputText{254}{th}
+\DeclareInputText{255}{y}
+\makeatother
+\endinput
+%%
+%% End of file `noaccent.def'.
