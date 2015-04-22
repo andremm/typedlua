@@ -1047,10 +1047,11 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \AtBeginDocument{%
-  \bibliographystyle{ThesisPUC_uk}%
+  %\bibliographystyle{ThesisPUC_uk}%
+  \bibliographystyle{alpha}%
   %\renewcommand{\thechapter}{\Roman{chapter}}%
-  \renewcommand{\thesubsection}{\thesection(\alph{subsection})}%
-  \renewcommand{\key}[1]{#1. }
+  %\renewcommand{\thesubsection}{\thesection(\alph{subsection})}%
+  %\renewcommand{\key}[1]{#1. }
   \special{ pdf: docinfo << /Author (\puc@author) /Title (\puc@title) /Keywords (\puc@keywords) >> }%
 }
 \AfterBegin{document}{\makeatletter\puc@showfrontmatter\makeatother}
