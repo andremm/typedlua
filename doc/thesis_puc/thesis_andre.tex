@@ -1,6 +1,35 @@
 \documentclass[phd,oneside,british]{ThesisPUC_uk}
 
 \usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{color}
+\usepackage{multirow}
+
+\newcommand{\Value}{\mathbf{value}}
+\newcommand{\Any}{\mathbf{any}}
+\newcommand{\Nil}{\mathbf{nil}}
+\newcommand{\Self}{\mathbf{self}}
+\newcommand{\False}{\mathbf{false}}
+\newcommand{\True}{\mathbf{true}}
+\newcommand{\Boolean}{\mathbf{boolean}}
+\newcommand{\Integer}{\mathbf{integer}}
+\newcommand{\Number}{\mathbf{number}}
+\newcommand{\String}{\mathbf{string}}
+\newcommand{\Void}{\mathbf{void}}
+\newcommand{\Const}{\mathbf{const}}
+
+\newcommand{\mylabel}[1]{\; (\textsc{#1})}
+\newcommand{\env}{\Gamma}
+\newcommand{\penv}{\Pi}
+\newcommand{\senv}{\Sigma}
+\newcommand{\subtype}{<:}
+\newcommand{\ret}{\rho}
+\newcommand{\self}{\sigma}
+
+\def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
+\def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
 
 \author{André Murbach Maidl}
 \authorR{Maidl, André Murbach}
@@ -42,7 +71,7 @@
 }
 
 \abstract{
-%\input{abstract.tex}
+\input{abstract.tex}
 }
 
 \keywords{
@@ -54,7 +83,7 @@
 }
 
 \abstractbr{
-%\input{resumo.tex}
+\input{resumo.tex}
 }
 
 \keywordsbr{
@@ -103,14 +132,14 @@
 
 \chapter{Glossary}
 \label{app:glossary}
-%\input{glossary.tex}
+\input{glossary.tex}
 
 \chapter{The syntax of Typed Lua}
 \label{app:syntax}
-%\input{syntax.tex}
+\input{syntax.tex}
 
 \chapter{The type system of Typed Lua}
 \label{app:rules}
-%\input{rules.tex}
+\input{rules.tex}
 
 \end{document}
