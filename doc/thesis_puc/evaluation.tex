@@ -1,0 +1,693 @@
+
+We performed some case studies on existing Lua libraries
+to evaluate the design of our type system.
+For each library, we used Typed Lua to either annotate its modules
+or to write statically typed interfaces to its modules through
+Typed Lua's description files.
+In this chapter we present our evaluation results and discuss some
+interesting cases.
+
+The Lua Standard Library \cite{luamanual} was our first case study.
+We started to think about how we would type its modules at the same time
+that we started to design our type system, as it could give us some
+hints on our type system.
+And it did: optional parameters and overloading on the return type
+are two Lua features that our type system should handle to allow us
+typing some of the functions that the standard library implements.
+
+The second case study that we chose was the MD5 library \cite{lmd5},
+because we wanted a simple case study to introduce Typed Lua's description
+files and \texttt{userdata} declarations.
+These Typed Lua's mechanisms allow programmers to give statically typed
+interfaces to Lua libraries.
+
+LuaSocket \cite{luasocket} and LuaFileSystem \cite{luafilesystem} were
+the third and fourth case studies that we used to evaluate Typed Lua.
+We chose them because they are the most popular Lua libraries.
+We wrote a script that builds the dependency graph of Lua libraries
+that are in the LuaRocks repository, and uses this dependency graph
+to identify the most popular Lua libraries.
+
+We also randomly selected three case studies from the LuaRocks
+repository, they are: HTTP Digest \cite{luahttpdigest},
+Typical \cite{luatypical}, and Mod 11 \cite{luamod11}.
+The first provides client side HTTP digest authentication for Lua.
+The second is an extension to the primitive function \texttt{type}.
+The third is a generator and checker of modulo 11 numbers.
+We randomly selected three case studies because we wanted to evaluate
+Typed Lua for annotating existing libraries that are written in Lua,
+as the previous case studies are mostly libraries that are written in C.
+
+The Typed Lua compiler is the last case study that we evaluated.
+We chose it as a case study because it is a large application.
+Besides, it is a case study that evaluates the evolution of a script
+to a program.
+
+We used these case studies to evaluate two aspects of Typed Lua:
+\begin{enumerate}
+\item how precisely it can describe the type of the interface of a module;
+\item whether it provides guarantees that the code matches the interface.
+\end{enumerate}
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|}
+\hline
+\textbf{Case study} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+Lua Standard Library & 64\% & 5\% & 8\% & 23\% & 129 \\ % 100%
+\hline
+MD5 & 100\% & 0\% & 0\% & 0\% & 13 \\ % 100%
+\hline
+LuaSocket & 89\% & 1\% & 2\% & 8\% & 123 \\ % 100%
+\hline
+LuaFileSystem & 89\% & 0\% & 11\% & 0\% & 19 \\ % 100%
+\hline
+HTTP Digest & 0\% & 0\% & 100\% & 0\% & 1 \\ % 100%
+\hline
+Typical & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
+\hline
+Modulo 11 & 78\% & 0\% & 0\% & 22\% & 9 \\ % 100%
+\hline
+Typed Lua Compiler & 93\% & 0\% & 1\% & 6\% & 154 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for each case study}
+\label{tab:evalbycase}
+\end{table}
+
+Table \ref{tab:evalbycase} summarizes our evaluation results for each
+of the case studies that we used Typed Lua for typing their members.
+An exported member is any Lua value that a module might export.
+We split the members of each case study into four categories:
+\emph{easy}, \emph{poly}, \emph{over}, and \emph{hard}.
+The \emph{easy} category shows the percentage of members that
+we could give a precise static type.
+The \emph{poly} category shows the percentage of members that
+we made minimal use of the dynamic type as a replacement for the
+lack of type parameters.
+The \emph{over} category shows the percentage of members that
+we gave a static type that is not precise enough,
+as these members are overloaded functions that require intersection
+types to describe their precise static types.
+The \emph{hard} category shows the percentage of members that
+we could not give a precise static type.
+The last column of the table shows the total number of members
+of each case study.
+The results that we obtained for the \emph{easy} category give
+a lower bound on how much static type safety
+we could add to each one of our case studies.
+
+In the following sections we discuss each case study in more detail.
+For each case study, we split the evaluation results according
+to the modules that each one of them include.
+We use these split results to discuss the contributions and
+limitations of our type system.
+
+\section{Lua Standard Library}
+
+All of the modules in the standard library are implemented in C, so
+we used Typed Lua to type just the interface of each module.
+The \texttt{debug} module is the only one that we did not include in our
+evaluation results, because it provides several functions that violate
+basic assumptions about Lua code \cite{luamanual}.
+For instance, we can use the function \texttt{debug.setlocal} to change the value
+of a local variable that is not visible in the current scope.
+Table \ref{tab:evallsl} summarizes the evaluation results for the Lua Standard Library
+(version 5.3).
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+base & 35\% & 4\% & 8\% & 53\% & 26 \\ % 100%
+\hline
+coroutine & 14\% & 0\% & 0\% & 86\% & 7 \\ % 100%
+\hline
+package & 62\% & 0\% & 0\% & 38\% & 8 \\ % 100%
+\hline
+string & 75\% & 0\% & 0\% & 25\% & 16 \\ % 100%
+\hline
+utf8 & 100\% & 0\% & 0\% & 0\% & 6 \\ % 100%
+\hline
+table & 14\% & 72\% & 14\% & 0\% & 7 \\ % 100%
+\hline
+math & 81\% & 0\% & 19\% & 0\% & 27 \\ % 100%
+\hline
+io & 81\% & 0\% & 0\% & 19\% & 21 \\ % 100%
+\hline
+os & 82\% & 0\% & 18\% & 0\% & 11 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Lua Standard Library}
+\label{tab:evallsl}
+\end{table}
+
+The \texttt{base} module was very difficult to type
+because it includes several functions that rely on reflection,
+as the \emph{hard} category shows.
+For instance, the functions \texttt{pairs} and \texttt{getmetatable}
+are in this category.
+While \texttt{pairs} traverses all keys and values that are stored
+in a given table, \texttt{getmetatable} returns the metatable of a
+given table.
+
+There are some functions in the \texttt{base} module that
+we could not give a precise static type because our type
+system does not have parametric polymorphism,
+as the \emph{poly} category shows.
+This is the case of \texttt{ipairs}.
+
+The \texttt{base} module also includes some overloaded functions,
+as the \emph{over} category shows.
+We could not type these functions because our type system does
+not include intersection types.
+This is the case of \texttt{tonumber} and \texttt{collectgarbage}.
+
+In the case of \texttt{tonumber}, it has two different types:
+\texttt{(value) -> (number)} and \texttt{(string, integer) -> (number)}.
+This means that the type of the first parameter depends on the
+type of the second parameter.
+For instance, we can call \texttt{tonumber(1)}, but we cannot
+call \texttt{tonumber(1,2)}.
+Note that the first argument of \texttt{tonumber} can be
+a value of any type if it is the only argument, but it must
+be a string if there is a second argument,
+which must be an integer.
+
+In the case of \texttt{collectgarbage}, the return type changes
+according to an input literal string.
+For instance, calling \texttt{collectgarbage("collect")} returns an integer,
+calling \texttt{collectgarbage("count")} returns a floating point,
+and calling \texttt{collectgarbage("isrunning")} returns a boolean.
+
+The \texttt{coroutine} module was also very difficult to type
+because our type system cannot describe the computational effects
+of a program.
+The \emph{hard} category shows the amount of functions that we
+could not give a precise static type for this reason.
+Lua has one-shot delimited continuations \cite{james2011yield}
+in the form of \emph{coroutines} \cite{moura2009rc}, and
+effect systems \cite{nielson1999type} are an approach that we
+could use to describe control transfers with continuations.
+However, for now, coroutines are out of scope of our type
+system, and we use an empty \texttt{userdata} declaration
+to represent the type \texttt{thread}.
+
+Still, we could give a precise static type to one function in
+the \texttt{coroutine} module, as the \emph{easy} category shows.
+The function \texttt{coroutine.isyieldable} has no input parameters,
+and it simply returns a boolean that indicates whether the running
+coroutine is yieldable.
+
+We could give precise static types to the constants and functions
+of the \texttt{package} module, but we could not give precise static
+types to the following tables that it exports:
+\texttt{package.loaded}, \texttt{package.preload}, and \texttt{package.loaders}.
+The first stores loaded modules, while the others store module \emph{loaders}.
+They are difficult to type because their types rely on reflection,
+that is, their types depend on the modules a program loads.
+For this reason, they are in the \emph{hard} category.
+
+We could give precise static types to most of the functions of the
+\texttt{string} module, but we could not give precise static types
+to the functions that rely on format strings.
+For instance, the type of the arguments that we pass to
+\texttt{string.format} must match the format string we are using.
+It is fine to call \texttt{string.format("\%d", 1)}, but
+\texttt{string.format("\%d", true)} raises a run-time error.
+These functions that rely on format strings are in the \emph{hard} category.
+
+The \texttt{utf8} module was straightforward to type,
+as its members are only operations over strings.
+
+The \texttt{table} module was specially difficult to type because
+most of its functions require parametric polymorphism,
+as the \emph{poly} category shows.
+These functions either receive or return a list of elements, and
+parametric polymorphism would help us to describe them with a generic type.
+
+However, the lack of parametric polymorphism did not prevent us from
+giving a precise type to one function of the \texttt{table} module,
+as the \emph{easy} category shows.
+We could give a precise static type to \texttt{table.concat},
+as it operates over lists where all elements are strings or numbers.
+
+Even if our type system had parametric polymorphism, there is
+still one function of the \texttt{table} module that we could
+not give a precise static type because it is an overloaded function,
+as the \emph{over} category shows.
+This function is \texttt{table.insert}, and its type depends on
+the calling arity.
+That is, calling \texttt{table.insert(l, v)} inserts the
+element \texttt{v} at the end of the list \texttt{l},
+while \texttt{table.insert(l, p, v)} inserts the element \texttt{v}
+at the position \texttt{p} of the list \texttt{l},
+and generates a run-time error when \texttt{p} is out of bounds.
+This function also does not follow the semantics of Lua on
+discarding extra arguments, and generates a run-time error whenever
+we pass more than three arguments, even if the first three arguments
+match its signature.
+
+Even though the \texttt{math} module looks straightforward to type,
+the \emph{over} category shows that it includes several overloaded functions.
+For instance, the functions \texttt{math.abs} and \texttt{math.random}
+are in this category.
+
+In the case of \texttt{math.abs},
+it has two different types: \texttt{(integer) -> (integer)} and
+\texttt{(number) -> (number)}.
+Even though we gave this function the more general type \texttt{(number) -> (number)},
+it is not precise enough because the return type is always \texttt{number}
+independently of the argument type.
+In other words, the return type should be \texttt{integer} when
+the argument type is also \texttt{integer}, and the return type
+should be \texttt{number} when the argument type is also \texttt{number}.
+
+In the case of \texttt{math.random}, it also has two different types:
+\texttt{() -> (number)} and \texttt{(integer, integer?) -> (integer)}.
+This means that the type of \texttt{math.random} depends on the calling arity.
+Calling \texttt{math.random()} returns a random floating point
+between \texttt{0} and \texttt{1}.
+Calling \texttt{math.random(10)} is equivalent to \texttt{math.random(1,10)},
+and returns an integer between this interval.
+Like \texttt{table.insert}, this function also does not follow the
+semantics of Lua on discarding extra arguments,
+and generates a run-time error whenever we pass more than two arguments.
+
+The \texttt{io} module provides operations for manipulating files,
+and these operations can use implicit or explicit file descriptors.
+The implicit operations are functions in the \texttt{io} table,
+while the explicit operations are methods of a file descriptor.
+We used an \texttt{userdata} declaration to introduce the type
+\texttt{file} for representing the type of a file descriptor
+and its methods.
+The evaluation results include both implicit and explicit operations.
+
+We could give precise static types to most of the members of the
+\texttt{io} module, but the \emph{hard} category shows that it
+includes some members that we could not give a precise static type.
+The functions \texttt{io.read} and \texttt{io.lines} are
+in the \emph{hard} category along with the methods
+\texttt{file:read} and \texttt{file:lines}.
+
+We could not precisely type \texttt{io.read} because its return type
+relies on format strings.
+For instance, calling \texttt{io.read("l")} returns a string or \texttt{nil},
+\texttt{io.read("n")} returns a number or \texttt{nil}, and
+\texttt{io.read("l", "n")} returns a string or \texttt{nil} and a number or \texttt{nil}.
+The function \texttt{io.lines}, and the methods \texttt{file:read} and
+\texttt{file:lines} have the same issue.
+
+There are two functions in the \texttt{os} module that we could
+not give a precise static type because they are overloaded functions.
+The functions that are in the \emph{over} category are
+\texttt{os.date} and \texttt{os.execute}.
+
+The evaluation results show that our type system should include
+intersection types, parametric polymorphism, and effect types,
+as these features would help us increase the static typing of the
+Lua Standard Library.
+Intersection types would allow us to define overloaded function types.
+Parametric polymorphism would allow us to define generic function and table types.
+Effect types would allow us to type coroutines.
+
+\section{MD5}
+
+The MD5 library is an OpenSSL based message digest library for Lua.
+It contains just the \texttt{md5} module that is written in C,
+so we used Typed Lua's description file to type it.
+Table \ref{tab:evalmd5} summarizes the evaluation results for MD5.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+md5 & 100\% & 0\% & 0\% & 0\% & 13 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for MD5}
+\label{tab:evalmd5}
+\end{table}
+
+Even tough it was straightforward to type the MD5 library,
+we found a little difference between its documentation and its behavior.
+The documentation suggests that the type of the function \texttt{md5.update}
+is \texttt{(md5\string_context, string) -> (md5\string_context)},
+though there is a call to this function in the test script that passes
+an extra string argument.
+Reading the source code, we found that its actual type is
+\texttt{(md5\string_context, string*) -> (md5\string_context)},
+that is, we can pass zero or more strings to \texttt{md5.update}.
+
+This case study shows that type annotations help programmers maintain the
+documentation updated, as the type checker always validates them.
+
+\section{LuaSocket}
+
+LuaSocket is a library that adds network support to Lua,
+and it is split into two parts: a core that is written in C and a set of
+Lua modules.
+The C core provides TCP and UDP support, while the Lua modules provide
+support for SMTP, HTTP, and FTP client protocols, MIME encoding,
+URL manipulation, and LTN12 filters \cite{nehab2008ltn012}.
+We used Typed Lua's description files to type both parts, as we also
+wanted to use LuaSocket to test description files to statically type
+the interface of modules that are written in Lua.
+Table \ref{tab:evalsocket} summarizes the evaluation results for LuaSocket.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+socket & 83\% & 0\% & 0\% & 17\% & 60 \\ % 100%
+\hline
+ftp & 83\% & 0\% & 17\% & 0\% & 6 \\ % 100%
+\hline
+http & 80\% & 0\% & 20\% & 0\% & 5 \\ % 100%
+\hline
+smtp & 100\% & 0\% & 0\% & 0\% & 7 \\ % 100%
+\hline
+mime & 100\% & 0\% & 0\% & 0\% & 17 \\ % 100%
+\hline
+ltn12 & 95\% & 5\% & 0\% & 0\% & 20 \\ % 100%
+\hline
+url & 100\% & 0\% & 0\% & 0\% & 8 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for LuaSocket}
+\label{tab:evalsocket}
+\end{table}
+
+We could give precise static types to most of the members
+in the \texttt{socket} module, which is the C core.
+However, this module includes some functions that
+we could not give a precise static type because they
+rely on reflection, as the \emph{hard} category shows.
+For instance, \texttt{socket.skip} is a function that is
+in this category.
+We can use this function to choose the number of
+values that we want to return.
+As an example, calling \texttt{socket.skip(1, nil, "hello")}
+returns only the string \texttt{"hello"}, because \texttt{1} indicates
+that we do not want to return the first value.
+Passing a negative number to \texttt{socket.skip} can be
+dangerous, as it returns anything that might be in the stack.
+As an example, calling \texttt{socket.skip(-1, nil, "hello")}
+returns the tuple \texttt{(-1, nil, "hello")}, because \texttt{-1} makes
+\texttt{socket.skip} does not skip any values.
+As another example, \texttt{f = socket.skip(-2)} assigns \texttt{socket.skip}
+to \texttt{f}, as \texttt{-2} gets \texttt{socket.skip} from the stack.
+Our type system cannot handle the type of negative numbers, as
+this requires more complex types such as the refinement types from
+hybrid type checking \cite{flanagan2006htc}.
+
+We could give precise static types to most of the members of the
+modules \texttt{ftp} and \texttt{http}, but we could not precisely type
+two overloaded functions: \texttt{ftp.get} and \texttt{http.request}.
+
+The function \texttt{ftp.get} downloads data from a given URL,
+which can be either a string or a table.
+More precisely, \texttt{ftp.get(url)} returns the tuple
+\texttt{(string) | (nil, string)} if \texttt{url} is a string,
+and it returns the tuple \texttt{(number) | (nil, string)} if
+\texttt{url} is a table.
+
+The function \texttt{http.request} downloads data from a given URL,
+which can be either a string or a table.
+More precisely, \texttt{http.request(url, body)} returns the tuple
+\texttt{(string, number, \{string:string\}, number) | (nil, string)}
+if \texttt{url} is a string and \texttt{body} is another string or \texttt{nil},
+but it returns the tuple
+\texttt{(number, number, \{string:string\}, number) | (nil, string)}
+if \texttt{url} is a table and \texttt{body} is \texttt{nil}.
+
+The modules \texttt{mime} and \texttt{ltn12} have a strong connection.
+The \texttt{mime} module offers low-level and high-level filters
+that apply and remove some text encodings.
+The low-level filters are written in C, while the high-level filters
+use the function \texttt{ltn12.filter.cycle} along with the low-level
+filters to create standard filters.
+
+Even though we could type all the members of the \texttt{mime} module,
+the function \texttt{ltn12.filter.cycle} is the only member of the
+\texttt{ltn12} module that we could not give a precise type.
+This function is difficult to type because it is polymorphic.
+
+The modules \texttt{smtp} and \texttt{url} were straightforward to type.
+The \texttt{smtp} module provides functions that send e-mails.
+The \texttt{url} module provides functions that manipulate URLs.
+
+\section{LuaFileSystem}
+
+LuaFileSystem is a library that extends the set of functions
+for manipulating file systems in Lua.
+It contains just the \texttt{lfs} module that is written in C,
+so we used Typed Lua's description files to type it.
+Table \ref{tab:evallfs} summarizes the evaluation results for LuaFileSystem.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+lfs & 89\% & 0\% & 11\% & 0\% & 19 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for LuaFileSystem}
+\label{tab:evallfs}
+\end{table}
+
+Even though we could precisely type most of the functions exported
+by the \texttt{lfs} module, we could not type two overloaded functions
+due to the lack of intersection types in our type system.
+
+\section{HTTP Digest}
+
+The HTTP Digest library implements client side HTTP digest authentication for Lua.
+Table \ref{tab:evalhttpdigest} summarizes the evaluation results for HTTP Digest.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+http-digest & 0\% & 0\% & 100\% & 0\% & 1 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for HTTP Digest}
+\label{tab:evalhttpdigest}
+\end{table}
+
+It is difficult to type the interface of the \texttt{http-digest} module
+because it is an extension to the \texttt{http} module from LuaSocket.
+The \texttt{http-digest} module only exports the function
+\texttt{http-digest.request}, which extends the function
+\texttt{http.request} with MD5 authentication.
+Like \texttt{http.request}, \texttt{http-digest.request}
+is also an overloaded function.
+
+Even though we could not precisely type the interface that \texttt{http-digest}
+exports, we could use only static types to annotate this module,
+and they pointed a bug in the code.
+The problem was related to the way the library was loading the MD5 library
+that should be used. 
+This part of the code checks the existence of three different MD5 libraries
+in the system, and uses the first one that is available, or generates an
+error when none is available.
+The code that loads the first option was fine, but the code that loads the
+second and third options were trying to access an undefined global variable.
+
+\section{Typical}
+
+Typical is a library that extends the behavior of the function \texttt{type}. 
+Table \ref{tab:evaltypical} summarizes the evaluation results for Typical.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+typical & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Typical}
+\label{tab:evaltypical}
+\end{table}
+
+The interface of the \texttt{typical} module is straightforward to type,
+as it contains only the function \texttt{typical.type},
+which has the same type of the function \texttt{type}: \texttt{(value) -> (string)}.
+
+However, we hit some limitations of our type system while annotating this module.
+
+First, it uses the \texttt{getmetatable} to get a table and
+checks whether this table has the field \texttt{\string_\string_type}.
+We could not give a precise type to \texttt{getmetatable}, so we used the dynamic
+type \texttt{any} as its return type, and this generates a warning.
+
+Second, it returns a metatable that extends \texttt{\string_\string_call}
+with \texttt{typical.type}, that is, we can use the module itself as a function,
+though it is a table.
+Our type system still does not support metatables, so we did not extend our version
+of the \texttt{typical} module to support \texttt{\string_\string_call}.
+
+Third, the module uses \texttt{ipairs} to iterate over an array of functions,
+but our type system also has limited support to \texttt{ipairs}, and generates
+a warning when we try to use the indexed value inside the \texttt{for} body.
+As we mentioned in this chapter, we use the dynamic type as a replacement for
+the lack of type parameters.
+This means that we get warnings inside an \texttt{ipairs} iteration, because
+all iterated elements have the dynamic type.
+We removed this warning using the numeric \texttt{for} to perform the same loop.
+
+\section{Modulo 11}
+
+Modulo 11 is a library that generates and verifies modulo 11 numbers.
+Table \ref{tab:evalmod11} summarizes the evaluation results for Typical.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+mod11 & 78\% & 0\% & 0\% & 22\% & 9 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Modulo 11}
+\label{tab:evalmod11}
+\end{table}
+
+The \texttt{mod11} module was written using an object-oriented idiom that
+our type system does not support, and that is the reason why we could not
+type all the members of its interface.
+More precisely, the original code uses \texttt{setmetatable} to hide
+two attributes, which our type system cannot hide.
+
+In addition, it returns a metatable that extends \texttt{\string_\string_call}
+with the class constructor.
+This allows us to use the module itself to create new instances of a
+Modulo 11 number.
+However, our type system does not support this feature, and we need to
+make explicit calls to the constructor whenever we want to create a
+new instance.
+
+Even though we had these two issues to annotate the \texttt{mod11} module,
+we could use only static types to annotate it, and we found some interesting
+points.
+The code relies on implicit conversions between strings and numbers,
+and some parts of the code keep on changing the type of local variables.
+These are two practices that may hide bugs.
+
+\section{Typed Lua Compiler}
+
+The Typed Lua compiler is the last case study that we evaluated.
+Table \ref{tab:evaltlc} summarizes its evaluation results.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Module} & \textbf{easy} & \textbf{poly} & \textbf{over} & \textbf{hard} & \textbf{Total} \\
+\hline
+tlast & 98\% & 0\% & 2\% & 0\% & 47 \\ % 100%
+\hline
+tltype & 100\% & 0\% & 0\% & 0\% & 65 \\ % 100%
+\hline
+tlst & 100\% & 0\% & 0\% & 0\% & 26 \\ % 100%
+\hline
+tllexer & 18\% & 0\% & 0\% & 82\% & 11 \\ % 100%
+\hline
+tlparser & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
+\hline
+tldparser & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
+\hline
+tlchecker & 100\% & 0\% & 0\% & 0\% & 2 \\ % 100%
+\hline
+tlcode & 100\% & 0\% & 0\% & 0\% & 1 \\ % 100%
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluation results for Typed Lua Compiler}
+\label{tab:evaltlc}
+\end{table}
+
+The \texttt{tlast} module implements the Abstract Syntax Tree for
+the compiler.
+We could not precisely type just one function, because it has
+an overloaded type that requires intersection types.
+
+The \texttt{tltype} module implements the types introduced by Typed Lua.
+It also implements the subtyping and consistent-subtyping relations.
+The interface that this module exports was straightforward to type.
+
+The \texttt{tlst} module implements the symbols table for the compiler.
+The interface that this module exports was also straightforward to type.
+
+The \texttt{tllexer} module defines common lexical rules for
+the Typed Lua parser and the description file parser.
+This module is hard to type because it uses LPeg \cite{lpeg,ierusalimschy2009lpeg}
+patterns, and LPeg uses overloaded arithmetic operators to
+build LPeg patterns. 
+Even though LPeg is the third most popular Lua module,
+we cannot not precisely type LPeg patterns because our
+type system still does not support overloading arithmetic
+operators.
+In the \texttt{tllexer} module, we could only give precise static types
+to two error reporting functions that it exports.
+
+The \texttt{tlparser} and \texttt{tldparser} modules implement the Typed Lua
+parser and the description file parser, respectively.
+Even though they use LPeg to implement the grammar rules,
+they only export a parsing function.
+Both use LPeg to parse a string and return the corresponding AST.
+
+We could type the interfaces that modules \texttt{tlchecker} and
+\texttt{tlcode} export.
+The former traverses the AST to perform type checking,
+while the latter traverses the AST to perform code generation.
+
+Even though we could precisely type the interface that most of
+the modules export, we had issues to write mutually recursive functions.
+This kind of functions often appear in compilers construction
+to traverse the data structures that they use.
+However, Typed Lua still does not support mutually recursive functions.
+A way to overcome this limitation was to predeclare these functions
+with an empty body, and then redeclare them with their actual body.
+The first declaration specifies the function type, while the
+second specifies what the function actually does without changing
+any type definition.
+
+Traversing the AST would also be problematic if we had not included
+a way to discriminate unions of table types, as we mentioned in Section \ref{sec:alias}.
+Without a way to discriminate a union of table types, any attempt
+to index this union of table types would generate a warning.
+
+Bootstraping the compiler also helped revealing some bugs.
+We found some accesses to undeclared global variables and also
+to undeclared table fields.
+The compiler also helped pointing the places where we should narrow
+a nilable value before using it.
+In fact, this point appeared in all the case studies that we used
+Typed Lua to annotate Lua code.
+This means that Lua programmers often use possibly \texttt{nil} values
+before checking whether it is \texttt{nil}.
+
