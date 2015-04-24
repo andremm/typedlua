@@ -130,7 +130,7 @@ crash dependent code during run-time.
 Optional type systems \cite{bracha2004pluggable} are an approach for
 plugging static typing in dynamically typed languages.
 They use optional type annotations to perform compile-time type checking,
-though they do not influence the original run-time semantics
+though they do not affect the original run-time semantics
 of the language.
 This means that the run-time semantics should still catch type errors
 independently of the static type checking.
@@ -316,14 +316,14 @@ $$
 \label{fig:gts}
 \end{figure}
 
-Gradual typing is similar to the approaches proposed by
-Abadi and associates \cite{abadi1989dts} and Thatte \cite{thatte1990qst}
-by including a dynamic type in a statically typed language.
+Gradual typing \cite{siek2006gradual} is similar to two previous
+approaches \cite{abadi1989dts,thatte1990qst}, because they also include
+a dynamic type in a statically typed language.
 However, these three approaches differ in the way they handle the
 dynamic type.
 While Siek and Taha \cite{siek2006gradual} rely on the consistency relation,
 Abadi and associates \cite{abadi1989dts} rely on type equality with explicit
-projections and injections, and Thatte \cite{thatte1990qst} relies on subtyping.
+projections plus injections, and Thatte \cite{thatte1990qst} relies on subtyping.
 
 The subtyping relation $\subtype$ is actually a pitfall on Thatte's
 quasi-static typing, because it sets the dynamic type
@@ -427,7 +427,7 @@ Figure \ref{fig:consistent-subtyping} combines the consistency and subtyping
 relations to compose the consistent-subtyping relation for the simply typed
 lambda calculus extended with the dynamic type $?$.
 When we combine consistency and subtyping, we are making subtyping handle
-what casts are safe among static types, and we are making consistency
+which casts are safe among static types, and we are making consistency
 handle the casts that involve the dynamic type $?$.
 The consistent-subtyping relation is not transitive, and thus
 the dynamic type $?$ is not neutral to this relation.
@@ -435,7 +435,7 @@ the dynamic type $?$ is not neutral to this relation.
 So far, gradual typing looks like a mere formalization to optional
 type systems, as a gradual type system uses the consistency or
 consistent-subtyping relation to statically check the interaction
-between statically and dynamically typed code, without influencing
+between statically and dynamically typed code, without affecting
 the run-time semantics.
 
 However, another important feature of gradual typing is the theoretic
@@ -501,8 +501,8 @@ objects \cite{allende2013cis}.
 Grace \cite{black2012grace,black2013sg} is a new object-oriented,
 gradually-typed, educational language.
 In Grace, modules are gradually-typed objects, that is, modules
-may have types and methods as attributes, and can have a state
-\cite{homer2013modules}.
+may have types with methods as attributes, and they can also have
+a state \cite{homer2013modules}.
 ActionScript \cite{moock2007as3} is one the first languages that
 incorporated gradual typing to its implementation and
 Perl 6 \cite{tang2007pri} is also being designed with gradual typing,
