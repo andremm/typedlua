@@ -10,7 +10,7 @@ runs in unmodified Lua implementations.
 Another goal of Typed Lua is to be backwards compatible with Lua.
 This means that any Lua code is valid Typed Lua code.
 To be backwards compatible with Lua, the syntactic extensions introduced
-by Typed Lua does not include new reserved words.
+by Typed Lua do not include new reserved words.
 Appendix \ref{app:syntax} presents the complete syntax of Typed Lua
 in extended BNF.
 
@@ -178,7 +178,7 @@ In this example, the compiler uses local type inference to assign the
 type \texttt{integer} to the local variable \texttt{x} and to the
 return type of the local function \texttt{succ}, making this example
 compile without any warnings.
-Local type inference always use the most general type.
+Local type inference always uses the most general type.
 In this example, the compiler does not use the literal type \texttt{7},
 instead of the base type \texttt{integer}, because this would generate
 a warning when we try to assign other integer value to the variable \texttt{x}.
@@ -222,7 +222,7 @@ statically typed code with dynamically typed code:
     end
 
     local function distance (x, y)
-      return abs(x - y)
+      return absolute(x - y)
     end
 \end{verbatim}
 
@@ -254,7 +254,7 @@ between the interaction of dynamically typed and statically typed code.
 \section{Functions}
 \label{sec:functions}
 
-Lua has first-class functions, but they have some peculiarities.
+Lua has first-class functions, and they have some peculiarities.
 First, the number of arguments of a function call does
 not need to match the arity of the function declaration, as Lua silently
 drops extra arguments after evaluating them, or uses \texttt{nil} to
@@ -344,7 +344,7 @@ For instance, the call \texttt{sum(1, 2, 3)} compiles with a warning
 because we are passing an extra argument \texttt{3} to \texttt{sum}.
 
 Even though these operation modes affect function calls, they do not
-affect other multiple assignment.
+affect other multiple assignments.
 For instance,
 \begin{verbatim}
     local x:integer, y:integer = 1, 2, 3
@@ -391,7 +391,7 @@ consistent with the type of the left-hand side
 \texttt{(integer, integer, string, value*)}.
 
 Typed Lua always includes \texttt{nil*} in the end of the type
-of an expression list that does not end in a varidic type.
+of an expression list that does not end in a variadic type.
 This behavior preserves the semantics of Lua on replacing missing values,
 and it is necessary when we omit optional parameters in a function call.
 We will discuss optional parameters in the next section.
@@ -733,8 +733,8 @@ names due to the statistics results that we obtained about
 the usage of the table constructor, which we discussed in
 Section \ref{sec:statistics}.
 This means that we can use the syntax of records to type a
-list that has fixed elements, like the variable \texttt{days} from
-the previous example.
+list that has a fixed number of elements,
+like the variable \texttt{days} from the previous example.
 
 When we know that a list has fixed elements, we can leave the
 variable declaration unannotated and let local type inference assign
@@ -955,10 +955,10 @@ After we define the type \texttt{Person}, we can use it in type annotations:
                     firstname = "Lou" }
     local user4 = { "Lou", "Reed" }
 
-    print(greeter(user1))             --> Goodbye Lewis Reed 
-    print(greeter(user2))             --> compile-time warning
-    print(greeter(user3))             --> Goodbye Lou Reed
-    print(greeter(user4))             --> compile-time warning
+    print(byebye(user1))             --> Goodbye Lewis Reed 
+    print(byebye(user2))             --> compile-time warning
+    print(byebye(user3))             --> Goodbye Lou Reed
+    print(byebye(user4))             --> compile-time warning
 \end{verbatim}
 
 This example shows that our optional type system is structural rather
@@ -969,7 +969,7 @@ checking types.
 Even though the interface declaration may look redundant due to
 the type alias declaration, it has a more convenient syntax
 for declaring table types that express records.
-For this reason, it worth having two different constructs,
+For this reason, it is worth having two different constructs,
 one specifically for records and another for more general types.
 
 The \texttt{interface} and \texttt{typealias} constructs also allow
@@ -997,8 +997,8 @@ it has subtyping rules to check that the inferred return type
 matches the annotation.
 
 Now we can write a program that declares a list, inserts some
-elements in this list, and then traverses the list printing
-each list element:
+elements in it, and then traverses the list printing
+each element:
 \begin{verbatim}
     local l:Element?
 
@@ -1512,7 +1512,7 @@ our use of the \texttt{lmd5} library:
 \end{verbatim}
 
 The Typed Lua compiler searches for a
-description file when it cannot not find the respective Typed Lua file
+description file when it cannot find the respective Typed Lua file
 that is the argument of \texttt{require}.
 In this example, the call to \texttt{require} assigns to the local
 \texttt{m} the table type that the description file of the \texttt{lmd5}

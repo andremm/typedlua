@@ -405,7 +405,7 @@ Passing a negative number to \texttt{socket.skip} can be
 dangerous, as it returns anything that might be in the stack.
 As an example, calling \texttt{socket.skip(-1, nil, "hello")}
 returns the tuple \texttt{(-1, nil, "hello")}, because \texttt{-1} makes
-\texttt{socket.skip} does not skip any values.
+\texttt{socket.skip} not skip any values.
 As another example, \texttt{f = socket.skip(-2)} assigns \texttt{socket.skip}
 to \texttt{f}, as \texttt{-2} gets \texttt{socket.skip} from the stack.
 Our type system cannot handle the type of negative numbers, as
@@ -648,7 +648,7 @@ This module is hard to type because it uses LPeg \cite{lpeg,ierusalimschy2009lpe
 patterns, and LPeg uses overloaded arithmetic operators to
 build LPeg patterns. 
 Even though LPeg is the third most popular Lua module,
-we cannot not precisely type LPeg patterns because our
+we cannot precisely type LPeg patterns because our
 type system still does not support overloading arithmetic
 operators.
 In the \texttt{tllexer} module, we could only give precise static types

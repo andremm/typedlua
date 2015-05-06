@@ -268,7 +268,7 @@ and that $\Integer$ is a subtype of $\Number$:
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{S-NUMBER}\\
+\mylabel{S-INTEGER}\\
 \senv \vdash \Integer \subtype \Number
 \end{array}
 \end{array}
@@ -872,20 +872,20 @@ any Lua program except those that use labels and goto statements.
 $$
 \begin{array}{rlr}
 s ::= & & \textsc{statements:}\\
-& \;\; \mathbf{skip} \;
-| \; s_{1} \; ; \; s_{2} & \textit{skip and sequence}\\
+& \;\; \mathbf{skip} & \textit{skip}\\
+& | \; s_{1} \; ; \; s_{2} & \textit{sequence}\\
 & | \; \overline{l} = el & \textit{multiple assignment}\\
 & | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
 | \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
-& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s \;
-| \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
 & | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s & \textit{recursive function} \\
 & | \; \mathbf{return} \; el & \textit{return} \\
 & | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
 & | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
 e ::= & & \textsc{expressions:}\\
-& \;\; \mathbf{nil} \;
-| \; k & \textit{nil and other literals}\\
+& \;\; \mathbf{nil} & \textit{nil}\\
+& | \; k & \textit{other literals}\\
 & | \; id & \textit{variable access}\\
 & | \; e_{1}[e_{2}] & \textit{table access}\\
 & | \; {<}T{>} \; id & \textit{type coercion}\\
@@ -1127,11 +1127,10 @@ The former rule includes the type $\Nil{*}$, but the latter rule does not:
 \dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Void, \env_{2}}
       {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{2}}
 \end{array}
-\;
+\\ \\
 \begin{array}{c}
 \mylabel{T-EXPLIST3}\\
-\dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
-      {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
+\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{1}
 \end{array}
 \end{array}
 \]
@@ -1477,7 +1476,7 @@ We define these rules as follows:
 \dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
       {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
 \end{array}
-\;
+\\ \\
 \begin{array}{c}
 \mylabel{T-IDREAD2}\\
 \dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}

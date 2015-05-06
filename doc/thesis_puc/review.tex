@@ -18,7 +18,7 @@ just one way to help the compiler to optimize code.
 These annotations are unsafe because they can crash the program
 when they are wrong.
 
-Abadi and associates \cite{abadi1989dts} extended the simply typed
+Abadi et al. \cite{abadi1989dts} extended the simply typed
 lambda calculus with the \texttt{Dynamic} type and the \texttt{dynamic}
 and \texttt{typecase} constructs, with the aim to safely integrate dynamic
 code in statically typed languages.
@@ -35,7 +35,7 @@ changing type annotations and adding or removing \texttt{dynamic} and
 The \emph{quasi-static} type system proposed by Thatte \cite{thatte1990qst}
 performs implicit coercions and run-time checks to replace the
 \texttt{dynamic} and \texttt{typecase} constructs that were proposed by
-Abadi and associates \cite{abadi1989dts}.
+Abadi et al. \cite{abadi1989dts}.
 To do that, quasi-static typing relies on subtyping with a top type
 $\Omega$ that represents the dynamic type, and splits type checking
 into two phases.
@@ -117,7 +117,7 @@ Even though the permissive type $*$ is similar to the dynamic type
 from previous approaches, BabyJ does not provide any way to add
 implicit or explicit run-time checks.
 
-Ou and associates \cite{ou2004dtd} specified a language that combines
+Ou et al. \cite{ou2004dtd} specified a language that combines
 static types with dependent types.
 To ensure safety, the compiler automatically inserts coercions
 between dependent code and static code.
@@ -198,7 +198,7 @@ Figure \ref{fig:gtlc}.
 In gradual typing, type annotations are optional, and an untyped
 variable is syntactic sugar for a variable whose declared type is
 the dynamic type $?$, that is, $\lambda x.e$ is equivalent to $\lambda x{:}?.e$.
-Under these circumstances, we view gradual typing as a way to add
+Under these circumstances, we can view gradual typing as a way to add
 a dynamic type to statically typed languages.
 
 \begin{figure}[!ht]
@@ -232,7 +232,7 @@ $\String \sim \;?$, and $? \sim \String$,
 but $\Number \not\sim \String$, and
 $\String \not\sim \Number$.
 The consistency relation is both reflexive and symmetric, but
-it is neither commutative nor transitive.
+it is not transitive.
 
 \begin{figure}[!ht]
 \dstart
@@ -322,7 +322,7 @@ a dynamic type in a statically typed language.
 However, these three approaches differ in the way they handle the
 dynamic type.
 While Siek and Taha \cite{siek2006gradual} rely on the consistency relation,
-Abadi and associates \cite{abadi1989dts} rely on type equality with explicit
+Abadi et al. \cite{abadi1989dts} rely on type equality with explicit
 projections plus injections, and Thatte \cite{thatte1990qst} relies on subtyping.
 
 The subtyping relation $\subtype$ is actually a pitfall on Thatte's
@@ -449,14 +449,14 @@ statically and dynamically typed code.
 The semantics of these casts is based on the higher-order contracts
 proposed by Findler and Felleisen \cite{findler2002chf}.
 
-Herman and associates \cite{herman2007sgt} showed that there is an
+Herman et al. \cite{herman2007sgt} showed that there is an
 efficiency concern regarding the run-time checks, because there are
 two ways that casts can lead to unbounded space consumption.
 The first affects tail recursion while the second appears when
 first-class functions or objects cross the border between
 static code and dynamic code, that is, some programs can apply
 repeated casts to the same function or object.
-Herman and associates \cite{herman2007sgt} use the coercion calculus
+Herman et al. \cite{herman2007sgt} use the coercion calculus
 outlined by Henglein \cite{henglein1994dts} to express casts
 as coercions and solve the problem of space efficiency.
 Their approach normalizes an arbitrary sequence of coercions to a
@@ -467,7 +467,7 @@ because a cast application can be delayed and the error related
 to that cast application can appear considerable distance
 from the real error.
 Wadler and Findler \cite{wadler2009wpc} developed \emph{blame calculus}
-as a way to handle this issue, and Ahmed and associates \cite{ahmed2011bfa}
+as a way to handle this issue, and Ahmed et al. \cite{ahmed2011bfa}
 extended blame calculus with polymorphism.
 Blame calculus is an intermediate language to integrate
 static and dynamic typing along with the blame tracking approach
@@ -476,9 +476,9 @@ proposed by Findler and Felleisen \cite{findler2002chf}.
 On the one hand, blame calculus solves the issue regarding
 error reporting;
 on the other hand, it has the space efficiency problem reported
-by Herman and associates \cite{herman2007sgt}.
-Thus, Siek and associates \cite{siek2009casts} extended the coercion
-calculus outlined by Herman and associates \cite{herman2007sgt} with
+by Herman et al. \cite{herman2007sgt}.
+Thus, Siek et al. \cite{siek2009casts} extended the coercion
+calculus outlined by Herman et al. \cite{herman2007sgt} with
 blame tracking to achieve an implementation of the blame calculus that
 is space efficient.
 After that, Siek and Wadler \cite{siek2010blame} proposed a new solution
@@ -651,7 +651,7 @@ We can classify the indexing operations that are reads as follows:
 and less than 1\% of the reads (10 times) use a literal boolean key.
 At all, 93\% of the reads use literals to index a table while
 7\% of the reads use non-literal expressions to index a table.
-It also worth mentioning that 45\% of the reads are actually
+It is worth mentioning that 45\% of the reads are actually
 function calls.
 More precisely, 25\% of the reads use literals to call a function,
 20\% of the reads use literals to call a method, that is,
@@ -665,12 +665,12 @@ and less than 1\% of the writes (1 time) uses a literal boolean key.
 At all, 71\% of the writes use literals to index a table while
 29\% of the writes use non-literal expressions to index a table.
 
-We also measured how many files have code that iterate over tables to
+We also measured how many files have code that iterates over tables to
 observe how frequently iteration is used.
-We observed that 23\% of the files have code that iterate over keys
+We observed that 23\% of the files have code that iterates over keys
 of any value, that is, the call to \texttt{pairs} appears at least
 once in these files (the median is twice per file);
-21\% of the files have code that iterate over integer keys, that is,
+21\% of the files have code that iterates over integer keys, that is,
 the call to \texttt{ipairs} appears at least once in these files
 (the median is also twice per file);
 and 10\% of the files have code that use the numeric \texttt{for}

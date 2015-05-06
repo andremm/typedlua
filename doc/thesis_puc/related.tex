@@ -1,10 +1,6 @@
-In this chapter we review related work as a way to identify the novel
-features of our type system, what are the features that it shares with
-other type systems, and whether we can incorporate some interesting
-features from other type systems.
-We split this chapter into two sections: in the first section we review
-other Lua projects, while in the second section we review other
-projects that are not related to Lua.
+In this chapter we review related work, and we split it into two sections:
+in the first section we review other Lua projects,
+while in the second section we review other projects that are not related to Lua.
 
 \section{Other Lua projects}
 
@@ -182,7 +178,7 @@ Unlike Typed Lua, TypeScript uses arrays to represent variadic
 functions and multiple return values.
 
 Even though TypeScript is unsound by design,
-Bierman and associates \cite{bierman2014typescript} shows how to
+Bierman et al. \cite{bierman2014typescript} shows how to
 make TypeScript sound.
 They use a reduced core of TypeScript to formalize a
 sound type system for TypeScript, but also to formalize
@@ -196,7 +192,7 @@ different static analysis.
 They used TeJaS to create a type system that simulates the
 type system of TypeScript.
 
-Politz and associates \cite{politz2012semantics} proposes semantics
+Politz et al. \cite{politz2012semantics} proposes semantics
 and types for objects with first-class member names, a well-known
 feature from scripting languages.
 Their type system uses string patterns to describe the members of
@@ -213,7 +209,7 @@ The type system also relies on subtyping and consistent-subtyping.
 
 Gradualtalk inserts run-time checks that ensure dynamically
 typed code does not violate statically typed code.
-Allende and associates \cite{allende2013cis} perform a careful
+Allende et al. \cite{allende2013cis} perform a careful
 evaluation about cast insertion in Gradualtalk.
 They report that usually cast insertions impact on execution
 performance, so Gradualtalk also has an option that allows
@@ -268,7 +264,7 @@ Grace is not a dynamically typed language that has been
 extended with an optional type system, but a language
 that has been designed from scratch to have both
 static and dynamic typing.
-Homer and associates \cite{homer2013modules} explores some
+Homer et al. \cite{homer2013modules} explores some
 useful patterns that derive from Grace's use of objects as modules
 and its brand of optional structural typing, which
 can also be expressed with Typed Lua's modules as tables.
