@@ -503,7 +503,7 @@ The simplest case overloads on just a single parameter:
       if type(s2) == "string" then
         return s1 .. s2
       else
-        -- string.rep : (string, integer, string) -> (string)
+        -- string.rep : (string, integer, string?) -> (string)
         return string.rep(s1, s2)
       end
     end
@@ -1281,7 +1281,7 @@ has type
 which is the type that Typed Lua binds to the type \texttt{self}
 inside the definition of \texttt{move}.
 We use the \texttt{const} annotation in the type of the methods
-because it is necessary for covariance among object types work.
+because it is necessary for covariance among object types to work.
 Finally, the top-level \texttt{return} statement fixes the type of
 \texttt{Shape}, because \emph{fixed} table types do not allow width
 subtyping, and this behavior allows Typed Lua to use the refinement
