@@ -1,39 +1,99 @@
 \begin{description}
-\item[bottom type] TO DO.
-\item[closed table type] TO DO.
-\item[coercion] TO DO.
-\item[consistency] TO DO.
-\item[consistent-subtyping] TO DO.
-\item[contravariant] TO DO.
-\item[covariant] TO DO.
-\item[depth subtyping] TO DO.
-\item[dynamic type] TO DO.
-\item[filter type] TO DO.
-\item[fixed table type] TO DO.
-\item[flow typing] TO DO.
-\item[free assigned variable] TO DO.
-\item[gradual type system] TO DO.
-\item[gradual typing] TO DO.
-\item[invariant] TO DO.
-\item[metatable] TO DO.
-\item[nominal type system] TO DO.
-\item[open table type] TO DO.
-\item[optional type system] TO DO.
-\item[projection environment] TO DO.
-\item[projection type] TO DO.
-\item[prototype object] TO DO.
-\item[self-like delegation] TO DO.
-\item[sound type system] TO DO.
-\item[structural type system] TO DO.
-\item[table refinement] TO DO.
-\item[top type] TO DO.
-\item[type environment] TO DO.
-\item[type tag] TO DO.
-\item[unique table type] TO DO.
-\item[unsound type system] TO DO.
-\item[userdata] TO DO.
-\item[vararg expression] TO DO.
-\item[variadic function] TO DO.
-\item[variance] TO DO.
-\item[width subtyping] TO DO.
+\item[bottom type] It is a type that is subtype of all types.
+
+\item[closed table type] It is a table type that does not allow adding fields.
+
+\item[coercion] It is a relation that allows converting values from one type to values
+of another type without error.
+
+\item[consistency] It is a relation that gradual typing uses to control the insertion of
+run-time checks between dynamically typed and statically typed code.
+
+\item[consistent-subtyping] It is a relation that combines consistency and subtyping.
+
+\item[contravariant] Subtyping is contravariant when it reverses the subtyping order,
+that is, it orders types from a more generic type to a more specific type.
+
+\item[covariant] Subtyping is covariant when it preserves the subtyping order,
+that is, it orders types from a more specific type to a more general type.
+
+\item[depth subtyping] It allows changing the type of individual fields of a table type.
+
+\item[dynamic type] It is a type that allows combining dynamic and static typing in the same code.
+It is neither the bottom nor the top type in the subtyping relation, but
+a subtype only of itself.
+Gradual typing uses the dynamic type along with the consistency relation to
+identify where run-time casts should be inserted to prevent that dynamically
+typed code violates statically typed code.
+
+\item[filter type] It is a type that allows Typed Lua to discriminate the type of local variables
+inside control flow statements.
+
+\item[fixed table type] It is a table type that does not allow adding fields. It also does not allow
+width subtyping to make single inheritance safe.
+
+\item[flow typing] It is a combination of static typing and flow analysis.
+
+\item[free assigned variable] It is a free variable that appears in an assignment.
+
+\item[gradual type system] It is a type system that uses the consistency relation to check the interaction
+among the dynamic type and other types.
+
+\item[gradual typing] It is an approach that uses a gradual type system to allow static and dynamic
+typing in the same code, but inserting run-time checks between statistically
+typed and dynamically typed code.
+
+\item[invariant] Subtyping is invariant when it does not allow ordering types, that is,
+it is a way that express type equality through subtyping.
+
+\item[metatable] It is a Lua table that allows changing its behavior.
+
+\item[nominal type system] It is a type system that uses name declarations to define the equivalence among types.
+
+\item[open table type] It is a table type that allows adding fields, and usually refers to table types that
+have aliases.
+
+\item[optional type system] It is a type system that allows combining static and dynamic typing in the same
+language, but without affecting the run-time semantics.
+
+\item[projection environment] It is a type environment that Typed Lua uses to assign projection variables to
+second-level types.
+
+\item[projection type] It is a type that allows Typed Lua to discriminate the type of local variables
+that have a dependency relation.
+
+\item[prototype object] It is an object that works like a class, that is, it is a prototype for creating
+new objects of a given class.
+
+\item[self-like delegation] It is a technique to implement inheritance in dynamically typed languages.
+
+\item[sound type system] It is a type system that does not type check all programs that contain a type error.
+
+\item[structural type system] It is a type system that uses the type structure to define the equivalence among types.
+
+\item[table refinement] It is an operation that allows changing a table type to include new fields or
+to specialize existing fields.
+
+\item[top type] It is a type that is supertype of all types.
+
+\item[type environment] It is an environment that assigns variable names to types.
+
+\item[type tag] In dynamically typed languages a type tag describes the type of a value during
+run-time.
+
+\item[unique table type] It is a table type that allows adding fields, and it is also the table type
+that describe the type of the table constructor.
+
+\item[unsound type system] It is a type system that type checks certain programs that contain type errors.
+
+\item[userdata] It is a way to define new types in an application or library that is written in C.
+
+\item[vararg expression] It is a Lua expression that can result in an arbitrary number of values.
+
+\item[variadic function] It is a Lua function that can receive an arbitrary number of arguments.
+
+\item[variance] It is the way types are ordered.
+
+\item[width subtyping] It allows adding more fields to a table type.
+
 \end{description}
