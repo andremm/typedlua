@@ -727,22 +727,22 @@ This appendix presents the complete type system of Typed Lua.
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T) \;\;\;
        n = |\;\overline{[e_{1}] = e_{2}}\;| \\
-       \env_{m} = merge(\env_{1}, ..., \env_{n+1})
+       \env_{f} = merge(\env_{1}, ..., \env_{n+1})
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
 \]
 
 \mylabel{T-CONSTRUCTOR3}
 \[
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
-       \env_{1}, \penv \vdash me : T_{1} \times ... \times T_{m} \times T_{m+1}{*}, \env_{n+2}\\
-       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, 1:T_{1}, ..., m:T_{m}, \Integer:T_{m+1} \cup \Nil\}_{unique}\\
+       \env_{1}, \penv \vdash me : T_{n+1} \times ... \times T_{n+m} \times T_{n+m+1}{*}, \env_{n+2}\\
+       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, 1:T_{n+1}, ..., m:T_{n+m}, \Integer:T_{n+m+1} \cup \Nil\}_{unique}\\
        wf(T) \;\;\;
        n = |\;\overline{[e_{1}] = e_{2}}\;| \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n+2})
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2})
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
 \]
 
 \mylabel{T-FIELD1}
@@ -1071,60 +1071,51 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-LHSLIST}
 \[
 \dfrac{\env_{1}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
+       \env_{f} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{l}\;|}
-      {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{m}}
+      {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{f}}
 \]
 
 \mylabel{T-EXPLIST1}
 \[
 \dfrac{\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
+       \env_{f} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{e}\;|}
-      {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{m}}
+      {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{f}}
 \]
 
 \mylabel{T-EXPLIST2}
 \[
-\dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Void, \env_{2}}
-      {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{2}}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{n+m} \times \Void, \env_{n+2}\\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
+       n = |\;\overline{e}\;|
+       \end{array}}
+      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n+m} \times \Nil{*}, \env_{f}}
 \]
 
 \mylabel{T-EXPLIST3}
 \[
-\dfrac{\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
-      {\env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n}{*}, \env_{2}}
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{n+m}{*}, \env_{n+2}\\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
+       n = |\;\overline{e}\;|
+       \end{array}}
+      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n+m}{*}, \env_{f}}
 \]
 
 \mylabel{T-EXPLIST4}
 \[
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{m} \times \Void, \env_{n+2}\\
-       \env_{m} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
+       \env_{1}, \penv \vdash me:S, \env_{n+2}\\
+       S = T_{n+1} \times ... \times T_{n+m} \times \Void \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Void\\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
        n = |\;\overline{e}\;|
        \end{array}}
-      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{m} \times \Nil{*}, \env_{m}}
-\]
-
-\mylabel{T-EXPLIST5}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{1}, \penv \vdash me:T_{n+1} \times ... \times T_{m}{*}, \env_{n+2}\\
-       \env_{m} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
-       n = |\;\overline{e}\;|
-       \end{array}}
-      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{m}{*}, \env_{m}}
-\]
-
-\mylabel{T-EXPLIST6}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash me:S, \env_{2}\\
-       S = T_{1} \times ... \times T_{n} \times \Void \sqcup T_{1}' \times ... \times T_{n}' \times \Void
-       \end{array}}
-      {\env_{1}, \penv \vdash me:\pi_{1}^{x} \times ... \times \pi_{n}^{x} \times \Nil{*}, \env_{2}, (x,S)}
+      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
 \]
 
 \mylabel{T-APPLY1}
