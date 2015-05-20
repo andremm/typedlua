@@ -141,6 +141,23 @@ operations, and the programmer can choose to be warned about them.
 We will discuss the formalization of the consistent-subtyping
 relation in Section \ref{sec:subtyping}.
 
+Before we start discussing examples of Typed Lua code, it is worth
+mentioning that there is a subtle difference between the dynamic
+type \texttt{any} and the top type \texttt{value}.
+Although both types mean that they accept a value of any other type,
+the type \texttt{value} is not a good option for handling the
+interaction between dynamically typed and statically typed code.
+Gradual typing uses the dynamic type \texttt{any} to identify
+where it should insert run-time checks for asserting that dynamically
+typed code does not violate statically typed code.
+Typed Lua also uses the dynamic type \texttt{any} in this sense,
+though it is an optional type system.
+More precisely, we use \texttt{any} instead of \texttt{value} to allow
+programmers blending dynamic and static typing because we use the
+consistent-subtyping relation to formalize our optional type system,
+as it is a first step to switch Typed Lua from optional typing to
+gradual typing in the future.
+
 Typed Lua allows optional type annotations in variable and function
 declarations.
 We use the following example to illustrate how we can annotate a
@@ -164,7 +181,10 @@ For local variables, Typed Lua uses the type of the initialization
 expression to assign a more specific type to an unannotated local variable.
 For local functions, Typed Lua uses the type of the returned expression
 to assign a more specific type to an unannotated return type.
-This means that we can rewrite the previous example as follows:
+
+This means that we can rewrite the previous example to use local type
+inference for inferring the return type of \texttt{succ} and also for
+inferring the type of \texttt{x}:
 \begin{verbatim}
     local function succ (n:integer)
       return n + 1
@@ -187,11 +207,19 @@ they need a variable that has a very specific type.
 In Section \ref{sec:tables} we will see in more detail that literal types
 are essential to type Lua tables.
 
-Typed Lua assigns the type \texttt{any} to the unannotated declarations
+Typed Lua assigns the dynamic type \texttt{any} to the unannotated declarations
 that it does not infer a more specific type.
-More precisely, Typed Lua does not infer more specific types to input
+More precisely, Typed Lua does not infer more specific types to the input
 parameters of function declarations and to the return type of
 recursive functions.
+The Typed Lua compiler cannot infer them because it performs type checking in
+a single step that simulates the program execution.
+We could have split type checking into two steps to try solving this
+limitation, but it would have implications in the mechanisms
+that Typed Lua uses to handle the discrimination of union types
+and the refinement of table types.
+We will discuss these features in Section \ref{sec:unions} and
+Section \ref{sec:tables}, respectivelly.
 
 We use the following example to illustrate type annotations in the
 declaration of a recursive function:
@@ -207,6 +235,12 @@ declaration of a recursive function:
 
 This example compiles without any warnings because we annotated
 the return type of \texttt{factorial}.
+Local type inference cannot use the type of the returned
+expression when it includes a function call to the function that is
+being type checked, as its return type is still unknown to the type checker.
+For this reason, we need to annotate the return type of
+recursive local functions to inform the type cheker what type
+it should use while type checking their body.
 
 We use the following example to illustrate the omission of type
 annotations in the input parameters of a local function,
@@ -251,6 +285,69 @@ guarantees provided by the statically typed code.
 This is a typical example where run-time checks would ensure safety
 between the interaction of dynamically typed and statically typed code.
 
+Even though Typed Lua can type check recursive functions when we
+annotate their return type, it has some limitations for type checking
+mutually recursive functions, even if we annotate their return type.
+We will use the following example for discussing this limitation and
+also for presenting an alternative solution:
+\begin{verbatim}
+    local even, odd
+
+    function even (n:integer):boolean
+      if n == 0 then return true
+      elseif n > 0 then return odd(n - 1)
+      else return odd(n + 1)
+      end
+    end
+
+    function odd (n:integer):boolean
+      if n == 0 then return false
+      elseif n > 0 then return even(n - 1)
+      else return even(n + 1)
+      end
+    end
+\end{verbatim}
+
+This example shows an attempt of annotating a common idiom that Lua
+programmers use for defining mutually recursive functions, but it
+generates compile-time warnings.
+The problem is related to the fact that Lua does not split a program
+into declarations and statements, and also to the fact that Typed Lua
+performs type checking in a single step.
+This means that forwarding the declaration of a local variable assigns
+the type \texttt{any} to it, making the compiler warn the programmers
+about function calls to this variable, as they can assign any value
+to a variable that has the dynamic type.
+In this example, the Typed Lua compiler generates warnings when we
+call \texttt{even} and \texttt{odd}.
+
+One way to overcome these warnings is to predeclare these functions
+with an empty body before the actual declaration.
+Even though this is a verbose solution and the Typed Lua compiler
+has an option to suppress warnings related to the dynamic type
+\texttt{any}, it ensures that further assignments to forwarded
+local variables will not change their type.
+Next we show how we can apply this alteranative solution to the
+previous example, making it compile without any warnings:
+\begin{verbatim}
+    local function even (n:integer):boolean return true end
+    local function odd (n:integer):boolean return false end
+
+    function even (n:integer):boolean
+      if n == 0 then return true
+      elseif n > 0 then return odd(n - 1)
+      else return odd(n + 1)
+      end
+    end
+
+    function odd (n:integer):boolean
+      if n == 0 then return false
+      elseif n > 0 then return even(n - 1)
+      else return even(n + 1)
+      end
+    end
+\end{verbatim}
+
 \section{Functions}
 \label{sec:functions}
 
@@ -293,8 +390,8 @@ second-level types also appear in function types.
 \label{fig:functions}
 \end{figure}
 
-As we can see in Figure \ref{fig:functions}, second-level types consist
-of either \emph{tupletype} or \emph{rettype}.
+Figure \ref{fig:functions} shows that Typed Lua uses second-level
+types in the definition of function types.
 A second-level type is either the type void \texttt{()},
 a tuple of first-level types optionally ending in a variadic type,
 or a union of these tuples.
