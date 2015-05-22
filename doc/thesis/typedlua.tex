@@ -442,21 +442,31 @@ because we are passing an extra argument \texttt{3} to \texttt{sum}.
 
 Even though these operation modes affect function calls, they do not
 affect other multiple assignments.
-For instance,
+This means that both operation modes discard extra arguments in
+multiple assignments and they also use \texttt{nil} to replace missing
+arguments in multiple assignments.
+We made this design decision to avoid being to restrictive, that is,
+we did not want to give unnecessary warnings to programmers,
+as discarded values do not have any implications during run-time.
+
+As an example,
 \begin{verbatim}
     local x:integer, y:integer = 1, 2, 3
 \end{verbatim}
-compiles without any warnings in both operation modes.
+compiles without any compile-time warnings in both operation modes.
 This means that the left-hand side of this local declaration has the
 tuple type \texttt{(integer, integer, value*)}, while the expression
-list in the right-hand side of this local declaration has the
-tuple type \texttt{(1, 2, 3, nil*)} in both operation modes.
+list in the right-hand side of this local declaration has the tuple
+type \texttt{(1, 2, 3, nil*)} in both operation modes.
+The literal type \texttt{3} is consistent with \texttt{value},
+and the type \texttt{nil*} generates a value of type \texttt{nil}
+that is also consistent with \texttt{value}.
 
 As another example,
 \begin{verbatim}
     local x:integer, y:integer = sum(2, 2)
 \end{verbatim}
-compiles with warnings in both operation modes.
+compiles with one compile-time warning in both of the operation modes.
 This means that the left-hand side of this local declaration has
 the tuple type \texttt{(integer, integer, value*)}, while the
 expression list in the right-hand side of this local declaration
@@ -479,7 +489,7 @@ As an example,
 \begin{verbatim}
     local x:integer, y:integer, z:string = m(), m()
 \end{verbatim}
-compiles without warnings in both operation modes.
+compiles without compile-time warnings in both operation modes.
 This happens because in the right-hand side of the multiple
 assignment, only the first value produced by the first call
 to \texttt{m} gets used, so the type of the right-hand side
@@ -501,13 +511,13 @@ For instance,
     end
 \end{verbatim}
 has type \texttt{(string*) -> (string*)} in both operation modes.
-The call \texttt{v()} compiles without any warnings in the default and
-strict modes because \texttt{(value*)} and \texttt{()} are consistent
-with \texttt{(string*)}.
+The function call \texttt{v()} compiles without any compile-time warnings in
+the default and strict modes because \texttt{(value*)} and \texttt{()}
+are consistent with \texttt{(string*)}.
 The call \texttt{v("hello", "world")} compiles without any warnings
 in the default and strict modes because \texttt{("hello", "world", nil*)}
 and \texttt{("hello", "world")} are consistent with \texttt{(string*)}.
-The call \texttt{v(...)} compiles without any warnings in both
+Calling \texttt{v(...)} compiles without any warnings in both
 operation modes because the type of the argument list is \texttt{(string*)},
 assuming that the vararg expression (\texttt{...}) has type \texttt{string}.
 
@@ -573,16 +583,16 @@ with a missing argument in both operation modes:
     print(message("Typed Lua", "Hi "))  --> Hi Typed Lua
 \end{verbatim}
 
-The type of \texttt{message} is
+The type of the function \texttt{message} is
 \texttt{(string, string|nil, value*) -> (string, nil*)}
 in the default mode, and
 \texttt{(string, string|nil) -> (string)}
 in the strict mode.
-The call \texttt{message("Typed Lua")} compiles without
-any warnings in both modes, because the argument list
-\texttt{("Typed Lua", nil*)} is consistent with the input type
-\texttt{(string, string|nil, value*)} in the default mode,
-and it is also consistent with the input type
+The function call \texttt{message("Typed Lua")} compiles without
+any compile-time warnings in both modes, because the argument list
+\texttt{("Typed Lua")} has type \texttt{("Typed Lua", nil*)} that
+is consistent with the input type \texttt{(string, string|nil, value*)}
+in the default mode, and that is also consistent with the input type
 \texttt{(string, string|nil)} in the strict mode.
 The compiler includes \texttt{nil*} in the tail of
 an argument list in both modes, as it is necessary
@@ -669,7 +679,7 @@ first-level types that have a dependency relation.
 We will discuss projection types in more detail in Section \ref{sec:fap}.
 
 So far, Typed Lua replaces projection types with the union of the
-corresponding component of each tuple, when it infers that a variable
+corresponding component of each tuple, when it infers that a local variable
 has a projection type.
 In our example, the variables \texttt{q} and \texttt{r} get projection
 types that map to the first and second components of the union of
@@ -678,7 +688,7 @@ This means that variables \texttt{q} and \texttt{r} have types
 \texttt{integer|nil} and \texttt{integer|string}, respectively.
 
 If a variable with a projection type appears in a \texttt{type} predicate,
-it discriminates against all tuples in the projected union.
+it discriminates all tuples in the projected union.
 In our example, the projected union has type
 \texttt{(integer, integer, nil*)|(nil, string, nil*)} outside of the
 \texttt{if} statement,
@@ -720,9 +730,9 @@ Next, we show an example:
 This example means that we cannot write a function that is
 guaranteed to return a number when we pass a number and
 guaranteed to return a string when we pass a string.
-Even though we could use intersection types to express the type
-of this function as
-\texttt{(number) -> (number) \string& (string) -> (string)},
+Even though we could have used an intersection type
+\texttt{(number) -> (number) \string& (string) -> (string)}
+to express the type of this function,
 intersection types require more sophisticated flow typing to
 check whether a function has this type,
 and we still need to work on this problem.
