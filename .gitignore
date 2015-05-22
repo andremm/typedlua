@@ -12,4 +12,8 @@
 *.snm
 *.vrb
 *.toc
+<<<<<<< HEAD
 *.DS_Store
+=======
+*.gz
+>>>>>>> f29370cdb9d0f7273a69fdf98b8a9f2e2c36941c
