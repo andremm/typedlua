@@ -1,4 +1,4 @@
-\documentclass[preprint]{sig-alternate}
+\documentclass{sig-alternate}
 
 \usepackage[utf8]{inputenc}
 \usepackage[numbers]{natbib}
@@ -16,13 +16,26 @@
 \newcommand{\String}{\mathbf{string}}
 \newcommand{\Void}{\mathbf{void}}
 \newcommand{\Const}{\mathbf{const}}
+\newcommand{\Self}{\mathbf{self}}
 
 \def\dstart{\hbox to \hsize{\vrule depth 4pt\hrulefill\vrule depth 4pt}}
 \def\dend{\hbox to \hsize{\vrule height 4pt\hrulefill\vrule height 4pt}}
 
 \begin{document}
 
-\conferenceinfo{Dyla}{'14, Edinburgh, UK} 
+\permission{Permission to make digital or hard copies of all or part of this work for
+   personal or classroom use is granted without fee provided that copies are
+   not made or distributed for profit or commercial advantage and that copies
+   bear this notice and the full citation on the first page. Copyrights for
+   components of this work owned by others than the author(s) must be
+   honored. Abstracting with credit is permitted. To copy otherwise, or
+   republish, to post on servers or to redistribute to lists, requires prior
+   specific permission and/or a fee. Request permissions from
+   Permissions@acm.org.}
+\conferenceinfo{Dyla}{'14, June 09-11 2014, Edinburgh, United Kingdom} 
+\CopyrightYear{is held by the owner/author(s). Publication rights licensed to
+ACM.}
+\crdata{978-1-4503-2916-3/14/06}
 
 \title{Typed Lua: An Optional Type System for Lua}
 
@@ -64,11 +77,18 @@ programming in a dynamic language.
 
 This paper presents the initial design of Typed Lua, an
 optionally-typed extension of the Lua scripting language.
+Lua is an imperative scripting language with first
+class functions and lightweight metaprogramming mechanisms.
 The design of Typed Lua's type system has a novel combination
 of features that preserves some of the idioms that Lua
 programmers are used to, while bringing static type
-safety to them.
+safety to them. We show how the major features of the
+type system type these idioms with some
+examples, and discuss some of the design issues we faced.
 \end{abstract}
+
+\category{D.3.1}{Programming Languages}{Formal Definitions and Theory}[Semantics]
+\category{F.3.3}{Logics and Meanings of Programs}{Studies of Program Constructs}[Type structure]
 
 \keywords{Lua programming language, type systems, optional typing, gradual typing}
 
@@ -180,8 +200,17 @@ Figure~\ref{fig:typelang} gives the abstract syntax of Typed Lua
 types. Only {\em first-class types} correspond to actual Lua
 values; {\em second-class types} correspond to expression lists,
 and Typed Lua uses them to type multiple assignment and function
-application. Types are ordered by a subtype relationship, where
-any first-class type is a subtype of $\Top$.
+application.
+
+Types are ordered by a subtype relationship, where
+any first-class type is a subtype of $\Top$. The rest of the 
+subtype relationship is standard: union types are supertypes
+of their parts, $\Number$, $\Boolean$, and $\String$ are
+supertypes of their respective literal types, function
+types are related by contravariance on the input part and
+covariance in the output part, table types have width
+subtyping, with depth subtyping on $\Const$ fields,
+tuple and vararg types are covariant.
 
 The {\em dynamic type} $\Any$ allows dynamically typed code to
 interoperate with statically typed code; it is a subtype of 
@@ -207,6 +236,7 @@ T ::= & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
 & | \; \Top & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
+& | \; \Self & \textit{self type}\\
 & | \; T \cup T & \textit{disjoint union types}\\
 & | \; S \rightarrow S & \textit{function types}\\
 & | \; \{F, ..., F\} & \textit{table types}\\
@@ -218,7 +248,7 @@ B ::= & \multicolumn{2}{l}{\Nil \; | \; \Boolean \; | \; \Number \; | \; \String
 F ::= & T:T \; | \; \Const \; T:T & \textit{field types} \\
 \multicolumn{3}{c}{} \\
 \multicolumn{3}{c}{\textbf{Second-class types}} \\
-S ::= &  \multicolumn{2}{l}{\; V \; | \; V \cup S} \\
+S ::= &  \multicolumn{2}{l}{\; \Void \; | \; V \; | \; V \cup S} \\
 V ::= & \;\; T & \\
 & | \; T* & \textit{vararg types}\\
 & | \; T \times V & \textit{tuple types}
@@ -307,24 +337,35 @@ return type, together with {\em projection types}. Both are
 explained in the next
 section.
 
-Typed Lua always adds a
-variadic tail to the parts of a function type if none is specified, to match
-the semantics of Lua function calls. In the examples above, the types
-of {\tt factorial} and {\tt abs} are actually $\Number \times \Top *
- \rightarrow \Number \times \Nil *$, and the type of {\tt distance} is
-$\Any \times \Any \times \Top * \rightarrow \Number \times \Nil *$.
+In its default mode of operation, Typed Lua always adds a
+variadic tail to the parts of a function type if none is 
+specified, to match the semantics of Lua function calls. In the 
+examples above, the types
+of {\tt factorial} and {\tt abs} are actually
+$\Number \times \Top * \rightarrow \Number \times \Nil *$,
+and the type of {\tt distance} is $\Any \times \Any \times \Top * 
+\rightarrow \Number \times \Nil *$.
 
-If we call {\tt abs} with extra arguments, Typed Lua silently ignores
-them, as the type signature lets {\tt abs} receive any number of extra
-arguments. If we call {\tt abs} in the right side of an assignment to
-more than one lvalue, Typed Lua checks if the first lvalue has a type
-consistent with $\Number$, and any other lvalues need to have a type
-consistent with $\Nil$.
+If we call {\tt abs} with extra arguments, Typed Lua silently
+ignores them, as the type signature lets {\tt abs} receive any 
+number of extra arguments. If we call {\tt abs} in the right side 
+of an assignment to more than one lvalue, Typed Lua checks if the 
+first lvalue has a type consistent with $\Number$, and any other 
+lvalues need to have a type consistent with $\Nil$.
+
+There is an optional stricter mode of operation where
+Typed Lua does not give variadic tails to the parts
+of a function type unless the programmer explictly
+declares it, and so will also check all function calls
+for arity mismatch. 
 
 A variadic type can only appear in the tail position of a tuple,
-because Lua takes only the first value of any expression that appears
-in an expression list that is not in tail position. The following example
-shows the interaction between multiple returns and expression lists:
+because Lua takes only the first value of any expression that 
+appears
+in an expression list that is not in tail position. The following 
+example
+shows the interaction between multiple returns and expression 
+lists:
 
 \begin{verbatim}
     local function multiple()
@@ -392,12 +433,12 @@ parameter is not necessary:
     end
 \end{verbatim}
 
-Typed Lua lets assignment change the type of a local variable in
-cases that respect a simple heuristic: the new type must be a
-subtype of the previous one, the variable must be local
-to the current function, and the variable must not have been
-assigned to in another function. The new type only applies for
-the remainder of the current scope. In the case of {\tt
+Typed Lua lets the assignment $x = x \ \mathbf{or} \ e$ change
+the type of $x$ from $t \cup \Nil$ to $t$,
+as long as the type of $e$ is a subtype of $t$, $x$ is local
+to the current function, and it is not assigned in
+another function. The change only affects the type of $x$
+in the remainder of the current scope. In the case of {\tt
 greeting}, the assignment on line three changes its type to
 $\String$.
 
@@ -420,10 +461,13 @@ on just a single parameter:
 
 Typed Lua has a small set of type predicates that, when used
 over a local variable in a condition, constrain the type of that
-variable. The function above uses the {\tt type(X) == "string"}
-predicate which constrains the type of $X$ from $T \cup \String$ to
-$\String$ when the predicate is true and $T$ otherwise. This is
-a simplified form of {\em flow typing}~\cite{guha:flow}.
+variable. The function above uses the {\tt type(x) == "string"}
+predicate which constrains the type of $x$ from $T \cup \String$ to
+$\String$ when the predicate is true and $T$ otherwise.
+This is a simplified form of {\em flow 
+typing}~\cite{guha:flow,tobin:occur}. As with {\tt or}, the
+variable must be local to the function, and cannot be assigned
+to in another function.
 
 The type predicates can only discriminate based on tags, so they
 are limited on the kinds of unions that they can discriminate. It
@@ -508,7 +552,12 @@ Currently, a limitation of our overloading mechanisms is that
 the return type cannot depend on the input types; we cannot
 write a function that is guaranteed to return a number if
 passed a number and guaranteed to return a string if passed
-a string, for example.
+a string, for example. While intersection types provide
+a way to express the type of such a function as $\Number 
+\rightarrow \Number \cap \String \rightarrow \String$,
+more sophisticated flow typing is needed to actually check
+that a function has this type, and we are still working on this
+problem.
 
 \section{Tables and Interfaces}
 \label{sec:tables}
@@ -533,8 +582,9 @@ and maps to the table type $\{t:u\}$.
 This table type represents a map that maps values of type
 $t$ to values of type $u$.
 Another syntax defines table types for arrays:
-it is written \texttt{\{ t \}}, and maps to the table type
-$\{\Number:t\}$. A third syntax sugar defines
+it is written \texttt{\{ t \}}, and is equivalent to
+the table type
+$\{\Number:t\}$. A third syntax defines
 table types for records:
 it is written \texttt{\{ s1: t1, ..., sn: tn \}}, where
 each $s_i$ is a literal number, string, or boolean, 
@@ -579,6 +629,18 @@ an array:
 Notice that we have the same strictness with missing
 elements, unless the type of the elements has {\tt nil}
 as a possible value.
+
+While this runtime check is an instance where the semantics
+of a Typed Lua program deviates from the semantics of
+plain Lua, the alternatives would be to make all
+arrays and maps have an element type that includes {\tt nil},
+and either make the programmer narrow the type with {\tt or}
+or an {\tt if} statement, making using the elements more
+incovenient, or make {\tt nil} a subtype of every type,
+reducing the amount of type safety in the system. Notice 
+that this does not change the semantics of dynamically
+typed programs, as the runtime checks are only added when
+the table has a strict static type.
 
 If we want to declare a tuple, we can leave the
 variable declaration unannotated and let Typed Lua assign
@@ -753,10 +815,17 @@ Typed Lua tags a variable with a table type as either
 {\em open} or {\em closed}. If a variable gets its type
 from a table constructor then it is open, otherwise it is
 always closed. The type of an open variable may change
-by field assignment, subject to two restrictions: the
+by field assignment, subject to three restrictions: the
 variable must be local to the current block, the new type
 must be a subtype of the old type, and the variable
 cannot have been assigned to in another function.
+
+An variable with an open table type may be aliased, but
+these aliases are not open. Any mutation on these aliases
+is not a problem, as the type of the original reference
+can only change towards a subtype. For mutable fields
+this means that the type of the field cannot change
+once it is added to the type of the table.
 
 Using a variable with an open type can also trigger a
 type change, if the type of the missing fields has
@@ -837,7 +906,8 @@ it with the result of evaluating {\tt obj} as the
 first argument, followed by the result of evaluating
 the argument list in the original expression.
 
-We can use recursive table types to represent objects,
+We can use table types and the {\em self type}
+to represent objects,
 and Typed Lua has syntactic sugar to make defining these
 types easier:
 
@@ -850,13 +920,18 @@ types easier:
 
 The double arrow in the type of the two methods is
 syntactic sugar for having a first parameter named
-{\tt self} with the same type as the interface. The
+{\tt self} with type $\Self$. The
 {\tt const} qualifier is necessary for covariance
 in the types of the methods, and to make subtyping
 among object types work.
 
-Type-checking a method call is straightforward, but
-there is still the matter of how to construct a value with
+While {\tt :} is syntactic sugar in plain Lua, Typed Lua
+uses it to type-check method calls, to bind any ocurrence
+of the $\Self$ type in the type of the method to the
+receiver. Indexing a method but not immediately calling
+it with the correct receiver is a compile-time error.
+
+There is still the matter of how to construct a value with
 the object type above. The following example shows one
 way:
 
@@ -871,11 +946,14 @@ way:
 
 The {\tt :} syntactic sugar that the example uses also comes
 from Lua, and assigns a function to the field with a first
-parameter named {\tt self}, plus any other parameters.
+parameter named {\tt self}, plus any other parameters. Typed
+Lua adds the {\tt const} annotation, and gives type $\Self$
+to the implicit parameter {\tt self}. 
 
-Lua has a mechanism for Self-like delegation of missing
-fields in a table. After we do {\tt setmetatable(t1,
-{ \_\_index = t2 })}, Lua looks up in {\tt t2} any missing
+Lua has a mechanism for Self-like (or JavaScript-like)
+ delegation of missing
+fields in a table. After {\tt setmetatable(t1,
+\{ \_\_index = t2 \})}, Lua looks up in {\tt t2} any missing
 fields of {\tt t1}. Lua programmers often use this mechanism
 to simulate classes, as in the following example:
 
@@ -899,21 +977,24 @@ to simulate classes, as in the following example:
 
 In the last line of the example, notice how we can refer
 to {\tt Shape} in the type annotation, as a shortcut
-to the recursive table type that Typed Lua has assigned
+to the table type that Typed Lua has assigned
 to this variable.
 
 Typed Lua assigns the type
-$\mathbf{Shape} \times \Number \times \Number \times
-\Top* \rightarrow \mathbf{Shape} \times \Nil*$ to
+$\Self \times \Number \times \Number \times
+\Top* \rightarrow \Self \times \Nil*$ to
 {\tt new}. In a {\tt setmetatable} expression,
-if the type $t_1$ of the first operand is open and a supertype
+if the type $t_1$ of the first operand is a supertype
 of the type $t_2$ of the second operand's {\_\_index} field,
-it changes the type of the first operand to $t_1$, and
-it remains open.
+it changes the type of the first operand to $t_2$, 
+so the local variable {\tt s} 
+has the same type as {\tt self}.
 
-As the result of {\tt setmetatable} can be an open
-table type, we can simulate single inheritance, and
-override methods:
+We can also use {\tt setmetatable} to simulate single
+inheritance, as {\tt setmetatable} on a table constructor
+assigned to a fresh local variable gives this variable
+an open type, which lets us add new methods and override
+existing ones:
 
 \begin{verbatim}
     local Circle = setmetatable({},
@@ -941,7 +1022,7 @@ subtype of the original constructor, so the type of
 
 If we erase all type and {\tt const} annotations, the
 two examples above are valid Lua code, with the same
-semantics as the Typed Lua Code.
+semantics as the Typed Lua code.
 
 The current version of Typed Lua does not have a polymorphic
 type system, so programmers currently cannot hide the
@@ -1028,7 +1109,7 @@ covariant function return types in case of TypeScript) to
 increase programmer convenience. The interaction of
 statically and dynamically typed code is also unsound.
 
-\citep{tobin-hochstadt2006ims} shows how programs
+\citet{tobin-hochstadt2006ims} shows how programs
 in the untyped lambda calculus can be incrementally
 translated to the simply typed lambda calculus, using
 contracts to guarantee that the untyped part cannot
@@ -1036,7 +1117,7 @@ cause errors in the typed part, as a model on how
 scripts in a dynamically typed language can be
 incrementally translated to a statically typed
 language. This approach has been realized in the
-Typed Scheme (later Typed Racket) language~\citet{tobin-hochstadt2008ts}. 
+Typed Scheme (later Typed Racket) language~\citep{tobin-hochstadt2008ts,tobin:occur}. 
 
 Gradual typing~\citep{siek2006gradual} combines the
 optional type annotations of optional and pluggable
@@ -1092,7 +1173,8 @@ The main feature of Typed Racket's type system is
 the type of a variable can be refined through tests
 using predicates that check the runtime type of
 the variable. As these types of checks are common in
-other languages, related systems have
+other languages, but ocurrence typing is not sound
+in the presence of mutation, related systems have
 appeared~\citep{guha:flow,winther:flow,pearce:whiley}.
 
 Tidal Lock~\citep{tidallock} is a prototype of another optional
