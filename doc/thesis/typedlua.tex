@@ -774,6 +774,11 @@ maps, arrays, or records with an optional array part.
 We made this design choice due to the results that we obtained
 about the usage of the table constructor, which we discussed
 in Section \ref{sec:statistics}.
+More precisely, those results indicated that programmers seldom
+define a table constructor that is neither an empty table nor
+a table that contains only literal keys.
+This means that our design can type check most of the usages of
+the table constructor.
 Later in this chapter we will show that we use the syntax of records
 to type modules and objects.
 We will also show that we need the \texttt{const} modifier while
@@ -787,6 +792,14 @@ index a table.
 The types of the keys are restricted to either base types or the
 type \texttt{value} due to the statistics of the table constructor,
 which we discussed in Section \ref{sec:statistics}.
+More precisely, those results indicated that programmers seldom
+use non-literal keys in the definition of a table constructor.
+For typing maps, base types can type check most of the cases where
+programmers use a table constructor to initialize a map,
+while the type \texttt{value} is still an option to allow programmers
+to type check uncommon table constructors.
+This means that this restriction to key types in maps has no
+impact in the usability of Typed Lua.
 Next, we show one example of table type to type a map from strings to integers:
 \begin{verbatim}
     local t:{string:integer} = { foo = 1 } 
@@ -907,9 +920,7 @@ because it has no alias.
 In Section \ref{sec:oop} we will show that we use the tag
 \emph{fixed} to describe the type of classes.
 Typed Lua also has different subtyping rules that handle these
-different tags.
-We explain these tags and their subtyping rules in more detail
-in Chapter \ref{chap:system}.
+different tags, which we explain in Section \ref{sec:subtyping}.
 
 Typed Lua uses three rules to decide whether it is sound to
 allow field assignment to change the type of \emph{unique} and
@@ -918,8 +929,52 @@ the variable must be local to the current block,
 the new type must only add new fields, and
 the variable cannot have been assigned in another function.
 
-The following example shows that it is not sound to allow the
-type of the fields to change:
+Before discussing each one of these rules, it is worth discussing
+why Typed Lua needs \emph{unique} and \emph{open} table types.
+Even though both \emph{unique} and \emph{open} table types
+allow the refinement of table types, we need both tags to
+increase usability and to avoid some unsafe behaviors.
+
+If we did not have \emph{unique} table types and \emph{open}
+table types had the same behavior that they have now,
+we would not be able to type check some safe constructions,
+like in the following example:
+\begin{verbatim}
+    local t:{"x":integer, "y":integer?} = { x = 1, y = 2 }
+\end{verbatim}
+
+Typed Lua type checks this example because the table constructor
+has an \emph{unique} table type \texttt{\{"x":1, "y":2\}}
+that is consistent with the type in the annotation.
+However, if the table constructor had an \emph{open} table type,
+it would not type check because it does not allow us to convert
+a table field from \texttt{integer} to \texttt{integer?}.
+We need this kind of behavior to avoid unsafe constructions
+while aliasing \emph{unique} table types, like in the follwoing
+example:
+\begin{verbatim}
+    local t1 = { x = 1 }
+    local t2:{"x":integer} = t1
+    local t3:{"x":integer?} = t1      --> compile-time warning
+    t3.x = nil
+\end{verbatim}
+
+Typed Lua generates a compile-time warning in this example
+because aliasing \texttt{t1} changes its type from \emph{unique} to \emph{open}.
+First, Typed Lua assigns an \emph{unique} table type to \texttt{t1},
+but then it changes its type to \emph{open} before aliasing
+\texttt{t1} to \texttt{t2}.
+Even though it is safe aliasing \texttt{t1} to \texttt{t2},
+it is not safe aliasing \texttt{t1} to \texttt{t3}, as it allows
+removing the value that is stored in the field \texttt{x} from
+\texttt{t1} through an assignment to field \texttt{x} from \texttt{t3}.
+Typed Lua uses \emph{open} table types to prevent this kind of
+unsafe behavior, as it would be allowed by \emph{unique} table
+types due to their loose subtyping rules.
+
+Back to the rules that Typed Lua uses to allow the refinement
+of table types, the following example shows that it is not sound
+to allow the type of the fields to change:
 \begin{verbatim}
     local person = { firstname = "Lewis", lastname = "Reed" }
     person.middlename = "Allan"
@@ -1010,7 +1065,8 @@ As an example, the following declaration defines the type \texttt{Person}
 as an alias to the table type \texttt{\{"firstname":string, "lastname":string\}}
 in the remainder of the current scope:
 \begin{verbatim}
-    local typealias Person = {"firstname":string, "lastname":string}
+    local typealias Person = { "firstname":string,
+                               "lastname":string }
 \end{verbatim}
 
 Typed Lua also includes \emph{interfaces} as syntactic sugar to aliases
@@ -1053,6 +1109,7 @@ After we define the type \texttt{Person}, we can use it in type annotations:
       return "Goodbye " .. person.firstname ..
              " " .. person.lastname
     end
+
 
     local user1 = { firstname = "Lewis",
                     middlename = "Allan",
@@ -1220,8 +1277,7 @@ The \texttt{return} at the end of the source file gives the type of the module:
 Typed Lua always fixes \emph{unique} and \emph{open} table types
 that appear in a top-level return statement.
 This means that modules have \emph{fixed} table types in Typed Lua.
-Typed Lua has this behavior to ensure that classes always implement
-\emph{fixed} table types.
+This behavior ensures that classes always have \emph{fixed} table types.
 In the next section we will show that we build classes in a
 similar way that we use to build modules, and we will also show
 that classes should have \emph{fixed} table types to allow safe
@@ -1256,7 +1312,9 @@ type of the module, which is the same type of the variable \texttt{mymath}.
 This module has the same type of the module from the previous example.
 
 After we define the module \texttt{mymath}, regardless of the adopted style,
-users can use it in the standard way:
+users can use it in the standard way, but with the static type checking
+provided by Typed Lua.
+Next we show an example:
 \begin{verbatim}
     local mymath = require "mymath"
     print(mymath.pow(2, 3))           --> 8
@@ -1264,7 +1322,7 @@ users can use it in the standard way:
 \end{verbatim}
 
 In Typed Lua, \texttt{require} is a primitive that statically type checks
-a given module to infer the type of this module.
+a given module to infer its type.
 This means that the type of its input parameter must be a literal string,
 as Typed Lua uses this literal string to find the source file that
 implements the given module.
@@ -1340,7 +1398,7 @@ receiver is a compile-time warning:
 \end{verbatim}
 
 Lua has a mechanism for self-like (or JavaScript-like) delegation of
-missing fields in a table.
+missing table fields.
 After the call \texttt{setmetatable(t1, \{ \string_\string_index = t2 \})},
 Lua looks up in \texttt{t2} for any missing fields of \texttt{t1}.
 As we mentioned in Section \ref{sec:statistics},
@@ -1434,8 +1492,11 @@ We use the following example to discuss single inheritance in Typed Lua:
     local Shape = require "shape"
     local Circle = setmetatable({}, { __index = Shape })
     Circle.radius = 0.0
-    const function Circle:new (x:number, y:number, radius:value):self
-      local c:self = setmetatable(Shape:new(x, y), { __index = self })
+    const function Circle:new (x:number,
+                               y:number,
+                               radius:value):self
+      local c:self = setmetatable(Shape:new(x, y),
+                                  { __index = self })
       c.radius = tonumber(radius) or 0.0
       return c
     end
