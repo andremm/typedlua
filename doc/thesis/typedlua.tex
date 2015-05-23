@@ -219,7 +219,7 @@ limitation, but it would have implications in the mechanisms
 that Typed Lua uses to handle the discrimination of union types
 and the refinement of table types.
 We will discuss these features in Section \ref{sec:unions} and
-Section \ref{sec:tables}, respectivelly.
+Section \ref{sec:tables}, respectively.
 
 We use the following example to illustrate type annotations in the
 declaration of a recursive function:
@@ -239,7 +239,7 @@ Local type inference cannot use the type of the returned
 expression when it includes a function call to the function that is
 being type checked, as its return type is still unknown to the type checker.
 For this reason, we need to annotate the return type of
-recursive local functions to inform the type cheker what type
+recursive local functions to inform the type checker what type
 it should use while type checking their body.
 
 We use the following example to illustrate the omission of type
@@ -327,7 +327,7 @@ Even though this is a verbose solution and the Typed Lua compiler
 has an option to suppress warnings related to the dynamic type
 \texttt{any}, it ensures that further assignments to forwarded
 local variables will not change their type.
-Next we show how we can apply this alteranative solution to the
+Next we show how we can apply this alternative solution to the
 previous example, making it compile without any warnings:
 \begin{verbatim}
     local function even (n:integer):boolean return true end
@@ -950,7 +950,7 @@ However, if the table constructor had an \emph{open} table type,
 it would not type check because it does not allow us to convert
 a table field from \texttt{integer} to \texttt{integer?}.
 We need this kind of behavior to avoid unsafe constructions
-while aliasing \emph{unique} table types, like in the follwoing
+while aliasing \emph{unique} table types, like in the following
 example:
 \begin{verbatim}
     local t1 = { x = 1 }

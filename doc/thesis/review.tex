@@ -515,14 +515,13 @@ of these languages.
 Gradual typing is similar to optional type systems in that type
 annotations are optional, and unannotated code is dynamically
 typed, but unlike optional type systems, gradual typing changes
-the run-time semantics to preserve type safety, and it is a way to
-add a dynamic type to statically typed languages.
+the run-time semantics to preserve type safety.
 More precisely, programming languages that include a gradual type
-system implement the semantics of statically typed languages, so
+system can implement the semantics of statically typed languages, so
 the gradual type system inserts casts in the translated code to
 guarantee that types are consistent before execution, while
 programming languages that include an optional type system still
-implement the semantics of dynamically typed languages, so all
+need implement the semantics of dynamically typed languages, so all
 the type checking also belongs to the semantics of each operation.
 
 Still, we can view gradual typing as a way to formalize an optional
@@ -593,6 +592,21 @@ scripts to typed programs.
 However, Typed Racket is a statically typed language,
 and what makes it gradual is a type system with a dynamic type
 that handles the interaction between Racket and Typed Racket modules.
+
+Recently, Siek et al. \cite{siek2015refined} described a formal
+criteria on what is gradual typing: the \emph{gradual guarantee}.
+Besides allowing static and dynamic typing in the same code
+along with type soundness, the gradual guarantee states that
+removing type annotations from a gradually typed program that is
+well typed must continue well typed.
+The other direction must be also valid, that is, adding correct type
+annotations to a gradually typed program that is well typed must
+continue well typed.
+In other words, the gradual guarantee states that any changes to
+the annotations does not change the static or the dynamic behavior
+of a program \cite{siek2015refined}.
+The authors prove the gradual guarantee and discuss whether
+some previous projects match this criteria.
 
 \section{Statistics about the usage of Lua}
 \label{sec:statistics}
@@ -790,4 +804,57 @@ vararg expression.
 Typed Lua should include a \emph{vararg type} to handle variadic
 functions and vararg expressions.
 
-
+We end this chapter presenting a summary of the statistics that
+we just presented:
+\begin{itemize}
+\item table constructor
+\begin{itemize}
+\item only use literal keys: 73\%
+\item empty: 26\%
+\item only use non-literal keys: 1\%
+\end{itemize}
+\item table indexing
+\begin{itemize}
+\item reads: 86\%
+\begin{itemize}
+\item use literals: 93\%
+\item use non-literals: 7\%
+\end{itemize}
+\item writes: 14\%
+\begin{itemize}
+\item use literals: 71\%
+\item use non-literals: 29\%
+\end{itemize}
+\end{itemize}
+\item iteration over tables
+\begin{itemize}
+\item files that call \texttt{pairs}: 23\%
+\item files that call \texttt{ipairs}: 21\%
+\item files that use the numeric for along with the length operator: 10\%
+\end{itemize}
+\item function declarations
+\begin{itemize}
+\item perform dynamic type checking in their input parameters: 9\%
+\begin{itemize}
+\item asserting input parameters: 50\%
+\item overloading input parameters: 50\%
+\end{itemize}
+\item return multiple values: 10\%
+\begin{itemize}
+\item return \texttt{nil} plus something else: 50\%
+\item return \texttt{false} plus something else: 10\%
+\item return other multiple values: 40\%
+\end{itemize}
+\item are method declarations: 23\%
+\item are variadic: 8\%
+\end{itemize}
+\item object-oriented programming
+\begin{itemize}
+\item projects that extend metatables and declare methods: 45\%
+\end{itemize}
+\item modules
+\begin{itemize}
+\item files that define modules: 61\%
+\item files that are plain scripts: 39\%
+\end{itemize}
+\end{itemize}
