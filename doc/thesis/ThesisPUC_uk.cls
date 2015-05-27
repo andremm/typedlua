@@ -533,7 +533,8 @@
 }
 
 \newcommand{\jurymember}[2]{}
-\newcommand{\schoolhead}[1]{\jurymember{#1}{Head of the \puc@school\ --- \puc@uni}}
+%\newcommand{\schoolhead}[1]{\jurymember{#1}{Head of the \puc@school\ --- \puc@uni}}
+\newcommand{\schoolhead}[1]{\jurymember{#1}{Coordinator of the \puc@school\ da \puc@uni}}
 \newcommand{\puc@jury}{}
 \newcommand{\jury}[1]{\renewcommand{\puc@jury}{#1}}
 
@@ -660,7 +661,8 @@
       \puc@rightmargin{\LARGE \arial \puc@subtitle\relax \normalsize} }%
     \vspace*{\stretch{5}}%
     \par%
-    \puc@rightmargin{\Large \arial \textbf{\ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis}}}%
+    %\puc@rightmargin{\Large \arial \textbf{\ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis}}}%
+    \puc@rightmargin{\Large \arial \textbf{\ifthenelse{\boolean{puc@phd}}{TESE DE DOUTORADO}{MsC Thesis}}}%
     \vspace*{\stretch{1.5}}%
     \par%
     \puc@rightmargin{\textbf{DEPARTMENT OF \MakeUppercase{\puc@department}}}%
@@ -704,23 +706,29 @@
     \puc@rightmargin{\arial \textbf{\puc@subtitle} \relax} }%
   \vspace*{\stretch{5}}%
   \par%
-  \puc@rightmargin{\arial \textbf{\ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis}}}%
+  %\puc@rightmargin{\arial \textbf{\ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis}}}%
+  \puc@rightmargin{\arial \textbf{\ifthenelse{\boolean{puc@phd}}{TESE DE DOUTORADO}{MsC Thesis}}}%
   \vspace*{\stretch{1.5}}%
   \par%
   \puc@leftmargin{\arial%
     \ifthenelse{\boolean{puc@phd}}%
-      {Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Doctor in Philosophy in \puc@program}%
+      %{Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Doctor in Philosophy in \puc@program}%
+      {Thesis presented to the Programa de P\'{o}s Gradua\c{c}\~{a}o em \puc@program{} of the Departamento de \puc@department{}, \puc@uni{} as partial fulfillment of the requirements for the degree of Doutor em \puc@program{}}%
       {Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Master in \puc@program}%
   }%
   \vspace*{\stretch{1}}%
   \par%
-  \puc@rightmargin{\begin{tabular}{l@{: }r}Adviser & Prof. \puc@adviser%
+  %\puc@rightmargin{\begin{tabular}{l@{: }r}Adviser & Prof. \puc@adviser%
+  \puc@rightmargin{\begin{tabular}{l@{: }r}Advisor & Prof. \puc@adviser%
   \ifthenelse{\equal{\puc@coadviser}{}}{}{%
-    \\ Co--Adviser & Prof. \puc@coadviser}%
+    %\\ Co--Adviser & Prof. \puc@coadviser}%
+    \\ Co--Advisor & Prof. \puc@coadviser}%
   \ifthenelse{\equal{\puc@coadviserII}{}}{}{%
-    \\ Co--Adviser & Prof. \puc@coadviserII}%
+    %\\ Co--Adviser & Prof. \puc@coadviserII}%
+    \\ Co--Advisor & Prof. \puc@coadviserII}%
   \ifthenelse{\equal{\puc@coadviserIII}{}}{}{%
-    \\ Co--Adviser & Prof. \puc@coadviserIII}%
+    %\\ Co--Adviser & Prof. \puc@coadviserIII}%
+    \\ Co--Advisor & Prof. \puc@coadviserIII}%
     \end{tabular}}%
   \vspace*{\stretch{6}}%
   \par%
@@ -753,30 +761,40 @@
   \par%
   \puc@leftmargin{\arial%
   \ifthenelse{\boolean{puc@phd}}%
-  {Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Doctor in Philosophy in \puc@program. }%
+  %{Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Doctor in Philosophy in \puc@program. }%
+  {Thesis presented to the Programa de P\'{o}s Gradua\c{c}\~{a}o em \puc@program{}, of the Departamento de \puc@department{} do Centro T\'{e}cnico Cient\'{i}fico da \puc@uni{}, as partial fulfillment of the requirements for the degree of Doutor.}%
   {Thesis presented to the Post--graduate Program in \puc@program\ of the \puc@department\ Department, \puc@uni\ as partial fulfillment of the requirements for the degree of Master in \puc@program. }%
-  Approved by the following commission:%
+  %Approved by the following commission:%
   }%
   \vspace*{\stretch{1}}%
   \renewcommand{\jurymember}[2]{\ifthenelse{\equal{##1}{}}{}{%
     \puc@rightmargin{\textbf{Prof. ##1}\\##2} \vspace*{\stretch{1}}\par}}%
   \par%
   \ifthenelse{\equal{\puc@adviserInst}{}}{%
-    \jurymember{\puc@adviser}{Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
-    \jurymember{\puc@adviser}{Adviser \\\puc@adviserInst}}
+    %\jurymember{\puc@adviser}{Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
+    %\jurymember{\puc@adviser}{Adviser \\\puc@adviserInst}}
+    \jurymember{\puc@adviser}{Advisor \\ Departmento de \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@adviser}{Advisor \\\puc@adviserInst}}
   \ifthenelse{\equal{\puc@coadviserInst}{}}{%
-    \jurymember{\puc@coadviser}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
-    \jurymember{\puc@coadviser}{Co--Adviser \\\puc@coadviserInst}}
+    %\jurymember{\puc@coadviser}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
+    %\jurymember{\puc@coadviser}{Co--Adviser \\\puc@coadviserInst}}
+    \jurymember{\puc@coadviser}{Co--Advisor \\ Departmento de \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@coadviser}{Co--Advisor \\\puc@coadviserInst}}
   \ifthenelse{\equal{\puc@coadviserIIInst}{}}{%
-    \jurymember{\puc@coadviserII}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
-    \jurymember{\puc@coadviserII}{Co--Adviser \\\puc@coadviserIIInst}}
+    %\jurymember{\puc@coadviserII}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
+    %\jurymember{\puc@coadviserII}{Co--Adviser \\\puc@coadviserIIInst}}
+    \jurymember{\puc@coadviserII}{Co--Advisor \\ Department of \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@coadviserII}{Co--Advisor \\\puc@coadviserIIInst}}
   \ifthenelse{\equal{\puc@coadviserIIIInst}{}}{%
-    \jurymember{\puc@coadviserIII}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
-    \jurymember{\puc@coadviserIII}{Co--Adviser \\\puc@coadviserIIIInst}}%
+    %\jurymember{\puc@coadviserIII}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
+    %\jurymember{\puc@coadviserIII}{Co--Adviser \\\puc@coadviserIIIInst}}%
+    \jurymember{\puc@coadviserIII}{Co--Advisor \\ Department of \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@coadviserIII}{Co--Advisor \\\puc@coadviserIIIInst}}%
 %-----------------%
     \puc@jury%
 %-----------------%
-  \puc@rightmargin{\puc@city\ --- \puc@month\ \puc@day, \puc@year}%
+  %\puc@rightmargin{\puc@city\ --- \puc@month\ \puc@day, \puc@year}%
+  \puc@rightmargin{\puc@city{}, \puc@month{} \puc@day{}, \puc@year}%
 }
 
 
@@ -799,28 +817,38 @@
   \puc@leftmargin{\normalfont \puc@resume}%
   \vspace*{\stretch{2}}%
   \par%
-  \puc@rightmargin{\small \arial Bibliographic data}%
+  %\puc@rightmargin{\small \arial Bibliographic data}%
+  \puc@rightmargin{\small \arial Ficha Catalogr\'{a}fica}%
   \par%
   \puc@leftmargin{%
-    \begin{tabular}{|p{0.95\linewidth}|} \hline%
+    %\begin{tabular}{|p{0.95\linewidth}|} \hline%
+    \begin{tabular}{|p{1.0\linewidth}|} \hline%
       \noindent \puc@authorR \\ \\ \par%
-      \hspace*{.6cm} \puc@title\relax\ / \puc@author; adviser: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--adviser\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@city\ : \puc@uni, Department of \puc@department, \puc@year. \\ \\ \par%
-      \hspace*{.6cm} v., \pageref{LastPage} f: il. ; 29,7 cm \\ \\ \par%
-      \hspace*{.6cm} 1.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} - \puc@university, Department of \puc@department. \\ \\ \par%
-      \hspace*{.6cm} Bibliography included. \\ \\ \par%
+      %\hspace*{.6cm} \puc@title\relax\ / \puc@author; adviser: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--adviser\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@city\ : \puc@uni, Department of \puc@department, \puc@year. \\ \\ \par%
+      \hspace*{.6cm} \puc@title\relax\ / \puc@author; advisor: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--advisor\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@year. \\ \\ \par%
+      %\hspace*{.6cm} v., \pageref{LastPage} f: il. ; 29,7 cm \\ \\ \par%
+      \hspace*{.6cm} \pageref{LastPage} f. : il. ; 30 cm \\ \\ \par%
+      %\hspace*{.6cm} 1.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} - \puc@university, Department of \puc@department. \\ \\ \par%
+      \hspace*{.6cm} \ifthenelse{\boolean{puc@phd}}{Tese (Doutorado em \puc@program{})}{MsC Thesis} - \puc@university, \puc@city, \puc@year. \\ \\ \par%
+      %\hspace*{.6cm} Bibliography included. \\ \\ \par%
+      \hspace*{.6cm} Inclui bibliografia. \\ \\ \par% 
       \hspace*{.6cm}%
         \newcounter{keycount}\setcounter{keycount}{1}%
         \renewcommand{\key}[1]{\arabic{keycount}. ##1.\addtocounter{keycount}{1}\ }%
-        \key{\puc@department\ -- \ifthenelse{\boolean{puc@phd}}{Thesis}{Dissertation}}%
-        \puc@keywords%
+        %\key{\puc@department\ -- \ifthenelse{\boolean{puc@phd}}{Thesis}{Dissertation}}%
+        \key{\puc@department\ -- \ifthenelse{\boolean{puc@phd}}{Teses}{Dissertation}}%
+        %\puc@keywords%
+        \puc@keywordsbr%
         \setcounter{keycount}{1}%
         \renewcommand{\key}[1]{\ifthenelse{\equal{##1}{}}{}{\Roman{keycount}. ##1.\addtocounter{keycount}{1}\ }}%
         \key{\puc@adviserR}%
         \key{\puc@coadviserR}%
         \key{\puc@coadviserIIR}%
         \key{\puc@coadviserIIIR}%
-        \key{\puc@university. Department of \puc@department}%
-        \key{Title}%
+        %\key{\puc@university. Department of \puc@department}%
+        \key{\puc@university. Departmento de \puc@department}%
+        %\key{Title}%
+        \key{T\'{i}tulo}%
       \\%
     \hline \end{tabular}%
     }%
@@ -883,7 +911,8 @@
   \vspace{\stretch{3}}%
   \par\indent%
   \begin{minipage}{12cm}\singlespacing%
-  \puc@authorR; \puc@adviserR\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserR}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} --- Department of \puc@department, \puc@university.%
+  %\puc@authorR; \puc@adviserR\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserR}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} --- Department of \puc@department, \puc@university.%
+  \puc@authorR; \puc@adviserR\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserR}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{DSc Thesis}{MsC Thesis} --- Departmento de \puc@department, \puc@university.%
   \end{minipage}\onehalfspacing%
   \vspace*{\stretch{1}}%
   \par%
