@@ -1406,16 +1406,19 @@ Lua programmers often use this mechanism to simulate classes.
 We will use the following example to discuss this feature:
 \begin{verbatim}
     local Shape = { x = 0.0, y = 0.0 }
+
     const function Shape:new (x:number, y:number):self
       local s:self = setmetatable({}, { __index = self })
       s.x = x
       s.y = y
       return s
     end
+
     const function Shape:move (dx:number, dy:number):()
       self.x = self.x + dx
       self.y = self.y + dy
     end
+
     return Shape
 \end{verbatim}
 
@@ -1490,8 +1493,11 @@ Now, we will see that we need \emph{fixed} table types to allow
 We use the following example to discuss single inheritance in Typed Lua:
 \begin{verbatim}
     local Shape = require "shape"
+
     local Circle = setmetatable({}, { __index = Shape })
+
     Circle.radius = 0.0
+
     const function Circle:new (x:number,
                                y:number,
                                radius:value):self
@@ -1500,9 +1506,11 @@ We use the following example to discuss single inheritance in Typed Lua:
       c.radius = tonumber(radius) or 0.0
       return c
     end
+
     const function Circle:area ():number
       return math.pi * self.radius * self.radius
     end
+
     return Circle
 \end{verbatim}
 

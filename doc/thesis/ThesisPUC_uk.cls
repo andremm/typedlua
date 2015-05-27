@@ -817,12 +817,10 @@
   \puc@leftmargin{\normalfont \puc@resume}%
   \vspace*{\stretch{2}}%
   \par%
-  %\puc@rightmargin{\small \arial Bibliographic data}%
-  \puc@rightmargin{\small \arial Ficha Catalogr\'{a}fica}%
+  \puc@rightmargin{\small \arial Bibliographic data}%
   \par%
   \puc@leftmargin{%
-    %\begin{tabular}{|p{0.95\linewidth}|} \hline%
-    \begin{tabular}{|p{1.0\linewidth}|} \hline%
+    \begin{tabular}{|p{0.95\linewidth}|} \hline%
       \noindent \puc@authorR \\ \\ \par%
       %\hspace*{.6cm} \puc@title\relax\ / \puc@author; adviser: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--adviser\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@city\ : \puc@uni, Department of \puc@department, \puc@year. \\ \\ \par%
       \hspace*{.6cm} \puc@title\relax\ / \puc@author; advisor: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--advisor\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@year. \\ \\ \par%
