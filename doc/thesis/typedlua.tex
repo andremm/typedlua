@@ -573,7 +573,7 @@ The change only affects the type of \texttt{v} in the remainder
 of the current scope.
 Any assignment to \texttt{v} restores its type back to the
 original type.
-In the case of \texttt{greeting}, the assignment change its type
+In the case of \texttt{greeting}, the assignment changes its type
 from \texttt{string|nil} to \texttt{string}. 
 
 After we define the function \texttt{message}, we can call it
@@ -1222,8 +1222,8 @@ and whether the type of $\texttt{e}_{\texttt{2}}$ is a literal type $\texttt{l}_
 If that is the case, it constrains the type of \texttt{v} inside
 the \texttt{if} to the table type that has a key of type
 $\texttt{l}_{\texttt{1}}$ which maps to a value of type $\texttt{l}_{\texttt{2}}$.
-In our example, the expression \texttt{e.tag == "Add"} makes Typed Lua
-constrain the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
+In our example, the expression \texttt{e.tag == "Add"} makes the Typed Lua
+compiler constrain the type of \texttt{e} to \texttt{\{"tag":"Add", 1:Exp, 2:Exp\}}.
 If we did not add this special predicate, we would not be able to traverse an AST,
 as any attempt to index an union raises a compile-time warning.
 

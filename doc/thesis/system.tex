@@ -1333,11 +1333,11 @@ table constructor with a non-empty list of table fields:
 \end{array}
 \]
 
-Back to our example, the table constructor
+Back to our example, the constructor
 $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
-$\{1:``x", 2:``y", 3:``z"\}$ through rule \textsc{T-CONSTRUCTOR2}.
+$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
 
-As another example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+As another example, the constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through rule
 \textsc{T-CONSTRUCTOR2}.
 The inner table is \emph{closed} to prevent the creation of unsafe aliases.
@@ -1351,7 +1351,6 @@ field assignment.
 For instance, in Section \ref{sec:tables} we presented the
 following example:
 \begin{verbatim}
-
     local person = {}
     person.firstname = "Lou"
     person.lastname = "Reed"
@@ -1805,7 +1804,7 @@ infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
 general(T_{i}) & \text{if $i < n$}\\
 general(T_{n} \cup \Nil) & \text{if $i >= n$}
 \end{array} \right.
-\\ \\
+\\ 
 general(\False) & = \Boolean\\
 general(\True) & = \Boolean\\
 general({\it int}) & = \Integer\\
@@ -1816,7 +1815,9 @@ general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})
 general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
 general(\mu x.T) & = \mu x.general(T)\\
 general(T) & = T\\
-\\
+\end{align*}
+
+\begin{align*}
 general2(\Void) & = \Void\\
 general2(T{*}) & = general(T){*}\\
 general2(T \times P) & = general(T) \times general2(P)\\
