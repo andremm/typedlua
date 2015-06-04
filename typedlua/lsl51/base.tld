@@ -1,0 +1,37 @@
+--[[
+Typed Lua description file for basic functions
+]]
+
+arg : {string}
+
+assert : (value, string?) -> (any, string?, any*)
+collectgarbage : (string?, number?) -> (number) | (number, number) | (boolean)
+dofile : (string?) -> (any*)
+error : (string, number?) -> ()
+_G : { string:any }
+getfenv : (nil|(value*) -> (value*)) -> (any)
+getmetatable : (value) -> (any)
+ipairs : ({any}) -> (({any}, number) -> (number, any), {any}, number)
+load : (string|(any*) -> (any*), string?) -> (() -> (any*))?
+loadfile : (string?) -> (() -> (any*))?
+loadstring : (string, string?) -> (() -> (any*))?
+next : ({any:any}, any) -> (any, any)
+pairs : ({any:any}) -> (({any:any}) -> (any, any), {any:any})
+pcall : ((any*) -> (any*), any*) -> (boolean, any*)
+print : (value*) -> ()
+rawequal : (value, value) -> (boolean)
+rawget : ({}, any) -> (any)
+rawlen : ({}|string) -> (number)
+rawset : ({any:any}, any, any) -> ({any:any})
+select : (number|string, value*) -> (any*)
+setfenv : ((value*) -> (value*), {}) -> ((value) -> (value*))
+setmetatable : ({any:any}, {any:any}|nil) -> ({any:any}) -- it is a primitive in Typed Lua
+tonumber : (value, number|string?) -> (number) | (nil)
+tostring : (value) -> (string)
+type : (value) -> (string) -- it is a primitive in Typed Lua
+unpack : ({any}, number?, number?) -> (any*)
+_VERSION : string
+xpcall : ((any*) -> (any*), any, any*) -> (boolean, any*)
+
+module : (string, value*) -> (any) -- is a primitive in Typed Lua
+require : (string) -> (any) -- is a primitive in Typed Lua

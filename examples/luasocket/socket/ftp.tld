@@ -1,0 +1,32 @@
+interface url_argument
+  host:string
+  sink:(string, string) -> (number)?
+  argument:string
+  user:string?
+  password:string?
+  command:string?
+  port:number?
+  type:string?
+  step:nil|(() -> (string?), (string, string) -> (number)?) -> (number)?
+  create:nil|(any*) -> (any*)
+end
+
+interface url_path
+  host:string
+  sink:(string, string) -> (number)?
+  path:string
+  user:string?
+  password:string?
+  command:string?
+  port:number?
+  type:string?
+  step:nil|(() -> (string?), (string, string) -> (number)?) -> (number)?
+  create:nil|(any*) -> (any*)
+end
+
+PASSWORD : string
+PORT : number
+TIMEOUT : number
+USER : string
+get : (string|url_argument|url_path) -> (string|number)?
+put : (string|url_argument|url_path) -> (number)?

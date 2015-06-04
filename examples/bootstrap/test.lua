@@ -1,10 +1,12 @@
 #!/usr/bin/env lua
 
-local tlast = require "typedlua.tlast"
-local tlparser = require "typedlua.tlparser"
-local tltype = require "typedlua.tltype"
-local tlchecker = require "typedlua.tlchecker"
-local tlcode = require "typedlua.tlcode"
+local tlast = require "tlast"
+local tlparser = require "tlparser"
+local tltype = require "tltype"
+local tlchecker = require "tlchecker"
+local tlcode = require "tlcode"
+
+package.path = "./typedlua/?.lua;" .. package.path
 
 -- expected result, result, subject
 local e, r, s
@@ -12,7 +14,7 @@ local e, r, s
 local filename = "test.lua"
 
 local function parse (s)
-  local t,m = tlparser.parse(s,filename,false,false)
+  local t,m = tlparser.parse(s,filename,false)
   local r
   if not t then
     r = m
@@ -23,13 +25,13 @@ local function parse (s)
 end
 
 local function typecheck (s)
-  local t,m = tlparser.parse(s,filename,false,false)
+  local t,m = tlparser.parse(s,filename,false)
   local r
   if not t then
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,s,filename,false)
   m = tlchecker.error_msgs(m,false)
   if m then
     r = m
@@ -40,12 +42,12 @@ local function typecheck (s)
 end
 
 local function generate (s)
-  local t,m = tlparser.parse(s,filename,false,false)
+  local t,m = tlparser.parse(s,filename,false)
   if not t then
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,s,filename,false)
   m = tlchecker.error_msgs(m,false)
   if m then
     return m .. "\n"
@@ -213,7 +215,8 @@ testing long string1 end
 ]]
 ]=]
 e = [=[
-{ `Local{ { `Id "ls1" }, { `String "testing long string\n" } } }
+{ `Local{ { `Id "ls1" }, { `String "testing long string
+" } } }
 ]=]
 
 r = parse(s)
@@ -232,7 +235,8 @@ local ls2 = [==[ testing \n [[ long ]] \t [===[ string ]===]
 ]==]
 ]=]
 e = [=[
-{ `Local{ { `Id "ls2" }, { `String " testing \\n [[ long ]] \\t [===[ string ]===]\n\\a " } } }
+{ `Local{ { `Id "ls2" }, { `String " testing \\n [[ long ]] \\t [===[ string ]===]
+\\a " } } }
 ]=]
 
 r = parse(s)
@@ -249,7 +253,7 @@ local ss1_b = 'ola mundo\a'
 -- short string test end
 ]=]
 e = [=[
-{ `Local{ { `Id "ss1_a" }, { `String "ola mundo\a" } }, `Local{ { `Id "ss1_b" }, { `String "ola mundo\a" } } }
+{ `Local{ { `Id "ss1_a" }, { `String "ola mundo\\a" } }, `Local{ { `Id "ss1_b" }, { `String "ola mundo\\a" } } }
 ]=]
 
 r = parse(s)
@@ -264,7 +268,7 @@ local ss2_b = 'testando,\tteste\n1\n2\n3 --> \'tchau\''
 -- short string test end
 ]=]
 e = [=[
-{ `Local{ { `Id "ss2_a" }, { `String "testando,\tteste\n1\n2\n3 --> \"tchau\"" } }, `Local{ { `Id "ss2_b" }, { `String "testando,\tteste\n1\n2\n3 --> 'tchau'" } } }
+{ `Local{ { `Id "ss2_a" }, { `String "testando,\\tteste\\n1\\n2\\n3 --> \"tchau\"" } }, `Local{ { `Id "ss2_b" }, { `String "testando,\\tteste\\n1\\n2\\n3 --> 'tchau'" } } }
 ]=]
 
 r = parse(s)
@@ -282,7 +286,9 @@ local ss3_b = 'ola \
 -- short string test end
 ]=]
 e = [=[
-{ `Local{ { `Id "ss3_a" }, { `String "ola \n'mundo'!" } }, `Local{ { `Id "ss3_b" }, { `String "ola \n\"mundo\"!" } } }
+{ `Local{ { `Id "ss3_a" }, { `String "ola 
+'mundo'!" } }, `Local{ { `Id "ss3_b" }, { `String "ola 
+\"mundo\"!" } } }
 ]=]
 
 r = parse(s)
@@ -318,7 +324,11 @@ cruel'
 -- short string test end
 ]=]
 e = [=[
-{ `Local{ { `Id "ss5_a" }, { `String "ola \nmundo \\ \ncruel" } }, `Local{ { `Id "ss5_b" }, { `String "ola \nmundo \\ \ncruel" } } }
+{ `Local{ { `Id "ss5_a" }, { `String "ola 
+mundo \\ 
+cruel" } }, `Local{ { `Id "ss5_b" }, { `String "ola 
+mundo \\ 
+cruel" } } }
 ]=]
 
 r = parse(s)
@@ -400,7 +410,7 @@ long string
 ]==]
 ]=]
 e = [=[
-test.lua:5:13: syntax error, unexpected '[', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:5:13: syntax error, unexpected '[', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -416,7 +426,7 @@ local ss6 = "testing unfinished string
 -- short string test end
 ]=]
 e = [=[
-test.lua:3:13: syntax error, unexpected '"', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:3:13: syntax error, unexpected '"', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -509,16 +519,6 @@ e = [=[
 r = parse(s)
 assert(r == e)
 
-s = [=[
-q, r, f = 3//2, 3%2, 3/2
-]=]
-e = [=[
-{ `Set{ { `Index{ `Id "_ENV", `String "q" }, `Index{ `Id "_ENV", `String "r" }, `Index{ `Id "_ENV", `String "f" } }, { `Op{ "idiv", `Number "3", `Number "2" }, `Op{ "mod", `Number "3", `Number "2" }, `Op{ "div", `Number "3", `Number "2" } } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
 -- assignments
 
 s = [=[
@@ -577,28 +577,6 @@ a:b(1)._ = some_value
 ]=]
 e = [=[
 { `Set{ { `Index{ `Invoke{ `Index{ `Id "_ENV", `String "a" }, `String "b", `Number "1" }, `String "_" } }, { `Index{ `Id "_ENV", `String "some_value" } } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
--- bitwise expressions
-
-s = [=[
-b = 1 & 0 | 1 ~ 1
-]=]
-e = [=[
-{ `Set{ { `Index{ `Id "_ENV", `String "b" } }, { `Op{ "bor", `Op{ "band", `Number "1", `Number "0" }, `Op{ "bxor", `Number "1", `Number "1" } } } } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-b = 1 & 0 | 1 >> 1 ~ 1
-]=]
-e = [=[
-{ `Set{ { `Index{ `Id "_ENV", `String "b" } }, { `Op{ "bor", `Op{ "band", `Number "1", `Number "0" }, `Op{ "bxor", `Op{ "shr", `Number "1", `Number "1" }, `Number "1" } } } } }
 ]=]
 
 r = parse(s)
@@ -671,19 +649,6 @@ end
 ]=]
 e = [=[
 { `Do{ `Local{ { `Id "var" }, { `Op{ "add", `Number "2", `Number "2" } } }, `Return } }
-]=]
-
-r = parse(s)
-assert(r == e)
-
--- calls
-
-s = [=[
-f()
-t:m()
-]=]
-e = [=[
-{ `Call{ `Index{ `Id "_ENV", `String "f" } }, `Invoke{ `Index{ `Id "_ENV", `String "t" }, `String "m" } }
 ]=]
 
 r = parse(s)
@@ -1766,51 +1731,7 @@ s = [=[
 local test = function ( a , b , c , ... )
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
-]=]
-
-r = parse(s)
-assert(r == e)
-
--- arithmetic expressions
-
-s = [=[
-a = 3 / / 2
-]=]
-e = [=[
-test.lua:1:9: syntax error, unexpected '/', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
-]=]
-
-r = parse(s)
-assert(r == e)
-
--- bitwise expressions
-
-s = [=[
-b = 1 && 1
-]=]
-e = [=[
-test.lua:1:8: syntax error, unexpected '&', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-b = 1 <> 0
-]=]
-e = [=[
-test.lua:1:8: syntax error, unexpected '>', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
-]=]
-
-r = parse(s)
-assert(r == e)
-
-s = [=[
-b = 1 < < 0
-]=]
-e = [=[
-test.lua:1:9: syntax error, unexpected '<', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ':'
 ]=]
 
 r = parse(s)
@@ -1858,7 +1779,7 @@ s = [=[
 concat2 = 2^3..1
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
+test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -1892,7 +1813,7 @@ s = [=[
 for i=1,10, do end
 ]=]
 e = [=[
-test.lua:1:13: syntax error, unexpected 'do', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:1:13: syntax error, unexpected 'do', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -1947,7 +1868,7 @@ s = [=[
 goto label
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -1991,7 +1912,7 @@ s = [=[
 if a then
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2001,7 +1922,7 @@ s = [=[
 if a then else
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2017,7 +1938,7 @@ elseif
 end
 ]=]
 e = [=[
-test.lua:7:1: syntax error, unexpected 'end', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:7:1: syntax error, unexpected 'end', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -2163,7 +2084,7 @@ s = [=[
 local a =
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'EOF', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:2:1: syntax error, unexpected 'EOF', expecting '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -2217,7 +2138,7 @@ repeat
   break
 ]=]
 e = [=[
-test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
 ]=]
 
 r = parse(s)
@@ -2234,7 +2155,7 @@ return 1;
 return 1,1-2*3+4,"alo";
 ]=]
 e = [=[
-test.lua:2:1: syntax error, unexpected 'return', expecting ';', '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not'
+test.lua:2:1: syntax error, unexpected 'return', expecting ';', '(', 'Name', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not'
 ]=]
 
 r = parse(s)
@@ -2246,7 +2167,7 @@ s = [=[
 t = { , }
 ]=]
 e = [=[
-test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '~', '-', 'not', 'Name', '[', 'const'
+test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function', '...', 'true', 'false', 'nil', 'String', 'Number', '#', '-', 'not', 'Name', '[', 'const'
 ]=]
 
 r = parse(s)
@@ -2313,7 +2234,7 @@ while (i < 10)
 end
 ]=]
 e = [=[
-test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^', 'String', '{', '(', ':', '[', '.'
+test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^', 'String', '{', '(', ':', '[', '.'
 ]=]
 
 r = parse(s)
@@ -2355,7 +2276,7 @@ s = [=[
 x = ...:any
 ]=]
 e = [=[
-test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
+test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2375,7 +2296,7 @@ s = [=[
 f(...:any)
 ]=]
 e = [=[
-test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '|', '~', '&', '>>', '<<', '..', '-', '+', '%', '/', '//', '*', '^'
+test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>', '<', '>=', '<=', '==', '~=', '..', '-', '+', '%', '/', '*', '^'
 ]=]
 
 r = parse(s)
@@ -2385,7 +2306,7 @@ s = [=[
 local x:number*
 ]=]
 e = [=[
-test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
+test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ',', '?', '|'
 ]=]
 
 r = parse(s)
@@ -2405,7 +2326,7 @@ s = [=[
 local x:number?|string?
 ]=]
 e = [=[
-test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
+test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';', '=', ','
 ]=]
 
 r = parse(s)
@@ -3183,7 +3104,7 @@ s = [=[
 for i = 1, 10 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i", `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i":`TBase number, `Number "1", `Number "10", { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3193,7 +3114,7 @@ s = [=[
 for i = 10, 1, -1 do local x = i end
 ]=]
 e = [=[
-{ `Fornum{ `Id "i", `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
+{ `Fornum{ `Id "i":`TBase number, `Number "10", `Number "1", `Op{ "unm", `Number "1" }, { `Local{ { `Id "x" }, { `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3240,9 +3161,6 @@ assert(r == e)
 
 s = [=[
 local x, y = 1 + "foo", "foo" + 1
-local a:any
-a = a + 1
-a = 1 + a
 ]=]
 e = [=[
 test.lua:1:18: type error, attempt to perform arithmetic on a 'string'
@@ -3254,9 +3172,6 @@ assert(r == e)
 
 s = [=[
 local x, y = "foo" .. 1, 1 .. "foo"
-local a:any
-a = a .. "foo"
-a = "foo" .. a
 ]=]
 e = [=[
 test.lua:1:23: type error, attempt to concatenate a 'number'
@@ -3268,9 +3183,6 @@ assert(r == e)
 
 s = [=[
 local x, y = 1 < "foo", "foo" < 1
-local a:any
-a = a < 1
-a = 1 < a
 ]=]
 e = [=[
 test.lua:1:14: type error, attempt to compare 'number' with 'string'
@@ -3293,9 +3205,6 @@ assert(r == e)
 
 s = [=[
 local x:number, y:number = nil and 1, false and 1 
-local a:number?, b:number|false = 1, 1
-a = a and 1
-b = b and 1
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign 'nil' to 'number'
@@ -3318,9 +3227,6 @@ assert(r == e)
 
 s = [=[
 local x:nil, y:boolean = nil or 1, false or 1 
-local a:number?, b:number|false = 1, 1
-a = a or 1
-b = b or 1
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1' to 'nil'
@@ -3376,8 +3282,6 @@ assert(r == e)
 
 s = [=[
 local x = -"foo"
-local a:any
-a = -a
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to perform arithmetic on a 'string'
@@ -3388,8 +3292,6 @@ assert(r == e)
 
 s = [=[
 local x = #1
-local a:any
-a = #a
 ]=]
 e = [=[
 test.lua:1:12: type error, attempt to get length of a 'number'
@@ -3554,75 +3456,6 @@ assert(r == e)
 -- new tests
 
 s = [=[
-local x = setmetatable({}, {})
-local y = setmetatable()
-local z = require(x)
-local w = require()
-]=]
-e = [=[
-test.lua:1:11: type error, second argument of setmetatable must be { __index = e }
-test.lua:2:11: type error, setmetatable must have two arguments
-test.lua:3:11: type error, the argument of require must be a literal string
-test.lua:4:11: type error, require must have one argument
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function f ():(number, number) return 1, 2 end
-local x:number, y:number, z:number = f()
-]=]
-e = [=[
-test.lua:2:27: type error, attempt to assign 'nil' to 'number'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function f ():(number) end
-]=]
-e = [=[
-test.lua:1:18: type error, return type '(nil*)' does not match '(number, nil*)'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function f ():(any) return 1 end
-]=]
-e = [=[
-{ `Localrec{ { `Id "f":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TAny, `TVararg{ `TNil } } } }, { `Function{ {  }:`TTuple{ `TAny, `TVararg{ `TNil } }, { `Return{ `Number "1" } } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x:number?
-local t = { [function () end] = 1, [x] = 2 }
-]=]
-e = [=[
-test.lua:2:37: type error, table index can be nil
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x:number = 1
-local x:string = "foo"
-]=]
-e = [=[
-{ `Local{ { `Id "x":`TBase number }, { `Number "1" } }, `Local{ { `Id "x":`TBase string }, { `String "foo" } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
 local function fib (n:number)
   if n == 0 then
     return 0
@@ -3692,101 +3525,6 @@ end
 ]=]
 e = [=[
 test.lua:10:9: type error, attempt to concatenate a 'number'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x:any = 1
-for n = x, x, x do end
-for k in x do end
-]=]
-e = [=[
-{ `Local{ { `Id "x":`TAny }, { `Number "1" } }, `Fornum{ `Id "n", `Id "x", `Id "x", `Id "x", {  } }, `Forin{ { `Id "k" }, { `Id "x" }, {  } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x
-local y = x.z, y.z
-x.z = 1
-z.z = 2
-]=]
-e = [=[
-test.lua:2:16: type error, attempt to access undeclared global 'y'
-test.lua:2:16: type error, attempt to index 'nil' with 'z'
-test.lua:4:1: type error, attempt to access undeclared global 'z'
-test.lua:4:1: type error, attempt to index 'nil' with 'z'
-test.lua:4:1: type error, attempt to assign '(2, nil*)' to '(nil, value*)'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local x
-local y = 1
-x()
-y()
-]=]
-e = [=[
-test.lua:4:1: type error, attempt to call local 'y' of type 'number'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local t:{"x":any} = {}
-local x:any
-local y:number = 1
-t:x()
-t:y()
-x:y()
-y:x()
-]=]
-e = [=[
-test.lua:5:1: type error, attempt to call method 'y' of type 'nil'
-test.lua:7:1: type error, attempt to index 'number' with 'x'
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local o = { x = 1 }
-const function o:set_x (x:number) self.x = x end
-local x = o.set_x
-]=]
-e = [=[
-test.lua:3:7: type error, attempt to create a method reference
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local function f ():(nil*) return end
-local function g (x:number):(number)?
-  if x < 0 then
-    return nil, "negative"
-  else
-    return x
-  end
-end
-local function h (x:number):(number)?
-  if x > 0 then
-    return x
-  else
-    return g(x)
-  end
-end
-]=]
-e = [=[
-{ `Localrec{ { `Id "f":`TFunction{ `TTuple{ `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } }, { `Function{ {  }:`TTuple{ `TVararg{ `TNil } }, { `Return } } } }, `Localrec{ { `Id "g":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "x":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "lt", `Id "x", `Number "0" }, { `Return{ `Nil, `String "negative" } }, { `Return{ `Id "x" } } } } } } }, `Localrec{ { `Id "h":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "x":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "lt", `Number "0", `Id "x" }, { `Return{ `Id "x" } }, { `Return{ `Call{ `Id "g", `Id "x" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3929,7 +3667,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i", `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3973,27 +3711,6 @@ end
 ]=]
 e = [=[
 { `Localrec{ { `Id "idiv":`TFunction{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TValue } }, `TUnionlist{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } } } }, { `Function{ { `Id "d1":`TBase number, `Id "d2":`TBase number }:`TUnionlist{ `TTuple{ `TBase number, `TBase number, `TVararg{ `TNil } }, `TTuple{ `TNil, `TBase string, `TVararg{ `TNil } } }, { `If{ `Op{ "eq", `Id "d2", `Number "0" }, { `Return{ `Nil, `String "division by zero" } }, { `Local{ { `Id "r" }, { `Op{ "mod", `Id "d1", `Id "d2" } } }, `Local{ { `Id "q" }, { `Op{ "div", `Paren{ `Op{ "sub", `Id "d1", `Id "r" } }, `Id "d2" } } }, `Return{ `Id "q", `Id "r" } } } } } } }, `Local{ { `Id "n1", `Id "n2" }, { `Number "4", `Number "4" } }, `Local{ { `Id "q", `Id "r" }, { `Call{ `Id "idiv", `Id "n1", `Id "n2" } } }, `Local{ { `Id "x":`TBase number, `Id "msg":`TBase string }, { `Number "0", `String "" } }, `If{ `Id "q", { `Set{ { `Id "x" }, { `Op{ "add", `Id "q", `Id "r" } } } }, { `Set{ { `Id "msg" }, { `Id "r" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-function x() : (number, boolean)|(string, number)
-   if 0 > 1 then
-      return 1, true
-   else
-      return "wat", 9
-   end
-end
-
-local foo, bar = x()
-if foo then
-   local bla = foo .. " world"
-end
-]=]
-e = [=[
-test.lua:11:16: type error, attempt to concatenate a '(number | string)'
 ]=]
 
 r = typecheck(s)
@@ -4111,7 +3828,7 @@ for i = 1, #t do
 end
 ]=]
 e = [=[
-{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Fornum{ `Id "i", `Number "1", `Op{ "len", `Id "t" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "t", `Id "i" } } } } }
+{ `Local{ { `Id "t" }, { `Table{ `Dots } } }, `Fornum{ `Id "i":`TBase number, `Number "1", `Op{ "len", `Id "t" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `Index{ `Id "t", `Id "i" } } } } }
 ]=]
 
 r = typecheck(s)
@@ -4160,17 +3877,6 @@ local person:{"firstname":string, "lastname":string} =
 ]=]
 e = [=[
 { `Local{ { `Id "person":`TTable{ `TLiteral firstname:`TBase string, `TLiteral lastname:`TBase string } }, { `Table{ `Pair{ `String "firstname", `String "Lou" }, `Pair{ `String "lastname", `String "Reed" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local person:Person = { firstname = "Lou", lastname = "Reed" }
-]=]
-e = [=[
-test.lua:1:7: type error, type alias 'Person' is not defined
-test.lua:1:7: type error, attempt to assign '{firstname:string, lastname:string}' to 'nil'
 ]=]
 
 r = typecheck(s)
@@ -4231,22 +3937,6 @@ local user2:Person = { lastname = "Reed", firstname = "Lou" }
 ]=]
 e = [=[
 { `Interface{ Person, `TTable{ `TLiteral firstname:`TBase string, `TLiteral middlename:`TUnion{ `TBase string, `TNil }, `TLiteral lastname:`TBase string } }, `Local{ { `Id "user1":`TVariable Person }, { `Table{ `Pair{ `String "firstname", `String "Lewis" }, `Pair{ `String "middlename", `Op{ "or", `String "Allan", `Nil } }, `Pair{ `String "lastname", `String "Reed" } } } }, `Local{ { `Id "user2":`TVariable Person }, { `Table{ `Pair{ `String "lastname", `String "Reed" }, `Pair{ `String "firstname", `String "Lou" } } } } }
-]=]
-
-r = typecheck(s)
-assert(r == e)
-
-s = [=[
-local interface Person
-  firstname:string
-  middlename:string?
-  lastname:string
-end
-
-local interface Person end
-]=]
-e = [=[
-test.lua:7:7: type error, attempt to redeclare interface 'Person'
 ]=]
 
 r = typecheck(s)
@@ -4473,9 +4163,11 @@ assert(r == e)
 s = [=[
 local str = "foo"
 print(str:char())
+print(("foo"):dump())
 ]=]
 e = [=[
 test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
+test.lua:3:7: type error, attempt to pass '(string, nil*)' to field of input type '((value*) -> (value*), value*)'
 ]=]
 
 r = typecheck(s)
@@ -4561,7 +4253,7 @@ s = [=[
 zero,um = false,true
 ]=]
 e = [=[
-zero, um = false, true 
+zero, um = false, true
 ]=]
 
 r = generate(s)
@@ -4571,7 +4263,7 @@ s = [=[
 n,s = 1, "alo"
 ]=]
 e = [=[
-n, s = 1, "alo" 
+n, s = 1, "alo"
 ]=]
 
 r = generate(s)
@@ -4581,7 +4273,7 @@ s = [=[
 t = ...,nil
 ]=]
 e = [=[
-t = ..., nil 
+t = ..., nil
 ]=]
 
 r = generate(s)
@@ -4591,7 +4283,7 @@ s = [=[
 a = 2 * 3 + 5
 ]=]
 e = [=[
-a = 2 * 3 + 5 
+a = 2 * 3 + 5
 ]=]
 
 r = generate(s)
@@ -4601,7 +4293,7 @@ s = [=[
 a = (2 * 3) + 5
 ]=]
 e = [=[
-a = (2 * 3) + 5 
+a = (2 * 3) + 5
 ]=]
 
 r = generate(s)
@@ -4611,7 +4303,7 @@ s = [=[
 a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 e = [=[
-a = 1 - 2 / 3 % 4 ^ 5 
+a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 
 r = generate(s)
@@ -4621,7 +4313,7 @@ s = [=[
 c = "alo" .. "mundo" 
 ]=]
 e = [=[
-c = "alo" .. "mundo" 
+c = "alo" .. "mundo"
 ]=]
 
 r = generate(s)
@@ -4642,7 +4334,6 @@ c = 1 < 2
 d = 1 <= 2
 e = 2 < 1
 f = 2 <= 1
-
 ]=]
 
 r = generate(s)
@@ -4652,17 +4343,7 @@ s = [=[
 a = not 1 and 2 or 3
 ]=]
 e = [=[
-a = not (1) and 2 or 3 
-]=]
-
-r = generate(s)
-assert(r == e)
-
-s = [=[
-t = { 1, 2, 3 }
-]=]
-e = [=[
-t = {1, 2, 3} 
+a = not (1) and 2 or 3
 ]=]
 
 r = generate(s)
@@ -4674,7 +4355,17 @@ s = [=[
 do do do do do end end end end end
 ]=]
 e = [=[
-do do do do do  end end end end end 
+do
+  do
+    do
+      do
+        do
+
+        end
+      end
+    end
+  end
+end
 ]=]
 
 r = generate(s)
@@ -4686,7 +4377,9 @@ s = [=[
 for i=1, 10 do break end
 ]=]
 e = [=[
-for i = 1, 10 do break end 
+for i = 1, 10 do
+  break
+end
 ]=]
 
 r = generate(s)
@@ -4696,17 +4389,9 @@ s = [=[
 for i=1,10,-1 do break end
 ]=]
 e = [=[
-for i = 1, 10, -(1) do break end 
-]=]
-
-r = generate(s)
-assert(r == e)
-
-s = [=[
-for k,v in pairs({}) do end
-]=]
-e = [=[
-for k, v in pairs({}) do  end 
+for i = 1, 10, -(1) do
+  break
+end
 ]=]
 
 r = generate(s)
@@ -4715,20 +4400,12 @@ assert(r == e)
 -- function
 
 s = [=[
-function f ():(nil*) end
-]=]
-e = [=[
-f = function ()  end 
-]=]
-
-r = generate(s)
-assert(r == e)
-
-s = [=[
 function f () end
 ]=]
 e = [=[
-f = function ()  end 
+f = function ()
+
+end
 ]=]
 
 r = generate(s)
@@ -4738,7 +4415,9 @@ s = [=[
 function f (a) return a end
 ]=]
 e = [=[
-f = function (a) return a end 
+f = function (a)
+  return a
+end
 ]=]
 
 r = generate(s)
@@ -4748,7 +4427,9 @@ s = [=[
 function f (a, b, c) end
 ]=]
 e = [=[
-f = function (a, b, c)  end 
+f = function (a, b, c)
+
+end
 ]=]
 
 r = generate(s)
@@ -4758,7 +4439,9 @@ s = [=[
 function f (a, b, c, ...) end
 ]=]
 e = [=[
-f = function (a, b, c, ...)  end 
+f = function (a, b, c, ...)
+
+end
 ]=]
 
 r = generate(s)
@@ -4768,7 +4451,9 @@ s = [=[
 function f (...) end
 ]=]
 e = [=[
-f = function (...)  end 
+f = function (...)
+
+end
 ]=]
 
 r = generate(s)
@@ -4778,7 +4463,9 @@ s = [=[
 local function f () end
 ]=]
 e = [=[
-local function f ()  end 
+local function f ()
+
+end
 ]=]
 
 r = generate(s)
@@ -4788,7 +4475,9 @@ s = [=[
 local function f (a) return a end
 ]=]
 e = [=[
-local function f (a) return a end 
+local function f (a)
+  return a
+end
 ]=]
 
 r = generate(s)
@@ -4798,7 +4487,9 @@ s = [=[
 local function f (a, b, c) end
 ]=]
 e = [=[
-local function f (a, b, c)  end 
+local function f (a, b, c)
+
+end
 ]=]
 
 r = generate(s)
@@ -4808,7 +4499,9 @@ s = [=[
 local function f (a, b, c, ...) end
 ]=]
 e = [=[
-local function f (a, b, c, ...)  end 
+local function f (a, b, c, ...)
+
+end
 ]=]
 
 r = generate(s)
@@ -4818,7 +4511,9 @@ s = [=[
 local function f (...) end
 ]=]
 e = [=[
-local function f (...)  end 
+local function f (...)
+
+end
 ]=]
 
 r = generate(s)
@@ -4831,9 +4526,10 @@ do goto eof end
 :: eof ::
 ]=]
 e = [=[
-do goto eof end
+do
+  goto eof
+end
 ::eof::
-
 ]=]
 
 r = generate(s)
@@ -4847,10 +4543,9 @@ if 1 then
 end
 ]=]
 e = [=[
-if 1 then 
+if 1 then
   return 1
 end
-
 ]=]
 
 r = generate(s)
@@ -4864,12 +4559,11 @@ else
 end
 ]=]
 e = [=[
-if 1 then 
+if 1 then
   return 1
-else 
+else
   return 2
 end
-
 ]=]
 
 r = generate(s)
@@ -4887,16 +4581,15 @@ elseif 4 then
 end
 ]=]
 e = [=[
-if 1 then 
+if 1 then
   return 1
-elseif 2 then 
+elseif 2 then
   return 2
-elseif 3 then 
+elseif 3 then
   return 3
-elseif 4 then 
+elseif 4 then
   return 4
 end
-
 ]=]
 
 r = generate(s)
@@ -4916,18 +4609,17 @@ else
 end
 ]=]
 e = [=[
-if 1 then 
+if 1 then
   return 1
-elseif 2 then 
+elseif 2 then
   return 2
-elseif 3 then 
+elseif 3 then
   return 3
-elseif 4 then 
+elseif 4 then
   return 4
-else 
+else
   return 5
 end
-
 ]=]
 
 r = generate(s)
@@ -4956,42 +4648,26 @@ else
 end
 ]=]
 e = [=[
-if 1 then 
-  if "hello" then 
+if 1 then
+  if "hello" then
     return "hello"
   end
   return 1
-elseif 2 then 
+elseif 2 then
   return 2
-elseif 3 then 
-  if "foo" then 
+elseif 3 then
+  if "foo" then
     return "foo"
   end
   return 3
-elseif 4 then 
+elseif 4 then
   return 4
-else 
-  if "bar" then 
+else
+  if "bar" then
     return "bar"
   end
   return 5
 end
-
-]=]
-
-r = generate(s)
-assert(r == e)
-
-s = [=[
-local x:number?
-if not x then print("error") else x = x + 1 end
-if type(x) == "nil" then print("error") else x = x + 1 end
-]=]
-e = [=[
-local x
-if not (x) then print("error") else x = x + 1 end
-if type(x) == "nil" then print("error") else x = x + 1 end
-
 ]=]
 
 r = generate(s)
@@ -5003,7 +4679,7 @@ s = [=[
 local a:any?
 ]=]
 e = [=[
-local a 
+local a
 ]=]
 
 r = generate(s)
@@ -5013,7 +4689,7 @@ s = [=[
 local a:any?, b:any?, c:any?
 ]=]
 e = [=[
-local a, b, c 
+local a, b, c
 ]=]
 
 r = generate(s)
@@ -5023,7 +4699,7 @@ s = [=[
 local a = 1
 ]=]
 e = [=[
-local a = 1 
+local a = 1
 ]=]
 
 r = generate(s)
@@ -5033,7 +4709,7 @@ s = [=[
 local a, b:any? = 1
 ]=]
 e = [=[
-local a, b = 1 
+local a, b = 1
 ]=]
 
 r = generate(s)
@@ -5045,7 +4721,9 @@ s = [=[
 repeat break until true
 ]=]
 e = [=[
-repeat break until true 
+repeat
+  break
+until true
 ]=]
 
 r = generate(s)
@@ -5059,10 +4737,9 @@ while 1 do
 end
 ]=]
 e = [=[
-while 1 do 
+while 1 do
   break
 end
-
 ]=]
 
 r = generate(s)
@@ -5117,49 +4794,36 @@ print_l(e)
 ]=]
 e = [=[
 
-
-
-
-
-local function insert_s (e, v) 
-  return {info = v, next = e}
+local function insert_s (e, v)
+  return {["info"] = v, ["next"] = e}
 end
-
-local function insert_f (e, v) 
-  if e then 
-    e.next = insert_f(e.next,v)
+local function insert_f (e, v)
+  if e then
+    e["next"] = insert_f(e["next"],v)
     return e
   end
-  return {info = v, next = e}
+  return {["info"] = v, ["next"] = e}
 end
-
-local function print_l (e) 
-  if e then 
-    print(e.info)
-    print_l(e.next)
+local function print_l (e)
+  if e then
+    print(e["info"])
+    print_l(e["next"])
   end
 end
-
 local e
-
 e = insert_s(e,2)
 e = insert_s(e,1)
 e = insert_s(e,3)
 e = insert_s(e,4)
 e = insert_s(e,0)
-
 print_l(e)
-
 e = nil
-
 e = insert_f(e,2)
 e = insert_f(e,1)
 e = insert_f(e,3)
 e = insert_f(e,4)
 e = insert_f(e,0)
-
 print_l(e)
-
 ]=]
 
 r = generate(s)
@@ -5194,136 +4858,23 @@ print_tree(a)
 ]=]
 e = [=[
 
-
-
-
-
-local function create (v, l, r) 
-  return {info = v, left = l, right = r}
+local function create (v, l, r)
+  return {["info"] = v, ["left"] = l, ["right"] = r}
 end
-
-local function print_tree (t) 
-  if t then 
-    print(t.info)
-    print_tree(t.left)
-    print_tree(t.right)
+local function print_tree (t)
+  if t then
+    print(t["info"])
+    print_tree(t["left"])
+    print_tree(t["right"])
   end
 end
-
 local a1 = create("d")
 local a2 = create("b",nil,a1)
 local a3 = create("e")
 local a4 = create("f")
 local a5 = create("c",a3,a4)
 local a = create("a",a2,a5)
-
 print_tree(a)
-
-]=]
-
-r = generate(s)
-assert(r == e)
-
-s = [=[
-interface Shape
-  x, y:number
-  const new:(number, number) => (self)
-  const move:(number, number) => ()
-end
-
-local Shape = { x = 0, y = 0 }
-
-const function Shape:new (x:number, y:number)
-  local s = setmetatable({}, { __index = self })
-  s.x = x
-  s.y = y
-  return s
-end
-
-const function Shape:move (dx:number, dy:number)
-  self.x = self.x + dx
-  self.y = self.y + dy
-end
-
-local shape1 = Shape:new(0, 5)
-local shape2:Shape = Shape:new(10, 10)
-
-interface Circle
-  x, y, radius:number
-  const new:(number, number, value) => (self)
-  const move:(number, number) => ()
-  const area:() => (number)
-end
-
-local Circle = setmetatable({}, { __index = Shape })
-
-Circle.radius = 0
-
-const function Circle:new (x:number, y:number, radius:value)
-  local c = setmetatable(Shape:new(x, y), { __index = self })
-  c.radius = tonumber(radius) or 0
-  return c
-end
-
-const function Circle:area ()
-  return 3.14 * self.radius * self.radius
-end
-
-local circle1 = Circle:new(0, 5, 10)
-local circle2:Circle = Circle:new(10, 10, 15)
-circle1:area()
-circle2:area()
-]=]
-e = [=[
-
-
-
-
-
-
-local Shape = {x = 0, y = 0}
-
-Shape.new = function (self, x, y) 
-  local s = setmetatable({},{__index = self})
-  s.x = x
-  s.y = y
-  return s
-end
-
-Shape.move = function (self, dx, dy) 
-  self.x = self.x + dx
-  self.y = self.y + dy
-end
-
-local shape1 = Shape:new(0,5)
-local shape2 = Shape:new(10,10)
-
-
-
-
-
-
-
-
-local Circle = setmetatable({},{__index = Shape})
-
-Circle.radius = 0
-
-Circle.new = function (self, x, y, radius) 
-  local c = setmetatable(Shape:new(x,y),{__index = self})
-  c.radius = tonumber(radius) or 0
-  return c
-end
-
-Circle.area = function (self) 
-  return 3.14 * self.radius * self.radius
-end
-
-local circle1 = Circle:new(0,5,10)
-local circle2 = Circle:new(10,10,15)
-circle1:area()
-circle2:area()
-
 ]=]
 
 r = generate(s)

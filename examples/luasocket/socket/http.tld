@@ -1,0 +1,17 @@
+interface url_request
+  url:string
+  sink:nil|(string, string) -> (number)?
+  method:string?
+  headers:{string:string}?
+  source:nil|() -> (string?)
+  step:nil|(() -> (string?), (string, string) -> (number)?) -> (number)?
+  proxy:string?
+  redirect:boolean?
+  create:nil|(any*) -> (any*)
+end
+
+PORT : number
+PROXY : string?
+TIMEOUT : number
+USERAGENT : string
+request : (string|url_request, string?) -> (number|string, number, {string:string}, number)?

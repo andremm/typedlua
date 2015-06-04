@@ -1,0 +1,18 @@
+return {
+  byte = 1,
+  char = 1,
+  dump = 1,
+  find = 1,
+  format = 4,
+  gmatch = 1,
+  gsub = 4,
+  len = 1,
+  lower = 1,
+  match = 1,
+  pack = 4,
+  rep = 1,
+  reverse = 1,
+  sub = 1,
+  unpack = 4,
+  upper = 1,
+}

@@ -1,0 +1,25 @@
+interface mesgt
+  headers:{string:string}
+  body:string|{"preamble":string?, "epilogue":string?, number:mesgt}|() -> (string?)
+end
+
+interface send
+  from:string
+  rcpt:string
+  source:() -> (string?)
+  user:string?
+  password:string?
+  server:string?
+  port:number?
+  domain:string?
+  step:nil|(() -> (string?), (string, string) -> (number)?) -> (number)?
+  create:nil|(any*) -> (any*)
+end
+
+DOMAIN : string
+PORT : number
+SERVER : string
+TIMEOUT : number
+ZONE : string
+message : (mesgt) -> (() -> (string, nil)?)
+send : (send) -> (number)?

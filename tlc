@@ -1,18 +1,21 @@
 #!/usr/bin/env lua
 
-local checker = require "typedlua.checker"
-local code = require "typedlua.code"
-local parser = require "typedlua.parser"
-local pp = require "typedlua.pp"
+local tlast = require "typedlua.tlast"
+local tlparser = require "typedlua.tlparser"
+local tlchecker = require "typedlua.tlchecker"
+local tlcode = require "typedlua.tlcode"
 
-local VERSION = "0.1-alpha1"
+local VERSION = "scm"
 local PROGNAME = "tlc"
 local OUTPUT = PROGNAME .. ".lua"
 
 local DUMPAST = false
 local PRINTAST = false
 
-local TYPECHECK = true
+local STRICT = false
+local WARNINGS = false
+local INTEGER = false
+if _VERSION == "Lua 5.3" then INTEGER = true end
 
 local progname = PROGNAME
 
@@ -20,18 +23,19 @@ local USAGE = [[
 usage: %s [options] [filename]
 Available options are:
 -d	dump the AST
--g	generate code without type checking
 -h	print this help
 -o name	output to file 'name' (default is '%s')
 -p	print the AST
+-s	strict mode on
 -v	print current version
+-w	consistent-subtyping warnings on
 ]]
 
 local function usage (msg)
   if msg ~= nil then
     io.stderr:write(string.format("%s: %s\n", progname, msg))
   end
-  io.stderr:write(string.format(USAGE, progname, OUTPUT))
+  io.stderr:write(string.format(USAGE, progname, "tlc.lua"))
   os.exit(1)
 end
 
@@ -42,8 +46,6 @@ local function doargs ()
       return i
     elseif arg[i] == "-d" then
       DUMPAST = true
-    elseif arg[i] == "-g" then
-      TYPECHECK = false
     elseif arg[i] == "-h" then
       usage()
     elseif arg[i] == "-o" then
@@ -55,9 +57,13 @@ local function doargs ()
       end
     elseif arg[i] == "-p" then
       PRINTAST = true
+    elseif arg[i] == "-s" then
+      STRICT = true
     elseif arg[i] == "-v" then
       io.write(string.format("Typed Lua %s\n", VERSION))
       os.exit(0)
+    elseif arg[i] == "-w" then
+      WARNINGS = true
     else
       usage(string.format("'%s' unknown option", arg[i]))
     end
@@ -86,36 +92,39 @@ end
 
 local i = doargs()
 local filename = arg[i]
+if not filename then
+  usage("no input file given")
+end
+
 local subject = getcontents(filename)
 
-local ast, error_msg = parser.parse(subject, filename)
+local ast, error_msg = tlparser.parse(subject, filename, STRICT, INTEGER)
 if not ast then
   print(error_msg)
   os.exit(1)
 end
 
 if DUMPAST and PRINTAST then
-  pp.dump(ast)
-  pp.print(ast)
+  tlast.dump(ast)
+  print(tlast.tostring(ast))
   os.exit(0)
 end
 
 if DUMPAST then
-  pp.dump(ast)
+  tlast.dump(ast)
   os.exit(0)
 end
 
 if PRINTAST then
-  pp.print(ast)
+  print(tlast.tostring(ast))
   os.exit(0)
 end
 
-if TYPECHECK then
-  ast, error_msg = checker.typecheck(ast, subject, filename)
-  if error_msg then print(error_msg) end
-end
+local error_msg = tlchecker.typecheck(ast, subject, filename, STRICT, INTEGER)
+local error_msg, status = tlchecker.error_msgs(error_msg, WARNINGS)
+if error_msg then print(error_msg) end
 
-local generated_code = code.generate(ast)
+local generated_code = tlcode.generate(ast)
 setcontents(generated_code, OUTPUT)
 
-os.exit(0)
+os.exit(status)

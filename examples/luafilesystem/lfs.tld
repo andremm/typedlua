@@ -1,0 +1,42 @@
+interface file_attributes
+  dev:integer
+  ino:integer
+  mode:string
+  nlink:integer
+  uid:integer
+  gid:integer
+  rdev:integer
+  access:integer
+  modification:integer
+  change:integer
+  blocks:integer
+  blksize:integer
+  permissions:string
+end
+
+userdata lock
+  free:(self) -> ()
+end
+
+userdata dir_obj
+  next:(self) -> (string?)
+  close:(self) -> ()
+end
+
+_COPYRIGHT:string
+_DESCRIPTION:string
+_VERSION:string
+
+attributes:(string, string?) -> (file_attributes|integer|string)?
+chdir:(string) -> (boolean)?
+lock_dir:(string, integer?) -> (lock)?
+currentdir:() -> (string)?
+dir:(string) -> ((dir_obj) -> (string?), dir_obj)
+lock:(file, string, integer?, integer?) -> (boolean)?
+link:(string, string, value) -> (integer)?
+mkdir:(string) -> (boolean)?
+rmdir:(string) -> (boolean)?
+setmode:(file, string) -> (boolean, string)?
+symlinkattributes:(string, string?) -> (file_attributes|integer|string)?
+touch:(string, integer?, integer?) -> (boolean)?
+unlock:(file, integer?, integer?) -> (boolean)?

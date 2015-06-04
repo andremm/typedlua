@@ -1,0 +1,567 @@
+% +---------------------------------------------+
+% | Documentation is in the titlesec.tex file.  |
+% +---------------------------------------------+
+%
+% Copyright (c) 1998-2002 by Javier Bezos.
+% All Rights Reserved.
+%
+% This file is part of the titlesec distribution release 2.5
+% -----------------------------------------------------------
+%
+% This program can be redistributed and/or modified under the terms
+% of the LaTeX Project Public License Distributed from CTAN
+% archives in directory macros/latex/base/lppl.txt; either
+% version 1 of the License, or any later version.
+
+% History of v1.1
+% ~~~~~~~~~~~~~~~
+% 99/04/22: A bug fix. Some missing global assignments in \ttl@tocentry
+%           were missing, and page numbers messed up with 
+%           \titlecontents*
+% 
+% History of v1.2
+% ~~~~~~~~~~~~~~~~
+% 99/10/20: Added \contentsafter. \ttl@tocentry modified to accept
+%           the new command for grouping in a paragraph entries of
+%           different levels.
+% 99/10/27: Instead of defining the level numbers explicitly, that's
+%           done with \ttl@setlevels and \ttl@levels.
+% 99/10/27: Added the basic code for multiple indexes.
+% 99/10/29: Added the toctop test to the \ttl@savel@... commands.
+% 99/12/28: Simplified \ttl@savel@... with \ttl@lselect.
+% 00/01/12: \contentsafter rejected. An aditional optional parameter
+%           is used instead. (Too) many thing had to be rewritten.
+% 00/01/27: Removed \ttl@setlevels. Any change of levels are
+%           best done with titlesec.
+% 00/02/14: Moved misplaced \vskip in ttl@tocentry.
+% 00/02/16: A few changes in the "block" separators.
+% 00/02/16: Fixed bug in \ttl@margin. For the right margin the
+%           correction was used instead of the margin.
+%
+% History of v1.2.1
+% ~~~~~~~~~~~~~~~~~
+% 00/04/25: Dirty trick to make sure that \ttl@finish is the very
+%           last thing in lists of floats (lof, lot, etc.).
+% 00/05/14: Missing \global before \ttl@labelfalse added.
+% 
+% History of 1.2.2
+% ~~~~~~~~~~~~~~~~
+% 00/06/05: The optional argument no longer mandatory, but
+%           still reporting an error if the length is missing.
+%           Minor internal changes, and a patch mechanism added.
+%
+% History of 1.3
+% ~~~~~~~~~~~~~~
+% 01/01/12: Minor changes and some missing \globals added for
+%           partial tocs to work inside a group.
+% 01/01/21: Added \dottedcontents.
+% 
+% History of 1.4
+% ~~~~~~~~~~~~~~
+% 02/03/27: titletoc.new merged into this file
+% 02/03/27: \ttl@finish written by the last \newpage. 
+% 02/03/27: \ttl@lsection broke paragraphs always. Now
+%           only if the sublevel is typeset.
+% 02/03/27: \ttl@finish -> \contentsfinish
+
+\ProvidesPackage{titletoc}[2002/03/27 v1.4 TOC entries]
+
+% The following tags are used:
+% ttl@  : the generic one, shared with titlesec
+% ttlb@ : starting punctuation for block format
+% ttlm@ : and middle
+% ttle@ : and ending
+% ttll@ : section level
+% ttlx@ : file extension
+% 
+% Fistly, comes the
+% common stuff with titlesec
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\newif\ifttl@label
+\newif\ifttl@fromblock
+
+\providecommand\titleline{%
+  \@ifstar{\ttl@line@i{\hb@xt@\titlewidth}}%
+          {\ttl@line@i{}}}
+
+\def\ttl@line@i#1{%
+  \@ifnextchar[{\ttl@line{#1}}{\ttl@line{#1}[s]}}
+
+\def\ttl@line#1[#2]#3{%
+  \vskip\topskip
+  \hrule \@height \z@
+  \nobreak
+  \vskip-\topskip
+  \begingroup
+    \parindent\z@
+    \everypar{}%
+    \leftskip\z@
+    \rightskip\z@   %  #1 is either \hb@xt@\titlewidth or empty:
+    \@makebox[\hsize][#2]{\ttl@makeline{#1{#3}}}%
+    \par
+  \endgroup
+  \hrule height \z@
+  \nobreak}
+
+% Fillers:
+
+\providecommand\titlerule{\@ifstar{\ttl@row}{\ttl@rule}}
+
+\let\ttl@leaders\xleaders
+
+\def\ttl@row{\@ifnextchar[{\ttl@row@i}{\ttl@row@i[\wd\z@]}}
+\def\ttl@row@i[#1]#2{%
+  \ifvmode\expandafter\titleline\fi
+  {\sbox\z@{#2}%
+   \hspace{-#1}%
+   \hskip\wd\z@
+   \ttl@leaders\hb@xt@#1{\hss\box\z@}%
+   \hfill\kern\z@}}
+
+\def\ttl@rule{\@ifnextchar[{\ttl@rule@i}{\ttl@rule@i[.4pt]}}
+\def\ttl@rule@i[#1]{%
+  \ifvmode\expandafter\titleline\fi
+  {\leaders\hrule height #1\hfill\kern\z@}}
+
+\providecommand\filright{%
+  \gdef\ttl@filleft##1{\hskip##1}%
+  \gdef\ttl@filright##1{\hfill}%
+  \let\\\@centercr
+  \advance\rightskip\z@ \@plus 1fil\relax}
+\providecommand\filleft{%
+  \gdef\ttl@filleft##1{\hfill}%
+  \gdef\ttl@filright##1{\hskip##1}%
+  \let\\\@centercr
+  \advance\leftskip\z@ \@plus 1fil
+  \parfillskip\z@}
+\providecommand\filcenter{\filleft\filright
+  \gdef\ttl@filleft##1{\hfill}}
+\providecommand\fillast{%
+  \gdef\ttl@filleft##1{\hfill}%
+  \gdef\ttl@filright##1{\hfill}%
+  \let\\\@centercr
+  \filleft\advance\rightskip\z@ \@plus -1fil
+  \parfillskip\z@ \@plus 2fil\relax}
+  
+% Now, the specific titletoc part
+
+% User interface
+% ~~~~~~~~~~~~~~
+% Tools:
+
+\DeclareOption{dotinlabels}{\def\ttl@idot{.}}
+\DeclareOption{nodotinlabels}{\let\ttl@idot\@empty}
+
+\DeclareOption{leftlabels}{%
+  \renewcommand\numberline[1]{\hb@xt@\@tempdima{#1\ttl@idot\hfil}}%
+  \newcommand\contentslabel[2][\thecontentslabel\ttl@idot]{%
+%   \let\ttl@a\thecontentslabel   %%%%% For the star variant
+%   \def\thecontentslabel{#2}%    %%% To be fully implemented... when?
+%   \setbox\z@\hbox{#1}%
+%   \dimen@\wd\z@
+%   \let\thecontentslabel\ttl@a
+%   \hspace*{-\dimen@}\hb@xt@\dimen@{#1\hfil}
+    \hspace*{-#2}\hb@xt@#2{#1\hfil}}}
+
+\DeclareOption{rightlabels}{%
+  \renewcommand\numberline[1]{\hb@xt@\@tempdima{\hss#1\ttl@idot\enspace}}%
+  \let\contentslabel\relax
+  \newcommand\contentslabel[2][\thecontentslabel\ttl@idot\enspace]{%
+    \hspace*{-#2}\hb@xt@#2{\hfil#1}}}
+
+\newcommand\contentspage[1][\thecontentspage]{%
+  \hb@xt@\@pnumwidth{\hfil#1}%
+  \hspace*{-\@pnumwidth}}
+
+\newcommand\contentspush[1]{%
+  \sbox\z@{#1}%
+  \advance\leftskip\wd\z@
+  \leavevmode\llap{\box\z@}}
+
+% General commands. A level register. Explicit numbers
+% because they are used in csnames. Ignored if already defined.
+
+\ifx\ttll@section\@undefined
+
+  \@ifundefined{chapter}
+    {\def\ttll@part{0}}
+    {\def\ttll@part{-1}%
+     \def\ttll@chapter{0}}
+  \def\ttll@section{1}
+  \def\ttll@subsection{2}
+  \def\ttll@subsubsection{3}
+  \def\ttll@paragraph{4}
+  \def\ttll@subparagraph{5}
+
+\fi
+
+% We make sure that a series of * entries are finished and
+% that a \titlecontents in the middle of a document is
+% written to the right file. We need ship out floats before;
+% that's very tricky.
+
+\newcommand\contentsuse[2]{%
+  \expandafter\def\csname ttlx@#1\endcsname{#2}%
+  \expandafter\def\csname ttll@#1\endcsname{-1000}%
+  \expandafter\def\expandafter\ttl@finishall\expandafter{%
+    \ttl@finishall
+    \@writefile{#2}{\contentsfinish}}}
+
+\def\ttl@finishall{\@writefile{toc}{\contentsfinish}}
+
+\AtEndDocument{%
+  \ttl@startptc
+  \let\ttl@newpage\newpage
+  \def\newpage{%
+    \let\newpage\ttl@newpage
+    \newpage
+    \if@filesw
+      \immediate\write\@mainaux{\string\ttl@finishall}%
+    \fi}}
+
+\contentsuse{figure}{lof}
+\contentsuse{table}{lot}
+
+\def\contentsfinish{%
+  \ifttl@fromblock
+    \xdef\ttl@b{-10000}% ships out any saved punctuation
+    \ttl@preend
+    \@@par
+    \endgroup
+    \global\ttl@fromblockfalse
+  \fi}
+
+% The two basic commands. First \contentsmargin:
+
+\newcommand\contentsmargin[1][\z@]{%
+  \def\ttl@corr{#1}\def\@pnumwidth}
+
+% The following is the value of \contentsmargin when
+% used inside \ttl@tocenty (ie, \titlecontents).
+
+\newcommand\ttl@margin[2][\z@]{%
+  \def\ttl@corr{#1}%
+  \advance\rightskip-\@pnumwidth\relax
+  \advance\rightskip#2\relax
+  \def\@pnumwidth{#2}}
+
+% \titlecontents deals with concepts, not commands; hence no
+% escape char
+
+\newcommand\titlecontents{%
+  \@ifstar{\ttl@contents{\z@}}%
+          {\ttl@contents{\@ne}}}
+
+\def\ttl@contents#1#2{%
+  \@ifnextchar[{\ttl@contents@i{#1}{#2}}%
+               {\ttl@contents@i{#1}{#2}[\@nil]}}
+
+\def\ttl@contents@i#1#2[#3]#4#5#6#7{%
+  \expandafter\def\csname l@#2\endcsname
+    {\ttl@tocentry{#1}{#2}{#3}{#4}{{#5}{#6}}{#7}}%
+  \@ifnextchar[{\ttl@contents@ii{#1}{#2}}%
+               {\ttl@contents@ii{#1}{#2}[]}}
+
+\def\ttl@contents@ii#1#2[#3]{%
+  \ifcase#1\relax
+    \expandafter\@firstoftwo
+  \else
+    \expandafter\@secondoftwo
+  \fi
+  {\@ifnextchar[{\ttl@contents@iii{#1}{#2}{#3}}%
+                {\ttl@contents@iii{#1}{#2}{#3}[]}}%
+  {\ttl@contents@iv{#1}{#2}{#3}[][]}}
+
+\def\ttl@contents@iii#1#2#3[#4]{%
+  \@ifnextchar[{\@tempswatrue\ttl@contents@iv{#1}{#2}{#3}[#4]}%
+               {\@tempswafalse\ttl@contents@iv{#1}{#2}{#3}[#4][]}}
+
+\def\ttl@contents@iv#1#2#3[#4][#5]{%
+  \ifcase#1\relax
+    \if@tempswa
+      \ttl@contents@v{#2}{#3}{#4}{#5}%
+    \else
+      \ttl@contents@v{#2}{}{#3}{#4}%
+    \fi
+  \else
+    \ttl@contents@v{#2}{}{}{#3}%
+  \fi}
+
+\def\ttl@contents@v#1#2#3#4{%
+  \expandafter\def\csname ttlb@#1\endcsname{#2}%
+  \expandafter\def\csname ttlm@#1\endcsname{#3}%
+  \expandafter\def\csname ttle@#1\endcsname{#4}}
+
+\begingroup
+\catcode`\-=12\catcode`\>=12
+\gdef\ttl@strip#1->#2\@@#3{\def#3{#2}}
+\endgroup
+
+\AtBeginDocument{%
+  \def\ttl@change@i#1#2#3#4#5#6#7{%
+    \expandafter\def\csname l@#2\endcsname
+      {\ttl@tocentry{#1}{#2}{#3}{#4}{{#5}{#6}}{#7}}}%
+  \let\ttl@change@v\ttl@contents@v
+  \def\ttl@contents@i#1#2[#3]#4#5#6#7{%
+    \def\ttl@a{\ttl@change@i{#1}{#2}{#3}{#4}{#5}{#6}{#7}}%
+    \@ifnextchar[{\ttl@contents@ii{#1}{#2}}%
+                 {\ttl@contents@ii{#1}{#2}[]}}%
+  \def\ttl@contents@v#1#2#3#4{%
+    \def\ttl@b{\ttl@change@v{#1}{#2}{#3}{#4}}%
+    \expandafter\ttl@strip\meaning\ttl@a\@@\ttl@a
+    \expandafter\ttl@strip\meaning\ttl@b\@@\ttl@b
+    \edef\ttl@c{%
+      \expandafter\ifx\csname ttlx@#2\endcsname\relax
+        toc%
+      \else
+        \csname ttlx@#2\endcsname
+      \fi}%
+    \addtocontents{\ttl@c}{\ttl@a\relax}%
+    \addtocontents{\ttl@c}{\ttl@b\relax}}}
+
+% Printing the toc entry
+% ~~~~~~~~~~~~~~~~~~~~~~
+
+\def\ttl@lasttoc{-1000} % An inital dummy assignment
+
+% 1 ifblock, 2 sect name, 3 left, 4 before,
+% 5 {with}{without}, 6 filler/page, 7  title 8 pageno
+
+\let\ttl@preend\@empty
+
+\def\ttl@outpunct{%
+  \ifnum\ttl@c>\ttl@b\relax
+    \ttl@preend
+  \fi}
+
+\def\ttl@tocentry#1#2#3#4#5#6#7#8{%
+  \xdef\ttl@b{\csname ttll@#2\endcsname}%
+  \ifnum\ttl@b>\c@tocdepth\else
+    \ifnum\ttl@b<\ttl@toctop\else
+      \edef\ttl@a{\ttl@lasttoc}%
+      \gdef\thecontentspage{#8}%
+      \global\let\thecontentslabel\@empty
+      \global\ttl@labelfalse
+      \sbox\z@{%  Unused box. It just catch the numberline
+        \def\numberline##1{\global\ttl@labeltrue\gdef\thecontentslabel{##1}}%
+        #7}%    \ttl@b = current     \ttl@a = previous
+      \ifttl@fromblock
+        \ifcase#1\relax
+          \ifnum\ttl@b>\ttl@a\relax
+            \begingroup
+            \protected@edef\ttl@preend{%
+              \@nameuse{ttle@#2}%
+              \endgroup
+              \protect\@namedef{ttl@c}{\ttl@a}%
+              \protect\ttl@outpunct}%
+            #4%
+            \@nameuse{ttlb@#2}%
+          \else\ifnum\ttl@b<\ttl@a\relax
+            \ttl@preend
+            \@nameuse{ttlm@#2}%
+          \else
+            \@nameuse{ttlm@#2}%
+          \fi\fi
+        \else
+          \ttl@preend
+          \@@par
+          \endgroup
+          \@firstoftwo
+        \fi
+      \else
+        \begingroup
+        \ifnum\ttl@b>\ttl@a
+          \nobreak
+        \else\ifnum\ttl@b<\ttl@a
+          \addpenalty{\@secpenalty}%
+        \else
+          \addpenalty{\z@}% 
+        \fi\fi
+        \vskip \z@ \@plus .1\p@
+        \nobreak
+        \ifcase#1\relax\else\interlinepenalty\@M\fi
+        \parindent\z@
+        \ifx\@nil#3%
+          \PackageError{titletoc}{Unimplemented}%
+                {The optional argument is currently mandatory}%
+        \else
+          \setlength\leftskip{#3}%
+        \fi
+        \setlength\rightskip{\@pnumwidth}%
+        \let\contentsmargin\ttl@margin
+        \def\ttl@makeline##1{##1}%
+        #4%
+        \addtolength{\parfillskip}{-\ttl@corr}%
+        \addtolength{\rightskip}{\ttl@corr}%
+        \let\ttl@leaders\leaders
+      \fi
+      \def\numberline##1{\ignorespaces}%
+      \ifttl@label
+        {\leavevmode\strut\@firstoftwo#5{#7}\strut\kern\z@}%
+      \else
+        {\leavevmode\strut\@secondoftwo#5{#7}\strut\kern\z@}%
+      \fi
+      {#6}%
+      \ifcase#1\relax
+        \ifttl@fromblock\else
+          \protected@edef\ttl@preend{\@nameuse{ttle@#2}}%
+        \fi
+        \global\ttl@fromblocktrue
+      \else
+        \@@par
+        \nobreak
+        \csname ttle@#2\endcsname
+        \endgroup
+        \global\ttl@fromblockfalse
+      \fi
+      \xdef\ttl@lasttoc{\csname ttll@#2\endcsname}%
+    \fi
+  \fi
+  \ignorespaces}
+
+\newcommand\dottedcontents{}
+\def\dottedcontents#1[#2]#3#4#5{%
+  \titlecontents{#1}[#2]{#3}%
+    {\contentslabel{#4}}%
+    {\hspace*{-#4}}%
+    {\titlerule*[#5]{.}\contentspage}}
+
+\ExecuteOptions{leftlabels,nodotinlabels}
+
+\ProcessOptions
+
+% Multiple tocs
+% ~~~~~~~~~~~~~
+% After some attemps to adapt titletoc to minitoc, I've decided
+% to implement my own solution, because entries as written by
+% minitoc are non standard and unmanageable. The new commands
+% provides a good deal of flexibility, too.
+
+\let\ttl@startptc\relax
+\let\ttl@writefile\@writefile
+
+\def\ttl@xstartptc{%
+  \global\let\ttl@xstartptc\relax
+  \gdef\ttl@startptc{%
+    \def\@writefile####1####2{%
+      \def\ttl@a{toc}%
+      \def\ttl@b{####1}%
+      \ifx\ttl@a\ttl@b
+        \ttl@writefile{ptc}{####2}%
+      \fi
+      \ttl@writefile{####1}{####2}}%
+    \if@filesw
+      \expandafter\newwrite\csname tf@ptc\endcsname
+      \immediate\openout\csname tf@ptc\endcsname\jobname.ptc\relax
+    \fi
+    \@nobreakfalse}}
+
+\newcommand\startcontents[1][default]{%
+  \ttl@xstartptc
+  \@ifundefined{ttl@toc@#1}%
+    {\expandafter\newcount\csname ttl@toc@#1\endcsname}%
+    {\stopcontents[#1]}%  
+  \global\advance\csname ttl@toc@#1\endcsname\@ne
+  \resumecontents[#1]}
+
+\newcommand\stopcontents[1][default]{%
+  \protected@write\@auxout{}{%
+    \string\ttl@writefile{ptc}{%
+       \string\ttl@stoptoc{#1@\the\csname ttl@toc@#1\endcsname}}}}
+
+\newcommand\resumecontents[1][default]{%
+  \protected@write\@auxout{}{%
+    \string\ttl@writefile{ptc}{%
+       \string\ttl@starttoc{#1@\the\csname ttl@toc@#1\endcsname}}}}
+
+\def\ttl@starttoc#1{%
+  \ifx\@writefile\@gobbletwo\else % Is this test necessary?
+    \def\ttl@a{#1}%
+    \ifx\ttl@a\ttl@ptoc
+      \let\contentsline\ttl@contentsline
+    \fi
+  \fi
+  \ignorespaces}
+
+\def\ttl@stoptoc#1{%
+  \ifx\@writefile\@gobbletwo\else % Is this test necessary?
+    \def\ttl@a{#1}%
+    \ifx\ttl@a\ttl@ptoc
+      \let\contentsline\ttl@gobblecontents
+    \fi
+  \fi
+  \ignorespaces}
+
+\newcommand\printcontents[4][default]{%
+  \begingroup
+    \edef\ttl@ptoc{#1@\the\csname ttl@toc@#1\endcsname}%
+    \def\ttl@toctop{#3}%
+    #4%
+    \let\ttl@xcontentsline\contentsline
+    \let\contentsline\ttl@gobblecontents
+    \def\ttl@contentsline##1{%
+      \@ifundefined{ttll@#2##1}%
+        {\expandafter\let\csname ttll@#2##1\expandafter\endcsname
+           \csname ttll@##1\endcsname}{}%
+      \@ifundefined{l@#2##1}%
+        {\ttl@xcontentsline{##1}}%
+        {\ttl@xcontentsline{#2##1}}}%
+    \makeatletter
+    \@input{\jobname.ptc}%
+    \makeatother
+    \@nobreakfalse
+  \endgroup}
+
+\AtBeginDocument{%
+  \ifx\ttl@gobblecontents\@undefined
+    \def\ttl@gobblecontents#1#2#3{\ignorespaces}%
+  \fi}
+
+\def\ttl@toctop{-1000}
+
+% Now the we add \contentsfinish to the current definitions
+% and a "selector" for partial tocs
+
+\def\ttl@lselect#1{%
+  \ifnum\csname ttll@#1\endcsname>\c@tocdepth\else
+    \contentsfinish
+  \fi
+  \ifnum\csname ttll@#1\endcsname<\ttl@toctop\relax
+    \expandafter\@gobbletwo
+  \else
+    \expandafter\expandafter\csname ttl@savel@#1\endcsname
+  \fi}
+
+\let\ttl@savel@part\l@part
+\def\l@part{\ttl@lselect{part}}
+
+\let\ttl@savel@chapter\l@chapter
+\def\l@chapter{\ttl@lselect{chapter}}
+
+\let\ttl@savel@section\l@section
+\def\l@section{\ttl@lselect{section}}
+
+\let\ttl@savel@subsection\l@subsection
+\def\l@subsection{\ttl@lselect{subsection}}
+
+\let\ttl@savel@subsubsection\l@subsubsection
+\def\l@subsubsection{\ttl@lselect{subsubsection}}
+
+\let\ttl@savel@paragraph\l@paragraph
+\def\l@paragraph{\ttl@lselect{paragraph}}
+
+\let\ttl@savel@subparagraph\l@subparagraph
+\def\l@subparagraph{\ttl@lselect{subparagraph}}
+
+\@tempskipa\@pnumwidth
+\edef\@pnumwidth{\the\@tempskipa}
+\advance\@tempskipa-\@tocrmarg
+\edef\ttl@corr{-\the\@tempskipa}
+
+% Load patches if necessary
+
+\InputIfFileExists{titletoc.new}{}{}
+
+\endinput
+

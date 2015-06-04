@@ -1,0 +1,28 @@
+BLOCKSIZE : number
+_VERSION : string
+filter : {
+  "cycle" : ((any, string?, any) -> (string?, any), number|string, string?) -> ((string?) -> (string?)),
+  "chain" : ((string?) -> (string?), (string?) -> (string?)*) -> ((string?) -> (string?))
+}
+pump : {
+  "all" : (() -> (string?), (string, string) -> (number)?, nil|(() -> (string?), (string, string) -> (number)?) -> (number)?) -> (number)?,
+  "step" : (() -> (string?), (string, string) -> (number)?) -> (number)?
+}
+sink : {
+  "chain" : ((string?) -> (string?), (string, string) -> (number)?, (string?) -> (string?)*) -> ((string, string) -> (number)?),
+  "error" : (string) -> (() -> (nil, string)),
+  "file" : (file, string?) -> ((string, string) -> (number)?)?,
+  "null" : () -> (() -> (number)),
+  "simplify" : ((string, string) -> (number)?) -> ((string, string) -> (number)?),
+  "table" : ({string}) -> ((string, string) -> (number), {string})
+}
+source : {
+  "cat" : (() -> (string?), () -> (string?)*) -> (() -> (string)?),
+  "chain" : (() -> (string?), (string?) -> (string?), (string?) -> (string?)*) -> (() -> (string?)),
+  "empty" : () -> (() -> (nil)),
+  "error" : (string) -> (() -> (nil, string)),
+  "file" : (file, string?) -> (() -> (string)?)?,
+  "rewind" : (() -> (string?)) -> ((string) -> (string?)),
+  "simplify" : (() -> (string?)) -> (() -> (string)?),
+  "string" : (string) -> (() -> (string?))
+}

@@ -5,111 +5,30 @@ It provides optional type annotations, compile-time type checking, and
 class-based object oriented programming through the definition of classes,
 interfaces, and modules.
 
-# Requirements
+# Requirements for running the compiler
 
-    lua >= 5.2.2
-    lpeg >= 0.12
+1. Lua >= 5.1
+1. [LPeg](http://www.inf.puc-rio.br/%7Eroberto/lpeg/) >= 0.12
+
+# Install
+
+Typed Lua must be installed in a standard location; [LuaRocks](http://luarocks.org) will do this, and will also install the LPeg dependency automatically.
+
+        $ [install luarocks]
+        $ luarocks install typedlua-scm-1.rockspec
 
 # Usage
 
-
-    $ tlc [options] [filename]
+        $ tlc [options] [filename]
 
 # Compiler options
 
-    -d	    dump the AST
-    -g	    generate code without type checking
-    -h	    print this help
-    -o name output to file 'name' (default is 'tlc.lua')
-    -p	    print the AST
-    -v	    print current version
-
-# Major TODO list
-
-* Add table type
-* Add intersection type
-* Add recursive type
-* Add classes, interfaces, and modules
-* Reimplement consistent-subtyping
-
-# Typed Lua Syntax
-<p>
-<pre>
-chunk ::= block
-
-block ::= {stat} [retstat]
-
-stat ::= &lsquo;<b>;</b>&rsquo; |
-         varlist &lsquo;<b>=</b>&rsquo; explist |
-         functioncall |
-         label |
-         <b>break</b> |
-         <b>goto</b> Name |
-         <b>do</b> block <b>end</b> |
-         <b>while</b> exp <b>do</b> block <b>end</b> |
-         <b>repeat</b> block <b>until</b> exp |
-         <b>if</b> exp <b>then</b> block {<b>elseif</b> exp <b>then</b> block} [<b>else</b> block] <b>end</b> |
-         <b>for</b> Name &lsquo;<b>=</b>&rsquo; exp &lsquo;<b>,</b>&rsquo; exp [&lsquo;<b>,</b>&rsquo; exp] <b>do</b> block <b>end</b> |
-         <b>for</b> namelist <b>in</b> explist <b>do</b> block <b>end</b> |
-         <b>function</b> funcname funcbody |
-         <b>local</b> <b>function</b> Name funcbody |
-         <b>local</b> namelist [&lsquo;<b>=</b>&rsquo; explist]
-
-retstat ::= <b>return</b> [explist] [&lsquo;<b>;</b>&rsquo;]
-
-label ::= &lsquo;<b>::</b>&rsquo; Name &lsquo;<b>::</b>&rsquo;
-
-funcname ::= Name {&lsquo;<b>.</b>&rsquo; Name} [&lsquo;<b>:</b>&rsquo; Name]
-
-varlist ::= var {&lsquo;<b>,</b>&rsquo; var}
-
-var ::=  Name [&lsquo;<b>:</b>&rsquo; type] | prefixexp &lsquo;<b>[</b>&rsquo; exp &lsquo;<b>]</b>&rsquo; | prefixexp &lsquo;<b>.</b>&rsquo; Name
-
-namelist ::= Name [&lsquo;<b>:</b>&rsquo; type] {&lsquo;<b>,</b>&rsquo; Name [&lsquo;<b>:</b>&rsquo; type]}
-
-explist ::= exp {&lsquo;<b>,</b>&rsquo; exp}
-
-exp ::=  <b>nil</b> | <b>false</b> | <b>true</b> | Number | String | &lsquo;<b>...</b>&rsquo; | functiondef |
-         prefixexp | tableconstructor | exp binop exp | unop exp
-
-prefixexp ::= var | functioncall | &lsquo;<b>(</b>&rsquo; exp &lsquo;<b>)</b>&rsquo;
-
-functioncall ::=  prefixexp args | prefixexp &lsquo;<b>:</b>&rsquo; Name args
-
-args ::=  &lsquo;<b>(</b>&rsquo; [explist] &lsquo;<b>)</b>&rsquo; | tableconstructor | String
-
-functiondef ::= <b>function</b> funcbody
-
-funcbody ::= &lsquo;<b>(</b>&rsquo; [parlist] &lsquo;<b>)</b>&rsquo; [&lsquo;<b>:</b>&rsquo; typelist] block <b>end</b>
-
-parlist ::= namelist [&lsquo;<b>,</b>&rsquo; &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]] | &lsquo;<b>...</b>&rsquo; [&lsquo;<b>:</b>&rsquo; type]
-
-tableconstructor ::= &lsquo;<b>{</b>&rsquo; [fieldlist] &lsquo;<b>}</b>&rsquo;
-
-fieldlist ::= field {fieldsep field} [fieldsep]
-
-field ::= &lsquo;<b>[</b>&rsquo; exp &lsquo;<b>]</b>&rsquo; &lsquo;<b>=</b>&rsquo; exp | Name &lsquo;<b>=</b>&rsquo; exp | exp
-
-fieldsep ::= &lsquo;<b>,</b>&rsquo; | &lsquo;<b>;</b>&rsquo;
-
-binop ::= &lsquo;<b>+</b>&rsquo; | &lsquo;<b>-</b>&rsquo; | &lsquo;<b>*</b>&rsquo; | &lsquo;<b>/</b>&rsquo; | &lsquo;<b>^</b>&rsquo; | &lsquo;<b>%</b>&rsquo; | &lsquo;<b>..</b>&rsquo; |
-          &lsquo;<b>&lt;</b>&rsquo; | &lsquo;<b>&lt;=</b>&rsquo; | &lsquo;<b>&gt;</b>&rsquo; | &lsquo;<b>&gt;=</b>&rsquo; | &lsquo;<b>==</b>&rsquo; | &lsquo;<b>~=</b>&rsquo; |
-          <b>and</b> | <b>or</b>
-
-unop ::= &lsquo;<b>-</b>&rsquo; | <b>not</b> | &lsquo;<b>#</b>&rsquo;
-
-type ::= <b>any</b> | <b>nil</b> | basetype | uniontype | functiontype
-
-basetype ::= <b>boolean</b> | <b>number</b> | <b>string</b>
-
-uniontype ::= type &lsquo;<b>|</b>&rsquo; type
-
-functiontype ::= &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo; &lsquo;<b>-&gt;</b>&rsquo; &lsquo;<b>(</b>&rsquo; [typelist] &lsquo;<b>)</b>&rsquo;
-
-typelist ::= <b>void</b> | type {&lsquo;<b>,</b>&rsquo; type} [&lsquo;<b>*</b>&rsquo;]
-</pre>
-<p>
-
+        -d      dump the AST
+        -g      generate code without type checking
+        -h      print this help
+        -o name output to file 'name' (default is 'tlc.lua')
+        -p      print the AST
+        -v      print current version
 
 # License
 
