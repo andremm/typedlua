@@ -45,7 +45,7 @@
 \titlebanner{banner above paper title}
 \preprintfooter{short description of paper}
 
-\title{Optional typing for Lua}
+\title{Formalization of Typed Lua}
 
 \authorinfo{André Murbach Maidl}
            {PUC-Rio}
@@ -60,7 +60,32 @@
 \maketitle
 
 \begin{abstract}
-This is the text of the abstract.
+Dynamically typed languages such as Lua avoid static types in order
+to have a simpler and more flexible language, because their programmers
+to not need to bother with abstracting types that need to be validated
+by a type checker. In contrast, statically typed languages provide
+earlier detection of many defects, and a better framework for structuring
+large programs. The advantages of static types often lead programmers to
+migrate from a dynamically typed to a statically typed language when
+their simple scripts evolve into complex programs.
+
+Optional type systems are one way to have both static and dynamic
+typing in the same language while keeping its original semantics,
+making evolving a program from dynamic to static typing a matter of
+describing the implied types that it it using and adding annotations
+to make those types explicit. Designing an optional type system for
+an existing dynamically typed language is challenging, as its types
+should feel natural to programmers that are already familiar with
+this language.
+
+In this work, we give a formal description of Typed Lua, an
+optional type system for Lua, with a focus on its novel type system
+features: incremental evolution of record and object types via
+imperative update that does not sacrifice width subtyping,
+and combining flow typing with multiple assignment and with functions that
+return multiple values. While our type system is tailored to the
+features and idioms of Lua, its features can be adapted to other
+imperative scripting languages.
 \end{abstract}
 
 \category{CR-number}{subcategory}{third-level}
