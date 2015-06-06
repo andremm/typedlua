@@ -97,6 +97,7 @@ term1, term2
 keyword1, keyword2
 
 \section{Introduction}
+\label{sec:intro}
 
 Dynamically typed languages forgo static type checking
 in favor of using run-time {\em type tags} to classify
@@ -120,8 +121,8 @@ programs are two advantages of statically typed languages that
 lead programmers to migrate their code from a dynamically
 typed to a statically typed language when their scripts
 evolve into complex programs~\cite{tobin-hochstadt2006ims}.
-This migration from dynamic to static usually involves
-different languages, which distinct syntax and semantics,
+This migration from dynamic to static typing usually involves
+different languages that have distinct syntax and semantics,
 requiring a complexe rewrite of existing programs instead of
 incremental evolution.
 
@@ -164,7 +165,7 @@ that Lua programmers are already familiar with, while
 helping programmers structure large Lua programs and
 catch errors at compile-time. An informal
 presentation of the design of Typed Lua has been
-published~\cite{dylatypedlua}.
+published~\cite{maidl2014tl}.
 
 In this paper, we give a formal basis to an updated version of that design, with a focus on novel type system features
 that Typed Lua uses to type some tricky Lua idioms.
@@ -186,18 +187,21 @@ of Lua idioms used by a large corpus of Lua libraries.
 This paper also presents the methodology of this survey and
 a summary of its results.
 
-The rest of the paper is organized as follows: Section~2
-presents the methodology and results of our survey of Lua
-idioms; Section 3 presents the types of Typed Lua's
-type system, and their subtyping and consistent-subtyping
-relationd; Section 4 presents the typing rules for
-evolution of table types; Section 5 presents the typing rules
-for destructuring unions of tuples into projection types
-and flow typing on these projections; Section 6 reviews
-related work; Section 7 presents our conclusions, and
-outlines our plans for future work.
+The rest of the paper is organized as follows:
+Section \ref{sec:statistics} presents the methodology and results of
+our survey of Lua idioms;
+Section \ref{sec:types} presents the types of Typed Lua's
+type system, and their subtyping and consistent-subtyping relations;
+Section \ref{sec:tables} presents the typing rules for evolution of table types;
+Section \ref{sec:projections} presents the typing rules for
+destructuring unions of tuples into projection types and
+flow typing on these projections;
+Section \ref{sec:related} reviews related work;
+Section \ref{sec:conclusion} presents our conclusions,
+and outlines our plans for future work.
 
 \section{Statistics about the usage of Lua}
+\label{sec:statistics}
 
 In this section we present statistics about the usage of Lua
 features and idioms.
@@ -392,23 +396,27 @@ vararg expression.
 Typed Lua should include a \emph{vararg type} to handle variadic
 functions and vararg expressions.
 
-\section{Typing Rules}
+\section{Types}
+\label{sec:types}
 
-In the previous chapter we presented an informal overview of Typed Lua.
-We showed that programmers can use Typed Lua to combine static and dynamic
-typing in the same code, and it allows them to incrementally migrate from
-dynamic to static typing.
-This is a benefit to programmers that use dynamically typed languages
-to build large applications, as static types detect many bugs
-during the development phase, and also provide better documentation.
+In this section we present the abstract syntax of Typed Lua types
+and their subtyping rules.
 
-In this chapter we present the abstract syntax of Typed Lua types,
-the subtyping rules, and the most interesting typing rules.
-Besides its practical contributions, Typed Lua also has some interesting
-contributions to the field of optional type systems for scripting
-languages.
-They are novel type system features that let Typed Lua cover several Lua idioms
-and features, such as refinement of tables, multiple assignment, and multiple return values.
+%In the previous chapter we presented an informal overview of Typed Lua.
+%We showed that programmers can use Typed Lua to combine static and dynamic
+%typing in the same code, and it allows them to incrementally migrate from
+%dynamic to static typing.
+%This is a benefit to programmers that use dynamically typed languages
+%to build large applications, as static types detect many bugs
+%during the development phase, and also provide better documentation.
+
+%In this chapter we present the abstract syntax of Typed Lua types,
+%the subtyping rules, and the most interesting typing rules.
+%Besides its practical contributions, Typed Lua also has some interesting
+%contributions to the field of optional type systems for scripting
+%languages.
+%They are novel type system features that let Typed Lua cover several Lua idioms
+%and features, such as refinement of tables, multiple assignment, and multiple return values.
 
 \subsection{Types}
 
@@ -473,8 +481,7 @@ filter types, and projection types.
 Second-level types include tuple types and unions of tuple types.
 Tuple types include the type $\Void$, variadic types, and pair types.
 Types are ordered by a subtype relationship that we introduce
-in Section \ref{sec:subtyping}, so Lua values may belong to
-several distinct types.
+in the next section, so Lua values may belong to several distinct types.
 
 Literal types represent the type of literal values.
 They can be the boolean values $\False$ and $\True$,
@@ -499,15 +506,14 @@ The type $\Nil$ is the type of \texttt{nil}, the value that Lua uses for
 undefined variables, missing parameters, and missing table keys.
 
 The type $\Value$ is the top type, which represents any Lua value.
-In Section \ref{sec:rules} we will show that this type,
-along with variadic types, helps the type system to drop extra values
-on assignments and function calls, thus preserving the
+This type along with variadic types help the type system to drop
+extra values on assignments and function calls, thus preserving the
 semantics of Lua in these cases.
 
 Typed Lua uses the type $\Self$ to represent the \emph{receiver}
 in object-oriented method definitions and method calls.
-As we mentioned in Section \ref{sec:oop}, we need the type
-$\Self$ to prevent programs from indexing a method without
+As we mentioned in our informal overview of Typed Lua \cite{maidl2014tl},
+we need the type $\Self$ to prevent programs from indexing a method without
 calling it with the correct receiver.
 
 Union types $T_{1} \cup T_{2}$ represent data types that can hold a value
@@ -567,16 +573,19 @@ different table types.
 
 Any table type has to be \emph{well-formed}.
 Informally, a table type is well-formed if key types do not overlap.
-In Section \ref{sec:rules} we formalize the definition of well-formed table types.
+In Section \ref{sec:tables} we formalize the definition of well-formed table types.
 We delay the proper formalization of well-formed table types because we use
 consistent-subtyping in this formalization.
 
 Recursive types have the form $\mu x.T$,
 where $T$ is a first-level type that $x$ represents.
-For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
+As an example,
+\[
+\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
+\]
 is a type for singly-linked lists of integers.
-In Section \ref{sec:alias} we mentioned that we can use the following
-interface declaration as an alias to this type:
+In Typed Lua, we can use the following interface declaration
+as an alias to this type:
 \begin{verbatim}
     local interface Element
       info:integer
@@ -587,7 +596,7 @@ interface declaration as an alias to this type:
 Typed Lua includes filter types as a way to discriminate the type of local
 variables inside conditions.
 Our type system uses filter types to formalize the \texttt{type} predicates
-that we mentioned in Section \ref{sec:unions}.
+that we introduced in our previous design of Typed Lua \cite{maidl2014tl}.
 This means that \texttt{type} predicates use filter types of the form
 $\phi(T_{1},T_{2})$ to discriminate local variables that are bound to
 union types.
@@ -596,15 +605,29 @@ $T_{2}$ is the discriminated type.
 
 Typed Lua includes projection types as a way to project
 unions of tuple types into unions of first-level types.
-In Section \ref{sec:fap} we will show in more detail how our type system
+In Section \ref{sec:projections} we will show in more detail how our type system
 uses them as a mechanism for handling unions of tuple types,
 when they appear in the right-hand side of the declaration of local variables,
-as we mentioned in Section \ref{sec:unions}.
+as we introduced in our previous design of Typed Lua \cite{maidl2014tl}.
 We also show how this feature allows our type system to constrain
 the type of a local variable that depends on the type of another local variable.
 
 Typed Lua includes the dynamic type $\Any$ for allowing programmers
 to mix static and dynamic typing.
+There is a subtle difference between the dynamic type $\Any$ and the top type $\Value$.
+Although both types mean that they accept a value of any other type,
+the type $\Value$ is not a good option for handling the
+interaction between dynamically typed and statically typed code.
+Gradual typing uses the dynamic type $\Any$ to identify
+where it should insert run-time checks for asserting that dynamically
+typed code does not violate statically typed code.
+Typed Lua also uses the dynamic type $\Any$ in this sense,
+though it is an optional type system.
+More precisely, we use $\Any$ instead of $\Value$ to allow
+programmers blending dynamic and static typing because we use the
+consistent-subtyping relation to formalize our optional type system,
+as it is a first step to switch Typed Lua from optional typing to
+gradual typing in the future.
 
 \subsection{Subtyping}
 
@@ -612,10 +635,10 @@ Our type system uses subtyping \cite{cardelli1984smi,abadi1996to} to order
 types and consistent-subtyping \cite{siek2007objects,siek2013mutable}
 to allow the interaction between statically and dynamically typed code.
 We explain the subtyping and consistent-subtyping rules throughout this section.
-However, we focus the discussion on the definition of subtyping because,
-as we mentioned in Section \ref{sec:gradual}, we can combine the
-consistency and subtyping relations to achieve consistent-subtyping.
-The differences between subtyping and consistent-subtyping are the way
+However, we focus the discussion on the definition of subtyping because
+we can combine the consistency and subtyping relations to achieve
+consistent-subtyping \cite{siek2007objects,siek2013mutable}.
+The differences between consistent-subtyping and subtyping are the way
 they handle the dynamic type, and the fact that subtyping is transitive,
 but consistent-subtyping is not.
 
@@ -760,13 +783,13 @@ Now, we explain their subtyping rules.
 The type $\Void$ is a subtype of itself and of a variadic type:
 \[
 \begin{array}{c}
-\mylabel{S-VOID2}\\
+\mylabel{S-VOID}\\
 \senv \vdash \Void \subtype T{*}
 \end{array}
 \]
 
 A variadic type $T{*}$ represents a sequence of values of type
-$T \cup \Nil$, and the rule \textsc{S-VOID2} handles the case where
+$T \cup \Nil$, and the rule \textsc{S-VOID} handles the case where
 a given sequence is empty.
 
 The subtyping rule for pair types is the standard covariant rule:
@@ -842,10 +865,9 @@ The other rules handle the cases where only one tuple type ends with a variadic 
 
 Note that the case where both tuple types end with the type $\Void$ does
 not require any special rule.
-In the next section we will show that we use the subtyping rules for variadic types,
-along with the types $\Value$ and $\Nil$, to make our type system reflect
-the semantics of Lua on discarding extra parameters and
-replacing missing parameters.
+We use the subtyping rules for variadic types along with the types
+$\Value$ and $\Nil$ to make our type system reflect the semantics of
+Lua on discarding extra parameters and replacing missing parameters.
 
 The subtyping rules for unions of tuple types are similar to the
 subtyping rules for unions of first-level types:
@@ -885,8 +907,10 @@ standard subtyping rule between records:
        \senv \vdash K_{i}' \subtype K_{j} \;\;\;
        \senv \vdash V_{j} \subtype_{c} V_{i}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}} \; m \ge n
+      {\begin{array}{c}
+       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype\\
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}
+       \end{array}} \; m \ge n
 \end{array}
 \]
 
@@ -935,15 +959,16 @@ programmers would not be able to use it to initialize a variable with
 a table type that describes a more general type.
 For instance,
 \begin{verbatim}
-    local t:{"x":integer, "y":integer?} = { x = 1, y = 2 }
+    local t:{ "x":integer,
+              "y":integer? } = { x = 1, y = 2 }
 \end{verbatim}
 would not type check, as the type of the table constructor would not
 be a subtype of the type in the annotation.
 More precisely,
-\[
-\{``x":1, ``y":2\}_{closed} \not\subtype
-\{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
-\]
+\begin{align*}
+& \{``x":1, ``y":2\}_{closed} \not\subtype \\
+& \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\end{align*}
 
 Simply promoting the type of each table value to its supertype would
 not overcome this limitation, as it still would give to the table constructor
@@ -1024,9 +1049,10 @@ We define them as follows:
 Using \emph{unique} table types to represent the type of the table
 constructor allows our type system to type check the previous example.
 More precisely,
-\[
-\{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
-\]
+\begin{align*}
+& \{``x":1, ``y":2\}_{unique} \subtype \\
+& \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\end{align*}
 
 Even though we allow width subtyping between \emph{unique} and \emph{closed}
 table types, we do not allow it among \emph{unique} and other table types
@@ -1041,8 +1067,10 @@ because it would violate our definition of these other table types:
        \forall j \in 1..n \; \not\exists i \in 1..m \;
        \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}}
+      {\begin{array}{c}
+       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype\\
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}
+       \end{array}}
 \end{array}
 \]
 
@@ -1074,8 +1102,10 @@ However, the rule that handles subtyping among \emph{open} and
        \forall j \in 1..n \; \not\exists i \in 1..m \;
        \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}}
+      {\begin{array}{c}
+       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype\\
+                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}
+       \end{array}}
 \end{array}
 \]
 
@@ -1103,7 +1133,7 @@ but it allows depth subtyping on $\Const$ fields:
 \end{array}
 \]
 
-In the next section we will show in more detail how our type system
+In Section \ref{sec:tables} we will show in more detail how our type system
 uses these tags to handle the refinement of table types.
 
 We use the \emph{Amber rule} \cite{cardelli1986amber} to define
@@ -1153,9 +1183,11 @@ recursive types and other first-level types:
 \]
 
 As an example, the rule \textsc{S-UNFOLDR} allows our type system to
-type check the function \texttt{insert} from Section \ref{sec:alias}:
+type check a function that inserts an element in the begining of
+a singly-linked list:
 \begin{verbatim}
-    local function insert (e:Element?, v:integer):Element
+    local function insert (e:Element?,
+                           v:integer):Element
       return { info = v, next = e }
     end
 \end{verbatim}
@@ -1228,13 +1260,13 @@ Another example is the union type \texttt{number|nil|1} that
 results in the union type \texttt{number|nil}, because
 \texttt{1} is consistent-subtype of \texttt{number}.
 
-\subsection{Typing rules}
+\section{Typing rules}
+\label{sec:rules}
 
-In this section we use a reduced core of Typed Lua to present the
-most interesting rules of our type system.
-These rules type check multiple assignment, table refinement,
-and overloading on the return type of functions.
-Appendix \ref{app:rules} presents the full set of typing rules.
+In this section we use a reduced core of Typed Lua to present
+the typing rules that type check the novel features of our type system.
+These rules type check table refinement and
+overloading on the return type of functions.
 
 Our core limits control flow to if and while statements;
 it has explicit type annotations, explicit scope for variables,
@@ -1373,7 +1405,7 @@ The second environment is the projection environment $\penv$ that
 maps projection variables to second-level types.
 We use $\penv[x \mapsto S]$ to extend the environment $\penv$
 with the projection variable $x$ that maps to type $S$.
-In Section \ref{sec:fap} we will show how our type system uses the
+In Section \ref{sec:projections} we will show how our type system uses the
 projection environment $\penv$ for handling projection types,
 and also for projecting unions of second-level types into
 unions of first-level types.
@@ -1391,7 +1423,8 @@ This relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, we can check that an expression $e$ has
 type $T$ and produces a new type environment $\env_{2}$.
 
-\subsubsection{Tables and refinement}
+\subsection{Tables and refinement}
+\label{sec:tables}
 
 Our abstract syntax reduces the syntactic forms of the table constructor
 into two forms: $\{\;\overline{[e_{1}] = e_{2}}\;\}$ and
@@ -1459,15 +1492,15 @@ table constructor with a non-empty list of table fields:
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T) \;\;\;
        n = |\;\overline{[e_{1}] = e_{2}}\;| \\
-       \env_{m} = merge(\env_{1}, ..., \env_{n+1}) 
+       \env_{f} = merge(\env_{1}, ..., \env_{n+1})
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{m}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
 \end{array}
 \]
 
 Back to our example, the table constructor
 $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
-$\{1:``x", 2:``y", 3:``z"\}$ through rule \textsc{T-CONSTRUCTOR2}.
+$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
 
 As another example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through rule
@@ -1480,16 +1513,13 @@ unusual feature of our type system: the refinement of table types.
 The first kind of refinement allows programmers to add new
 fields to \emph{unique} or \emph{open} table types through
 field assignment.
-For instance, in Section \ref{sec:tables} we presented the
-following example:
+As an example, we can translate
 \begin{verbatim}
-
     local person = {}
     person.firstname = "Lou"
     person.lastname = "Reed"
 \end{verbatim}
-
-We can translate this example to our reduced core as follows:
+to our reduced core as follows:
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; person = \{\} \; \mathbf{in}$}\\
@@ -1500,7 +1530,7 @@ We can translate this example to our reduced core as follows:
 
 In this example, we assign the type $\{\}_{unique}$ to the variable
 $person$, then we refine its type to $\{``firstname":\String\}_{unique}$,
-and then we refine its type to $\{``firstname":\String, ``lastname":\String\}_{unique}$.
+and then to $\{``firstname":\String, ``lastname":\String\}_{unique}$.
 Rule \textsc{T-REFINE} type checks this use of refinement:
 \[
 \begin{array}{c}
@@ -1511,7 +1541,10 @@ Rule \textsc{T-REFINE} type checks this use of refinement:
        \not \exists i \in 1..n \; K \lesssim K_{i} \;\;\;
        V = close(T)
        \end{array}}
-      {\env_{1}, \penv \vdash id[k] {<}T{>}:V, \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
+      {\begin{array}{l}
+       \env_{1}, \penv \vdash id[k] {<}T{>}:V, \\
+       \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]
+       \end{array}}
 \end{array}
 \]
 
@@ -1531,9 +1564,10 @@ In the following examples we assume that $\string_ENV$ is in the
 environment and has type $\{\}_{open}$.
 
 As an example,
-\[
-\string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``y"] \; {<}\Integer{>} = 1
-\]
+\begin{align*}
+& \string_ENV[``x"] \; {<}\String{>} = ``foo" \;; \\
+& \string_ENV[``y"] \; {<}\Integer{>} = 1
+\end{align*}
 uses field assignment to add fields $``x"$ and $``y"$ to $\string_ENV$.
 Therefore, after these field assignments $\string_ENV$ has type
 $\{``x":\String, ``y":\Integer\}_{open}$.
@@ -1541,9 +1575,10 @@ $\{``x":\String, ``y":\Integer\}_{open}$.
 We do not allow the refinement of table types to add a field if it is
 already present in the table's type.
 For instance,
-\[
-\string_ENV[``x"] \; {<}\String{>} = ``foo" \;;\; \string_ENV[``x"] \; {<}\Integer{>} = 1
-\]
+\begin{align*}
+& \string_ENV[``x"] \; {<}\String{>} = ``foo" \;; \\
+& \string_ENV[``x"] \; {<}\Integer{>} = 1
+\end{align*}
 does not type check, as we are trying to add $``x"$ twice.
 
 We also do not allow the refinement of table types to introduce
@@ -1575,8 +1610,7 @@ the same field to $\string_ENV$, but with different types:
 Aliasing an \emph{unique} or an \emph{open} table type can produce
 either a \emph{closed} or a \emph{fixed} table type, depending on
 the context that we are using a variable.
-As we mentioned in Sections \ref{sec:oop} and \ref{sec:subtyping},
-we need \emph{fixed} table types to type classes in object-oriented programming.
+We need \emph{fixed} table types to type classes in object-oriented programming.
 In the implementation we fix the aliasing of \emph{unique} and \emph{open}
 table types that appear in a top-level return statement, and in other cases we
 close the aliasing of \emph{unique} and \emph{open} table types.
@@ -1599,7 +1633,7 @@ potential unsafe behaviors after this kind of alias.
 In this example, it is unsafe to add the field $``x"$ to $b$,
 as it changes the value that is stored in the field $``x"$ of $a$.
 
-Rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this non-deterministic behavior.
+The rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this non-deterministic behavior.
 Rule \textsc{T-IDREAD1} uses the auxiliary function \emph{close} to
 produce a \emph{closed} alias.
 It also uses the auxiliary function \emph{open} to change the type of
@@ -1630,10 +1664,10 @@ We define these rules as follows:
 
 Both rules use the auxiliary function \emph{read} because they may be
 accessing an identifier that is bound to a filter or projection type.
-As we mentioned in Section \ref{sec:unions}, our type system includes
-a small set of \texttt{type} predicates that allow programmers to
-discriminate union types, and our type system uses filter and projection
-types in the definition of these predicates to handle the discrimination
+As we presented in our previous design of Typed Lua \cite{maidl2014tl},
+our type system includes a small set of \texttt{type} predicates that allow
+programmers to discriminate union types, and our type system uses filter and
+projection types in the definition of these predicates to handle the discrimination
 of unions types.
 While filter types discriminate unions of first-level types, projection
 types discriminate unions of second-level types and project unions of
@@ -1648,7 +1682,7 @@ read(\penv, T) & = T
 The function \emph{read} uses the auxiliary function \emph{proj}
 to project a union of first-level types, based on an union of
 second-level types and an index from a projection type.
-In Section \ref{sec:fap} we will discuss how our type system uses
+In Section \ref{sec:projections} we will discuss how our type system uses
 projection types to handle overloaded return types.
 We can define \emph{proj} as follows:
 \begin{align*}
@@ -1693,8 +1727,7 @@ Rule \textsc{T-IDWRITE} defines this behavior:
 
 This rule uses the auxiliary function \emph{write} because it may be
 accessing an identifier that is bound to a filter type.
-As we mentioned in Sections \ref{sec:unions} and \ref{sec:alias},
-assignments restore discriminated union types to their original types,
+In Typed Lua, assignments restore discriminated union types to their original types,
 and function \emph{write} works in this purpose.
 We can define \emph{write} as follows:
 \begin{align*}
@@ -1738,12 +1771,13 @@ To do that, Typed Lua includes a type coercion expression ${<}T{>} \; id$.
 For instance, we can use this type coercion expression to make the following
 example type check:
 \begin{center}
-\begin{tabular}{lll}
-\multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{2}{l}{$a[``y"] \; {<}\String{>} = ``bar";$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{closed} =$}\\
-& & \multicolumn{1}{l}{${<}\{``x":\String, ``y":\String \cup \Nil\}_{open}{>} \; a \; \mathbf{in} \; a[``z"] \; {<}\Integer{>} = 1$}
+\begin{tabular}{llll}
+\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
+& \multicolumn{3}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
+& \multicolumn{3}{l}{$a[``y"] \; {<}\String{>} = ``bar";$}\\
+& \multicolumn{3}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{closed} =$}\\
+& & \multicolumn{2}{l}{${<}\{``x":\String, ``y":\String \cup \Nil\}_{open}{>} \; a \; \mathbf{in}$}\\
+& & & \multicolumn{1}{l}{$a[``z"] \; {<}\Integer{>} = 1$}
 \end{tabular}
 \end{center}
 
@@ -1794,7 +1828,8 @@ As an example,
 & \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Void \rightarrow \Integer \times \Void =$}\\
 & & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Void$}\\
 & & & \multicolumn{1}{l}{$b = a \;;\; \mathbf{return} \; x + 1$}\\
-& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
+& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;$}\\
+& & \multicolumn{2}{l}{$b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
 \end{tabular}
 \end{center}
 does not type check because we cannot add the field
@@ -1818,9 +1853,10 @@ Rule \textsc{T-FUNCTION1} illustrates this case:
 \mylabel{T-FUNCTION1}\\
 \dfrac{\begin{array}{c}
        crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
-       \env_{3} = openset(crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       \env_{3} = crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))\\
+       \env_{4} = openset(\env_{3}, rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{3}}
+      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{4}}
 \end{array}
 \]
 
@@ -1838,19 +1874,19 @@ $\penv$ to type check return statements:
 \end{array}
 \]
 
-\subsubsection{Projections}
+\subsection{Projections}
+\label{sec:projections}
 
 Lua programmers often overload the return type of functions to denote errors,
 and our type system uses projection types to handle this idiom.
 
 As an example, let us assume that \emph{idiv} and \emph{print} are functions
 in the environment.
-The function \emph{idiv} has type
-\[
-\Integer \times \Integer \times \Void \rightarrow (\Integer \times \Integer \times \Void) \sqcup (\Nil \times \String \times \Void)
-\]
-As we mentioned in Section \ref{sec:unions}, \emph{idiv} performs
-integer division.
+The function \emph{idiv} performs integer division and has type
+\begin{align*}
+& \Integer \times \Integer \times \Void \rightarrow \\
+& (\Integer \times \Integer \times \Void) \sqcup (\Nil \times \String \times \Void)
+\end{align*}
 In case of success, it returns two integers: the result and the remainder.
 In case of failure, it returns $\Nil$ plus an error message that describes
 the error.
@@ -1859,8 +1895,8 @@ $\Value{*} \rightarrow \Void$.
 Let us see how our type system type checks the following program:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(1, 2) \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; \lfloor print(q + r) \rfloor_{0} \; \mathbf{else} \; \lfloor print(``ERROR: " \; .. \; r) \rfloor_{0}$}
+\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(1, 2) \, \mathbf{in}$}\\
+& \multicolumn{1}{l}{$\mathbf{if} \, q \, \mathbf{then} \, \lfloor print(q + r) \rfloor_{0} \, \mathbf{else} \, \lfloor print(``ERROR: " \, .. \, r) \rfloor_{0}$}
 \end{tabular}
 \end{center}
 
@@ -1876,24 +1912,25 @@ produces an union of second-level types $S_{2}$ that should be bound
 to a variable $x$ in the projection environment $\penv$,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
-In our example, our type system uses rule \textsc{T-EXPLIST6} for
+In our example, our type system uses rule \textsc{T-EXPLIST4} for
 type checking $idiv(1, 2)$:
 \[
 \begin{array}{c}
-\mylabel{T-EXPLIST6}\\
+\mylabel{T-EXPLIST4}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash me:T_{1} \times ... \times T_{n} \times \Void \sqcup T_{1}' \times ... \times T_{n}' \times \Void, \env_{2}\\
-       S = T_{1} \times ... \times T_{n} \times \Nil{*} \sqcup T_{1}' \times ... \times T_{n}' \times \Nil{*}
+       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:S, \env_{n+2}\\
+       S = T_{n+1} \times ... \times T_{n+m} \times \Void \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Void\\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
+       n = |\;\overline{e}\;|
        \end{array}}
-      {\env_{1}, \penv \vdash me:\pi_{1}^{x} \times ... \times \pi_{n}^{x} \times \Nil{*}, \env_{2}, (x,S)}
+      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
 \end{array}
 \]
 
 Note that $idiv(1, 2)$ has type
 $\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
-\[
-(x,(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})) 
-\]
+$(x,(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}))$.
 
 In the rule that type checks the declaration of unannotated variables,
 our type system uses the pair $(x,S_{2})$ to bound a union of
@@ -1913,10 +1950,11 @@ Rule \textsc{T-LOCAL2} illustrates this intuition:
 \mylabel{T-LOCAL2}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash el:S_{1}, \env_{2}, (x,S_{2})\\
-       \env_{2}[id_{1} \mapsto infer(S_{1},1), ..., id_{n} \mapsto infer(S_{1},n)], \penv[x \mapsto S_{2}] \vdash s, \env_{3} \;\;\;
+       \env_{3} = \env_{2}[id_{1} \mapsto infer(S_{1},1), ..., id_{n} \mapsto infer(S_{1},n)]\\
+       \env_{3}, \penv[x \mapsto S_{2}] \vdash s, \env_{4} \;\;\;
        n = |\;\overline{id}\;|  
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{3} - \{\overline{id}\}}
+      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{4} - \{\overline{id}\}}
 \end{array}
 \]
 
@@ -1933,7 +1971,9 @@ infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
 general(T_{i}) & \text{if $i < n$}\\
 general(T_{n} \cup \Nil) & \text{if $i >= n$}
 \end{array} \right.
-\\ \\
+\end{align*}
+
+\begin{align*}
 general(\False) & = \Boolean\\
 general(\True) & = \Boolean\\
 general({\it int}) & = \Integer\\
@@ -1941,7 +1981,9 @@ general({\it float}) & = \Number\\
 general({\it string}) & = \String\\
 general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
 general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
-general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
+general(\{K_{1}{:}V_{1}, ..., \\
+K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., \\
+& \;\;\;\;\;\; K_{n}{:}general(V_{n})\}_{tag} \\
 general(\mu x.T) & = \mu x.general(T)\\
 general(T) & = T\\
 \\
@@ -1970,9 +2012,10 @@ discriminates a projection type based on the tag \texttt{nil}:
        \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
        closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
        closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{4} = closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})) \\
+       \env_{5} = openset(\env_{4}, rv(s_{1}) \cup rv(s_{2}))
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
 \end{array}
 \]
 
@@ -2000,6 +2043,7 @@ Outside the condition, $q$ and $r$ use the original projection, that is,
 they project to $\Integer \cup \Nil$ and $\Integer \cup \String$, respectively.
 
 \section{Related Work}
+\label{sec:related}
 
 In this chapter we review related work, and we split it into two sections:
 in the first section we review other Lua projects,
@@ -2273,6 +2317,7 @@ and its brand of optional structural typing, which
 can also be expressed with Typed Lua's modules as tables.
 
 \section{Conclusion}
+\label{sec:conclusion}
 
 In this work we presented Typed Lua, an optional type system for Lua.
 We implemented Typed Lua as a Lua extension that allows programmers to
