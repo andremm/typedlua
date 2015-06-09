@@ -2007,66 +2007,15 @@ As this use of type predicates is common in other
 dynamically-typed languages, related systems
 have appeared~\cite{guha2011tlc,winther2011gtp,pearce2013ccf}.
 
-Typed Clojure~\cite{bonnaire-sergeant2012typed-clojure} is an
-optional type system for Clojure.
-The type system of Typed Clojure includes polymorphic function types,
-union types, intersection types, lists, vectors, maps, sets, and recursive types.
-Function types can have {\em rest} parameters, which are similar
-to our variadic types, but Typed Clojure functions cannot return
-multiple results. Typed Clojure also uses occurrence typing
-
-Dart~\cite{dart} is class-based object-oriented programming
-language with an optional type system. Dart's type system
-is nominal, and includes polymorphic types. The type
-system is unsound by design, with instances of polymorphic
-types being covariant in their type arguments.
-
-TypeScript~\cite{typescript} is a JavaScript extension
-that includes optional type annotations and class-based
-object-oriented programming.
-The type system of TypeScript is structural, based
-on subtyping, and has polymorphic types, union types,
-function types, array types, tuple types, recursive types,
-record types, and
-object types. It is unsound by design, although there is a
-sound subset that forms the basis of a gradual type
-system~\cite{bierman2014typescript}. Although JavaScript
-also has the same idiom of building a record through
-imperative assignment to an initially empty record,
-TypeScript does not have evolution of its record and
-object types; the fact that {\tt undefined} is a bottom 
-type in its subtyping relation still lets programmers use
-the idiom, at the cost of type safety.
-
-TeJaS~\cite{lerner2013tejas} is a framework for the
-construction of different type systems for JavaScript.
-It has a base type system with extensible typing rules.
-As an example, the paper shows how TeJaS can simulate the
-type system of TypeScript.
-
-Politz et al.~\cite{politz2012semantics} proposes semantics
-and types for objects with first-class member names, a well-known
-feature from scripting languages. Their type system uses string 
-patterns to describe the members of
-an object, and define a complex subtyping relation to validate
-these patterns.
-They also provide an implementation of their system to JavaScript.
-
-Gradualtalk~\cite{allende2013gts} is a Smalltalk dialect that
+Gradualtalk~\cite{allende2013gts} is a Smalltalk dialect 
 with a gradual type system. Its type system combines
- nominal and structural typing.
+nominal and structural typing.
 It includes function types, union types, structural object types,
 nominal object types types, a self type, and parametric polymorphism. Like Typed Lua, Gradualtalk formalizes the
-interaction between typed and untyped code with consistent-subtyping.
-
-Gradualtalk inserts runtime checks that ensure dynamically
-typed code does not violate statically typed code.
-Allende et al.~\cite{allende2013cis} performs a careful
-evaluation of the performance impact of these checks, and
-conclude that the performance hit is large enough that
-Gradualtalk needs to have an option that turns off these
-checks, downgrading Gradualtalk into an optional type
-system.
+interaction between typed and untyped code with consistent-subtyping. Due to the performance impact of
+the runtime checks that ensure the gradual typing guarantees,
+Gradualtalk can be downgraded into an optional type system
+through a configuration switch~\cite{allende2013cis}.
 
 Reticulated Python~\cite{vitousek2014deg} is a
 gradual type system for Python. It is structural, based on subtyping, and includes list types,
@@ -2076,39 +2025,25 @@ Besides static type checking, Reticulated Python also introduces
 three different approaches for inserting runtime assertions
 that preserve the gradual typing guarantee.
 
-Mypy~\cite{mypy} is an optional type system for Python.
-The type system of mypy is similar to the type system of
-Reticulated Python, but mypy has parametric polymorphism and
-does not insert runtime checks.
+Several dynamically typed languages now have optional
+type systems: Clojure~\cite{bonnaire-sergeant2012typed-clojure},
+JavaScript~\cite{typescript}, Python~\cite{mypy}, 
+and PHP~\cite{hack}. While Lua has some similarities to
+all of these languages, none of these optional type
+systems have the features described in this paper.
+Most of these languages do not have idioms
+that inspired these features; JavaScript has the
+idiom of adding fields to an initially empty
+record through assignment, but TypeScript sidesteps
+the issue by having allowing an empty record to
+have any record or object type, as the type of
+missing fields is the bottom type of its type system.
 
-Guido van Rossum, Python's designer, proposed a
-standard syntax for type annotations in Python
-that is inspired by mypy~\cite{PEP484}.
-The goal of this proposal is to make it easier to build
-static analysis tools for Python.
-Typing~\cite{typing} is a tool that is being developed to
-implement this proposal.
-
-Hack~\cite{hack} is an optionally-typed dialect of PHP
-that runs on the Hip Hop Virtual Machine (HHVM).
-It has nominal object types, parametric polymorphism,
-nullable types, array types, function types, and tuple
-types.
-
-The Ruby Type Checker~\cite{ren2013rtc} is a library that
-augments the regular dynamic type checking of the Ruby
-implementation with extra runtime checks generated from type
-annotations that the programmer can use on classes and
-methods. It has nominal object types, union types, intersection
-types, method types, and parametric polymorphism.
-
-Grace~\cite{black2013sg} is an object-oriented language
-with optional typing. Like Dart, it is a language
-that has been designed from scratch to have an
-optional type system, instead of an existing dynamically
-typed language that has been retrofitted with a type
-system. Unlike Dart, the type system of Grace is not
-deliberately unsound.
+Dart~\cite{dart} and Grace~\cite{black2013sg} are
+two languages that have been designed from scratch
+to have an optional type system, instead of being
+existing dynamically typed languages with a retrofitted 
+type system. 
 
 \section{Conclusion}
 \label{sec:conclusion}
