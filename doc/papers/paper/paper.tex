@@ -1792,140 +1792,111 @@ $\penv$ to type check return statements:
 \end{array}
 \]
 
-\subsection{Projections}
+\subsection{Projection Types}
 \label{sec:projections}
 
-Lua programmers often overload the return type of functions to denote errors,
-and our type system uses projection types to handle this idiom.
+As we have seen in Section~\ref{sec:statistics}, Lua
+programmers often overload the return type of functions
+to denote errors, returning a {\tt nil} result and
+an error message in case of an error instead of the
+usual return values.
 
-As an example, let us assume that \emph{idiv} and \emph{print} are functions
-in the environment.
-The function \emph{idiv} performs integer division and has type
-\begin{align*}
-& \Integer \times \Integer \times \Void \rightarrow \\
-& (\Integer \times \Integer \times \Void) \sqcup (\Nil \times \String \times \Void)
-\end{align*}
-In case of success, it returns two integers: the result and the remainder.
-In case of failure, it returns $\Nil$ plus an error message that describes
-the error.
-The function \emph{print} is a variadic function of type
-$\Value{*} \rightarrow \Void$.
-Let us see how our type system type checks the following program:
+As an example, consider the integer division function
+below, which returns the quotient and rest of integer
+division, or a division by zero error:
+\begin{verbatim}
+  local function idiv(x : integer, y : integer)
+    if divisor == 0 then
+      return nil, "division by zero"
+    else
+      return x // y, x % y
+    end 
+  end
+\end{verbatim}
+
+Typed Lua infers the return type of this function as
+$(\Integer \times \Integer \times \Nil*) \sqcup (\Nil \times \String \times \Nil{*})$. The idiom for using this such
+a function is to test the first returned value:
+\begin{verbatim}
+  local q, r = idiv(a, b)
+  if q then
+    -- assume q and r are integers
+  else 
+    -- assume q is nil r is a string
+  end
+\end{verbatim}
+
+A standard way of decomposing the union in the assignment
+would let the type of {\tt q} be $\Integer \times \Nil$ and
+the type of {\tt r} be $\Integer \times \String$. Flow typing
+would narrow the type of {\tt q} to $\Integer$ in the {\tt then}
+branch and to $\Nil$ in the {\tt else} branch, but would
+leave the type of {\tt r} unchanged.
+
+{\em Projection types}
+are a general way to make the dependency between the types
+of {\tt q} and {\tt r} survive the decomposition of the tuple,
+so flow typing can narrow all of the components by testing
+just one of them.
+
+Intuitively, a projection type $\pi_{i}^{x}$ denotes the union of
+the i-th components of all the tuples in the union of tuple types
+denoted by the label $x$. Unions of tuple types referenced by projections are kept in their own {\em projection environment} $\Pi$. A fresh label is generated whenever the last term
+in an expression list has a union of tuple types as its type.
+
+Before introducing the typing rules for projections, let us translate the example above into the abstract syntax of Figure~\ref{fig:syntax}:
 \begin{center}
-\begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(1, 2) \, \mathbf{in}$}\\
-& \multicolumn{1}{l}{$\mathbf{if} \, q \, \mathbf{then} \, \lfloor print(q + r) \rfloor_{0} \, \mathbf{else} \, \lfloor print(``ERROR: " \, .. \, r) \rfloor_{0}$}
-\end{tabular}
+	\begin{tabular}{ll}
+		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(1, 2) \, \mathbf{in} \, \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
+	\end{tabular}
 \end{center}
 
-First, our type system uses the auxiliary relation
-$\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$
-for type checking $idiv(1, 2)$.
-This relation means that given a type environment $\env_{1}$ and
-a projection environment $\penv$, we can check that an expression
-list $el$ has type $S_{1}$ and produces a new type environment $\env_{2}$
-and produces a pair $(x,S_{2})$.
-This pair means that the last expression of an expression list $el$
-produces an union of second-level types $S_{2}$ that should be bound
-to a variable $x$ in the projection environment $\penv$,
-as the resulting type of this expression is a tuple of projection
-types $\pi_{i}^{x}$.
-In our example, our type system uses rule \textsc{T-EXPLIST4} for
-type checking $idiv(1, 2)$:
+Notice that the local variables $q$ and $r$ are declared without 
+an explicit type. The rule for typing this {\bf local} statement,
+{\sc T-LOCAL-UN}, introduces a new label in the projection
+environment used for typing the {\bf if} statement:
 \[
 \begin{array}{c}
-\mylabel{T-EXPLIST4}\\
+\mylabel{T-LOCAL-UN}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{1}, \penv \vdash me:S, \env_{n+2}\\
-       S = T_{n+1} \times ... \times T_{n+m} \times \Void \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Void\\
-       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
-       n = |\;\overline{e}\;|
-       \end{array}}
-      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
+	\env_{1}, \penv \vdash el:T_1 \times \ldots T_n \times P, \env_{2}, (x,S)\\
+	\env_{3} = \env_{2}[id_{1} \mapsto T_1, \ldots, id_{n} \mapsto T_n]\\
+	\env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
+	n = |\;\overline{id}\;|  
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{4} - \{\overline{id}\}}
 \end{array}
 \]
 
-Note that $idiv(1, 2)$ has type
-$\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
-$(x,(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}))$.
-
-In the rule that type checks the declaration of unannotated variables,
-our type system uses the pair $(x,S_{2})$ to bound a union of
-second-level types $S_{2}$ to a variable $x$ in the projection
-environment $\penv$.
-In our example, declaring $q$ and $r$
-bounds the projection type $\pi_{1}^{x}$ to $q$ and
-bounds the projection type $\pi_{2}^{x}$ to $r$,
-where the projection variable $x$ bounds to 
-\[
-(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})
-\]
-in the projection environment $\penv$.
-Rule \textsc{T-LOCAL2} illustrates this intuition:
+This first sequent above the bar uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
+This rule does the work of generating a fresh projection label,
+and projection types associated with it, if the last term of
+the expression list has a union of tuple types as its type,
+as rule {\sc T-EXPLIST-PROJ} below shows:
 \[
 \begin{array}{c}
-\mylabel{T-LOCAL2}\\
+\mylabel{T-EXPLIST-PROJ}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash el:S_{1}, \env_{2}, (x,S_{2})\\
-       \env_{3} = \env_{2}[id_{1} \mapsto infer(S_{1},1), ..., id_{n} \mapsto infer(S_{1},n)]\\
-       \env_{3}, \penv[x \mapsto S_{2}] \vdash s, \env_{4} \;\;\;
-       n = |\;\overline{id}\;|  
-       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{4} - \{\overline{id}\}}
+	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
+	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|)-1 \;\;\; x \notin \Pi\\
+	\env_{f} = merge(\env_{1}, ..., \env_{n+2})
+	\end{array}}
+{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times last(S), \env_{f}, (x,S)}
 \end{array}
 \]
 
-This rule uses the auxiliary function \emph{infer} to get the
-most general first-level types of each variable that should be introduced in
-the type environment for type checking $s$.
-After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
-new type environment $\env_{3}$ without the variables that it introduced
-before type checking $s$.
-We can define \emph{infer} as follows:
-\begin{align*}
-infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
-\begin{array}{ll}
-general(T_{i}) & \text{if $i < n$}\\
-general(T_{n} \cup \Nil) & \text{if $i >= n$}
-\end{array} \right.
-\end{align*}
+In our example, the two rules combined will bind $x$ to
+$(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})$ in the projection environment $\Pi$,
+and $q$ and $r$ respectively to $\pi_{1}^{x}$ and $\pi_{2}^{x}$
+in the type environment used for typing the {\bf if} statement.
 
-\begin{align*}
-general(\False) & = \Boolean\\
-general(\True) & = \Boolean\\
-general({\it int}) & = \Integer\\
-general({\it float}) & = \Number\\
-general({\it string}) & = \String\\
-general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
-general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
-general(\{K_{1}{:}V_{1}, ..., \\
-K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., \\
-& \;\;\;\;\;\; K_{n}{:}general(V_{n})\}_{tag} \\
-general(\mu x.T) & = \mu x.general(T)\\
-general(T) & = T\\
-\\
-general2(\Void) & = \Void\\
-general2(T{*}) & = general(T){*}\\
-general2(T \times P) & = general(T) \times general2(P)\\
-general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
-\end{align*}
-
-After assigning projection types to $q$ and $r$, reading $q$ will
-use the projection type $\pi_{1}^{x}$ to project the type of $q$
-into the union type $\Integer \cup \Nil$, while reading $r$ will
-use the projection type $\pi_{2}^{x}$ to project the type of $r$
-into the union type $\Integer \cup \String$.
-Now, we may want to discriminate these variables to check whether
-the function call returned with success.
-
-Introducing a projection variable $x$ in the projection environment allows our
-type system to discriminate projection types $\pi_{i}^{x}$.
-The rule \textsc{T-IF3} shows the case where our type system
-discriminates a projection type based on the tag \texttt{nil}:
+At this point, using $q$ or $r$ as an r-value will project
+their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. But the more interesting case is inside the
+clauses of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-PROJ} below, which uses flow typing:
 \[
 \begin{array}{c}
-\mylabel{T-IF3}\\
+\mylabel{T-IF-FNIL-PROJ}\\
 \dfrac{\begin{array}{c}
        \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
        closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
@@ -1937,22 +1908,18 @@ discriminates a projection type based on the tag \texttt{nil}:
 \end{array}
 \]
 
-Rule \textsc{T-IF3} uses the auxiliary functions \emph{fpt} and \emph{gpt}
-to filter a projection $x$, affecting all variables that bind to the same projection.
-For instance, our previous example type checks through rule \textsc{T-IF3},
-because it uses the information provided by the projection type $\pi_{1}^{x}$,
-which is the type of $q$, to make the rule \textsc{T-IF3} use the function call
-\[
-fpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
-\]
-to discriminate the projection $x$ to the single tuple
-$\Integer \times \Integer \times \Nil{*}$ inside the $\mathbf{if}$ branch,
-and the function call
-\[
-gpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
-\]
-to discriminate the projection $x$ to the single tuple
-$\Nil \times \String \times \Nil{*}$ inside the $\mathbf{else}$ branch.
+Rule \textsc{T-IF-FNIL-PROJ} uses the auxiliary functions \emph{fpt} and \emph{gpt}
+to filter a projection $x$. Function {\em fpt} filters out $\Nil$ from the i-th
+component of each tuple, removing the entire tuple if the i-th
+component does not exist, or is $\Nil$ itself. Function {\em gpt}
+filters the i-th component to $\Nil$ if the type includes
+$\Nil$, removing the entire tuple if the i-th component does
+not exist, or does not include $\Nil$.
+
+In our example, $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ in the {\bf then} branch, and would be bound
+to $\Nil \times \String \times \Nil{*}$ inside the {\bf else}
+branch.
+
 Thus, reading $q$ and $r$ projects $\pi_{1}^{x}$ to $\Integer$ and
 $\pi_{2}^{x}$ to $\Integer$ inside the $\mathbf{if}$ branch,
 but it projects $\pi_{1}^{x}$ to $\Nil$ and $\pi_{2}^{x}$ to $\String$
