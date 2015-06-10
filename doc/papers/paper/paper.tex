@@ -2048,57 +2048,49 @@ type system.
 \section{Conclusion}
 \label{sec:conclusion}
 
-In this work we presented Typed Lua, an optional type system for Lua.
-We implemented Typed Lua as a Lua extension that allows programmers to
-combine static and dynamic typing in Lua code, making easier the evolution
-of simple scripts into large programs.
+We have presented a formalization of the Typed Lua,
+an optional type system for Lua, with a focus on rules
+for two novel features of the system that type unusual
+idioms present in Lua programs.
 
-Our main contribution is the formalization of a complete optional type
-system that introduces several novel type system features to statically
-type check Lua programs.
-Even though Lua shares several features with other dynamically
-typed languages such as JavaScript, Lua also has several unusual features.
-These unusual features include tables (or associative arrays) as the sole
-mechanism for structured data, besides functions with multiple return values
-and flexible arity that interact with multiple assignment.
-We highlight the following novel features of our type system:
-\begin{itemize}
-\item type refinement allows the incremental evolution of record and
-object types, playing an important role in statically type checking
-the idiomatic way in which Lua programmers use tables to define modules
-and objects;
-\item projection types handle functions that are overloaded on the
-number and types of return values, allowing programmers to narrow the
-types of a set of variables by narrowing the type of a single component
-of this set;
-\item union types and variadic types help our type system handle
-functions with flexible arity, that is, union types are helpful in
-describing optional parameters while variadic types are helpful in
-describing the type of the vararg expression and the type of functions
-that can receive or return any number of values.
-\end{itemize}
+In the first idiom, records and objects are
+defined through assignment to an initially empty
+table. In Typed Lua's type system the type of a
+table can change, either by assignment
+or by using the table in a context that expects
+a different (but compatible) type than the one it
+has. The system tracks aliasing of table references
+to be able to do this type evolution in a type-safe
+way.
+
+In the second idiom, a function that can return different
+kinds of sequences of return values (for example, one
+sequence for its usual path, another for error conditions)
+is modeled by having a union of tuple types as its return
+type. A destructuring assignment on a union of tuple types
+decomposes the tuple in a way that the dependencies between
+the types of each member of the union can be tracked.
+Narrowing the type of one of the tuple's components with
+a type predicate can then narrow the types of the other
+components.
 
 A key feature in optional type systems is usability.
-This means that optional type systems should not change the idioms
-that programmers are already familiar with.
-Instead, optional type systems should fit existing idioms to
-statically type check them.
-Designing a too simple type system can overload programmers by forcing
-them to change the way they program in the language to fit the type system,
-while designing a too complex type system can overload programmers with
-types and error messages that are hard to understand, even if type inference
-removes the necessity of annotating the program with these complex types.
-The most challenging aspect of designing optional type systems is to find
-the right amount of complexity for a type system that feels natural to the programmers.
+Optional type systems retrofitted to an existing
+language should fit the language's idioms, adding
+static type safety to them. If the system is too
+simple it may require too much of a change in the way
+the programmers use the language. On the other hand,
+if it is too complex it may overload the programmers
+with types and error messages that are hard to
+understand. The most challenging aspect of designing optional type systems is to find the right amount of complexity for a type system that feels natural to the programmers.
 
-Usability has been a concern in the design of Typed Lua since the beginning.
-We realized that we should not rely on the semantics of Lua only,
-as this could lead to a cumbersome type system that would not support
-several Lua idioms.
-For this reason, we performed a mostly automated survey of Lua idioms
-and features to inform our design choices.
+Usability has been a concern in the design of Typed Lua since the beginning. We realized that a design based solely on what
+is possible by the semantics of Lua could lead to a 
+complex type system. For this reason, we surveyed a large
+corpus of Lua code to identify important idioms that
+our type system should support.
 
-After designing and implementing Typed Lua, we performed several
+We performed several
 case studies to evaluate how successful we were in our goal of
 providing an usable type system.
 We evaluated 29 modules from 8 different case studies,
@@ -2106,33 +2098,39 @@ and we could give precise static types to 83\% of the 449
 members that these modules export.
 For half of the modules, we could give precise static types to
 at least 89\% of the members from each module.
-Our evaluation results showed that our type system can statically
+
+Our evaluation results show that our type system can statically
 type check several Lua idioms and features, though the evaluation
-results also exposed several limitations of our type system.
+also exposed several limitations of our type system.
 We found that the three main limitations of our type system are
-the lack of intersection types, parametric polymorphism, and operator overloading.
+the lack of full support for overloaded functions, the lack
+of parametric polymorphism, and operator overloading.
 Overcoming these limitations is our major target for future work,
 as it will allow us to statically type check more programs.
 
 Unlike other optional type systems, we designed Typed Lua without
 deliberate unsound parts.
 However, we still do not have proofs that the novel features of
-our type system are sound.
-We see a soundness proof as another major future work, as it is
-necessary to use static types for code optimization.
+our type system are sound. We are working on a generalization
+of the typing rules for evolution of table types where tagged
+types can be attached to arbitrary references instead of
+just local variables, and expect that a proof of soundness
+will come out of this effort.
 
-Finally, we believe that Typed Lua is a major contribution to the Lua community,
-because it offers a framework that programmers can use to document,
-test, and better structure their applications.
-For libraries where a full conversion to static type checking should
-prove unfeasible or too much work, the community can use Typed Lua
-just to document the external interfaces of the libraries,
-giving the benefits of static type checking to the users of these
-libraries.
-In fact, we already have user feedback from Lua programmers that are
-using Typed Lua in their projects.
-For instance, ZeroBrane Studio is an IDE for Lua development that is
-starting to use Typed Lua to perform static analysis in Lua code.
+Typed Lua has a working implementation that
+Lua programmers can already use as a framework to
+document, test, and structure their applications,
+and we already have user feedback from Lua programmers
+that are using Typed Lua in their projects.
+One example is ZeroBrane Studio, a Lua IDE that is
+integrating Typed Lua.
+
+Even applications where a full conversion to static
+type checking is unfeasible in the current state
+of the type system, or too much work, can use Typed
+Lua to document the external interfaces of its
+libraries, giving the benefits of static typing
+checking to the users of those libraries.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
