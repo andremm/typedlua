@@ -192,10 +192,9 @@ Section \ref{sec:statistics} presents the methodology and results of
 our survey of Lua idioms;
 Section \ref{sec:types} presents the types of Typed Lua's
 type system, and their subtyping and consistent-subtyping relations;
-Section \ref{sec:tables} presents the typing rules for evolution of table types;
-Section \ref{sec:projections} presents the typing rules for
-destructuring unions of tuples into projection types and
-flow typing on these projections;
+Section \ref{sec:rules} presents the typing rules for evolution of table types,
+and the typing rules for destructuring unions of tuples into projection types,
+allowing flow typing on these projections;
 Section \ref{sec:related} reviews related work;
 Section \ref{sec:conclusion} presents our conclusions,
 and outlines our plans for future work.
@@ -257,9 +256,7 @@ In order to gauge how frequently tables are used as
 collections, we looked for the presence of code that
 iterates over tables, and found out that 23\% of the
 scripts in our corpus iterate over a map at least once,
-and 31\% of the scripts iterate over a list
-at least once. \emph{TODO: Não sei se esse número está correto,
-apenas somei as duas porcentagens, mas pode haver interseção.}
+and 27\% of the scripts iterate over a list at least once.
 
 Besides measuring the number of method calls, we also
 measured other kinds of expressions and statements to gauge
