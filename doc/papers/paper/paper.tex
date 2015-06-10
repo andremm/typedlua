@@ -1893,7 +1893,7 @@ in the type environment used for typing the {\bf if} statement.
 
 At this point, using $q$ or $r$ as an r-value will project
 their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. But the more interesting case is inside the
-clauses of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-PROJ} below, which uses flow typing:
+branches of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-PROJ} below, which uses flow typing:
 \[
 \begin{array}{c}
 \mylabel{T-IF-FNIL-PROJ}\\
@@ -1918,14 +1918,22 @@ not exist, or does not include $\Nil$.
 
 In our example, $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ in the {\bf then} branch, and would be bound
 to $\Nil \times \String \times \Nil{*}$ inside the {\bf else}
-branch.
+branch. Now $q$ and $r$ project to $\Integer$ and $\Integer$
+in the {\bf then} branch, and to $\Nil$ and $\String$ in the
+{\bf else} branch. 
 
-Thus, reading $q$ and $r$ projects $\pi_{1}^{x}$ to $\Integer$ and
-$\pi_{2}^{x}$ to $\Integer$ inside the $\mathbf{if}$ branch,
-but it projects $\pi_{1}^{x}$ to $\Nil$ and $\pi_{2}^{x}$ to $\String$
-inside the $\mathbf{else}$ branch.
-Outside the condition, $q$ and $r$ use the original projection, that is,
-they project to $\Integer \cup \Nil$ and $\Integer \cup \String$, respectively.
+A projection type in l-value position does not trigger
+the projection, effectively forbidding assignment to a
+variable that has a projection type. Allowing assignment
+would be unsafe, as it could break the dependency among the
+components of the union, as the following example shows:
+\begin{verbatim}
+  local q, r = idiv(a, b)
+  r = "foo"
+  if q then
+    -- wrongly assume q and r are integers
+  end
+\end{verbatim}
 
 \section{Related Work}
 \label{sec:related}
