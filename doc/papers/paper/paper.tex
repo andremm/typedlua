@@ -413,43 +413,46 @@ definitions and method calls, and lets Typed Lua have objects
 as regular table types with methods as regular function types
 with an explicit receiver parameter.
 
-Table types represent the various forms
-that Lua tables can take.
-The syntactical form of table types is $\{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{tag}$,
-where each $K_{i}$ represents the type of a table key,
-and each $V_{i}$ represents the type of the value that table keys of type $K_{i}$ map to.
-Key types can only be literal types, base types, or the top type.
-We made this restriction to the type of the keys because the statistics
-that we discussed in Section \ref{sec:statistics} showed that most
-of the tables are records, lists, and hashes.
-The type $\Value$ is an option when we need a loose table type.
-For instance, $\{\Value:\Value\}_{closed}$ represents the type of a
-table in which both indices and values can have any type.
-Value types can be any first-level type, and can optionally include
-the $\Const$ type to denote immutable values.
+Table types represent some of the forms that Lua
+tables can take. What a particular table type denotes
+depends on its {\em tag}: the {\em unique}, {\em open}
+and {\em fixed} tags all denote tables where it is
+guaranteed that every key belongs to one of the {\em key
+types} $K_i$. We restrict key types to literal types,
+base types, and the top type to make the system simpler
+for the user, as our survey of Lua programs showed that
+this restriction reflects the way Lua tables are used.
+Fields are assignable by default, but can be marked
+as non-assignable with the {\bf const} qualifier. Having
+a field be {\bf const} is not a guarantee that its
+value cannot change, as the table may have aliases with
+a non-{\bf const} type for that field.
 
-We also use the tags \emph{unique}, \emph{open}, \emph{fixed}, and \emph{closed}
-to classify table types.
-The tag \emph{unique} represents tables with no keys that do not
-inhabit one of the table's key types, and with no alias.
-In particular, the type of the table constructor has this tag.
-The tag \emph{open} represents \emph{unique} table types that
-have at least one alias.
-The tag \emph{fixed} represents \emph{unique} table types that we
-do not know how many aliases they have.
-In particular, the type of a class has this tag.
-The tag \emph{closed} represents table types that do not provide
-any guarantees about keys with types not listed in the table type.
-In particular, in the concrete syntax, type annotations, interface
-declarations, and userdata declarations always describe \emph{closed} table types.
-In the next sections we explain in more detail why we need
-different table types.
+The difference between {\em unique}, {\em open} and
+{\em fixed} tables is the guarantees that the type system
+give about the reference to a value of that type. A reference
+to an {\em unique} table is guaranteed to have no aliases,
+so allows the greater flexibility in reinterpreting its type;
+a reference to an {\em open} table is guaranteed to have
+only {\em closed} aliases (we will explain the the meaning of the {\em closed} tag shortly), which still lets the type system
+reinterpret the type of a reference, but with more
+restrictions; a {\em fixed} table can have any number of {\em fixed} or {\em closed} aliases, so its type cannot change
+anymore.
+
+Table types with the {\em fixed} tag are suitable for typing tables that are used as maps, lists, or even a mixture of those. The guarantee that there are no keys with a type that is not
+one of the key types allows type-safe iteration on these
+tables.
+
+This guarantee forbids width subtyping, which is a necessity
+for object-oriented programming, so we have the {\em closed}
+tag, which removes the guarantee and allows width subtyping
+between other table types and {\em closed} table types. A {\em closed} table type is akin to an object-oriented {\em interface}.
 
 Any table type has to be \emph{well-formed}.
-Informally, a table type is well-formed if key types do not overlap.
-In Section \ref{sec:tables} we formalize the definition of well-formed table types.
-We delay the proper formalization of well-formed table types because we use
-consistent-subtyping in this formalization.
+Informally, a table type is well-formed if key types do not overlap. A formal definition of this relation depends on
+the consistent-subtyping relation which we present in the
+next section, so we delay the definition until Section~\ref{sec:tables}, where the typing rules for
+table types are explained.
 
 The type $\Any$ is the dynamic type, and allows
 interaction between statically and dynamically typed
