@@ -842,167 +842,122 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \section{Typing rules}
 \label{sec:rules}
 
-In this section we use a reduced core of Typed Lua to present
-the typing rules that type check the novel features of our type system.
-These rules type check table refinement and
-overloading on the return type of functions.
-
-Our core limits control flow to if and while statements;
-it has explicit type annotations, explicit scope for variables,
-explicit method declarations, and explicit method calls.
-Here is a list of features that are not present in our reduced core:
-\begin{itemize}
-\item labels and goto statements (they are difficult to handle along
-with our simplified form of \emph{flow typing}, and they are out of
-scope for now);
-\item explicit blocks (we are already using explicit scope for variables);
-\item other loop structures such as repeat-until, numeric for,
-and generic for (we can use while to express them);
-\item table fields other than $[e_{1}] = e_{2}$
-(we can use this form to express the missing forms); 
-\item arithmetic operators other than $+$
-(other arithmetic operators have similar typing rules);
-\item relational operators other than $==$ and $<$
-(inequality has similar typing rules to $==$ and
-other relational operators have similar typing rules to $<$);
-\item bitwise operators other than $\&$
-(other bitwise operators have similar typing rules).
-\end{itemize}
-
-Our reduced core does not lose much expressiveness, as it can express
-any Lua program except those that use labels and goto statements.
-
 \begin{figure*}[!ht]
-\textbf{Abstract Syntax}\\
-\dstart
-$$
-\begin{array}{rlr}
-s ::= & & \textsc{statements:}\\
-& \;\; \mathbf{skip} & \textit{skip}\\
-& | \; s_{1} \; ; \; s_{2} & \textit{sequence}\\
-& | \; \overline{l} = el & \textit{multiple assignment}\\
-& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
-| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
-& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
-& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
-& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s & \textit{recursive function} \\
-& | \; \mathbf{return} \; el & \textit{return} \\
-& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
-& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
-e ::= & & \textsc{expressions:}\\
-& \;\; \mathbf{nil} & \textit{nil}\\
-& | \; k & \textit{other literals}\\
-& | \; id & \textit{variable access}\\
-& | \; e_{1}[e_{2}] & \textit{table access}\\
-& | \; {<}T{>} \; id & \textit{type coercion}\\
-& | \; f & \textit{function declaration}\\
-& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
-| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \textit{table constructor}\\
-& | \; e_{1} + e_{2} \;
-| \; e_{1} \; {..} \; e_{2} \;
-| \; e_{1} == e_{2} \;
-| \; e_{1} < e_{2} & \textit{binary operations}\\
-& | \; e_{1} \;\&\; e_{2} \;
-| \; e_{1} \; \mathbf{and} \; e_{2} \;
-| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
-& | \; \mathbf{not} \; e \;
-| \; \# \; e & \textit{unary operations} \\
-& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
-l ::= & & \textsc{left-hand values:}\\
-& \;\; id_{l} & \textit{variable assignment}\\
-& | \; e_{1}[e_{2}] & \textit{table assignment}\\
-& | \; id[k] \; {<}T{>} & \textit{type coercion}\\
-k ::= & & \textsc{literal constants:}\\
-& \;\; \mathbf{false} \; | \;
-\mathbf{true} \; | \;
-{\it int} \; | \;
-{\it float} \; | \;
-{\it string} & \\
-el ::= & & \textsc{expression lists:}\\
-& \;\; \overline{e} \; | \;
-\overline{e}, me & \\
-me ::= & & \textsc{multiple results:}\\
-& \;\; a & \textit{application}\\
-& | \; {...} & \textit{vararg expression}\\
-a ::= & & \textsc{applications:}\\
-& \;\; e(el) & \textit{function application}\\
-& | \; e{:}n(el) & \textit{method application}\\
-f ::= & & \textsc{function declarations:}\\
-& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
-pl ::= & & \textsc{parameter lists:}\\
-& \;\; \overline{id{:}T} \; | \;
-\overline{id{:}T},{...}{:}T & \\
-\end{array}
-$$
-\dend
-\caption{The abstract syntax of Typed Lua}
-\label{fig:syntax}
+	\textbf{Abstract Syntax}\\
+	\dstart
+	$$
+	\begin{array}{rlr}
+	s ::= & & \textsc{statements:}\\
+	& \;\; \mathbf{skip} & \textit{skip}\\
+	& | \; s_{1} \; ; \; s_{2} & \textit{sequence}\\
+	& | \; \overline{l} = el & \textit{multiple assignment}\\
+	& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
+	| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
+	& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+	& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+	& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s & \textit{recursive function} \\
+	& | \; \mathbf{return} \; el & \textit{return} \\
+	& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
+	& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
+	e ::= & & \textsc{expressions:}\\
+	& \;\; \mathbf{nil} & \textit{nil}\\
+	& | \; k & \textit{other literals}\\
+	& | \; id & \textit{variable access}\\
+	& | \; e_{1}[e_{2}] & \textit{table access}\\
+	& | \; {<}T{>} \; id & \textit{type coercion}\\
+	& | \; f & \textit{function declaration}\\
+	& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
+	| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \textit{table constructor}\\
+	& | \; e_{1} + e_{2} \;
+	| \; e_{1} \; {..} \; e_{2} \;
+	| \; e_{1} == e_{2} \;
+	| \; e_{1} < e_{2} & \textit{binary operations}\\
+	& | \; e_{1} \;\&\; e_{2} \;
+	| \; e_{1} \; \mathbf{and} \; e_{2} \;
+	| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
+	& | \; \mathbf{not} \; e \;
+	| \; \# \; e & \textit{unary operations} \\
+	& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
+	l ::= & & \textsc{left-hand values:}\\
+	& \;\; id_{l} & \textit{variable assignment}\\
+	& | \; e_{1}[e_{2}] & \textit{table assignment}\\
+	& | \; id[k] \; {<}T{>} & \textit{type coercion}\\
+	k ::= & & \textsc{literal constants:}\\
+	& \;\; \mathbf{false} \; | \;
+	\mathbf{true} \; | \;
+	{\it int} \; | \;
+	{\it float} \; | \;
+	{\it string} & \\
+	el ::= & & \textsc{expression lists:}\\
+	& \;\; \overline{e} \; | \;
+	\overline{e}, me & \\
+	me ::= & & \textsc{multiple results:}\\
+	& \;\; a & \textit{application}\\
+	& | \; {...} & \textit{vararg expression}\\
+	a ::= & & \textsc{applications:}\\
+	& \;\; e(el) & \textit{function application}\\
+	& | \; e{:}n(el) & \textit{method application}\\
+	f ::= & & \textsc{function declarations:}\\
+	& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
+	pl ::= & & \textsc{parameter lists:}\\
+	& \;\; \overline{id{:}T} \; | \;
+	\overline{id{:}T},{...}{:}T & \\
+	\end{array}
+	$$
+	\dend
+	\caption{The abstract syntax of Core Typed Lua}
+	\label{fig:syntax}
 \end{figure*}
 
-Figure \ref{fig:syntax} presents the abstract syntax of core Typed Lua.
-It splits the syntactic categories as follows:
-$s$ are statements, $e$ are expressions, $l$ are left-hand values,
-$k$ are literal constants, $el$ are expression lists,
-$me$ are expressions with multiple results, $a$ are function and method applications,
-$f$ are function declarations, $pl$ are parameter lists,
-$id$ are variable names, $T$ are first-level types, and $S$ are second-level types.
-The notation $\overline{id{:}T}$ denotes the list $id_{1}{:}T_{1}, ..., id_{n}{:}T_{n}$.
+Figure \ref{fig:syntax} presents the abstract syntax of 
+Core Typed Lua, a large subset of concrete syntax
+that the Typed Lua compiler handles. We use this abstract
+syntax in the presentation of the typing rules
+for tables and evolution of table types (Section~\ref{sec:tables})
+and for functions with overloaded multiple returns and
+projection types (Section~\ref{sec:projections}).
+Core Typed Lua simplifies the presentation of typing rules
+without sacrificing expressiveness.
 
-Our reduced core includes two statements for declaring local variables,
-one with and another without type annotations.
-While we use the former to formalize how our type system handles the declaration
-of annotated variables, we use the latter to formalize how our type system
-handles the declaration of unannotated variables through local type inference
-and also the introduction of projection types.
+The main differences between Core Typed Lua and the concrete
+syntax are:
+\begin{itemize}
+\item lack of labels and goto statements, as they are incompatible
+with the {\em flow typing} of Typed Lua's type system;
+\item local variable declarations have an explicit block,
+instead of being just statements;
+\item no {\bf elseif} clause in {\bf if} statements;
+\item no {\bf repeat} and {\bf for} loops, just {\bf while};
+\item the only arithmetic operator is $+$, the only relational
+operators are $==$ and $<$, and the only bitwise operator
+is $\&$, as all other operators have typing rules identical to
+one of these;
+\item type coercion for evolution of table types is explicit,
+with two coercion terms, the l-value $id[k] \; {<}T{>}$ for adding a field to 
+a table through assignment, and the r-value ${<}T{>} \;id$ for reinterpreting
+a table type to a compatible type that is expected by the context;
+\item all function declarations are anonymous, so there is a
+statement for declaring recursive functions;
+\item function or method applications that throw away all
+results or all but the first result are explicitly annotated
+as such, instead this being implicit in their syntactic context;
+\item identifiers that appear in l-value position are explicitly
+annotated as such with an $l$ subscript.
+\end{itemize}
 
-Our reduced core also includes a truncation operator $\lfloor \rfloor$ for
-function applications, method applications, and the vararg expression.
-We use $\lfloor a \rfloor_{0}$ to denote function and method applications
-that produce no value, because they appear as statements.
-We use $\lfloor me \rfloor_{1}$ to denote function applications,
-method applications, and vararg expressions that produce only one value,
-even if they return multiple values.
+We present the typing rules as a deduction system for two typing relations, one for typing statements and another for typing expressions. Typing judgments for statements have the form $\env_{1}, \penv \vdash s, \env_{2}$, meaning that
+given a type environment $\env_{1}$ and a {\em projection environment} $\penv$ we can prove that a statement $s$ produces a new type environment $\env_{2}$. Typing judgements for
+expressions have the form $\env_{1}, \penv \vdash e : T, \env_{2}$, meaning that given a type environment $\env_{1}$
+and a projection environment $\penv$ we can prove that an expression $e$ has type $T$ and produces a new type environment $\env_{2}$.
 
-We also include two kinds of type coercions in our core language:
-the left-hand value $id[k] \; {<}T{>}$ and the expression ${<}T{>} \;id$.
-Both allow the refinement of table types.
-We also split variable names into two categories to have safe aliasing
-of tables in the presence of refinement.
-We use $id$ when variable names appear as expressions and $id_{l}$ when
-variable names appear as left-hand values.
+The type environment is standard, and maps
+identifiers to first-level types. Some typing rules of
+Section~\ref{sec:tables} can change the type of an identifier,
+so the typing relation has both an input and an output type
+environment. The {\em projection environment} $\Pi$ maps projection labels to second-level types, and we explain
+its use in Section~\ref{sec:projections}.
 
-Even though we can assign only first-level types to variables,
-functions and methods can return unions of second-level types,
-and our type system should be able to project these unions of
-second-level types into unions of first-level types.
-We use two different environments to handle this feature.
-The first environment is the type environment $\env$ that maps
-variables to first-level types.
-We use $\env_{1}[id \mapsto T]$ to extend the environment $\env_{1}$
-with the variable $id$ that maps to type $T$.
-The second environment is the projection environment $\penv$ that
-maps projection variables to second-level types.
-We use $\penv[x \mapsto S]$ to extend the environment $\penv$
-with the projection variable $x$ that maps to type $S$.
-In Section \ref{sec:projections} we will show how our type system uses the
-projection environment $\penv$ for handling projection types,
-and also for projecting unions of second-level types into
-unions of first-level types.
-
-We present the typing rules as a deduction system for two typing relations,
-one for typing statements and another for typing expressions.
-
-We use the relation $\env_{1}, \penv \vdash s, \env_{2}$ for typing statements.
-This relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, we can check that a statement $s$
-produces a new type environment $\env_{2}$.
-
-We use the relation $\env_{1}, \penv \vdash e : T, \env_{2}$ for typing expressions.
-This relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, we can check that an expression $e$ has
-type $T$ and produces a new type environment $\env_{2}$.
-
-\subsection{Tables and refinement}
+\subsection{Tables and Evolution of Table Types}
 \label{sec:tables}
 
 Our abstract syntax reduces the syntactic forms of the table constructor
@@ -1016,7 +971,7 @@ The simplest expression involving tables in the empty table constructor.
 Its type checking rule is straightforward:
 \[
 \begin{array}{c}
-\mylabel{T-CONSTRUCTOR1}\\
+\mylabel{T-CONSTRUCTOR-EMPTY}\\
 \env_{1}, \penv \vdash \{\}:\{\}_{unique}, \env_{1}
 \end{array}
 \]
@@ -1061,11 +1016,11 @@ creation of unsafe aliases.
 The rules that type check table fields use the auxiliary function
 \emph{close} to close the type of the values in a table type.
 
-The rule \textsc{T-CONSTRUCTOR2} uses these steps to type check a
+The rule \textsc{T-CONSTRUCTOR-FIELDS} uses these steps to type check a
 table constructor with a non-empty list of table fields:
 \[
 \begin{array}{c}
-\mylabel{T-CONSTRUCTOR2}\\
+\mylabel{T-CONSTRUCTOR-FIELDS}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
        T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
@@ -1079,11 +1034,11 @@ table constructor with a non-empty list of table fields:
 
 Back to our example, the table constructor
 $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
-$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
+$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR-FIELDS}.
 
 As another example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through rule
-\textsc{T-CONSTRUCTOR2}.
+\textsc{T-CONSTRUCTOR-FIEDLS}.
 The inner table is \emph{closed} to prevent the creation of unsafe aliases.
 
 After presenting some typing rules of the table constructor,
@@ -1110,10 +1065,10 @@ to our reduced core as follows:
 In this example, we assign the type $\{\}_{unique}$ to the variable
 $person$, then we refine its type to $\{``firstname":\String\}_{unique}$,
 and then to $\{``firstname":\String, ``lastname":\String\}_{unique}$.
-Rule \textsc{T-REFINE} type checks this use of refinement:
+Rule \textsc{T-NEWFIELD} type checks this use of refinement:
 \[
 \begin{array}{c}
-\mylabel{T-REFINE}\\
+\mylabel{T-NEWFIELD}\\
 \dfrac{\begin{array}{c}
        \env_{1}(id) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
        \env_{1}, \penv \vdash k:K, \env_{2} \;\;\;
@@ -1212,14 +1167,14 @@ potential unsafe behaviors after this kind of alias.
 In this example, it is unsafe to add the field $``x"$ to $b$,
 as it changes the value that is stored in the field $``x"$ of $a$.
 
-The rules \textsc{T-IDREAD1} and \textsc{T-IDREAD2} define this non-deterministic behavior.
-Rule \textsc{T-IDREAD1} uses the auxiliary function \emph{close} to
+The rules \textsc{T-ID-R-CLOSE} and \textsc{T-ID-R-FIX} define this non-deterministic behavior.
+Rule \textsc{T-ID-R-CLOSE} uses the auxiliary function \emph{close} to
 produce a \emph{closed} alias.
 It also uses the auxiliary function \emph{open} to change the type of
 the original reference from \emph{unique} to \emph{open},
 because aliasing an \emph{unique} table type while keeping the original
 reference \emph{unique} can be unsafe.
-Rule \textsc{T-IDREAD2} uses the auxiliary function \emph{fix} to
+Rule \textsc{T-ID-R-FIX} uses the auxiliary function \emph{fix} to
 produce a \emph{fixed} alias.
 It also uses \emph{fix} to change the type of the original reference
 to \emph{fixed}, because a \emph{fixed} table type does not allow
@@ -1228,13 +1183,13 @@ We define these rules as follows:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{T-IDREAD1}\\
+\mylabel{T-ID-R-CLOSE}\\
 \dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
       {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{T-IDREAD2}\\
+\mylabel{T-ID-R-FIX}\\
 \dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
       {\env_{1}, \penv \vdash id:fix(T_{2}), \env_{1}[id \mapsto fix(T_{1})]}
 \end{array}
@@ -1295,10 +1250,10 @@ After the assignment, the type of $b$ is \emph{closed} and thus
 does not allow changing the value that is stored in the field
 $``x"$ of $a$.
 
-Rule \textsc{T-IDWRITE} defines this behavior:
+Rule \textsc{T-ID-L} defines this behavior:
 \[
 \begin{array}{c}
-\mylabel{T-IDWRITE}\\
+\mylabel{T-ID-L}\\
 \dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
       {\env_{1}, \penv \vdash id_{l}:close(T_{2}), \env_{1}[id \mapsto close(T_{2})]}
 \end{array}
@@ -1319,7 +1274,7 @@ changing table types in these operations, as they cannot create aliases:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{T-INDEX1}\\
+\mylabel{T-INDEX-ID}\\
 \dfrac{\begin{array}{c}
        \env_{1}(id) = T \;\;\;
        read(\penv, T) = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}\\
@@ -1330,7 +1285,7 @@ changing table types in these operations, as they cannot create aliases:
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{T-INDEX2}\\
+\mylabel{T-INDEX-EXP}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash e_{1}:\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}, \env_{2}\\
        \env_{2}, \penv \vdash e_{2}:K, \env_{3} \;\;\;
@@ -1426,10 +1381,10 @@ that should change from \emph{unique} to \emph{open} by \emph{openset}.
 After declaring $f$, $a$ has type $\{\}_{open}$ and $b$ has type $\{\}_{closed}$,
 so we can refine the type of $a$, but we cannot refine the type of $b$.
 
-Rule \textsc{T-FUNCTION1} illustrates this case:
+Rule \textsc{T-FUNCTION} illustrates this case:
 \[
 \begin{array}{c}
-\mylabel{T-FUNCTION1}\\
+\mylabel{T-FUNCTION}\\
 \dfrac{\begin{array}{c}
        crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
        \env_{3} = crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))\\
