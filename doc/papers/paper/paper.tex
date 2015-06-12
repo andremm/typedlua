@@ -510,7 +510,10 @@ may be unsafe.
 Second-level types are either tuple types or unions of tuple types, and represent sequences of values that appear as arguments, return values, and the left and right sides of
 assignments. Tuple types are heterogeneous lists of first-class
 types that end with a {\em variadic type}.
-A variadic type $F{*}$ represents an unbounded sequence of values of type $F \cup \Nil$.
+A variadic type $F{*}$ represents an unbounded sequence of values of type $F \cup \Nil$. Lua pads sequences with {\tt nil} to
+have as many values as needed, and in Typed Lua sequences
+where the number of values is statically known have a $\Nil{*}$
+tail to reflect this semantics.
 
 For clarity, we use the symbol $\sqcup$ to represent the union between two different tuple types, and reserve $\cup$ for the
 union of two first-class types.
@@ -538,7 +541,7 @@ Most of the subtyping rules are standard; we will focus
 on the interesting cases, involving second-level types and
 table types.
 
-Tuple types are covariant:
+Tuple types are covariant, so the subtyping rule for pair types is straightforward:
 \[
 \begin{array}{c}
 \mylabel{S-PAIR}\\
@@ -555,21 +558,24 @@ right-hand side produce fewer values than l-values in the
 left-hand side, using {\tt nil} to plug the holes. The
 same behavior applies for lists of arguments vs. parameters.
 
-Typed Lua preserves this behavior in assignment, but allows
-both functions with strict arity, which use $\Void$, and
-functions with flexible arity, which use other variadic types,
-and can use $\Value{*}$ if they want to just ignore extra
-arguments.
+Typed Lua preserves this behavior in assignment by synthesizing
+tuple types that have a $\Value{*}$ tail for the left side
+of an assignment. Non-variadic functions have a stricter
+behavior: their parameter lists have a $\Nil{*}$ tail, so
+a function can be passed any number of extra arguments
+as long as they are literal {\tt nil}, but the type system will
+reject extra arguments of any other type. Missing arguments
+are also fine if the corresponding parameters have {\tt nil}
+as a subtype: this is the Lua idiom for optional parameters.
 
-The types of expression lists always end in a variadic type
-that is $\Nil{*}$ if the number of values the list produces
-is statically known. 
+Functions that want to keep the Lua behavior of just ignoring
+any extra arguments can be variadic with type $\Value{*}$ as
+the tail of their parameter tuple.
 
-The other rules let assignment and functions with flexible
-arity reflect the semantics of Lua in a type-safe way. We
-need rule {\sc S-VARIADIC} because just having variadic
-types be covariant would be too restrictive (for example,
-$\Nil{*}$ would not be a subtype of $\Number{*}$):
+The remaining subtyping rules for second-level types
+reflect this semantics. Rule {\sc S-VARIADIC} states
+that variadic types are covariant (just having $F_1{*} \subtype F_2{*}$ iff $F_1 \subtype F_2$ would be too restrictive,
+as $\Nil{*}$ would not be a subtype of $\Number{*}$):
 \[
 \begin{array}{c}
 \mylabel{S-VARIADIC}\\
@@ -579,7 +585,7 @@ $\Nil{*}$ would not be a subtype of $\Number{*}$):
 \]
 
 Rules {\sc S-VAR-EXPAND} and {\sc S-VAR-DROP} state the
-conditions when variadic tuples if different length are
+conditions when variadic tuples of different length are
 compatible:
 \[
 \begin{array}{c}
