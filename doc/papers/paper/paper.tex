@@ -1341,72 +1341,93 @@ of a variable if the new type is a supertype of the previous type,
 and the resulting type is always \emph{fixed} or \emph{closed}
 to prevent the creation of unsafe aliases.
 
-We also need to make sure to close all \emph{unique} and \emph{open}
-table types before we type check a nested scope.
-To do that, our type system uses some auxiliary functions to change
-the type of variables before type checking a nested scope and
-also to change the type of assigned and referenced variables after
-type checking a nested scope.
-The function \emph{crall} closes all \emph{unique} and \emph{open}
-table types; it also restores filter types to their original types.
-The function \emph{crset} closes a given set of free assigned variables,
-which is given by the function \emph{fav}, and
-it also uses this set to restore filter types to their original types.
-The function \emph{openset} changes from \emph{unique} to \emph{open}
-a given set of referenced variables, which is given by the function \emph{rv}.
+Lua has first-class functions, so another way of aliasing
+an {\em unique} and {\em open} references is by closing
+over them in a function body. In the environment used for
+typing the function body, all {\em unique} and {\em open}
+tables are {\em closed} with the auxiliary function $closeall$.
+This is not enough, as assignment
+to a closed-over variable can be unsafe. In the following
+example, assume that the $g$ receives a parameter of type
+$\{ ``x": \String \cup \Nil\}$:
+\begin{center}
+	\begin{tabular}{llll}
+		\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{open}
+			= \{\} \; \mathbf{in}$}\\
+		& \multicolumn{3}{l}{$\mathbf{local} \; f:\Void \rightarrow \Void =$}\\
+		& & \multicolumn{2}{l}{$\mathbf{fun} \; ():\Void$}\\
+		& & & \multicolumn{1}{l}{$a = \{[``x"]=5\} $}\\
+		& \multicolumn{3}{l}{$\mathbf{in} \; g({<}\{``x":
+			 \String \cup \Nil\}{>} \; a)$}
+	\end{tabular}
+\end{center}
 
-As an example,
+The type of $a$ on line 3 is $\{\}_{closed}$, so the assignment
+would type-check. But then the function call on the last line
+would also type-check, as $\{\}_{open}$ can be coerced to
+$\{ ``x": \String \cup \Nil\}$. A solution is to change the
+type of $a$ from {\em unique} to {\em closed} after the function
+declaration. In order to do that, we use the auxiliary function
+$fav$ ({\em free assigned-to variables}) to collect this
+set of identifiers, and then function $closeset$ changes
+the type environment to so any of these variables that
+has an {\em unique} or {\em open} table type becomes {\em closed}.
+
+Closed-over variables that are not assigned still may
+change their type if they have a {\em unique} table type
+and are aliased inside the function body. We use the auxiliary
+function $frv$ ({\em free referenced variables}) to collect
+this set, and then function $openset$ changes any variables
+with a {\em unique} table type in the environment to {\em open}.
+
+Rule {\sc T-FUNCTION} types non-variadic function declarations,
+and shows how these auxiliary functions work together:
+\[
+\begin{array}{c}
+\mylabel{T-FUNCTION}\\
+\dfrac{\begin{array}{c}
+	closeall(\env_{1})[\overline{id \mapsto T}], \penv[\ret \mapsto S] \vdash s, \env_{2}\\
+	\env_{3} = openset(\env_{1}, frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+	\env_{4} = closeset(\env_{3}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{3}}
+\end{array}
+%\begin{array}{c}
+%\mylabel{T-FUNCTION}\\
+%\dfrac{\begin{array}{c}
+%	crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
+%	\env_{3} = crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))\\
+%	\env_{4} = openset(\env_{3}, rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+%	\end{array}}
+%{\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{4}}
+%\end{array}
+\]
+
+Notice that the environment $\env_{2}$ resulting from
+typing the function body is just ignored.
+
+The following example typechecks, and uses all the parts of {\sc T-FUNCTION}:
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique}, b:\{\}_{unique} = \{\}, \{\} \; \mathbf{in}$}\\
 & \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Void \rightarrow \Integer \times \Void =$}\\
 & & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Void$}\\
 & & & \multicolumn{1}{l}{$b = a \;;\; \mathbf{return} \; x + 1$}\\
-& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;$}\\
-& & \multicolumn{2}{l}{$b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
+& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; f(a[``x"])$}\\
+%& & \multicolumn{2}{l}{$b[``x"] \; {<}\String{>} = ``foo" \;;\;
+%	 f(a[``x"])$}
 \end{tabular}
 \end{center}
-does not type check because we cannot add the field
-$``x"$ to $b$, as its type is closed.
-The assignment $b = a$ type checks because, at that point,
-$a$ and $b$ have the same type: $\{\}_{closed}$.
-Their type was closed by \emph{crall} before type checking
-the function body.
-Their type would be restored to $\{\}_{unique}$ after type checking
-the function body, but that assignment also triggers other two type changes.
-First, the function \emph{fav} includes $b$ in the set of variables
-that should be closed by \emph{crset}.
-Then, the function \emph{rv} includes $a$ in the set of variables
-that should change from \emph{unique} to \emph{open} by \emph{openset}.
-After declaring $f$, $a$ has type $\{\}_{open}$ and $b$ has type $\{\}_{closed}$,
-so we can refine the type of $a$, but we cannot refine the type of $b$.
 
-Rule \textsc{T-FUNCTION} illustrates this case:
-\[
-\begin{array}{c}
-\mylabel{T-FUNCTION}\\
-\dfrac{\begin{array}{c}
-       crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
-       \env_{3} = crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))\\
-       \env_{4} = openset(\env_{3}, rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
-       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{4}}
-\end{array}
-\]
-
-This rule also extends the environment $\penv$, bounding the special
-variable $\ret$ to the return type $S$.
-Rule \textsc{T-RETURN} uses the type that is bound to $\ret$ in
-$\penv$ to type check return statements:
-\[
-\begin{array}{c}
-\mylabel{T-RETURN}\\
-\dfrac{\env_{1} \vdash el:S_{1}, \env_{2} \;\;\;
-       \penv(\ret) = S_{2} \;\;\;
-       S_{1} \lesssim S_{2}}
-      {\env_{1} \vdash \mathbf{return} \; el, \env_{2}}
-\end{array}
-\]
+The assignment $b=a$ typechecks because, at that point, 
+both $b$ and $a$ have type $\{\}_{closed}$ due to $closeall$.
+The set $fav$ is $\{b\}$, and the set $frv$ is $\{a\}$.
+This causes the type of $b$ to also be $\{\}_{closed}$
+in the body of the inner {\bf local} statement, due to $closeset$, and the type of $a$ to be $\{\}_{open}$ due
+to $openset$. Being $\{\}_{open}$, adding a new field
+is allowed, changing the type of $a$ to $\{``x": \Integer\}_{open}$ after the semicolon. After the call to
+$f$, the variable $b$ is an alias to $a$ but this is not
+an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 
 \subsection{Projection Types}
 \label{sec:projections}
@@ -1480,11 +1501,11 @@ environment used for typing the {\bf if} statement:
 	\env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
 	n = |\;\overline{id}\;|  
 	\end{array}}
-{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{4} - \{\overline{id}\}}
+{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, (\env_{4}-\{\overline{id}\})[\overline{id \mapsto \env_2(id)}]}
 \end{array}
 \]
 
-This first sequent above the bar uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
+The first judgement above the bar uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
 This rule does the work of generating a fresh projection label,
 and projection types associated with it, if the last term of
 the expression list has a union of tuple types as its type,
@@ -1511,16 +1532,26 @@ At this point, using $q$ or $r$ as an r-value will project
 their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. But the more interesting case is inside the
 branches of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-PROJ} below, which uses flow typing:
 \[
+%\begin{array}{c}
+%\mylabel{T-IF-FNIL-PROJ}\\
+%\dfrac{\begin{array}{c}
+%       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
+%       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
+%       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
+%       \env_{4} = closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})) \\
+%       \env_{5} = openset(\env_{4}, rv(s_{1}) \cup rv(s_{2}))
+%      \end{array}}
+%      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
+%\end{array}
 \begin{array}{c}
 \mylabel{T-IF-FNIL-PROJ}\\
 \dfrac{\begin{array}{c}
        \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})) \\
-       \env_{5} = openset(\env_{4}, rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}, \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
+       \env_{1}, \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
+       \env_{4} = join(\env_{2}, \env_{3}) 
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
 \end{array}
 \]
 
@@ -1538,9 +1569,7 @@ branch. Now $q$ and $r$ project to $\Integer$ and $\Integer$
 in the {\bf then} branch, and to $\Nil$ and $\String$ in the
 {\bf else} branch. 
 
-A projection type in l-value position does not trigger
-the projection, effectively forbidding assignment to a
-variable that has a projection type. Allowing assignment
+Assignment to an l-value with a projection type is forbidden. Allowing assignment
 would be unsafe, as it could break the dependency among the
 components of the union, as the following example shows:
 \begin{verbatim}
