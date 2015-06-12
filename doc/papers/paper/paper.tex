@@ -169,16 +169,57 @@ published~\cite{maidl2014tl}.
 
 In this paper, we give a formal basis to an updated version of that design, with a focus on novel type system features
 that Typed Lua uses to type some tricky Lua idioms.
-One of these idioms is the use of imperative updates to
-build records and objects one field at a time; Typed Lua
-lets record and object types evolve incrementally along
-with these updates while not sacrificing width subtyping.
+One of these idioms is the use of assignment to
+build records and objects one field at a time, as in
+the following example, where the {\tt newshape} function
+is a constructor for objects with {\tt x} and {\tt y}
+fields and a {\tt move} method:
+\begin{verbatim}
+  function new_shape(x, y)
+    local shape = {}
+    shape.x = x
+    shape.y = y
+    function shape:move(dx, dy)
+      self.x = self.x + dx
+      self.y = self.y + dy
+      return self
+    end
+    return shape
+  end
+\end{verbatim}
+
+The constructor function builds the object piece-by-piece,
+from an initially empty table. Typed Lua
+lets record and object types evolve incrementally 
+via assignment while not sacrificing width subtyping.
+
 Another idiom combines overloading on the return values
-of a function, multiple return values, multiple assignment,
+of a function, multiple return values, multiple assignment
+to decompose multiple return values,
 and tag checks to discriminate a several returned values
-by checking just one of them; Typed Lua deconstructs unions
-of tuples in a way that the dependencies between the types
-of each value in the tuple can be tracked.
+by checking just one of them, as in the following example:
+\begin{verbatim}
+  function idiv(x, y)
+    if y == 0 then
+      return nil, "division by zero"
+    else
+      return x // y, x % y
+    end 
+  end
+  
+  local q, r = idiv(a, b)
+  if q then
+    assert(a == q*b + r)
+  else
+    error(r)
+  end
+\end{verbatim}
+
+In the {\tt then} branch it is guaranteed that both {\tt q}
+and {\tt r} are integers, and in the {\bf else} branch it is
+guaranteed that {\tt q} is {\tt nil} and {\tt r} is a string.
+In Typed Lua, the return type of {\tt idiv} can be a union of
+tuples describing the possible return values. Typed Lua deconstructs unions of tuples in a way that the dependencies between the types of each value in the tuple can be tracked.
 
 The lack of standard policies is a challenge for the design of
 an optional type system for Lua. For this reason, the design
@@ -1448,11 +1489,12 @@ to denote errors, returning a {\tt nil} result and
 an error message in case of an error instead of the
 usual return values.
 
-As an example, consider the integer division function
-below, which returns the quotient and rest of integer
-division, or a division by zero error:
+As an example, consider again the integer division function
+from Section~1, which returns the quotient and rest of integer
+division, or a division by zero error, now statically typed:
 \begin{verbatim}
-  local function idiv(x : integer, y : integer)
+  local function idiv(x : integer, y : integer):
+        (integer, integer) | (nil, string)
     if divisor == 0 then
       return nil, "division by zero"
     else
@@ -1461,7 +1503,7 @@ division, or a division by zero error:
   end
 \end{verbatim}
 
-Typed Lua infers the return type of this function as
+The return type of this function is
 $(\Integer \times \Integer \times \Nil*) \sqcup (\Nil \times \String \times \Nil{*})$. The idiom for using this such
 a function is to test the first returned value:
 \begin{verbatim}
