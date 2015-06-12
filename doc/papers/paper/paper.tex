@@ -1022,14 +1022,24 @@ table constructor with a non-empty list of table fields:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR-FIELDS}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
-       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
-       wf(T) \;\;\;
-       n = |\;\overline{[e_{1}] = e_{2}}\;| \\
-       \env_{f} = merge(\env_{1}, ..., \env_{n+1})
+       \overline{\env_1, \penv \vdash e_2: V, \env_v}
+        \;\;\;
+       \overline{\env_v, \penv \vdash e_1: K, \env_f}
+        \\
+       T = \{\overline{K{:}V}\}_{unique} \;\;\;
+       \env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
        \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
+      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
 \end{array}
+%\dfrac{\begin{array}{c}
+%	\env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
+%	T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
+%	wf(T) \;\;\;
+%	n = |\;\overline{[e_{1}] = e_{2}}\;| \\
+%	\env_{f} = merge(\env_{1}, ..., \env_{n+1})
+%	\end{array}}
+%{\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
+%\end{array}
 \]
 
 Back to our example, the table constructor
