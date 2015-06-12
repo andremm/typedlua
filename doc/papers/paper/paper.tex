@@ -17,7 +17,7 @@
 \newcommand{\Integer}{\mathbf{integer}}
 \newcommand{\Number}{\mathbf{number}}
 \newcommand{\String}{\mathbf{string}}
-\newcommand{\Void}{\mathbf{void}}
+\newcommand{\Void}{\Nil{*}}
 \newcommand{\Const}{\mathbf{const}}
 
 \newcommand{\mylabel}[1]{\; (\textsc{#1})}
@@ -398,7 +398,7 @@ S ::= & & \textsc{second-level types:}\\
 & | \; S_{1} \sqcup S_{2} & \textit{unions of tuple types}\\
 %\multicolumn{3}{c}{}\\
 P ::= & & \textsc{{\small tuple types:}}\\
-& \;\; \Void & \textit{void type}\\
+%& \;\; \Void & \textit{void type}\\
 & | \; F{*} & \textit{variadic types}\\
 & | \; F \times P & \textit{pair types}
 \end{array}
@@ -509,7 +509,7 @@ may be unsafe.
 
 Second-level types are either tuple types or unions of tuple types, and represent sequences of values that appear as arguments, return values, and the left and right sides of
 assignments. Tuple types are heterogeneous lists of first-class
-types that end either with $\Void$ or with a {\em variadic type}.
+types that end with a {\em variadic type}.
 A variadic type $F{*}$ represents an unbounded sequence of values of type $F \cup \Nil$.
 
 For clarity, we use the symbol $\sqcup$ to represent the union between two different tuple types, and reserve $\cup$ for the
@@ -556,21 +556,14 @@ left-hand side, using {\tt nil} to plug the holes. The
 same behavior applies for lists of arguments vs. parameters.
 
 Typed Lua preserves this behavior in assignment, but allows
-both functions with strict arity (which use $\Void$) and
-functions with flexible arity (which use variadic types).
+both functions with strict arity, which use $\Void$, and
+functions with flexible arity, which use other variadic types,
+and can use $\Value{*}$ if they want to just ignore extra
+arguments.
 
 The types of expression lists always end in a variadic type
 that is $\Nil{*}$ if the number of values the list produces
-is statically known. Rule \textsc{S-VARNIL-VOID} makes lets
-an expression list with a statically known number of
-values be used as the arguments or return values of a function
-with a strict arity:
-\[
-\begin{array}{c}
-\mylabel{S-VARNIL-VOID}\\
-\senv \vdash \Nil{*} \subtype \Void
-\end{array}
-\]
+is statically known. 
 
 The other rules let assignment and functions with flexible
 arity reflect the semantics of Lua in a type-safe way. We
