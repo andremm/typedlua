@@ -60,32 +60,20 @@
 \maketitle
 
 \begin{abstract}
-Dynamically typed languages such as Lua avoid static types in order
-to have a simpler and more flexible language, because their programmers
-to not need to bother with abstracting types that need to be validated
-by a type checker. In contrast, statically typed languages provide
-earlier detection of many defects, and a better framework for structuring
-large programs. The advantages of static types often lead programmers to
-migrate from a dynamically typed to a statically typed language when
-their simple scripts evolve into complex programs.
-
-Optional type systems are one way to have both static and dynamic
-typing in the same language while keeping its original semantics,
-making evolving a program from dynamic to static typing a matter of
-describing the implied types that it it using and adding annotations
-to make those types explicit. Designing an optional type system for
-an existing dynamically typed language is challenging, as its types
-should feel natural to programmers that are already familiar with
+Programmers often migrate from a dynamically typed
+to a statically typed language when their simple scripts
+evolve into complex programs. Optional type systems are
+one way of having both static and dynamic typing
+in the same language, while keeping its dynamically typed
+semantics. This makes evolving a program from dynamic to
+static typing a matter of describing the implied types that
+it it using and adding annotations to make those types explicit.
+Designing an optional type system for
+an existing dynamically typed language is challenging, as its types should feel natural to programmers that are already familiar with
 this language.
 
 In this work, we give a formal description of Typed Lua, an
-optional type system for Lua, with a focus on its novel type system
-features: incremental evolution of record and object types via
-imperative update that does not sacrifice width subtyping,
-and combining flow typing with multiple assignment and with functions that
-return multiple values. While our type system is tailored to the
-features and idioms of Lua, its features can be adapted to other
-imperative scripting languages.
+optional type system for Lua, with a focus on two of its novel type system features: incremental evolution of record and object types via imperative update that does not sacrifice width subtyping, and combining flow typing with multiple assignment and with functions that return multiple values. While our type system is tailored to the features and idioms of Lua, its features can be adapted to other imperative scripting languages.
 \end{abstract}
 
 \category{CR-number}{subcategory}{third-level}
@@ -129,7 +117,7 @@ incremental evolution.
 Ideally, programming languages should offer programmers the
 option to choose between static and dynamic typing.
 \emph{Optional type systems}~\cite{bracha2004pluggable} and
-\emph{gradual typing}~\cite{siek2006gradual} are two similar
+\emph{gradual typing}~\cite{siek2006gradual} are two 
 approaches for blending static and dynamic typing in the same
 language. Their aim is to offer programmers the option
 of adding type annotations where static typing is needed,
@@ -139,41 +127,49 @@ way they treat the runtime semantics of the language:
 optional type systems preserve the original semantics
 of a dynamically typed language, at the cost of runtime
 safety, while gradual typing changes the semantics to
-include more extensive runtime checking to ensure that
+include more extensive runtime checking. These extra checks
+ensure that
 dynamically typed portions of the program do not violate
 the type safety of statically typed portions.
 
 Lua is a small imperative language with lexically-scoped first-class functions where the only data structuring
-mechanism is the \emph{table} --
-an associative array that has syntactic and runtime support
-to efficiently represent arrays, records, maps, modules,
-objects, etc. Unlike other scripting languages, Lua has very limited coercion among different data types.
-
-Lua prefers to provide mechanisms instead of fixed policies due
+mechanism is the \emph{table}, an associative array. Lua prefers to provide mechanisms instead of fixed policies due
 to its primary use as an embedded language for configuration and
 extension of other applications.
 This means that even features such as a module system and
-object orientation are a matter of convention instead of
-built-in language constructs.
+object orientation are a matter of convention on how
+programs use the syntactic sugar and metaprogramming
+facilities of tables, instead of
+built-in language constructs. Tables can efficiently represent arrays, records, maps, modules,
+objects, etc. 
+
 The result is a fragmented ecosystem of libraries, and different
 ideas among Lua programmers on how they should use the language
-features or on how they should structure programs.
+features or on how they should structure programs. One example
+of this fragmentation is the proliferation of object systems.
 
-Typed Lua is an optional type system for
+Typed Lua~\cite{maidl2014tl} is an optional type system for
 Lua that is rich enough to preserve some of the idioms
 that Lua programmers are already familiar with, while
 helping programmers structure large Lua programs and
-catch errors at compile-time. An informal
-presentation of the design of Typed Lua has been
-published~\cite{maidl2014tl}.
+catch errors at compile-time. 
 
-In this paper, we give a formal basis to an updated version of that design, with a focus on novel type system features
-that Typed Lua uses to type some tricky Lua idioms.
-One of these idioms is the use of assignment to
-build records and objects one field at a time, as in
-the following example, where the {\tt newpoint} function
+In this paper, we give a formal basis to an updated version of Typed Lua's original design, with a focus on two novel type system
+features that Typed Lua uses to type some tricky Lua idioms.
+The lack of standard policies is a challenge for the design of
+an optional type system for Lua. For this reason, the design
+of Typed Lua has been informed by a mostly automated survey
+of Lua idioms used by a large corpus of Lua libraries.
+This paper also presents the methodology of this survey and
+a summary of its results.
+
+The first idioms that we focus on this paper is the use of assignment to build records and objects one field at a time, as in
+the Lua fragment in Figure~\ref{fig:newpoint}, where the {\tt newpoint} function
 is a constructor for objects with {\tt x} and {\tt y}
-fields and a {\tt move} method:
+fields and a {\tt move} method.
+
+\begin{figure}[t]
+\label{fig:newpoint}
 \begin{verbatim}
   function new_point(x, y)
     local point = {}
@@ -187,17 +183,23 @@ fields and a {\tt move} method:
     return point
   end
 \end{verbatim}
+\caption{Building an object piece-by-piece}
+\end{figure}
 
-The constructor function builds the object piece-by-piece,
+The {\tt newpoint} function builds the object piece-by-piece,
 from an initially empty table. Typed Lua
 lets record and object types evolve incrementally 
 via assignment while not sacrificing width subtyping.
 
-Another idiom combines overloading on the return values
-of a function, multiple return values, multiple assignment
+The other idiom that we focus on combines overloading on the return values of a function, multiple return values, multiple assignment
 to decompose multiple return values,
-and tag checks to discriminate a several returned values
-by checking just one of them, as in the following example:
+and tag checks to discriminate several returned values
+by checking just one of them. The Lua fragment in Figure~\ref{fig:over} shows a function with overloaded multiple
+returns, and how a caller of this function can discriminate
+which list of multiple values the function returned.
+
+\begin{figure}[t]
+\label{fig:over}
 \begin{verbatim}
   function idiv(x, y)
     if y == 0 then
@@ -214,6 +216,8 @@ by checking just one of them, as in the following example:
     error(r)
   end
 \end{verbatim}
+\caption{Overloading on multiple returns}
+\end{figure}
 
 In the {\tt then} branch it is guaranteed that both {\tt q}
 and {\tt r} are integers, and in the {\bf else} branch it is
@@ -221,25 +225,17 @@ guaranteed that {\tt q} is {\tt nil} and {\tt r} is a string.
 In Typed Lua, the return type of {\tt idiv} can be a union of
 tuples describing the possible return values. Typed Lua deconstructs unions of tuples in a way that the dependencies between the types of each value in the tuple can be tracked.
 
-The lack of standard policies is a challenge for the design of
-an optional type system for Lua. For this reason, the design
-of Typed Lua has been informed by a mostly automated survey
-of Lua idioms used by a large corpus of Lua libraries.
-This paper also presents the methodology of this survey and
-a summary of its results.
-
-The rest of the paper is organized as follows:
+The remainder of the paper is organized as follows:
 Section \ref{sec:statistics} presents the methodology and results of
 our survey of Lua idioms;
 Section \ref{sec:types} presents the types of Typed Lua's
 type system; Section~\ref{sec:subtyping} presents
 their subtyping and consistent-subtyping relations;
-Section \ref{sec:rules} presents the typing rules for evolution of table types,
-and the typing rules for destructuring unions of tuples into projection types,
-allowing flow typing on these projections;
+Section \ref{sec:rules} presents the typing rules
+for the two idioms that we focus on this paper;
 Section \ref{sec:related} reviews related work;
 Section \ref{sec:conclusion} presents our conclusions,
-and outlines our plans for future work.
+and outlines plans for future work.
 
 \section{A Survey of Lua Idioms}
 \label{sec:statistics}
@@ -268,8 +264,8 @@ Our first analysis surveyed table constructors (expressions
 that create and initialize a table) to find out how a table
 begins its life. Of all of the 23,185 table constructors of
 our corpus, 36\% of them create a record (a table with string
-keys such as \texttt{\{ x = 120, y = 121 \}}), 29\% of them create
-a list or a tuple (a table with consecutive integer keys such as \texttt{\{ "one", "two", "three", "four" \}}), 26\% of them create an empty table, and 8\% of them create a table with
+keys such as \texttt{\{x = 1, y = 2\}}), 29\% of them create
+a list or a tuple (a table with consecutive integer keys such as \texttt{\{"one", "two", "three", "four"\}}), 26\% of them create an empty table, and 8\% of them create a table with
 both a record part and a list part. The remaining 1\% of them create a table with non-literal keys.
 
 We also analysed expressions that access a table (130,448 instances), either to read a value out of it (86\% of such expressions) or to write a 
@@ -360,8 +356,6 @@ tuples after a destructuring assignment.
 \label{sec:types}
 
 \begin{figure*}[!ht]
-\textbf{Type Language}\\
-\dstart
 $$
 \begin{array}{rlr}
 T ::= & & \textsc{first-level types:}\\
@@ -400,11 +394,10 @@ S ::= & & \textsc{second-level types:}\\
 P ::= & & \textsc{{\small tuple types:}}\\
 %& \;\; \Void & \textit{void type}\\
 & | \; F{*} & \textit{variadic types}\\
-& | \; F \times P & \textit{pair types}
+& | \; T \times P & \textit{pair types}
 \end{array}
 $$
-\dend
-\caption{The abstract syntax of Typed Lua types}
+\caption{Type Language}
 \label{fig:typelang}
 \end{figure*}
 
@@ -462,20 +455,22 @@ guaranteed that every key belongs to one of the {\em key
 types} $K_i$. We restrict key types to literal types,
 base types, and the top type to make the system simpler
 for the user, as our survey of Lua programs showed that
-this restriction reflects the way Lua tables are used.
+this restriction reflects the way Lua tables are commonly used.
+
 Fields are assignable by default, but can be marked
 as non-assignable with the {\bf const} qualifier. Having
 a field be {\bf const} is not a guarantee that its
 value cannot change, as the table may have aliases with
-a non-{\bf const} type for that field.
+a non-{\bf const} type for that field. Non-assignable
+fields enable {\em depth subtyping} between table types.
 
 The difference between {\em unique}, {\em open} and
 {\em fixed} tables is the guarantees that the type system
-give about the reference to a value of that type. A reference
+gives about the reference to a value of that type. A reference
 to an {\em unique} table is guaranteed to have no aliases,
-so allows the greater flexibility in reinterpreting its type;
+so it allows greater flexibility in reinterpreting its type;
 a reference to an {\em open} table is guaranteed to have
-only {\em closed} aliases (we will explain the the meaning of the {\em closed} tag shortly), which still lets the type system
+only {\em closed} aliases (we will explain the meaning of the {\em closed} tag shortly), which still lets the type system
 reinterpret the type of a reference, but with more
 restrictions; a {\em fixed} table can have any number of {\em fixed} or {\em closed} aliases, so its type cannot change
 anymore.
@@ -532,24 +527,34 @@ The consistent-subtyping relation is defined in terms
 of subtyping, so we focus the discussion in this section
 on characterising the subtyping relation.
 
-We present the subtyping rules as a deduction system for the
+The subtyping rules are a deduction system for the
 subtyping relation $\senv \vdash t_{1} \subtype t_{2}$.
 The variable $\senv$ is a set of subtyping assumptions used
-by the subtyping relation between recursive types.
+by the subtyping relation between recursive types. 
+Most of the subtyping rules are standard, so we will
+focus on the interesting cases.
 
-Most of the subtyping rules are standard; we will focus
-on the interesting cases, involving second-level types and
-table types.
-
-Tuple types are covariant, so the subtyping rule for pair types is straightforward:
+\begin{figure}
+\label{fig:subtuples}
 \[
 \begin{array}{c}
-\mylabel{S-PAIR}\\
-\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
-       \senv \vdash P_{1} \subtype P_{2}}
-      {\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
-\end{array}
+
 \]
+\caption{Subtyping for second-level types}	
+\end{figure}
+
+Figure~\ref{fig:subtuples} shows the subtyping rules for
+second-level types. 
+Tuple types are covariant, so the subtyping rule for pair types is straightforward:
+
+%\[
+%\begin{array}{c}
+%\mylabel{S-PAIR}\\
+%\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
+%       \senv \vdash P_{1} \subtype P_{2}}
+%      {\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
+%\end{array}
+%\]
 
 The semantics of Lua lets the right-hand side of an assignment
 produce more values than l-values in the left-hand side,
