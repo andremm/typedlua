@@ -171,20 +171,20 @@ In this paper, we give a formal basis to an updated version of that design, with
 that Typed Lua uses to type some tricky Lua idioms.
 One of these idioms is the use of assignment to
 build records and objects one field at a time, as in
-the following example, where the {\tt newshape} function
+the following example, where the {\tt newpoint} function
 is a constructor for objects with {\tt x} and {\tt y}
 fields and a {\tt move} method:
 \begin{verbatim}
-  function new_shape(x, y)
-    local shape = {}
-    shape.x = x
-    shape.y = y
-    function shape:move(dx, dy)
+  function new_point(x, y)
+    local point = {}
+    point.x = x
+    point.y = y
+    function point:move(dx, dy)
       self.x = self.x + dx
       self.y = self.y + dy
       return self
     end
-    return shape
+    return point
   end
 \end{verbatim}
 
