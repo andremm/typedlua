@@ -1000,76 +1000,25 @@ its use in Section~\ref{sec:projections}.
 \subsection{Tables and Evolution of Table Types}
 \label{sec:tables}
 
-Our abstract syntax reduces the syntactic forms of the table constructor
-into two forms: $\{\;\overline{[e_{1}] = e_{2}}\;\}$ and
-$\{\;\overline{[e_{1}] = e_{2}},me\;\}$.
-The first uses a list of table fields $([e_{1}] = e_{2})_{1}, ..., ([e_{1}] = e_{2})_{n}$.
-The second uses a list of table fields and an expression that can
-produce multiple values.
-
-The simplest expression involving tables in the empty table constructor.
-Its type checking rule is straightforward:
-\[
-\begin{array}{c}
-\mylabel{T-CONSTRUCTOR-EMPTY}\\
-\env_{1}, \penv \vdash \{\}:\{\}_{unique}, \env_{1}
-\end{array}
-\]
-
-As a more interesting example, let us see how our type system type checks
-the table constructor $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$.
-
-First, our type system uses the auxiliary relation
-$\env_{1}, \penv \vdash [e_{1}] = e_{2} : (K,V), \env_{2}$ to type check each
-table field.
-This auxiliary relation means that given a type environment $\env_{1}$
-and a projection environment $\penv$, checking a table field $[e_{1}] = e_{2}$
-produces a pair $(K,V)$ and a new type environment $\env_{2}$.
-A pair $(K,V)$ means that $e_{1}$ has type $K$ and $e_{2}$ has type $V$,
-where $K$ is the type of the key and $V$ is the type of the value.
-
-After type checking each table field, our type system uses each pair $(K,V)$
-to build the table type that express the type of a given constructor, and
-uses the predicate \emph{wf} to check whether this table type is well-formed.
-Formally, a table type is well-formed if it obeys the following rule:
-\[
-\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
-\]
-
-Well-formed table types avoid ambiguity.
-For instance, this rule detects that the table type
-$\{1:\Number, \Integer:\String, \Any:\Boolean\}$ is ambiguous,
-because the type of the value stored by key $1$ can be
-$\Number$, $\String$, or $\Boolean$, as $1 \lesssim 1$,
-$1 \lesssim \Integer$, and $1 \lesssim \Any$.
-Moreover, the type of the value stored by a key of type $\Integer$,
-which is not the literal type $1$, can be $\Number$ or $\Boolean$,
-as $\Integer \lesssim \Integer$, and $\Integer \lesssim \Any$.
-
-Well-formed table types also do not allow \emph{unique} and
-\emph{open} table types to appear in the type of the values.
-We made this restriction because our type system does not keep
-track of aliases to table fields.
-This means that allowing \emph{unique} and \emph{open} table
-types to appear in the type of a value would allow the
-creation of unsafe aliases.
-The rules that type check table fields use the auxiliary function
-\emph{close} to close the type of the values in a table type.
-
-The rule \textsc{T-CONSTRUCTOR-FIELDS} uses these steps to type check a
-table constructor with a non-empty list of table fields:
+The simplest expression involving tables is the empty
+table constructor $\{\}$. The empty table constructor always
+has type $\{\}_{unique}$. A more interesting example is $\{ [``x"] = 1, [``y"] = 2 \}$, which has type $\{ ``x":1 , ``y": 2 \}_{unique}$. The subtyping rule for {\em unique} tables lets
+us assign this table to a variable with a more general
+type such as $\{ ``x":\Number , ``y": \Number \}_{unique}$ or
+even $\{ \String:\Number \cup \Nil \}_{unique}$. We give
+the typing rule for table constructors of this form below: 
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR-FIELDS}\\
 \dfrac{\begin{array}{c}
-       \overline{\env_1, \penv \vdash e_2: V, \env_v}
-        \;\;\;
-       \overline{\env_v, \penv \vdash e_1: K, \env_f}
-        \\
-       T = \{\overline{K{:}V}\}_{unique} \;\;\;
-       \env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
-       \end{array}}
-      {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
+	\overline{\env_1, \penv \vdash e_2: fix(V), \env_v}
+	\;\;\;
+	\overline{\env_v, \penv \vdash e_1: K, \env_f}
+	\\
+	T = \{\overline{K{:}V}\}_{unique} \;\;\;
+	\env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
+	\end{array}}
+{\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
 \end{array}
 %\dfrac{\begin{array}{c}
 %	\env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
@@ -1082,14 +1031,40 @@ table constructor with a non-empty list of table fields:
 %\end{array}
 \]
 
-Back to our example, the table constructor
-$\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
-$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR-FIELDS}.
+Due to the system for changing the table type of variables that
+we will explain in this section, any expression can potentially
+change the type environment. Lua semantics does not dictate
+an order of evaluation among the pairs of field initializers,
+so all of them are typed in the same input type environment.
+The $merge$ auxiliary function then combines their output
+environments, diverging in case of conflicting changes.
 
-As another example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
-has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through rule
-\textsc{T-CONSTRUCTOR-FIEDLS}.
-The inner table is \emph{closed} to prevent the creation of unsafe aliases.
+The rule also checks if the resulting type is {\em well-formed}
+with the predicate $wf$. Formally, we define this predicate
+for table types with the following formula:
+\[
+\begin{array}{c}
+\forall i \; ((\nexists j \; i \not= j \,\wedge\, K_{i} \lesssim K_{j}) \,\wedge\, wf(V_{i}) \,\wedge\,\\ \lnot isunique(V_{i}) \,\wedge\, \lnot isopen(V_{i}))
+\end{array}
+\]
+
+Well-formed table types avoid ambiguity.
+For instance, this rule detects that the table type
+$\{1:\Number, \Integer:\String, \Any:\Boolean\}$ is ambiguous,
+because indexing it with a key of type $\Integer$ could
+yield either a number, a string or a boolean at runtime.
+
+Well-formed table types also do not allow \emph{unique} and
+\emph{open} table types to appear in the type of the values,
+and they must be well-formed. Our type system currently cannot
+track aliases of table fields, so this restriction is
+necessary. 
+
+This restriction is the reason rule {\sc T-CONSTRUCTOR-FIELDS}
+uses the auxiliary function $fix$ to change any {\em open}
+and {\em unique} table types used in the field initializer
+to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$.
 
 After presenting some typing rules of the table constructor,
 we start the discussion of the rules that define the most
