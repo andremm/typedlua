@@ -219,7 +219,7 @@ which list of multiple values the function returned.
 \caption{Overloading on multiple returns}
 \end{figure}
 
-In the {\tt then} branch it is guaranteed that both {\tt q}
+In the {\bf then} branch it is guaranteed that both {\tt q}
 and {\tt r} are integers, and in the {\bf else} branch it is
 guaranteed that {\tt q} is {\tt nil} and {\tt r} is a string.
 In Typed Lua, the return type of {\tt idiv} can be a union of
@@ -534,27 +534,42 @@ by the subtyping relation between recursive types.
 Most of the subtyping rules are standard, so we will
 focus on the interesting cases.
 
-\begin{figure}
+\begin{figure}[t]
 \label{fig:subtuples}
 \[
 \begin{array}{c}
-
+\begin{array}{c}
+\mylabel{S-Pair}\\
+\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
+	\senv \vdash P_{1} \subtype P_{2}}
+{\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
+\end{array}
+\begin{array}{c}
+\mylabel{S-Variadic}\\
+\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \cup \Nil}
+{\senv \vdash F_{1}{*} \subtype F_{2}{*}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{S-VarExpand}\\
+\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \;\;\;
+	\senv \vdash F_{1}{*} \subtype P_{2}}
+{\senv \vdash F_{1}{*} \subtype F_{2} \times P_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-VarDrop}\\
+\dfrac{\senv \vdash F_{1} \subtype F_{2} \cup \Nil \;\;\;
+	\senv \vdash P_{1} \subtype F_{2}{*}}
+{\senv \vdash F_{1} \times P_{1} \subtype F_{2}{*}}
+\end{array}
+\end{array}
 \]
 \caption{Subtyping for second-level types}	
 \end{figure}
 
 Figure~\ref{fig:subtuples} shows the subtyping rules for
 second-level types. 
-Tuple types are covariant, so the subtyping rule for pair types is straightforward:
-
-%\[
-%\begin{array}{c}
-%\mylabel{S-PAIR}\\
-%\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
-%       \senv \vdash P_{1} \subtype P_{2}}
-%      {\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
-%\end{array}
-%\]
+Tuple types are covariant, so the subtyping rule {\sc S-Pair} for pair types  is straightforward.
 
 The semantics of Lua lets the right-hand side of an assignment
 produce more values than l-values in the left-hand side,
@@ -578,173 +593,47 @@ any extra arguments can be variadic with type $\Value{*}$ as
 the tail of their parameter tuple.
 
 The remaining subtyping rules for second-level types
-reflect this semantics. Rule {\sc S-VARIADIC} states
+reflect this semantics. Rule {\sc S-Variadic} states
 that variadic types are covariant (just having $F_1{*} \subtype F_2{*}$ iff $F_1 \subtype F_2$ would be too restrictive,
-as $\Nil{*}$ would not be a subtype of $\Number{*}$):
-\[
-\begin{array}{c}
-\mylabel{S-VARIADIC}\\
-\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \cup \Nil}
-      {\senv \vdash F_{1}{*} \subtype F_{2}{*}}
-\end{array}
-\]
-
-Rules {\sc S-VAR-EXPAND} and {\sc S-VAR-DROP} state the
+as $\Nil{*}$ would not be a subtype of $\Number{*}$).
+Rules {\sc S-VarExpand} and {\sc S-VarDrop} state the
 conditions when variadic tuples of different length are
-compatible:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{S-VAR-EXPAND}\\
-\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \;\;\;
-       \senv \vdash F_{1}{*} \subtype P_{2}}
-      {\senv \vdash F_{1}{*} \subtype F_{2} \times P_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-VAR-DROP}\\
-\dfrac{\senv \vdash F_{1} \subtype F_{2} \cup \Nil \;\;\;
-       \senv \vdash P_{1} \subtype F_{2}{*}}
-      {\senv \vdash F_{1} \times P_{1} \subtype F_{2}{*}}
-\end{array}
-\end{array}
-\]
+compatible.
 
 We could have the axioms $\senv \vdash F{*} \subtype F \cup \Nil \times F{*}$ and $\senv \vdash F \cup \Nil \times F{*}  \subtype F{*}$ instead of the two rules above, which can be derived
 from these axioms by transitivity, but having the rules makes
 the subtyping relation easier to implement.
 
-We will now focus on the subtyping relation among table
-types. Subtyping between a {\em fixed} or {\em closed}
-table type and a {\em closed} table type resembles the
-standard subtyping rule between mutable records, with
-width subtyping plus depth subtyping from a mutable
-or immutable field to an immutable field:
+\begin{figure}[t]
+\label{fig:subtable}
 \[
 \begin{array}{c}
-\mylabel{S-TABLE-FC-C}\\
+\begin{array}{c}
+\mylabel{S-TableFCtoC}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..n \; \exists j \in 1..m \\
-       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
-       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
-       \senv \vdash V_{j} \subtype_{c} V_{i}'
-       \end{array}}
-      {\begin{array}{c}
-       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype\\
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}
-       \end{array}} \; m \ge n
-\end{array}
-\]
-
-Rule \textsc{S-TABLE-FC-C} uses the auxiliary relation $\subtype_{c}$ for handling depth subtyping:
-\[
+	\forall i \in 1..n \; \exists j \in 1..m \\
+	\senv \vdash K_{j} \subtype K_{i}' \;\;\;
+	\senv \vdash K_{i}' \subtype K_{j} \;\;\;
+	\senv \vdash V_{j} \subtype_{c} V_{i}'
+	\end{array}}
+{\begin{array}{c}
+	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype\\
+	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}
+	\end{array}} \; m \ge n
+\end{array}\\\\
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{S-FIELD-C-MM}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2} \;\;\;
-       \senv \vdash V_{2} \subtype V_{1}}
-      {\senv \vdash V_{1} \subtype_{c} V_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD-C-II}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash \Const \; V_{1} \subtype_{c} \Const \; V_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD-C-MI}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{c} \Const \; V_{2}}
-\end{array}
-\end{array}
-\]
-
-The subtyping relation between {\em unique} and {\em closed}
-table types is more relaxed, as the typing rules of Section~\ref{sec:tables} guarantee that a {\em unique}
-table type can only appear on the left side of a subtyping
-judgment if the reference to the table with the {\em unique}
-tag is being destroyed:
-\[
-\begin{array}{c}
-\mylabel{S-TABLE-U-C}\\
+\mylabel{S-TableUtoC}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..m \; \forall j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
-       \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
-\end{array}
-\]
-
-Rule {\sc S-TABLE-U-C} allows with subtyping, depth subtyping
-on any field, not only immutable fields, as well as the addition
-of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$.
-This rule uses the auxiliary relations $\subtype_{u}$ and $\subtype_{o}$, which respectively allow depth subtyping on all fields, and the addition of new fields:
-\[
+	\forall i \in 1..m \; \forall j \in 1..n \;
+	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
+	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\end{array}}
+{\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
+	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+\end{array}\\\\
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{S-FIELD-U-MM}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{u} V_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD-U-IM}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-{\senv \vdash \Const \; V_{1} \subtype_{u} V_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD-U-II}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash \Const \; V_{1} \subtype_{u} \Const \; V_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD-U-MI}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{u} \Const \; V_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-FIELD-O-M}\\
-\dfrac{\senv \vdash \Nil \subtype V}
-      {\senv \vdash \Nil \subtype_{o} V}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD-O-I}\\
-\dfrac{\senv \vdash \Nil \subtype V}
-      {\senv \vdash \Nil \subtype_{o} \Const \; V}
-\end{array}
-\end{array}
-\]
-
-The rationale for rule {\sc S-TABLE-U-C} derives from the
-fact that reading a non-existing key just yield $\Nil$
-instead of being an error in Lua semantics, plus the fact
-that the type system guarantees that a table with a
-{\em unique} type has no keys with a value that does not
-belong to one of its key types, and does not have any
-aliases. A table with a type $\{1{:}\String, 2{:}\String,
-``x"{:}\Integer, ``y"{:}\Value\}_{unique}$ can be safely recast as a
-table with type 
-$\{\Number{:}\String \cup \Nil, ``x"{:}\Number, ``z"{:}
-\Number \cup \Nil\}_{closed}$ as long as it cannot be
-accessed anymore with the original type.
-
-Subtyping from an {\em open} table type to a {\em closed}
-table type also allows width subtyping, merging fields,
-and adding new fields, but forbids depth subtyping between
-mutable fields or an immutable and a mutable field, as
-the typing rules guarantee that the {\em open} reference
-is destroyed, but the {\em open} table may already have {\em closed} aliases:
-\[
-\begin{array}{c}
-\mylabel{S-TABLE-O-C}\\
+\mylabel{S-TableOtoC}\\
 \dfrac{\begin{array}{c}
 	\forall i \in 1..m \; \forall j \in 1..n \;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
@@ -753,104 +642,192 @@ is destroyed, but the {\em open} table may already have {\em closed} aliases:
 	\end{array}}
 {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
 	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{S-TableUtoUOF}\\
+\dfrac{\begin{array}{c}
+	\forall i \in 1..m \\
+	\exists j \in 1..n \;
+	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
+	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\end{array}}
+{\begin{array}{c}
+	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype\\
+	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}
+	\end{array}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{S-TableOtoOF}\\
+\dfrac{\begin{array}{c}
+	\forall i \in 1..m \\
+	\exists j \in 1..n \;
+	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\end{array}}
+{\begin{array}{c}
+	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype\\
+	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}
+	\end{array}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{S-TableFtoF}\\
+\dfrac{\begin{array}{c}
+	\forall i \in 1..n \; \exists j \in 1..n \\
+	\senv \vdash K_{j} \subtype K_{i}' \;\;\;
+	\senv \vdash K_{i}' \subtype K_{j} \;\;\;
+	\senv \vdash V_{j} \subtype_{c} V_{i}'
+	\end{array}}
+{\senv \vdash \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \subtype
+	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{fixed}}
+\end{array}
 \end{array}
 \]
+\caption{Subtyping for table types}
+\end{figure}
 
-The subtyping relation from {\em unique} to {\em unique},
-{\em open} or {\em fixed} table types is still flexible, but forbids standard width subtyping, as all these table types keep the guarantee that the values of all keys in tables of these types belong to one of their key types. Merging fields and adding new fields are still allowed:
+\begin{figure}[t]
+\label{fig:subfield}
 \[
 \begin{array}{c}
-\mylabel{S-TABLE-U-UOF}\\
-\dfrac{\begin{array}{c}
-       \forall i \in 1..m \\
-       \exists j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
-       \end{array}}
-      {\begin{array}{c}
-       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype\\
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}
-       \end{array}}
-\end{array}
-\]
-
-The subtyping relation between {\em open} and {\em open} or
-{\em fixed} table types mixes the depth subtyping restrictions of rule {\sc S-TABLE-O-C} with the width subtyping restrictions of
-rule {\sc S-TABLE-U-UOF}, but still allow merging fields and
-adding new fields:
-\[
 \begin{array}{c}
-\mylabel{S-TABLE-O-OF}\\
-\dfrac{\begin{array}{c}
-       \forall i \in 1..m \\
-       \exists j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
-       \end{array}}
-      {\begin{array}{c}
-       \senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype\\
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}
-       \end{array}}
+\mylabel{S-FieldClsMtoM}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2} \;\;\;
+	\senv \vdash V_{2} \subtype V_{1}}
+{\senv \vdash V_{1} \subtype_{c} V_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FieldClsItoI}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash \Const \; V_{1} \subtype_{c} \Const \; V_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FieldClsMtoI}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash V_{1} \subtype_{c} \Const \; V_{2}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{S-FieldUnqMtoM}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash V_{1} \subtype_{u} V_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FieldUnqItoM}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash \Const \; V_{1} \subtype_{u} V_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FieldUnqItoI}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash \Const \; V_{1} \subtype_{u} \Const \; V_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FieldUnqMtoI}\\
+\dfrac{\senv \vdash V_{1} \subtype V_{2}}
+{\senv \vdash V_{1} \subtype_{u} \Const \; V_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
+\mylabel{S-FieldOpnNtoM}\\
+\dfrac{\senv \vdash \Nil \subtype V}
+{\senv \vdash \Nil \subtype_{o} V}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FieldOpnNtoI}\\
+\dfrac{\senv \vdash \Nil \subtype V}
+{\senv \vdash \Nil \subtype_{o} \Const \; V}
+\end{array}
 \end{array}
 \]
+\caption{Subtyping for fields}
+\end{figure}
 
-Finally, the subtyping relation between {\em fixed} table
-types is the more restrictive, and does not allow width
+Figure~\ref{fig:subtable} shows the subtyping rules for
+table types. These rules use the auxiliary relations
+$\subtype_{c}$, $\subtype_{u}$, and $\subtype_{o}$
+shown in Figure~\ref{fig:subfield} to handle depth
+subtyping where applicable.
+
+Rule {\sc S-TableFCtoC} for subtyping
+between a {\em fixed} or {\em closed}
+table type and a {\em closed} table type resembles the
+standard subtyping rule between mutable records, with
+width subtyping plus depth subtyping from a mutable
+or immutable field to an immutable field.
+
+Rule {\sc S-TableUtoC} for subtyping between {\em unique} and {\em closed} table types is more permissive, as the typing rules of Section~\ref{sec:tables} guarantee that a {\em unique}
+table type can only appear on the left side of a subtyping
+judgment if the reference to the table with the {\em unique}
+tag is being destroyed. This rule allows with subtyping, depth subtyping on any field, not only immutable fields, as well as the addition of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$. 
+
+The rationale for the permissiveness of rule {\sc S-TableUtoC} derives from the fact that reading a non-existing key just yields $\Nil$ instead of being an error in Lua semantics, plus the fact
+that the type system guarantees that a table with a
+{\em unique} type has no keys with a value that does not
+belong to one of its key types, and does not have any
+aliases. With these guarantess, a table with type $\{1{:}\String, 2{:}\String,
+``x"{:}\Integer, ``y"{:}\Value\}_{unique}$ can be safely recast as a table with type 
+$\{\Number{:}\String \cup \Nil, ``x"{:}\Number, ``z"{:}
+\Number \cup \Nil\}_{closed}$ as long as it becomes
+inaccessible with the original type, which Section~\ref{sec:tables} will show that is the case
+for any type judgement where this subtyping rule is used.
+
+Rule {\sc S-TableOtoC} for subtyping from an {\em open} table type to a {\em closed} table type also allows width subtyping, merging fields, and adding new fields, but forbids depth subtyping between mutable fields or an immutable and a mutable field, as the typing rules guarantee that the {\em open} reference
+is destroyed, but the {\em open} table may already have {\em closed} aliases.
+
+Rule {\sc S-TableUtoUOF} for subtyping from {\em unique} to {\em unique}, {\em open} or {\em fixed} table types is still permissive, but forbids standard width subtyping, as all these table types keep the guarantee that the values of all keys in tables of these types belong to one of their key types. Merging fields and adding new fields are still allowed.
+
+Rule {\sc S-TableOtoOF} for subtyping from {\em open} to {\em open} or {\em fixed} table types mixes the depth subtyping restrictions of rule {\sc S-TableOtoC} with the width subtyping restrictions of rule {\sc S-TableUtoUOF}, but still allows merging fields and adding new fields.
+
+Finally, rule {\sc S-TableFtoF} for subtyping between {\em fixed} table types is the most restrictive, and does not allow width
 subtyping, merging fields, or adding fields, just standard
-depth subtyping:
-\[
-\begin{array}{c}
-\mylabel{S-TABLE-F-F}\\
-\dfrac{\begin{array}{c}
-       \forall i \in 1..n \; \exists j \in 1..n \\
-       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
-       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
-       \senv \vdash V_{j} \subtype_{c} V_{i}'
-       \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{fixed}}
-\end{array}
-\]
+depth subtyping.
 
 We will revisit the subtyping rules among table types on
 Section~\ref{sec:tables}.
 
-Subtyping between two recursive types uses the \emph{Amber rule}~\cite{cardelli1986amber}:
+\begin{figure}[t]
+\label{fig:subrec}
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{S-AMBER}\\
+\mylabel{S-Amber}\\
 \dfrac{\senv[x_{1} \subtype x_{2}] \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash \mu x_{1}.T_{1} \subtype \mu x_{2}.T_{2}}
+{\senv \vdash \mu x_{1}.T_{1} \subtype \mu x_{2}.T_{2}}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-ASSUMPTION}\\
+\mylabel{S-Assumption}\\
 \dfrac{x_{1} \subtype x_{2} \in \senv}
-      {\senv \vdash x_{1} \subtype x_{2}}
-\end{array}
-\end{array}
-\]
-
-Subtyping between a recursive type and a non-recursive type, or
-vice-versa, uses a pair of rules that unfold the recursive type:
-\[
+{\senv \vdash x_{1} \subtype x_{2}}
+\end{array}\\\\
 \begin{array}{c}
-\begin{array}{c}
-\mylabel{S-UNFOLD-R}\\
+\mylabel{S-UnfoldRight}\\
 \dfrac{\senv \vdash T_{1} \subtype [x \mapsto \mu x.T_{2}]T_{2}}
-      {\senv \vdash T_{1} \subtype \mu x.T_{2}}
+{\senv \vdash T_{1} \subtype \mu x.T_{2}}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-UNFOLD-L}\\
+\mylabel{S-UnfoldLeft}\\
 \dfrac{\senv \vdash [x \mapsto \mu x.T_{1}]T_{1} \subtype T_{2}}
-      {\senv \vdash \mu x.T_{1} \subtype T_{2}}
+{\senv \vdash \mu x.T_{1} \subtype T_{2}}
 \end{array}
 \end{array}
 \]
+\caption{Subtyping for recursive types}
+\end{figure}
+
+Figure~\ref{fig:subrec} shows the subtyping rules for
+recursive types. Rule {\sc S-Amber} is the \emph{Amber rule}~\cite{cardelli1986amber} for subtyping between
+two recursive types. Rules {\sc S-UnfoldRight} and {\sc S-UnfoldLeft} unfold the recursive type for establishing
+subtyping between a non-recursive and a recursive type,
+or vice-versa.
 
 The dynamic type $\Any$ is only a subtype of itself and of
 $\Value$, and no type except $\Any$ is a subtype of $\Any$.
@@ -888,8 +865,6 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \label{sec:rules}
 
 \begin{figure*}[!ht]
-	\textbf{Abstract Syntax}\\
-	\dstart
 	$$
 	\begin{array}{rlr}
 	s ::= & & \textsc{statements:}\\
@@ -949,8 +924,7 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 	\overline{id{:}T},{...}{:}T & \\
 	\end{array}
 	$$
-	\dend
-	\caption{The abstract syntax of Core Typed Lua}
+	\caption{Abstract Syntax}
 	\label{fig:syntax}
 \end{figure*}
 
@@ -1468,31 +1442,19 @@ to denote errors, returning a {\tt nil} result and
 an error message in case of an error instead of the
 usual return values.
 
-As an example, consider again the integer division function
-from Section~1, which returns the quotient and rest of integer
-division, or a division by zero error, now statically typed:
-\begin{verbatim}
-  local function idiv(x : integer, y : integer):
-        (integer, integer) | (nil, string)
-    if divisor == 0 then
-      return nil, "division by zero"
-    else
-      return x // y, x % y
-    end 
-  end
-\end{verbatim}
+As an example, consider again the {\tt idiv} function
+from Figure~\ref{fig:over}, which returns the quotient and rest of integer division, or a division by zero error. In Typed Lua, we can give a return type $(\Integer \times \Integer \times \Nil*) \sqcup (\Nil \times \String \times \Nil{*})$ to that function. 
 
-The return type of this function is
-$(\Integer \times \Integer \times \Nil*) \sqcup (\Nil \times \String \times \Nil{*})$. The idiom for using this such
-a function is to test the first returned value:
-\begin{verbatim}
-  local q, r = idiv(a, b)
-  if q then
-    -- assume q and r are integers
-  else 
-    -- assume q is nil r is a string
-  end
-\end{verbatim}
+As is also shown in Figure~\ref{fig:over}, the idiom for using such
+a function is to test the first returned value. We
+can translate that code to the abstract syntax of
+Figure~\ref{fig:syntax}, leaving placeholders for
+the body of the {\bf then} and {\bf else} branches:
+\begin{center}
+	\begin{tabular}{ll}
+		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in} \, \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
+	\end{tabular}
+\end{center}
 
 A standard way of decomposing the union in the assignment
 would let the type of {\tt q} be $\Integer \times \Nil$ and
@@ -1512,20 +1474,13 @@ the i-th components of all the tuples in the union of tuple types
 denoted by the label $x$. Unions of tuple types referenced by projections are kept in their own {\em projection environment} $\Pi$. A fresh label is generated whenever the last term
 in an expression list has a union of tuple types as its type.
 
-Before introducing the typing rules for projections, let us translate the example above into the abstract syntax of Figure~\ref{fig:syntax}:
-\begin{center}
-	\begin{tabular}{ll}
-		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(1, 2) \, \mathbf{in} \, \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
-	\end{tabular}
-\end{center}
-
-Notice that the local variables $q$ and $r$ are declared without 
+Notice that in the above example the local variables $q$ and $r$ are declared without 
 an explicit type. The rule for typing this {\bf local} statement,
-{\sc T-LOCAL-UN}, introduces a new label in the projection
+{\sc T-LocalProj}, introduces a new label in the projection
 environment used for typing the {\bf if} statement:
 \[
 \begin{array}{c}
-\mylabel{T-LOCAL-UN}\\
+\mylabel{T-LocalProj}\\
 \dfrac{\begin{array}{c}
 	\env_{1}, \penv \vdash el:T_1 \times \ldots T_n \times P, \env_{2}, (x,S)\\
 	\env_{3} = \env_{2}[id_{1} \mapsto T_1, \ldots, id_{n} \mapsto T_n]\\
@@ -1540,10 +1495,10 @@ The first judgement above the bar uses the auxiliary typing relation $\env_{1}, 
 This rule does the work of generating a fresh projection label,
 and projection types associated with it, if the last term of
 the expression list has a union of tuple types as its type,
-as rule {\sc T-EXPLIST-PROJ} below shows:
+as rule {\sc T-ExpListProj} below shows:
 \[
 \begin{array}{c}
-\mylabel{T-EXPLIST-PROJ}\\
+\mylabel{T-ExpListProj}\\
 \dfrac{\begin{array}{c}
 	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
 	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
@@ -1554,17 +1509,17 @@ as rule {\sc T-EXPLIST-PROJ} below shows:
 \end{array}
 \]
 
-In our example, the two rules combined will bind $x$ to
+In the above example, the combination of these two rules will bind $x$ to
 $(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})$ in the projection environment $\Pi$,
 and $q$ and $r$ respectively to $\pi_{1}^{x}$ and $\pi_{2}^{x}$
 in the type environment used for typing the {\bf if} statement.
 
 At this point, using $q$ or $r$ as an r-value will project
 their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. But the more interesting case is inside the
-branches of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-PROJ} below, which uses flow typing:
+branches of the {\bf if} statement. The particular uses the rule {\sc T-IfFilterNilProj} below, which uses flow typing:
 \[
 %\begin{array}{c}
-%\mylabel{T-IF-FNIL-PROJ}\\
+%\mylabel{T-IfFilterNilProj}\\
 %\dfrac{\begin{array}{c}
 %       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
 %       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
@@ -1575,7 +1530,7 @@ branches of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-
 %      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
 %\end{array}
 \begin{array}{c}
-\mylabel{T-IF-FNIL-PROJ}\\
+\mylabel{T-IfFilterNilProj}\\
 \dfrac{\begin{array}{c}
        \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
        \env_{1}, \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
@@ -1586,7 +1541,7 @@ branches of the {\bf if} statement. The particular uses the rule {\sc T-IF-FNIL-
 \end{array}
 \]
 
-Rule \textsc{T-IF-FNIL-PROJ} uses the auxiliary functions \emph{fpt} and \emph{gpt}
+Rule \textsc{T-IfFilterNilProj} uses the auxiliary functions \emph{fpt} and \emph{gpt}
 to filter a projection $x$. Function {\em fpt} filters out $\Nil$ from the i-th
 component of each tuple, removing the entire tuple if the i-th
 component does not exist, or is $\Nil$ itself. Function {\em gpt}
