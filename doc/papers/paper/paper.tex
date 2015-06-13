@@ -179,7 +179,6 @@ is a constructor for objects with {\tt x} and {\tt y}
 fields and a {\tt move} method.
 
 \begin{figure}[t]
-\label{fig:newpoint}
 \begin{verbatim}
   function new_point(x, y)
     local point = {}
@@ -194,6 +193,7 @@ fields and a {\tt move} method.
   end
 \end{verbatim}
 \caption{Building an object piece-by-piece}
+\label{fig:newpoint}
 \end{figure}
 
 The {\tt newpoint} function builds the object piece-by-piece,
@@ -209,7 +209,6 @@ returns, and how a caller of this function can discriminate
 which list of multiple values the function returned.
 
 \begin{figure}[t]
-\label{fig:over}
 \begin{verbatim}
   function idiv(x, y)
     if y == 0 then
@@ -227,6 +226,7 @@ which list of multiple values the function returned.
   end
 \end{verbatim}
 \caption{Overloading on multiple returns}
+\label{fig:over}
 \end{figure}
 
 In the {\bf then} branch it is guaranteed that both {\tt q}
@@ -382,7 +382,7 @@ F ::= & & \textsc{{\small first-class types:}}\\
 & | \; \Self & \textit{self type}\\
 & | \; F_{1} \cup F_{2} & \textit{union types}\\
 & | \; S_{1} \rightarrow S_{2} & \textit{function types}\\
-& | \; \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open|fixed|closed} & \textit{table types}\\
+& | \; \{\overline{K:V}\}_{unique|open|fixed|closed} & \textit{table types}\\
 & | \; x & \textit{type variables}\\
 & | \; \mu x.F & \textit{recursive types}\\
 %\multicolumn{3}{c}{}\\
@@ -550,7 +550,6 @@ Most of the subtyping rules are standard, so we will
 focus on the interesting cases.
 
 \begin{figure}[t]
-\label{fig:subtuples}
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -580,6 +579,7 @@ focus on the interesting cases.
 \end{array}
 \]
 \caption{Subtyping for second-level types}	
+\label{fig:subtuples}
 \end{figure}
 
 Figure~\ref{fig:subtuples} shows the subtyping rules for
@@ -620,90 +620,91 @@ from these axioms by transitivity, but having the rules makes
 the subtyping relation easier to implement.
 
 \begin{figure}[t]
-\label{fig:subtable}
 \[
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-TableFCtoC}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..n \; \exists j \in 1..m \\
-	\senv \vdash K_{j} \subtype K_{i}' \;\;\;
-	\senv \vdash K_{i}' \subtype K_{j} \;\;\;
-	\senv \vdash V_{j} \subtype_{c} V_{i}'
+	\forall j \; \exists i \;\;\;
+	\senv \vdash K_{i} \subtype K_{j}' \;\
+	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash V_{i} \subtype_{c} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype\\
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}
-	\end{array}} \; m \ge n
+	\senv \vdash \{\overline{K:V}\}_{fixed|closed} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{closed}
+	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableUtoC}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..m \; \forall j \in 1..n \;
+	\forall i \; \forall j \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\forall j  \; \nexists i \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
-{\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+{\senv \vdash \{\overline{K:V}\}_{unique} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{closed}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableOtoC}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..m \; \forall j \in 1..n \;
+	\forall i \; \forall j \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
-	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\forall j \; \nexists i \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
-{\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+{\senv \vdash \{\overline{K:V}\}_{open} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{closed}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableUtoUOF}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..m \\
-	\exists j \in 1..n \;
+	\forall i \; \exists j \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\forall j  \; \nexists i \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype\\
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}
+	\senv \vdash \{\overline{K:V}\}_{unique} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{unique|open|fixed}
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableOtoOF}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..m \\
-	\exists j \in 1..n \;
+	\forall i \; \exists j \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
-	\forall j \in 1..n \; \not\exists i \in 1..m \;
+	\forall j \; \nexists i \;\;\;
 	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype\\
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}
+	\senv \vdash \{\overline{K:V}\}_{open} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{open|fixed}
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableFtoF}\\
 \dfrac{\begin{array}{c}
-	\forall i \in 1..n \; \exists j \in 1..n \\
-	\senv \vdash K_{j} \subtype K_{i}' \;\;\;
-	\senv \vdash K_{i}' \subtype K_{j} \;\;\;
-	\senv \vdash V_{j} \subtype_{c} V_{i}'
+	\forall j \; \exists i \;\;\;
+	\senv \vdash K_{i} \subtype K_{j}' \;
+	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash V_{i} \subtype_{c} V_{j}'\\
+	\forall i \; \exists j \;\;\;
+	\senv \vdash K_{i} \subtype K_{j}' \;
+	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash V_{i} \subtype_{c} V_{j}'\\
 	\end{array}}
-{\senv \vdash \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \subtype
-	\{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{fixed}}
+{\senv \vdash \{\overline{K:V}\}_{fixed} \subtype
+	\{\overline{K^\prime:V^\prime}\}_{fixed}}
 \end{array}
 \end{array}
 \]
 \caption{Subtyping for table types}
+\label{fig:tablesub}
 \end{figure}
 
 \begin{figure}[t]
-\label{fig:subfield}
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -762,9 +763,10 @@ the subtyping relation easier to implement.
 \end{array}
 \]
 \caption{Subtyping for fields}
+\label{fig:subfield}
 \end{figure}
 
-Figure~\ref{fig:subtable} shows the subtyping rules for
+Figure~\ref{fig:tablesub} shows the subtyping rules for
 table types. These rules use the auxiliary relations
 $\subtype_{c}$, $\subtype_{u}$, and $\subtype_{o}$
 shown in Figure~\ref{fig:subfield} to handle depth
@@ -808,7 +810,6 @@ We will revisit the subtyping rules among table types on
 Section~\ref{sec:tables}.
 
 \begin{figure}[t]
-\label{fig:subrec}
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -836,7 +837,72 @@ Section~\ref{sec:tables}.
 \end{array}
 \]
 \caption{Subtyping for recursive types}
+\label{fig:subrec}
 \end{figure}
+
+\begin{figure*}[t]
+	$$
+	\begin{array}{rlr}
+	s ::= & & \textsc{statements:}\\
+	& \;\; \mathbf{skip} & \textit{skip}\\
+	& | \; s_{1} \; ; \; s_{2} & \textit{sequence}\\
+	& | \; \overline{l} = el & \textit{multiple assignment}\\
+	& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
+	| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
+	& | \; \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+	& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
+	& | \; \mathbf{rec} \; id{:}F = f \; \mathbf{in} \; s & \textit{recursive function} \\
+	& | \; \mathbf{return} \; el & \textit{return} \\
+	& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
+	& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
+	e ::= & & \textsc{expressions:}\\
+	& \;\; \mathbf{nil} & \textit{nil}\\
+	& | \; k & \textit{other literals}\\
+	& | \; id & \textit{variable access}\\
+	& | \; e_{1}[e_{2}] & \textit{table access}\\
+	& | \; {<}F{>} \; id & \textit{type coercion}\\
+	& | \; f & \textit{function declaration}\\
+	& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
+	| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \textit{table constructor}\\
+	& | \; e_{1} + e_{2} \;
+	| \; e_{1} \; {..} \; e_{2} \;
+	| \; e_{1} == e_{2} \;
+	| \; e_{1} < e_{2} & \textit{binary operations}\\
+	& | \; e_{1} \;\&\; e_{2} \;
+	| \; e_{1} \; \mathbf{and} \; e_{2} \;
+	| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
+	& | \; \mathbf{not} \; e \;
+	| \; \# \; e & \textit{unary operations} \\
+	& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
+	l ::= & & \textsc{left-hand values:}\\
+	& \;\; id_{l} & \textit{variable assignment}\\
+	& | \; e_{1}[e_{2}] & \textit{table assignment}\\
+	& | \; id[k] \; {<}V{>} & \textit{type coercion}\\
+	k ::= & & \textsc{literal constants:}\\
+	& \;\; \mathbf{false} \; | \;
+	\mathbf{true} \; | \;
+	{\it int} \; | \;
+	{\it float} \; | \;
+	{\it string} & \\
+	el ::= & & \textsc{expression lists:}\\
+	& \;\; \overline{e} \; | \;
+	\overline{e}, me & \\
+	me ::= & & \textsc{multiple results:}\\
+	& \;\; a & \textit{application}\\
+	& | \; {...} & \textit{vararg expression}\\
+	a ::= & & \textsc{applications:}\\
+	& \;\; e(el) & \textit{function application}\\
+	& | \; e{:}n(el) & \textit{method application}\\
+	f ::= & & \textsc{function declarations:}\\
+	& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
+	pl ::= & & \textsc{parameter lists:}\\
+	& \;\; \overline{id{:}F} \; | \;
+	\overline{id{:}F},{...}{:}F & \\
+	\end{array}
+	$$
+	\caption{Abstract Syntax}
+	\label{fig:syntax}
+\end{figure*}
 
 Figure~\ref{fig:subrec} shows the subtyping rules for
 recursive types. Rule {\sc S-Amber} is the \emph{Amber rule}~\cite{cardelli1986amber} for subtyping between
@@ -879,68 +945,48 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \section{Typing rules}
 \label{sec:rules}
 
-\begin{figure*}[!ht]
-	$$
-	\begin{array}{rlr}
-	s ::= & & \textsc{statements:}\\
-	& \;\; \mathbf{skip} & \textit{skip}\\
-	& | \; s_{1} \; ; \; s_{2} & \textit{sequence}\\
-	& | \; \overline{l} = el & \textit{multiple assignment}\\
-	& | \; \mathbf{while} \; e \; \mathbf{do} \; s \;
-	| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
-	& | \; \mathbf{local} \; \overline{id{:}T} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
-	& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
-	& | \; \mathbf{rec} \; id{:}T = f \; \mathbf{in} \; s & \textit{recursive function} \\
-	& | \; \mathbf{return} \; el & \textit{return} \\
-	& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
-	& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
-	e ::= & & \textsc{expressions:}\\
-	& \;\; \mathbf{nil} & \textit{nil}\\
-	& | \; k & \textit{other literals}\\
-	& | \; id & \textit{variable access}\\
-	& | \; e_{1}[e_{2}] & \textit{table access}\\
-	& | \; {<}T{>} \; id & \textit{type coercion}\\
-	& | \; f & \textit{function declaration}\\
-	& | \; \{ \; \overline{[e_{1}] = e_{2}} \; \} \;
-	| \; \{ \; \overline{[e_{1}] = e_{2}},me \; \} & \textit{table constructor}\\
-	& | \; e_{1} + e_{2} \;
-	| \; e_{1} \; {..} \; e_{2} \;
-	| \; e_{1} == e_{2} \;
-	| \; e_{1} < e_{2} & \textit{binary operations}\\
-	& | \; e_{1} \;\&\; e_{2} \;
-	| \; e_{1} \; \mathbf{and} \; e_{2} \;
-	| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
-	& | \; \mathbf{not} \; e \;
-	| \; \# \; e & \textit{unary operations} \\
-	& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
-	l ::= & & \textsc{left-hand values:}\\
-	& \;\; id_{l} & \textit{variable assignment}\\
-	& | \; e_{1}[e_{2}] & \textit{table assignment}\\
-	& | \; id[k] \; {<}T{>} & \textit{type coercion}\\
-	k ::= & & \textsc{literal constants:}\\
-	& \;\; \mathbf{false} \; | \;
-	\mathbf{true} \; | \;
-	{\it int} \; | \;
-	{\it float} \; | \;
-	{\it string} & \\
-	el ::= & & \textsc{expression lists:}\\
-	& \;\; \overline{e} \; | \;
-	\overline{e}, me & \\
-	me ::= & & \textsc{multiple results:}\\
-	& \;\; a & \textit{application}\\
-	& | \; {...} & \textit{vararg expression}\\
-	a ::= & & \textsc{applications:}\\
-	& \;\; e(el) & \textit{function application}\\
-	& | \; e{:}n(el) & \textit{method application}\\
-	f ::= & & \textsc{function declarations:}\\
-	& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
-	pl ::= & & \textsc{parameter lists:}\\
-	& \;\; \overline{id{:}T} \; | \;
-	\overline{id{:}T},{...}{:}T & \\
-	\end{array}
-	$$
-	\caption{Abstract Syntax}
-	\label{fig:syntax}
+\begin{figure*}[t]
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-Constructor}\\
+\dfrac{\begin{array}{c}
+\overline{\env_1, \penv \vdash e_2: fix(V), \env_v}
+	\;\;\;
+	\overline{\env_v, \penv \vdash e_1: K, \env_f}
+	\\
+	T = \{\overline{K{:}V}\}_{unique} \;\;\;
+	\env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
+	\end{array}}
+{\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
+\end{array}
+\begin{array}{c}
+\mylabel{T-NewFieldUnique}\\
+\dfrac{\begin{array}{c}
+	\env_{1}(id) = \{ \overline{K:V} \}_{unique}\\
+	\env_{1}, \penv \vdash k:K^{new}, \env_{2} \;\;\;
+	\overline{K^{new} \not\lesssim K} \;\;\;
+	V^{new} = fix(V)
+	\end{array}}
+{\begin{array}{l}
+	\env_{1}, \penv \vdash id[k] {<}V{>}:V^new,
+	\env_{2}[id \mapsto \{ \overline{K{:}V}, K^{new}{:}V^{new}\}_{unique}]
+	\end{array}}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{T-IdReadClose}\\
+\dfrac{\env(id) = F}
+{\env, \penv \vdash id:close(F), \env[id \mapsto open(F)]}
+\end{array}
+\begin{array}{c}
+\mylabel{T-IdReadFix}\\
+\dfrac{\env(id) = F}
+{\env, \penv \vdash id:fix(F), \env[id \mapsto fix(F)]}
+\end{array}
+\end{array}
+\]
+\caption{Rules for Table Types}
+\label{fig:tablerules}
 \end{figure*}
 
 Figure \ref{fig:syntax} presents the abstract syntax of 
@@ -967,8 +1013,8 @@ operators are $==$ and $<$, and the only bitwise operator
 is $\&$, as all other operators have typing rules identical to
 one of these;
 \item type coercion for evolution of table types is explicit,
-with two coercion terms, the l-value $id[k] \; {<}T{>}$ for adding a field to 
-a table through assignment, and the r-value ${<}T{>} \;id$ for reinterpreting
+with two coercion terms, the l-value $id[k] \; {<}V{>}$ for adding a field to 
+a table through assignment, and the r-value ${<}F{>} \;id$ for reinterpreting
 a table type to a compatible type that is expected by the context;
 \item all function declarations are anonymous, so there is a
 statement for declaring recursive functions;
@@ -994,182 +1040,162 @@ its use in Section~\ref{sec:projections}.
 \subsection{Tables and Evolution of Table Types}
 \label{sec:tables}
 
+\begin{figure*}
+	\[
+	\begin{array}{rcl}
+	wf(\{\overline{K:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, K_{i} \lesssim K_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
+	& & \;\;\;\; \lnot tag(V_{i},unique) \,\wedge\, \lnot tag(V_{i},open))\\
+	wf(F_1 \cup F_2) & = & wf(F_1) \,\wedge\, wf(F_2) \\
+	wf(S_1 \rightarrow S_2) & = & wf(S_1) \,\wedge\, wf(S_2) \\
+	wf(\mu x.F) & = & wf(F) \\
+	wf({\bf const}\; F) & = & wf(F) \\
+	wf(\phi(F_1,F_2)) & = & wf(F_1)\,\wedge\,wf(F_2)\\
+	wf(S_1 \sqcup S_2) & = & wf(S_1) \,\wedge\, S_2\\
+	wf(F{*}) &=& wf(F) \\
+	wf(T \times P) &=& wf(T) \,\wedge\,wf(P)\\
+	wf(T) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}\\\\
+	tag(F_1 \cup F_2, t) & = & tag(F_1, t) \,\vee\, tag(F_2,t) \\
+	tag(\{\overline{K:V}\}_t, t) & = & \top\\
+	\multicolumn{3}{c}{
+		\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{other\;recusive\;cases\;are\;similar}}\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{other\;base\;cases\;are\;}\bot}\\\\
+	fix(\{\overline{K:V}\}_{unique|open}) & = &
+	\{\overline{K:V}\}_{fixed}\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}\\\\
+	merge(\overline{\env}) & = & reduce(\overline{\env}, merge2)\\
+	merge2(\env_1,\env_2) & = & \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
+	merget(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \subtype T_1\\
+	merget(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \subtype T_2\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_u V^r_i \,\vee\,V^r_i\subtype_u V^l_i \;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	merget(\{\overline{K:V^l},\overline{K^{\prime}:V^\prime}\}_{unique},
+	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
+	\{\overline{K:sup_u(V^l,V^r)},\overline{K^\prime:V^\prime},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}
+	\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_c V^r_i \,\vee\,V^r_i\subtype_c V^l_i
+		\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	merget(\{\overline{K:V^l},\overline{K^{\prime}:V^{\prime}}\}_{unique|open},
+	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) &=&
+	\{\overline{K:sup_c(V^l,V^r)},\overline{K^\prime:V^\prime},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{open}
+	\\
+	merget(T_1, T_2) & = & \bot \;\;\; \mathrm{otherwise}\\\\
+	join(\env_1,\env_2) & = & \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
+	joint(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \subtype T_1\\
+	joint(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \subtype T_2\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_u V^r_i \,\vee\,V^r_i\subtype_u V^l_i
+		\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	joint(\{\overline{K:V^l},\overline{K^{\prime}:V^{\prime}}\}_{unique},
+	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
+	\{\overline{K:sup_u(V^l,V^r)},\overline{K^\prime:V^\prime\cup\Nil},\overline{K^{\prime\prime}:V^{\prime\prime}\cup\Nil}\}_{unique}\\
+	joint(T_1, T_2) & = & \bot \;\;\; \mathrm{otherwise}\\\\
+	sup_u(V_1, V_2) & = & V_2 \;\;\; \mathrm{if}\; V_1 \subtype_u V_2\\
+	sup_u(V_1, V_2) & = & V_1 \;\;\; \mathrm{if}\; V_2 \subtype_u V_1\\
+	\end{array}
+	\]
+	\caption{Auxiliary Functions}
+\label{fig:funcs}
+\end{figure*}
+
 The simplest expression involving tables is the empty
 table constructor $\{\}$. The empty table constructor always
 has type $\{\}_{unique}$. A more interesting example is $\{ [``x"] = 1, [``y"] = 2 \}$, which has type $\{ ``x":1 , ``y": 2 \}_{unique}$. The subtyping rule for {\em unique} tables lets
 us assign this table to a variable with a more general
 type such as $\{ ``x":\Number , ``y": \Number \}_{unique}$ or
-even $\{ \String:\Number \cup \Nil \}_{unique}$. We give
-the typing rule for table constructors of this form below: 
-\[
-\begin{array}{c}
-\mylabel{T-CONSTRUCTOR-FIELDS}\\
-\dfrac{\begin{array}{c}
-	\overline{\env_1, \penv \vdash e_2: fix(V), \env_v}
-	\;\;\;
-	\overline{\env_v, \penv \vdash e_1: K, \env_f}
-	\\
-	T = \{\overline{K{:}V}\}_{unique} \;\;\;
-	\env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
-	\end{array}}
-{\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
-\end{array}
-%\dfrac{\begin{array}{c}
-%	\env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
-%	T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
-%	wf(T) \;\;\;
-%	n = |\;\overline{[e_{1}] = e_{2}}\;| \\
-%	\env_{f} = merge(\env_{1}, ..., \env_{n+1})
-%	\end{array}}
-%{\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
-%\end{array}
-\]
+even $\{ \String:\Number \cup \Nil \}_{unique}$. 
 
+Figure~\ref{fig:tablerules} presents the typing rules for table types.
+Rule {\sc T-Constructor} is the rule for constructors
+like the examples above, that
+do not end with an expression that potentially returns
+multiple values.
 Due to the system for changing the table type of variables that
 we will explain in this section, any expression can potentially
 change the type environment. Lua semantics does not dictate
 an order of evaluation among the pairs of field initializers,
 so all of them are typed in the same input type environment.
-The $merge$ auxiliary function then combines their output
+
+The $merge$ auxiliary function then combines output
 environments, diverging in case of conflicting changes.
+Fields can always be added to {\em unique} and {\em open}
+tables in one enviroment but not the other. Two environments
+can add a field with the same key, as long as they have
+the same type or one is a supertype of the other, respecting
+any restrictions with regards to depth subtyping that the table may have.  
 
-The rule also checks if the resulting type is {\em well-formed}
-with the predicate $wf$. Formally, we define this predicate
-for table types with the following formula:
-\[
-\begin{array}{c}
-\forall i \; ((\nexists j \; i \not= j \,\wedge\, K_{i} \lesssim K_{j}) \,\wedge\, wf(V_{i}) \,\wedge\,\\ \lnot isunique(V_{i}) \,\wedge\, \lnot isopen(V_{i}))
-\end{array}
-\]
-
-Well-formed table types avoid ambiguity.
-For instance, this rule detects that the table type
-$\{1:\Number, \Integer:\String, \Any:\Boolean\}$ is ambiguous,
-because indexing it with a key of type $\Integer$ could
+Rule {\sc T-Constructor} also checks if the resulting type is {\em well-formed} with the predicate $wf$. Checking for well-formedness avoids ambiguous table types like
+$\{1:\Number, \Integer:\String, \Any:\Boolean\}$,
+where indexing it with a key of type $\Integer$ could
 yield either a number, a string or a boolean at runtime.
 
 Well-formed table types also do not allow \emph{unique} and
-\emph{open} table types to appear in the type of the values,
-and they must be well-formed. Our type system currently cannot
+\emph{open} table types to appear in the type of the values.
+Our type system currently cannot
 track aliases of table fields, so this restriction is
-necessary. 
-
-This restriction is the reason rule {\sc T-CONSTRUCTOR-FIELDS}
-uses the auxiliary function $fix$ to change any {\em open}
-and {\em unique} table types used in the field initializer
-to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+necessary. This limitation of the type system is the reason the {\sc T-Constructor} rule uses the auxiliary function $fix$ to change any {\em open} and {\em unique} table types used in the field initializer to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$.
 
-After presenting some typing rules of the table constructor,
-we start the discussion of the rules that define the most
-unusual feature of our type system: the refinement of table types.
-The first kind of refinement allows programmers to add new
-fields to \emph{unique} or \emph{open} table types through
-field assignment.
-As an example, we can translate
-\begin{verbatim}
-    local person = {}
-    person.firstname = "Lou"
-    person.lastname = "Reed"
-\end{verbatim}
-to our reduced core as follows:
+There are two ways the type of a {\em unique} and {\em open} tables can change in Typed
+Lua. The first way is by assignment to a non-existing
+field. Let us go back to the example shown in Figure~\ref{fig:newpoint}. Assuming that the type of the
+$x$ and $y$ is $\Number$, we can translate the first three lines
+of function {\tt new\_point} to the abstract syntax of Figure~\ref{fig:syntax}:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; person = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$person[``firstname"] \; {<}\String{>} = ``Lou";$}\\
-& \multicolumn{1}{l}{$person[``lastname"] \; {<}\String{>} = ``Reed"$}
+\multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$point[``x"] \; {<}\Number{>} = x;$}\\
+& \multicolumn{1}{l}{$point[``y"] \; {<}\Number{>} = y$}
 \end{tabular}
 \end{center}
 
-In this example, we assign the type $\{\}_{unique}$ to the variable
-$person$, then we refine its type to $\{``firstname":\String\}_{unique}$,
-and then to $\{``firstname":\String, ``lastname":\String\}_{unique}$.
-Rule \textsc{T-NEWFIELD} type checks this use of refinement:
-\[
-\begin{array}{c}
-\mylabel{T-NEWFIELD}\\
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
-       \env_{1}, \penv \vdash k:K, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; K \lesssim K_{i} \;\;\;
-       V = close(T)
-       \end{array}}
-      {\begin{array}{l}
-       \env_{1}, \penv \vdash id[k] {<}T{>}:V, \\
-       \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]
-       \end{array}}
-\end{array}
-\]
+The expressions on the left-side of the assignment are type
+coercion l-values, and their type-checking is responsible
+for changing the type of $point$. The type annotations in
+these expressions are not
+required in actual Typed Lua code, as the compiler infers the types from the corresponding expression on the right side.
 
-We restricted the refinement of table types to include only literal
-keys, because its purpose is to make it easier the construction of
-table types that represent records.
+Rule {\sc T-NewFieldUnique} typechecks coercion l-values on
+{\em unique} table types, guaranteeing that the new type
+is still well-formed. In the example above, the left
+side of the first assignment changes the type of $point$
+to $\{``x":\Number\}_{unique}$. The rest of the assignment
+typechecks, as the right-hand side has type $\Number$.
+The second assignment changes the type of $point$ to
+$\{``x":\Number, ``y": \Number\}_{unique}$.
 
-We use the refinement of table types to handle the declaration of
-new global variables.
-In Lua, the assignment \texttt{v = v + 1} translates to
-\texttt{\string_ENV["v"] = \string_ENV["v"] + 1} when \texttt{v}
-is not a local variable, where \texttt{\string_ENV} is a table
-that stores the global environment.
-For this reason, Typed Lua treats accesses to global variables as field accesses
-to an \emph{open} table in the top-level scope.
-In the following examples we assume that $\string_ENV$ is in the
-environment and has type $\{\}_{open}$.
-
-As an example,
-\begin{align*}
-& \string_ENV[``x"] \; {<}\String{>} = ``foo" \;; \\
-& \string_ENV[``y"] \; {<}\Integer{>} = 1
-\end{align*}
-uses field assignment to add fields $``x"$ and $``y"$ to $\string_ENV$.
-Therefore, after these field assignments $\string_ENV$ has type
-$\{``x":\String, ``y":\Integer\}_{open}$.
-
-We do not allow the refinement of table types to add a field if it is
-already present in the table's type.
-For instance,
-\begin{align*}
-& \string_ENV[``x"] \; {<}\String{>} = ``foo" \;; \\
-& \string_ENV[``x"] \; {<}\Integer{>} = 1
-\end{align*}
-does not type check, as we are trying to add $``x"$ twice.
-
-We also do not allow the refinement of table types to introduce
-fields with table types that are not \emph{closed}.
-For instance,
+We could add both fields with a single assignment statement,
+as in the following example:
 \begin{center}
-\begin{tabular}{l}
-$\string_ENV[``x"] \; {<}\{\}_{unique}{>} = \{\}$
-\end{tabular}
+	\begin{tabular}{ll}
+		\multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
+		& \multicolumn{1}{l}{$point[``x"] \; {<}\Number{>},point[``y"] \; {<}\Number{>} = x,y;$}
+	\end{tabular}
 \end{center}
-refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{closed}\}_{open}$.
-Currently, our type system can only track \emph{unique} and
-\emph{open} table types that are bound to local variables.
 
-We can also use multiple assignment to refine table types:
-\[
-\string_ENV[``x"] \; {<}\String{>}, \string_ENV[``y"] \; {<}\Integer{>} = ``foo", 1
-\]
+In this case, the first coercion expression would still change the type of $point$ to $\{``x":\Number\}_{unique}$, but the
+second would change it to $\{``y":\Number\}_{unique}$.
+Merging the two yields $\{``x":\Number, ``y": \Number\}_{unique}$
+through the third case of function $merget$ defined in Figure~\ref{fig:funcs}.
 
-This example type checks because all the environment changes are consistent, and
-$``foo" \times 1 \times \Nil{*} \lesssim \String \times \Integer \times \Value{*}$.
-By consistent we mean that we are only adding new fields.
-Nevertheless, the next example does not type check because it tries to add
-the same field to $\string_ENV$, but with different types:
-\[
-\string_ENV[``x"] \; {<}\String{>}, \string_ENV[``x"] \; {<}\Integer{>} = ``foo", 1
-\]
+Open tables have a rule {\sc T-NewFieldOpen} that is not shown
+in Figure~\ref{fig:tablerules} due to space. The only thing that
+changes from one rule to the other is the tag in the type of $id$.
 
-Aliasing an \emph{unique} or an \emph{open} table type can produce
-either a \emph{closed} or a \emph{fixed} table type, depending on
-the context that we are using a variable.
-We need \emph{fixed} table types to type classes in object-oriented programming.
-In the implementation we fix the aliasing of \emph{unique} and \emph{open}
-table types that appear in a top-level return statement, and in other cases we
-close the aliasing of \emph{unique} and \emph{open} table types.
-However, in the formalization we chose to define this behavior in
-a not deterministic way, as it makes easier the presentation of this behavior.
+The type system needs to track aliasing of table references,
+as the flexibility of {\em unique} and {\em open} tables
+depend on respectively having no aliases and having only {\em closed} aliases. The system conservatively assumes that
+a table has been aliased it its identifier appears in r-value position, with a couple of exceptions which we will explain shortly.
 
+Rule {\sc T-Id} is responsible for tracking
+aliasing. Its auxiliary function $close$ is similar to
+function $fix$ defined in Figure~\ref{fig:funcs},
+except that it changes the tag of {\em unique} or
+{\em open} tables to {\em closed}. Its purpose
+is to construct a {\em closed} type for the alias,
+if necessary. Its auxiliary function $open$ is similar
+to $fix$ and $close$, except that it changes the type of
+{\em unique} tables to {\em open}. Its purpose
+is to track the fact that a $id$ now has an alias,
+if necessary.
+ 
 As an example,
 \begin{center}
 \begin{tabular}{lll}
@@ -1185,63 +1211,6 @@ Our type system has this behavior to warn programmers about
 potential unsafe behaviors after this kind of alias.
 In this example, it is unsafe to add the field $``x"$ to $b$,
 as it changes the value that is stored in the field $``x"$ of $a$.
-
-The rules \textsc{T-ID-R-CLOSE} and \textsc{T-ID-R-FIX} define this non-deterministic behavior.
-Rule \textsc{T-ID-R-CLOSE} uses the auxiliary function \emph{close} to
-produce a \emph{closed} alias.
-It also uses the auxiliary function \emph{open} to change the type of
-the original reference from \emph{unique} to \emph{open},
-because aliasing an \emph{unique} table type while keeping the original
-reference \emph{unique} can be unsafe.
-Rule \textsc{T-ID-R-FIX} uses the auxiliary function \emph{fix} to
-produce a \emph{fixed} alias.
-It also uses \emph{fix} to change the type of the original reference
-to \emph{fixed}, because a \emph{fixed} table type does not allow
-width subtyping.
-We define these rules as follows:
-\[
-\begin{array}{c}
-\begin{array}{c}
-\mylabel{T-ID-R-CLOSE}\\
-\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{T-ID-R-FIX}\\
-\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env_{1}, \penv \vdash id:fix(T_{2}), \env_{1}[id \mapsto fix(T_{1})]}
-\end{array}
-\end{array}
-\]
-
-Both rules use the auxiliary function \emph{read} because they may be
-accessing an identifier that is bound to a filter or projection type.
-As we presented in our previous design of Typed Lua \cite{maidl2014tl},
-our type system includes a small set of \texttt{type} predicates that allow
-programmers to discriminate union types, and our type system uses filter and
-projection types in the definition of these predicates to handle the discrimination
-of unions types.
-While filter types discriminate unions of first-level types, projection
-types discriminate unions of second-level types and project unions of
-second-level types into unions of first-level types.
-We can define \emph{read} as follows:
-\begin{align*}
-read(\penv, \phi(T_{1},T_{2})) & = T_{2}\\
-read(\penv, \pi_{i}^{x}) & = proj(\penv(x), i)\\
-read(\penv, T) & = T
-\end{align*}
-
-The function \emph{read} uses the auxiliary function \emph{proj}
-to project a union of first-level types, based on an union of
-second-level types and an index from a projection type.
-In Section \ref{sec:projections} we will discuss how our type system uses
-projection types to handle overloaded return types.
-We can define \emph{proj} as follows:
-\begin{align*}
-proj(T_{1} \times ... \times T_{n} \times T{*}, i) & =  T_{i} \;\;\; \text{if $i <= n$}\\
-proj(S_{1} \sqcup S_{2}, i) & = proj(S_{1}, i) \cup proj(S_{2}, i)
-\end{align*}
 
 We also need to close \emph{unique} and \emph{open} tables that
 appear in the left-hand side of assignments, as leaving them
