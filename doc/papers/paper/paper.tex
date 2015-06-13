@@ -132,6 +132,16 @@ ensure that
 dynamically typed portions of the program do not violate
 the type safety of statically typed portions.
 
+A key feature in optional type systems is usability.
+Optional type systems retrofitted to an existing
+language should fit the language's idioms, adding
+static type safety to them. If the system is too
+simple it may require too much of a change in the way
+programmers use the language. On the other hand,
+if it is too complex it may overload the programmers
+with types and error messages that are hard to
+understand. The most challenging aspect of designing optional type systems is to find the right amount of complexity for a type system that feels natural to the programmers.
+
 Lua is a small imperative language with lexically-scoped first-class functions where the only data structuring
 mechanism is the \emph{table}, an associative array. Lua prefers to provide mechanisms instead of fixed policies due
 to its primary use as an embedded language for configuration and
@@ -355,7 +365,7 @@ tuples after a destructuring assignment.
 \section{Types}
 \label{sec:types}
 
-\begin{figure*}[!ht]
+\begin{figure*}[t]
 $$
 \begin{array}{rlr}
 T ::= & & \textsc{first-level types:}\\
@@ -365,6 +375,7 @@ T ::= & & \textsc{first-level types:}\\
 F ::= & & \textsc{{\small first-class types:}}\\
 & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
+& | \; \mathbf{void} & \textit{void type}\\
 & | \; \Nil & \textit{nil type}\\
 & | \; \Value & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
@@ -430,8 +441,12 @@ as numbers, with automatic promotion of integer values to
 floating-point representation as needed. As automatic
 promotion makes integers essentialy subtypes of floating-point numbers, Typed Lua uses $\Number$ as the type of floating-point numbers, and $\Integer$ as the type of integers.
 
-The type $\Nil$ is the type of {\tt nil}, the value that Lua uses for
-undefined variables, missing parameters, and missing table keys.
+The type {\bf void} is a type with no values, used by the
+type system as a way to detect branches that are unreacheable
+due to flow typing. This type is neutral with regards to
+the type union operator: ${\bf void} \cup T = T \cup {\bf void} = T$ for any type $T$.
+
+The type $\Nil$ is the type of {\tt nil}, the value that Lua uses for undefined variables, missing parameters, and missing table keys.
 Many programming languages include a bottom type to represent
 an empty value that programmers can use as a default expression.
 We could have used the type $\Nil$ for this role, but
@@ -1436,6 +1451,64 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \subsection{Projection Types}
 \label{sec:projections}
 
+\begin{figure*}[t]
+\label{fig:projtypes}
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-LocalProj}\\
+\dfrac{\begin{array}{c}
+	\env_{1}, \penv \vdash el:T_1 \times \ldots T_n \times P, \env_{2}, (x,S)\\
+	\env_{3} = \env_{2}[id_{1} \mapsto T_1, \ldots, id_{n} \mapsto T_n]\\
+	\env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
+	n = |\;\overline{id}\;|  
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, (\env_{4}-\{\overline{id}\})[\overline{id \mapsto \env_2(id)}]}
+\end{array}
+\begin{array}{c}
+\mylabel{T-ExpListProj}\\
+\dfrac{\begin{array}{c}
+	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
+	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|)-1 \;\;\; x \notin \Pi\\
+	\env_{f} = merge(\env_{1}, ..., \env_{n+2})
+	\end{array}}
+{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times last(S), \env_{f}, (x,S)}
+\end{array}\\\\
+\begin{array}{c}
+\mylabel{T-IfFilterProjThen}\\
+\dfrac{\begin{array}{c}
+	\env_{1}(id) = \pi_{i}^{x} \\ S_t = fonilpt(\Pi(x), i)\\ 
+	finil(proj(\Pi(x), i)) = {\bf void} \\
+	\env_{1}, \penv[x \mapsto S_t] \vdash s_{1}, \env_{2} 
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+\end{array}
+\begin{array}{c}
+\mylabel{T-IfFilterProjElse}\\
+\dfrac{\begin{array}{c}
+	\env_{1}(id) = \pi_{i}^{x} \\
+	 S_e = finilpt(\Pi(x), i)\\
+	fonil(proj(\Pi(x), i)) = {\bf void} \\
+	\env_{1}, \penv[x \mapsto S_e] \vdash s_{2}, \env_{2} 
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+\end{array}
+\begin{array}{c}
+\mylabel{T-IfFilterProjBoth}\\
+\dfrac{\begin{array}{c}
+	\env_{1}(id) = \pi_{i}^{x} \\ S_t = fonilpt(\Pi(x), i) \; S_e = finilpt(\Pi(x), i)\\
+	\env_{1}, \penv[x \mapsto S_t] \vdash s_{1}, \env_{2} \\
+	\env_{1}, \penv[x \mapsto S_e] \vdash s_{2}, \env_{3} \\
+	\env_{4} = join(\env_{2}, \env_{3}) 
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+\end{array}
+\end{array}
+\]
+\caption{Rules for Projection Types}
+\end{figure*}
+
 As we have seen in Section~\ref{sec:statistics}, Lua
 programmers often overload the return type of functions
 to denote errors, returning a {\tt nil} result and
@@ -1473,81 +1546,33 @@ Intuitively, a projection type $\pi_{i}^{x}$ denotes the union of
 the i-th components of all the tuples in the union of tuple types
 denoted by the label $x$. Unions of tuple types referenced by projections are kept in their own {\em projection environment} $\Pi$. A fresh label is generated whenever the last term
 in an expression list has a union of tuple types as its type.
+Figure~\ref{fig:projtypes} presents the rules for introducing and filtering projection types.
 
-Notice that in the above example the local variables $q$ and $r$ are declared without 
-an explicit type. The rule for typing this {\bf local} statement,
+Notice that in the above example the local variables $q$ and $r$ are declared without an explicit type. 
+ The rule for typing this {\bf local} statement,
 {\sc T-LocalProj}, introduces a new label in the projection
-environment used for typing the {\bf if} statement:
-\[
-\begin{array}{c}
-\mylabel{T-LocalProj}\\
-\dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash el:T_1 \times \ldots T_n \times P, \env_{2}, (x,S)\\
-	\env_{3} = \env_{2}[id_{1} \mapsto T_1, \ldots, id_{n} \mapsto T_n]\\
-	\env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
-	n = |\;\overline{id}\;|  
-	\end{array}}
-{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, (\env_{4}-\{\overline{id}\})[\overline{id \mapsto \env_2(id)}]}
-\end{array}
-\]
+environment used for typing the {\bf if} statement.
+The first judgement above the bar of rule {\sc T-LocalProj} uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
 
-The first judgement above the bar uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
-This rule does the work of generating a fresh projection label,
+Rule {\sc T-ExpListProj} is the typing rule for this auxiliary
+relation. It does the work of generating a fresh projection label,
 and projection types associated with it, if the last term of
-the expression list has a union of tuple types as its type,
-as rule {\sc T-ExpListProj} below shows:
-\[
-\begin{array}{c}
-\mylabel{T-ExpListProj}\\
-\dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
-	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|)-1 \;\;\; x \notin \Pi\\
-	\env_{f} = merge(\env_{1}, ..., \env_{n+2})
-	\end{array}}
-{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times last(S), \env_{f}, (x,S)}
-\end{array}
-\]
+the expression list has a union of tuple types as its type.
 
-In the above example, the combination of these two rules will bind $x$ to
+In the above example, the combination of these two rules binds $x$ to
 $(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})$ in the projection environment $\Pi$,
 and $q$ and $r$ respectively to $\pi_{1}^{x}$ and $\pi_{2}^{x}$
 in the type environment used for typing the {\bf if} statement.
 
 At this point, using $q$ or $r$ as an r-value will project
-their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. But the more interesting case is inside the
-branches of the {\bf if} statement. The particular uses the rule {\sc T-IfFilterNilProj} below, which uses flow typing:
-\[
-%\begin{array}{c}
-%\mylabel{T-IfFilterNilProj}\\
-%\dfrac{\begin{array}{c}
-%       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-%       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
-%       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-%       \env_{4} = closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})) \\
-%       \env_{5} = openset(\env_{4}, rv(s_{1}) \cup rv(s_{2}))
-%      \end{array}}
-%      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
-%\end{array}
-\begin{array}{c}
-\mylabel{T-IfFilterNilProj}\\
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       \env_{1}, \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
-       \env_{1}, \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = join(\env_{2}, \env_{3}) 
-      \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\end{array}
-\]
+their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. The more interesting cases are inside the
+branches of the {\bf if} statement, where rule {\sc T-IfFilterNilProj} filters the whole union of tuples referenced
+by the projection type.
 
-Rule \textsc{T-IfFilterNilProj} uses the auxiliary functions \emph{fpt} and \emph{gpt}
-to filter a projection $x$. Function {\em fpt} filters out $\Nil$ from the i-th
-component of each tuple, removing the entire tuple if the i-th
-component does not exist, or is $\Nil$ itself. Function {\em gpt}
-filters the i-th component to $\Nil$ if the type includes
-$\Nil$, removing the entire tuple if the i-th component does
-not exist, or does not include $\Nil$.
+Rule \textsc{T-IfFilterNilProj} uses the auxiliary functions \emph{fonilpt} ({\em filter-out nil in projection type}) and \emph{finilpt} ({\em filter-in nil in projection type}) to
+filter the union referenced by $\pi_{i}^{x}$, respectively
+filtering $\Nil$ out at every i-th component (removing
+the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th component (removing the entire tuple if it is not $\Nil$).
 
 In our example, $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ in the {\bf then} branch, and would be bound
 to $\Nil \times \String \times \Nil{*}$ inside the {\bf else}
@@ -1555,16 +1580,24 @@ branch. Now $q$ and $r$ project to $\Integer$ and $\Integer$
 in the {\bf then} branch, and to $\Nil$ and $\String$ in the
 {\bf else} branch. 
 
+Rules {\sc T-IfFilterProjThen} and {\sc T-IfFilterProjElse}
+respectively cover the case where the {\bf else} branch is unreachable and the case where the {\bf then} branch is unreacheable, because either the projected type of $\pi_i^x$
+is not a supertype of $\Nil$ or is $\Nil$.
+
 Assignment to an l-value with a projection type is forbidden. Allowing assignment
-would be unsafe, as it could break the dependency among the
+would be unsound, as it could break the dependency among the
 components of the union, as the following example shows:
-\begin{verbatim}
-  local q, r = idiv(a, b)
-  r = "foo"
-  if q then
-    -- wrongly assume q and r are integers
-  end
-\end{verbatim}
+\begin{center}
+	\begin{tabular}{ll}
+		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in}$} \\
+		&  $r = ``foo" ;\; \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$
+	\end{tabular}
+\end{center}
+
+The projected type of $r$ outside of the {\bf if} statement
+is $\Integer \cup \String$, so the assignment seems correct,
+but inside $s_1$ the projected type of $r$ would still be
+$\Integer$.
 
 \section{Related Work}
 \label{sec:related}
@@ -1648,10 +1681,10 @@ to have an optional type system, instead of being
 existing dynamically typed languages with a retrofitted 
 type system. 
 
-\section{Conclusion}
+\section{Conclusions}
 \label{sec:conclusion}
 
-We have presented a formalization of the Typed Lua,
+We have presented a formalization of Typed Lua,
 an optional type system for Lua, with a focus on rules
 for two novel features of the system that type unusual
 idioms present in Lua programs.
@@ -1661,31 +1694,21 @@ defined through assignment to an initially empty
 table. In Typed Lua's type system the type of a
 table can change, either by assignment
 or by using the table in a context that expects
-a different (but compatible) type than the one it
-has. The system tracks aliasing of table references
-to be able to do this type evolution in a type-safe
+a different (but compatible) type from its current one.
+The system tracks aliasing of table references
+in order to do this type evolution in a type-safe
 way.
 
 In the second idiom, a function that can return different
-kinds of sequences of return values (for example, one
-sequence for its usual path, another for error conditions)
+kinds of tuples of return values (for example, one
+tuple for its usual path, another for error conditions)
 is modeled by having a union of tuple types as its return
 type. A destructuring assignment on a union of tuple types
 decomposes the tuple in a way that the dependencies between
 the types of each member of the union can be tracked.
 Narrowing the type of one of the tuple's components with
-a type predicate can then narrow the types of the other
+a type predicate can narrow the types of the other
 components.
-
-A key feature in optional type systems is usability.
-Optional type systems retrofitted to an existing
-language should fit the language's idioms, adding
-static type safety to them. If the system is too
-simple it may require too much of a change in the way
-the programmers use the language. On the other hand,
-if it is too complex it may overload the programmers
-with types and error messages that are hard to
-understand. The most challenging aspect of designing optional type systems is to find the right amount of complexity for a type system that feels natural to the programmers.
 
 Usability has been a concern in the design of Typed Lua since the beginning. We realized that a design based solely on what
 is possible by the semantics of Lua could lead to a 
@@ -1698,21 +1721,21 @@ case studies to evaluate how successful we were in our goal of
 providing an usable type system.
 We evaluated 29 modules from 8 different case studies,
 and we could give precise static types to 83\% of the 449
-members that these modules export.
+values that these modules export.
 For half of the modules, we could give precise static types to
-at least 89\% of the members from each module.
+at least 89\% of the exports from each module.
 
 Our evaluation results show that our type system can statically
 type check several Lua idioms and features, though the evaluation
-also exposed several limitations of our type system.
-We found that the three main limitations of our type system are
+also exposed several limitations.
+We found that the three main limitations are
 the lack of full support for overloaded functions, the lack
 of parametric polymorphism, and operator overloading.
-Overcoming these limitations is our major target for future work,
+Overcoming these limitations is one major target for future work,
 as it will allow us to statically type check more programs.
 
-Unlike other optional type systems, we designed Typed Lua without
-deliberate unsound parts.
+Unlike some optional type systems, such as the type systems
+of the Typescript and Dart languages, we designed Typed Lua without deliberately unsound parts.
 However, we still do not have proofs that the novel features of
 our type system are sound. We are working on a generalization
 of the typing rules for evolution of table types where tagged
@@ -1720,20 +1743,23 @@ types can be attached to arbitrary references instead of
 just local variables, and expect that a proof of soundness
 will come out of this effort.
 
-Typed Lua has a working implementation that
+Typed Lua has a working implementation\footnote{Available
+at \url{http://github.com/andremm/typelua}.} that
 Lua programmers can already use as a framework to
-document, test, and structure their applications,
-and we already have user feedback from Lua programmers
-that are using Typed Lua in their projects.
-One example is ZeroBrane Studio, a Lua IDE that is
-integrating Typed Lua.
-
+document, test, and structure their applications.
 Even applications where a full conversion to static
 type checking is unfeasible in the current state
 of the type system, or too much work, can use Typed
 Lua to document the external interfaces of its
 libraries, giving the benefits of static typing
 checking to the users of those libraries.
+
+We already have feedback from Lua projects
+that are evaluating the use of Typed Lua, such
+as the LuaRocks package manager, which is a key
+piece of infrastructure for the Lua library ecosystem,
+and ZeroBrane Studio, an IDE for Lua programs that is itself
+written in Lua.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
