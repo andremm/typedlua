@@ -1470,10 +1470,10 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \dfrac{\begin{array}{c}
 	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
 	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
-	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|)-1 \;\;\; x \notin \Pi\\
+	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|) \;\;\; x \notin \Pi\\
 	\env_{f} = merge(\env_{1}, ..., \env_{n+2})
 	\end{array}}
-{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times last(S), \env_{f}, (x,S)}
+{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x}{*}, \env_{f}, (x,S)}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{T-IfFilterProjThen}\\
@@ -1503,6 +1503,37 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 	\env_{4} = join(\env_{2}, \env_{3}) 
 	\end{array}}
 {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+\end{array}\\\\
+%\begin{array}{rcll}
+%last(F_1{*} \sqcup F_2{*}) & = & F_1{*} & \mathrm{if} \; F_2{*} \subtype F_1{*}\\
+%last(F_1{*} \sqcup F_2{*}) & = & F_2{*} & \mathrm{if} \; F_1{*} \subtype F_2{*}\\
+%last(F_1{*} \sqcup F_2{*}) & = & (F_1 \cup F_2){*} & \mathrm{otherwise}\\
+%last(F{*} \sqcup T \times P) & = & last(\Nil{*} \sqcup P) \\
+%last(T \times P \sqcup F{*}) & = & last(P \sqcup \Nil{*}) \\
+%last(P \sqcup S) & = & last(P \sqcup last(S)) \\
+%last(S \sqcup P) & = & last(last(S) \sqcup P) \\
+%last(S_1 \sqcup S_2) & = & last(last(S_1) \sqcup last(S_2))
+%\end{array}\\\\
+\begin{array}{rcll}
+proj(S_1 \sqcup S_2, i) & = & proj(S_1, i) \cup proj(S_2, i) \\
+proj(F{*}, i) & = & F \cup \Nil \\
+proj(T \times P, 1) & = & T \\
+proj(T \times P, i) & = & proj(P, i-1)
+\end{array}\\\\
+\begin{array}{rcll}
+fonilpt(P_1 \sqcup P_2) & = & P_2 & \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2) & = & P_1 & \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2) & = & P_1 \sqcup P_2 & \mathrm{otherwise}\\
+fonilpt(P \sqcup S) & = & fonilpt(S) & \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(P \sqcup S) & = & P \sqcup fonilpt(S) & \mathrm{otherwise}\\
+fonilpt(S \sqcup P_2) & = & fonilpt(S) & \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(S \sqcup P) & = & fonilpt(S) \sqcup P & \mathrm{otherwise}\\
+fonilpt(S_1 \sqcup S_2) & = & fonilpt(S_1) \sqcup fonilpt(S_2)
+\end{array}\\\\
+\begin{array}{rcll}
+fonil(F_1 \cup F_2) & = & fonil(F_1) \cup fonil(F_2) \\
+fonil(F) & = & {\bf void} & \mathrm{if} \; F \subtype \Nil \; \mathrm{and} \; \Nil \subtype F\\
+fonil(F) & = & F & \mathrm{otherwise}
 \end{array}
 \end{array}
 \]
@@ -1558,6 +1589,8 @@ Rule {\sc T-ExpListProj} is the typing rule for this auxiliary
 relation. It does the work of generating a fresh projection label,
 and projection types associated with it, if the last term of
 the expression list has a union of tuple types as its type.
+The rule generates as many projection types as the the length
+of the longest tuple.
 
 In the above example, the combination of these two rules binds $x$ to
 $(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})$ in the projection environment $\Pi$,
@@ -1572,7 +1605,7 @@ by the projection type.
 Rule \textsc{T-IfFilterNilProj} uses the auxiliary functions \emph{fonilpt} ({\em filter-out nil in projection type}) and \emph{finilpt} ({\em filter-in nil in projection type}) to
 filter the union referenced by $\pi_{i}^{x}$, respectively
 filtering $\Nil$ out at every i-th component (removing
-the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th component (removing the entire tuple if it is not $\Nil$).
+the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th component (removing the entire tuple if it is not $\Nil$). These functions respectively use the functions $fonil$ and $finil$ to filter regular unions, plus $proj$ to test projected components. The definitions of $finilpt$ and $finil$ are analogous to the definitions of $finilpt$ and $finil$.
 
 In our example, $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ in the {\bf then} branch, and would be bound
 to $\Nil \times \String \times \Nil{*}$ inside the {\bf else}
@@ -1584,20 +1617,17 @@ Rules {\sc T-IfFilterProjThen} and {\sc T-IfFilterProjElse}
 respectively cover the case where the {\bf else} branch is unreachable and the case where the {\bf then} branch is unreacheable, because either the projected type of $\pi_i^x$
 is not a supertype of $\Nil$ or is $\Nil$.
 
-Assignment to an l-value with a projection type is forbidden. Allowing assignment
-would be unsound, as it could break the dependency among the
-components of the union, as the following example shows:
+Assignment to an l-value with a projection type is forbidden. Allowing assignment is unsound, as it can break the dependency among the components of the union. In the example below,
+the projected type of $r$ outside of the {\bf if} statement
+is $\Integer \cup \String$, so the assignment seems correct,
+but inside $s_1$ the projected type of $r$ would still be
+$\Integer$:
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in}$} \\
 		&  $r = ``foo" ;\; \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$
 	\end{tabular}
 \end{center}
-
-The projected type of $r$ outside of the {\bf if} statement
-is $\Integer \cup \String$, so the assignment seems correct,
-but inside $s_1$ the projected type of $r$ would still be
-$\Integer$.
 
 \section{Related Work}
 \label{sec:related}
