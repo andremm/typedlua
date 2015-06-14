@@ -67,7 +67,7 @@ one way of having both static and dynamic typing
 in the same language, while keeping its dynamically typed
 semantics. This makes evolving a program from dynamic to
 static typing a matter of describing the implied types that
-it it using and adding annotations to make those types explicit.
+it is using and adding annotations to make those types explicit.
 Designing an optional type system for
 an existing dynamically typed language is challenging, as its types should feel natural to programmers that are already familiar with
 this language.
@@ -159,7 +159,7 @@ ideas among Lua programmers on how they should use the language
 features or on how they should structure programs. One example
 of this fragmentation is the proliferation of object systems.
 
-Typed Lua~\cite{maidl2014tl} is an optional type system for
+Typed Lua~\cite{maidl2014tl,maidl2015tl} is an optional type system for
 Lua that is rich enough to preserve some of the idioms
 that Lua programmers are already familiar with, while
 helping programmers structure large Lua programs and
@@ -801,10 +801,10 @@ or immutable field to an immutable field.
 Rule {\sc S-TableUtoC} for subtyping between {\em unique} and {\em closed} table types is more permissive, as the typing rules of Section~\ref{sec:tables} guarantee that a {\em unique}
 table type can only appear on the left side of a subtyping
 judgment if the reference to the table with the {\em unique}
-tag is being destroyed. This rule allows with subtyping, depth subtyping on any field, not only immutable fields, as well as the addition of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$. 
+tag is being destroyed. This rule allows width subtyping, depth subtyping on any field, not only immutable fields, as well as the addition of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$. 
 
 The rationale for the permissiveness of rule {\sc S-TableUtoC} derives from the fact that reading a non-existing key just yields $\Nil$ instead of being an error in Lua semantics, plus the fact
-that the type system guarantees that a table with a
+that the type system guarantees that a table with an
 {\em unique} type has no keys with a value that does not
 belong to one of its key types, and does not have any
 aliases. With these guarantees, a table with type $\{1{:}\String, 2{:}\String,
@@ -942,7 +942,7 @@ itself. Two union types $F_1 \cup F_2$ and $F_3 \cup F_4$ are
 consistent if either $F_1 \sim F_3$ and $F_2 \sim F_4$ or
 $F_1 \sim F_4$ and $F_2 \sim F_3$. Two function types
 $S_1 \rightarrow S_2$ and $S_3 \rightarrow S_4$ are consistent
-if and only if $S_1 \rightarrow S_3$ and $S_2 \rightarrow S_4$. Two table types are consistent if and only if they have the same key types, and the value types of each key type are consistent. Two recursive types are consistent if and only if their contents are consistent assuming that their type variables are consistent. Unions of tuple types follow the same rules as unions of first-level types. Variadic types are consistent if and only if their base types are consistent. 
+if and only if $S_1 \sim S_3$ and $S_2 \sim S_4$. Two table types are consistent if and only if they have the same key types, and the value types of each key type are consistent. Two recursive types are consistent if and only if their contents are consistent assuming that their type variables are consistent. Unions of tuple types follow the same rules as unions of first-level types. Variadic types are consistent if and only if their base types are consistent. 
 Finally, pair types $F_1 \times P_1$ and $F_2 \times P_2$ are
 consistent if and only if $F_1 \sim F_2$ and $P_1 \sim P_2$.
 
@@ -1108,7 +1108,7 @@ its use in Section~\ref{sec:projections}.
 	wf(F_1 \cup F_2) & = & wf(F_1) \,\wedge\, wf(F_2) \\
 	wf(\mu x.F) & = & wf(F) \\
 	wf(S_1 \rightarrow S_2) & = & wf(S_1) \,\wedge\, wf(S_2) \\
-	wf(S_1 \sqcup S_2) & = & wf(S_1) \,\wedge\, S_2\\
+	wf(S_1 \sqcup S_2) & = & wf(S_1) \,\wedge\, wf(S_2)\\
 	wf(F{*}) &=& wf(F) \\
 	wf(F \times P) &=& wf(F) \,\wedge\,wf(P)\\
 	wf(F) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}\\\\
@@ -1236,13 +1236,13 @@ Merging the two yields $\{``x":\Number, ``y": \Number\}_{unique}$
 through the third case of function $merget$ defined in Figure~\ref{fig:funcs}.
 
 Open tables have a rule {\sc T-NewFieldOpen} that is not shown
-in Figure~\ref{fig:tablerules} due to space. The only thing that
+in Figure~\ref{fig:tablerules} due to brevity. The only thing that
 changes from one rule to the other is the tag in the type of $id$.
 
 The type system needs to track aliasing of table references,
 as the flexibility of {\em unique} and {\em open} tables
 depend on respectively having no aliases and having only {\em closed} aliases. The system conservatively assumes that
-a table has been aliased it its identifier appears in r-value position, with a couple of exceptions which we will explain shortly.
+a table has been aliased if its identifier appears in r-value position, with a couple of exceptions which we will explain shortly.
 
 Rule {\sc T-IdRead} is responsible for tracking
 aliasing. Its auxiliary function $close$ is similar to
@@ -1342,8 +1342,8 @@ As the type is {\em open}, we can continue adding fields
 to it, but are now restricted on future coercions. For
 example, we will not be able to widen the type of $``x"$
 to $\String \cup \Nil$, as that could break type safety
-(by writing $\Nil$ to ``x" using reference $a$, and reading
-``x" using the alias $b$).
+(by writing $\Nil$ to $``x"$ using reference $a$, and reading
+$``x"$ using the alias $b$).
 
 Lua has first-class functions, so another way of aliasing
 an {\em unique} and {\em open} references is by closing
@@ -1378,11 +1378,11 @@ the type environment to so any of these variables that
 has an {\em unique} or {\em open} table type becomes {\em closed}.
 
 Closed-over variables that are not assigned still may
-change their type if they have a {\em unique} table type
+change their type if they have an {\em unique} table type
 and are aliased inside the function body. We use the auxiliary
 function $frv$ ({\em free referenced variables}) to collect
 this set, and then function $openset$ changes any variables
-with a {\em unique} table type in the environment to {\em open}.
+with an {\em unique} table type in the environment to {\em open}.
 
 Rule {\sc T-Function} types non-variadic function declarations,
 and shows how these auxiliary functions work together.
@@ -1390,7 +1390,7 @@ Notice that the environment $\env_{2}$ resulting from
 typing the function body is just ignored. The rule for
 declaring variadic functions and recursive functions are
 similar. Functions $closeall$, $closeset$, $openset$, $fav$,
-and $frv$ are straightforward, and were omitted due to lack of space.
+and $frv$ are straightforward, and were omitted for brevity.
 
 The following example typechecks, and uses all the parts of {\sc T-Function}:
 \begin{center}
@@ -1409,7 +1409,7 @@ The set $fav$ is $\{b\}$, and the set $frv$ is $\{a\}$.
 This causes the type of $b$ to also be $\{\}_{closed}$
 in the body of the inner {\bf local} statement, due to $closeset$, and the type of $a$ to be $\{\}_{open}$ due
 to $openset$. Being $\{\}_{open}$, adding a new field
-is allowed, changing the type of $a$ to $\{``x": \Integer\}_{open}$ after the semicolon. After the call to
+is allowed, changing the type of $a$ to $\{``x": \Integer\}_{open}$ after the last semicolon. After the call to
 $f$, the variable $b$ is an alias to $a$ but this is not
 an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 
@@ -1530,15 +1530,15 @@ the body of the {\bf then} and {\bf else} branches:
 \end{center}
 
 A standard way of decomposing the union in the assignment
-would let the type of {\tt q} be $\Integer \times \Nil$ and
-the type of {\tt r} be $\Integer \times \String$. Flow typing
-would narrow the type of {\tt q} to $\Integer$ in the {\tt then}
-branch and to $\Nil$ in the {\tt else} branch, but would
-leave the type of {\tt r} unchanged.
+would let the type of $q$be $\Integer \times \Nil$ and
+the type of $r$ be $\Integer \times \String$. Flow typing
+would narrow the type of $q$ to $\Integer$ in the {\bf then}
+branch and to $\Nil$ in the {\bf else} branch, but would
+leave the type of $r$ unchanged.
 
 {\em Projection types}
 are a general way to make the dependency between the types
-of {\tt q} and {\tt r} survive the decomposition of the tuple,
+of $q$ and $r$ survive the decomposition of the tuple,
 so flow typing can narrow all of the components by testing
 just one of them.
 
@@ -1663,7 +1663,7 @@ three different approaches for inserting runtime assertions
 that preserve the gradual typing guarantee.
 
 Several dynamically typed languages now have optional
-type systems: Clojure~\cite{bonnaire-sergeant2012typed-clojure},
+type systems: Clojure~\cite{bonnaire-sergeant2015typed-clojure},
 JavaScript~\cite{typescript}, Python~\cite{mypy}, 
 and PHP~\cite{hack}. While Lua has some similarities to
 all of these languages, none of these optional type
@@ -1729,9 +1729,9 @@ at least 89\% of the exports from each module.
 Our evaluation results show that our type system can statically
 type check several Lua idioms and features, though the evaluation
 also exposed several limitations.
-We found that the three main limitations are
-the lack of full support for overloaded functions, the lack
-of parametric polymorphism, and operator overloading.
+We found that the three main limitations are the lack of
+full support for overloaded functions, parametric polymorphism,
+and operator overloading.
 Overcoming these limitations is one major target for future work,
 as it will allow us to statically type check more programs.
 
@@ -1744,15 +1744,15 @@ types can be attached to arbitrary references instead of
 just local variables, and expect that a proof of soundness
 will come out of this effort.
 
-Typed Lua has a working implementation\footnote{Available
-at \url{http://github.com/andremm/typelua}.} that
-Lua programmers can already use as a framework to
+Typed Lua has a working implementation\footnote{Available at
+\url{https://github.com/andremm/typedlua}.}
+that Lua programmers can already use as a framework to
 document, test, and structure their applications.
 Even applications where a full conversion to static
 type checking is unfeasible in the current state
-of the type system, or too much work, can use Typed
-Lua to document the external interfaces of its
-libraries, giving the benefits of static typing
+of the type system, or too much work,
+Lua programmers can still use Typed Lua to document the
+external interfaces of their libraries, giving the benefits of static typing
 checking to the users of those libraries.
 
 We already have feedback from Lua projects
