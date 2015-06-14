@@ -407,7 +407,7 @@ $$
 $$
 \begin{array}{rlr}
 T ::= & & \textsc{{\small expression types:}}\\
-& \;\; V & \\
+& \;\; F & \\
 & | \; \phi(F_{1},F_{2}) & \textit{filter types}\\
 & | \; \pi_{i}^{x} & \textit{projection types}\\
 E ::= & & \textsc{{\small expression list types:}}\\
@@ -446,11 +446,6 @@ Lua 5.3 introduced the possibility of having 64-bit integers
 as numbers, with automatic promotion of integer values to
 floating-point representation as needed. As automatic
 promotion makes integers essentially subtypes of floating-point numbers, Typed Lua uses $\Number$ as the type of floating-point numbers, and $\Integer$ as the type of integers.
-
-The type {\bf void} is a type with no values, used by the
-type system as a way to detect branches that are unreachable
-due to flow typing. This type is neutral with regards to
-the type union operator: ${\bf void} \cup T = T \cup {\bf void} = T$ for any type $T$.
 
 The type $\Nil$ is the type of {\tt nil}, the value that Lua uses for undefined variables, missing parameters, and missing table keys.
 Many programming languages include a bottom type to represent
@@ -563,7 +558,8 @@ of subtyping, so we focus the discussion in this section
 on characterizing the subtyping relation.
 
 The subtyping rules are a deduction system for the
-subtyping relation $\senv \vdash t_{1} \subtype t_{2}$.
+subtyping relation $\subtype$ between two types of the
+same kind.
 The variable $\senv$ is a set of subtyping assumptions used
 by the subtyping relation between recursive types. 
 Most of the subtyping rules are standard, so we will
@@ -1100,7 +1096,7 @@ and a projection environment $\penv$ we can prove that an expression $e$ has typ
 Only the most relevant rules for the features that we are focusing on are shown.
 
 The type environment is standard, and maps
-identifiers to first-level types. Some typing rules of
+identifiers to expression types. Some typing rules of
 Section~\ref{sec:tables} can change the type of an identifier,
 so the typing relation has both an input and an output type
 environment. The {\em projection environment} $\Pi$ maps projection labels to second-level types, and we explain
@@ -1131,8 +1127,8 @@ its use in Section~\ref{sec:projections}.
     vt(L, V) & = & fix(V) \\
     vt(F_1, F_2) & = & nil(fix(F_2))\\
     vt(F_1, {\bf const}\;F_2) & = & {\bf const}\;nil(fix(F_2))\\\\
-    nil(F) & = & F \;\;\; \mathrm{if}\;\Nil \lesssim F\\
-    nil(F) & = & F \cup \Nil \;\;\; \mathrm{otherwise}\\\\
+    nil(T) & = & T \;\;\; \mathrm{if}\;\Nil \lesssim T\\
+    nil(T) & = & T \cup \Nil \;\;\; \mathrm{otherwise}\\\\
 	fix(\{\overline{F:V}\}_{unique|open}) & = &
 	\{\overline{F:V}\}_{fixed}\\
 	\multicolumn{3}{c}{\;\;\;\;\;\;\;\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}\\\\
@@ -1374,8 +1370,8 @@ typing the function body, all {\em unique} and {\em open}
 tables are {\em closed} with the auxiliary function $closeall$.
 This is not enough, as assignment
 to a closed-over variable can be unsafe. In the following
-example, assume that the $g$ receives a parameter of type
-$\{ ``x": \String \cup \Nil\}$:
+example, assume that $g$ receives a parameter of type
+$\{ ``x": \String \cup \Nil\}_{closed}$:
 \begin{center}
 	\begin{tabular}{llll}
 		\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{open}
@@ -1384,7 +1380,7 @@ $\{ ``x": \String \cup \Nil\}$:
 		& & \multicolumn{2}{l}{$\mathbf{fun} \; ():\Void$}\\
 		& & & \multicolumn{1}{l}{$a = \{[``x"]=5\} $}\\
 		& \multicolumn{3}{l}{$\mathbf{in} \; \lfloor g({<}\{``x":
-			 \String \cup \Nil\}{>} \; a) \rfloor_{0}$}
+			 \String \cup \Nil\}_{closed}{>} \; a) \rfloor_{0}$}
 	\end{tabular}
 \end{center}
 
@@ -1446,8 +1442,8 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \begin{array}{c}
 \mylabel{T-LocalProj}\\
 \dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash el:T_1 \times \ldots T_n \times P, \env_{2}, (x,S)\\
-	\env_{3} = \env_{2}[id_{1} \mapsto T_1, \ldots, id_{n} \mapsto T_n]\\
+	\env_{1}, \penv \vdash el:E, \env_{2}, (x,S)\\
+	\env_{3} = \env_{2}[id_{1} \mapsto proj(E, 1), \ldots, id_{n} \mapsto proj(E, n)]\\
 	\env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
 	n = |\;\overline{id}\;|  
 	\end{array}}
@@ -1506,7 +1502,10 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 proj(S_1 \sqcup S_2, i) & = & proj(S_1, i) \cup proj(S_2, i) \\
 proj(F{*}, i) & = & nil(F) \\
 proj(F \times P, 1) & = & F \\
-proj(F \times P, i) & = & proj(P, i-1)
+proj(F \times P, i) & = & proj(P, i-1)\\
+proj(E{*}, i) & = & nil(E) \\
+proj(T \times E, 1) & = & T \\
+proj(T \times E, i) & = & proj(E, i-1)
 \end{array}\\\\
 \begin{array}{rcll}
 fonilpt(P_1 \sqcup P_2) & = & P_2 & \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
@@ -1553,7 +1552,7 @@ the body of the {\bf then} and {\bf else} branches:
 \end{center}
 
 A standard way of decomposing the union in the assignment
-would let the type of $q$be $\Integer \times \Nil$ and
+would let the type of $q$ be $\Integer \times \Nil$ and
 the type of $r$ be $\Integer \times \String$. Flow typing
 would narrow the type of $q$ to $\Integer$ in the {\bf then}
 branch and to $\Nil$ in the {\bf else} branch, but would
@@ -1590,7 +1589,7 @@ and $q$ and $r$ respectively to $\pi_{1}^{x}$ and $\pi_{2}^{x}$
 in the type environment used for typing the {\bf if} statement.
 
 At this point, using $q$ or $r$ as an r-value will project
-their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$. The more interesting cases are inside the
+their types into either $\Integer \cup \Nil$ or $\Integer \cup \String$ via rule {\sc T-IdReadProj}, which just uses auxiliary function $proj$. The more interesting cases are inside the
 branches of the {\bf if} statement, where rule {\sc T-IfFilterNilProj} filters the whole union of tuples referenced
 by the projection type.
 
@@ -1611,7 +1610,8 @@ Rules {\sc T-IfFilterProjThen} and {\sc T-IfFilterProjElse}
 respectively cover the case where the {\bf else} branch is unreachable and the case where the {\bf then} branch is unreachable, because either the projected type of $\pi_i^x$
 is not a supertype of $\Nil$ or is $\Nil$.
 
-Assignment to an l-value with a projection type is forbidden. Allowing assignment is unsound, as it can break the dependency among the components of the union. In the example below,
+Assignment to an l-value with a projection type is forbidden
+(there is no rule {\sc T-IdWriteProj}). Allowing assignment is unsound, as it can break the dependency among the components of the union. In the example below,
 the projected type of $r$ outside of the {\bf if} statement
 is $\Integer \cup \String$, so the assignment seems correct,
 but inside $s_1$ the projected type of $r$ would still be
