@@ -1099,6 +1099,7 @@ its use in Section~\ref{sec:projections}.
 \label{sec:tables}
 
 \begin{figure*}
+	{\small
 	\[
 	\begin{array}{rcl}
 	wf(\{\overline{K:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, K_{i} \lesssim K_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
@@ -1149,7 +1150,7 @@ its use in Section~\ref{sec:projections}.
 	reopen(\{\overline{K:V}\}_{closed}) & = & \{\overline{K:V}\}_{open} \\
 	reopen(F) & = & F
 	\end{array}
-	\]
+	\]}
 	\caption{Auxiliary Functions}
 \label{fig:funcs}
 \end{figure*}
@@ -1260,7 +1261,8 @@ of a {\em unique} table:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{closed} = a \; \mathbf{in}a[``x"] \; {<}\String{>} = ``foo";$}
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{closed} = a \; \mathbf{in}$}\\
+& & $\;a[``x"] \; {<}\String{>} = ``foo";$
 \end{tabular}
 \end{center}
 
