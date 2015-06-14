@@ -378,7 +378,7 @@ F ::= & & \textsc{first-level types:}\\
 & | \; \Self & \textit{self type}\\
 & | \; F_{1} \cup F_{2} & \textit{union types}\\
 & | \; S_{1} \rightarrow S_{2} & \textit{function types}\\
-& | \; \{\overline{K:V}\}_{unique|open|fixed|closed} & \textit{table types}\\
+& | \; \{\overline{F:V}\}_{unique|open|fixed|closed} & \textit{table types}\\
 & |\; x & \textit{type variables}\\
 & | \; \mu x.F & \textit{recursive types}\\
 %\multicolumn{3}{c}{}\\
@@ -413,8 +413,8 @@ T ::= & & \textsc{{\small expression types:}}\\
 E ::= & & \textsc{{\small expression list types:}}\\
 & \;\; T{*} & \\
 & | \; T \times E & \\
-K ::= & & \textsc{{\small key types:}}\\
-& \;\; L \; | \; B \; | \; \Value &\\
+%K ::= & & \textsc{{\small key types:}}\\
+%& \;\; L \; | \; B \; | \; \Value &\\
 %\multicolumn{3}{c}{}\\
 V ::= & & \textsc{{\small value types:}}\\
 & \;\; F \; | \; \Const \; F &\\
@@ -438,7 +438,7 @@ Types are ordered by a subtype relationship, so Lua values may belong to several
 relationship are given later in Section~\ref{sec:subtyping}.
 
 Literal types represent the type of literal boolean, number
-and string values. Their main application is the formation in record and tuple types.
+and string values. Having just one value each, their main application is in constructing table types with fields where it is guaranteed that the value of that field will not be {\tt nil}.
 
 The base types represent values that Lua tags as booleans,
 strings, or numbers during runtime. Prior to version Lua 5.3 all Lua numbers were double-precision floating point numbers.
@@ -473,10 +473,11 @@ tables can take. What a particular table type denotes
 depends on its {\em tag}: the {\em unique}, {\em open}
 and {\em fixed} tags all denote tables where it is
 guaranteed that every key belongs to one of the {\em key
-types} $K_i$. We restrict key types to literal types,
-base types, and the top type to make the system simpler
-for the user, as our survey of Lua programs showed that
-this restriction reflects the way Lua tables are commonly used.
+types} $F_i$. 
+%We restrict key types to literal types,
+%base types, and the top type to make the system simpler
+%for the user, as our survey of Lua programs showed that
+%this restriction reflects the way Lua tables are commonly used.
 
 Fields are assignable by default, but can be marked
 as non-assignable with the {\bf const} qualifier. Having
@@ -645,77 +646,77 @@ the subtyping relation easier to implement.
 \mylabel{S-TableFCtoC}\\
 \dfrac{\begin{array}{c}
 	\forall j \; \exists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \;\
-	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash F_{i} \subtype F_{j}' \;\
+	\senv \vdash F_{j}' \subtype F_{i} \;
 	\senv \vdash V_{i} \subtype_{c} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{\overline{K:V}\}_{fixed|closed} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{closed}
+	\senv \vdash \{\overline{F:V}\}_{fixed|closed} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{closed}
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableUtoC}\\
 \dfrac{\begin{array}{c}
 	\forall i \; \forall j \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
 	\forall j  \; \nexists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
-{\senv \vdash \{\overline{K:V}\}_{unique} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{closed}}
+{\senv \vdash \{\overline{F:V}\}_{unique} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{closed}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableOtoC}\\
 \dfrac{\begin{array}{c}
 	\forall i \; \forall j \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
 	\forall j \; \nexists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
-{\senv \vdash \{\overline{K:V}\}_{open} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{closed}}
+{\senv \vdash \{\overline{F:V}\}_{open} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{closed}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableUtoUOF}\\
 \dfrac{\begin{array}{c}
 	\forall i \; \exists j \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
+	\senv \vdash F_{i} \subtype F_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
 	\forall j  \; \nexists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{\overline{K:V}\}_{unique} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{unique|open|fixed}
+	\senv \vdash \{\overline{F:V}\}_{unique} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{unique|open|fixed}
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableOtoOF}\\
 \dfrac{\begin{array}{c}
 	\forall i \; \exists j \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+	\senv \vdash F_{i} \subtype F_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
 	\forall j \; \nexists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+	\senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
 	\end{array}}
 {\begin{array}{c}
-	\senv \vdash \{\overline{K:V}\}_{open} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{open|fixed}
+	\senv \vdash \{\overline{F:V}\}_{open} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{open|fixed}
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{S-TableFtoF}\\
 \dfrac{\begin{array}{c}
 	\forall j \; \exists i \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \;
-	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash F_{i} \subtype F_{j}' \;
+	\senv \vdash F_{j}' \subtype F_{i} \;
 	\senv \vdash V_{i} \subtype_{c} V_{j}'\\
 	\forall i \; \exists j \;\;\;
-	\senv \vdash K_{i} \subtype K_{j}' \;
-	\senv \vdash K_{j}' \subtype K_{i} \;
+	\senv \vdash F_{i} \subtype F_{j}' \;
+	\senv \vdash F_{j}' \subtype F_{i} \;
 	\senv \vdash V_{i} \subtype_{c} V_{j}'\\
 	\end{array}}
-{\senv \vdash \{\overline{K:V}\}_{fixed} \subtype
-	\{\overline{K^\prime:V^\prime}\}_{fixed}}
+{\senv \vdash \{\overline{F:V}\}_{fixed} \subtype
+	\{\overline{F^\prime:V^\prime}\}_{fixed}}
 \end{array}
 \end{array}
 \]
@@ -895,7 +896,7 @@ Section~\ref{sec:tables}.
 	& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
 	l ::= & & \textsc{left-hand values:}\\
 	& \;\; id_{l} & \textit{variable assignment}\\
-	& | \; e_{1}[e_{2}] & \textit{table assignment}\\
+	& | \; e_{1}[e_{2}]_{l} & \textit{table assignment}\\
 	& | \; id[k] \; {<}V{>} & \textit{type coercion}\\
 	k ::= & & \textsc{literal constants:}\\
 	& \;\; \mathbf{false} \; | \;
@@ -965,16 +966,16 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \label{sec:rules}
 
 \begin{figure*}[t]
+{\small
 \[
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-Constructor}\\
 \dfrac{\begin{array}{c}
-\overline{\env_1, \penv \vdash e_2: F, \env_v}
+	\overline{\env_v, \penv \vdash e_1: F_1, \env_f}
 	\;\;\;
-	\overline{\env_v, \penv \vdash e_1: K, \env_f}
-	\\
-	T = \{\overline{K{:}fix(F)}\}_{unique} \;\;\;
+\overline{\env_1, \penv \vdash e_2: F_2, \env_v}	\\
+	T = \{\overline{F_1{:}vt(F_1,F_2)}\}_{unique} \;\;\;
 	\env_{2} = merge(\overline{\env_{f}}) \;\;\; wf(T)
 	\end{array}}
 {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{2}}
@@ -982,14 +983,14 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \begin{array}{c}
 \mylabel{T-NewFieldUnique}\\
 \dfrac{\begin{array}{c}
-	\env_{1}(id) = \{ \overline{K:V} \}_{unique}\\
-	\env_{1}, \penv \vdash k:K^{new}, \env_{2} \;\;\;
-	\overline{K^{new} \not\lesssim K} \;\;\;
-	V^{new} = fix(V)
+	\env_{1}(id) = \{ \overline{F:V} \}_{unique}\\
+	\env_{1}, \penv \vdash k:F^{new}, \env_{2} \;\;\;
+	\overline{F^{new} \not\lesssim F} \;\;\;
+	V^{new} = vt(F^{new}, V)
 	\end{array}}
 {\begin{array}{l}
 	\env_{1}, \penv \vdash id[k] {<}V{>}:V^{new},
-	\env_{2}[id \mapsto \{ \overline{K{:}V}, K^{new}{:}V^{new}\}_{unique}]
+	\env_{2}[id \mapsto \{ \overline{F{:}V}, F^{new}{:}V^{new}\}_{unique}]
 	\end{array}}
 \end{array}\\\\
 \begin{array}{c}
@@ -1003,23 +1004,23 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 {\env, \penv \vdash id_{l}:F, \env}
 \end{array}
 \begin{array}{c}
-\mylabel{T-IndexId}\\
+\mylabel{T-IndexIdRead}\\
 \dfrac{\begin{array}{c}
-	\env_{1}(id) = \{\overline{K:V}\} \;\;\;
-	\env_{1}, \penv \vdash e_{2}:K^e, \env_{2} \;\;\;
-	 K^e \lesssim K_{i}
+	\env_{1}(id) = \{\overline{F:V}\} \;\;\;
+	\env_{1}, \penv \vdash e_{2}:F^e, \env_{2} \;\;\;
+	 F^e \lesssim F_{i}
 	\end{array}}
-{\env_{1}, \penv \vdash id[e_{2}]:V_{i}, \env_{2}}
+{\env_{1}, \penv \vdash id[e_{2}]:rconst(V_{i}), \env_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{T-IndexExp}\\
+\mylabel{T-IndexExpRead}\\
 \dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash e_{1}:\{\overline{K:V}\}, \env_{2}\\
-	\env_{2}, \penv \vdash e_{2}:K^e, \env_{3} \;\;\;
-	 K^e \lesssim K_{i}
+	\env_{1}, \penv \vdash e_{1}:\{\overline{F:V}\}, \env_{2}\\
+	\env_{2}, \penv \vdash e_{2}:F^e, \env_{3} \;\;\;
+	 F^e \lesssim F_{i}
 	\end{array}}
-{\env_{1}, \penv \vdash e_{1}[e_{2}]:V_{i}, \env_{3}}
+{\env_{1}, \penv \vdash e_{1}[e_{2}]:rconst(V_{i}), \env_{3}}
 \end{array}
 \begin{array}{c}
 \mylabel{T-CoerceClosed}\\
@@ -1030,7 +1031,7 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \mylabel{T-CoerceFixed}\\
 \dfrac{\env_{1}(id) \subtype F \;\;\; tag(F,fixed)}
 {\env, \penv \vdash {<}F{>} \; id:F, \env[id \mapsto F]}
-\end{array}\\
+\end{array}\\\\
 \begin{array}{c}
 \mylabel{T-Function}\\
 \dfrac{\begin{array}{c}
@@ -1040,9 +1041,19 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 	\end{array}}
 {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}F}){:}S \; s:F_1 \times \ldots F_n \times \Void \rightarrow S, \env_{3}}
 \end{array}
+\begin{array}{c}
+\mylabel{T-Local}\\
+\dfrac{\begin{array}{c}
+	\env_{1}, \penv \vdash el:E, \env_{2} \\
+	E \lesssim F_1 \times \ldots \times F_n \times \Value{*} \\
+	\env_{2}[\overline{id \mapsto F}], \penv \vdash s, \env_{3}
+	\end{array}}
+{\env_{1}, \penv \vdash \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s, (\env_{3} - \{\overline{id}\})[\overline{id \mapsto \env_2(id)}]}
+\end{array}
 \end{array}
 \]
-\caption{Rules for Table Types}
+}
+\caption{Typing Rules}
 \label{fig:tablerules}
 \end{figure*}
 
@@ -1102,7 +1113,7 @@ its use in Section~\ref{sec:projections}.
 	{\small
 	\[
 	\begin{array}{rcl}
-	wf(\{\overline{K:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, K_{i} \lesssim K_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
+	wf(\{\overline{F:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, F_{i} \lesssim F_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
 	& & \;\;\;\; \lnot tag(V_{i},unique) \,\wedge\, \lnot tag(V_{i},open))\\
 	wf({\bf const}\; F) & = & wf(F) \\
 	wf(F_1 \cup F_2) & = & wf(F_1) \,\wedge\, wf(F_2) \\
@@ -1113,41 +1124,47 @@ its use in Section~\ref{sec:projections}.
 	wf(F \times P) &=& wf(F) \,\wedge\,wf(P)\\
 	wf(F) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}\\\\
 	tag(F_1 \cup F_2, t) & = & tag(F_1, t) \,\vee\, tag(F_2,t) \\
-	tag(\{\overline{K:V}\}_t, t) & = & \top\\
+	tag(\{\overline{F:V}\}_t, t) & = & \top\\
 	\multicolumn{3}{c}{
 		\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{other\;recusive\;cases\;are\;similar,\;other\;base\;cases\;are\;}\bot}\\
 \\\\
-	fix(\{\overline{K:V}\}_{unique|open}) & = &
-	\{\overline{K:V}\}_{fixed}\\
+    vt(L, V) & = & fix(V) \\
+    vt(F_1, F_2) & = & nil(fix(F_2))\\
+    vt(F_1, {\bf const}\;F_2) & = & {\bf const}\;nil(fix(F_2))\\\\
+    nil(F) & = & F \;\;\; \mathrm{if}\;\Nil \lesssim F\\
+    nil(F) & = & F \cup \Nil \;\;\; \mathrm{otherwise}\\\\
+	fix(\{\overline{F:V}\}_{unique|open}) & = &
+	\{\overline{F:V}\}_{fixed}\\
 	\multicolumn{3}{c}{\;\;\;\;\;\;\;\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}\\\\
 	merge(\overline{\env}) & = & reduce(\overline{\env}, merge2)\\
 	merge2(\env_1,\env_2) & = & \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
-	merget(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \subtype T_1\\
-	merget(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \subtype T_2\\
-	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_u V^r_i \,\vee\,V^r_i\subtype_u V^l_i \;\mathrm{and\;the\;right\; side\; is\;}wf}\\
-	merget(\{\overline{K:V^l},\overline{K^{\prime}:V^\prime}\}_{unique},
-	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
-	\{\overline{K:sup_u(V^l,V^r)},\overline{K^\prime:V^\prime},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}
+	merget(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
+	merget(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;
+		\overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	merget(\{\overline{F:V^l},\overline{F^{\prime}:V^\prime}\}_{unique},
+	\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
+	\{\overline{F:sup_u(V^l,V^r)},\overline{F^\prime:V^\prime},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}
 	\\
-	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_c V^r_i \,\vee\,V^r_i\subtype_c V^l_i
-		\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
-	merget(\{\overline{K:V^l},\overline{K^{\prime}:V^{\prime}}\}_{unique|open},
-	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) &=&
-	\{\overline{K:sup_c(V^l,V^r)},\overline{K^\prime:V^\prime},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{open}
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;
+		\overline{V^l \lesssim_c V_r \,\vee\, V^r \lesssim_c V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	merget(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique|open},
+	\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) &=&
+	\{\overline{F:sup_c(V^l,V^r)},\overline{F^\prime:V^\prime},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{open}
 	\\
 	merget(T_1, T_2) & = & \bot \;\;\; \mathrm{otherwise}\\\\
 	join(\env_1,\env_2) & = & \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
-	joint(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \subtype T_1\\
-	joint(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \subtype T_2\\
-	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;\forall i\;V^l_i\subtype_u V^r_i \,\vee\,V^r_i\subtype_u V^l_i
-		\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
-	joint(\{\overline{K:V^l},\overline{K^{\prime}:V^{\prime}}\}_{unique},
-	\{\overline{K:V^r},\overline{K^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
-	\{\overline{K:sup_u(V^l,V^r)},\overline{K^\prime:V^\prime\cup\Nil},\overline{K^{\prime\prime}:V^{\prime\prime}\cup\Nil}\}_{unique}\\
+	joint(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
+	joint(T_1, T_2) & = & T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
+	\multicolumn{3}{c}{\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{the\;next\;case\;applies\;if}\;
+		\overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+	joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
+	\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
+	\{\overline{F:sup_u(V^l,V^r)},\overline{F^\prime:nil(V^\prime)},\overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
 	joint(T_1, T_2) & = & \bot \;\;\; \mathrm{otherwise}\\\\
-	sup_u(V_1, V_2) & = & V_2 \;\;\; \mathrm{if}\; V_1 \subtype_u V_2\\
-	sup_u(V_1, V_2) & = & V_1 \;\;\; \mathrm{if}\; V_2 \subtype_u V_1\\\\
-	reopen(\{\overline{K:V}\}_{closed}) & = & \{\overline{K:V}\}_{open} \\
+	sup_u(V_1, V_2) & = & V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
+	sup_u(V_1, V_2) & = & V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1\\\\
+	reopen(\{\overline{F:V}\}_{closed}) & = & \{\overline{F:V}\}_{open} \\
 	reopen(F) & = & F
 	\end{array}
 	\]}
@@ -1190,7 +1207,9 @@ Well-formed table types also do not allow \emph{unique} and
 \emph{open} table types to appear in the type of the values.
 Our type system currently cannot
 track aliases of table fields, so this restriction is
-necessary. This limitation of the type system is the reason the {\sc T-Constructor} rule uses the auxiliary function $fix$ to change any {\em open} and {\em unique} table types used in the field initializer to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
+necessary. This limitation of the type system is the reason the {\sc T-Constructor} rule uses the auxiliary function $fix$
+(in the definition of $vt$)
+ to change any {\em open} and {\em unique} table types used in the field initializer to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$.
 
 There are two ways the type of a {\em unique} and {\em open} tables can change in Typed
@@ -1238,6 +1257,8 @@ through the third case of function $merget$ defined in Figure~\ref{fig:funcs}.
 Open tables have a rule {\sc T-NewFieldOpen} that is not shown
 in Figure~\ref{fig:tablerules} due to brevity. The only thing that
 changes from one rule to the other is the tag in the type of $id$.
+There are analogous rules for adding methods to a {\em unique}
+and {\em open tables} as a side-effect of typechecking a method declaration.
 
 The type system needs to track aliasing of table references,
 as the flexibility of {\em unique} and {\em open} tables
@@ -1261,8 +1282,7 @@ of a {\em unique} table:
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{closed} = a \; \mathbf{in}$}\\
-& & $\;a[``x"] \; {<}\String{>} = ``foo";$
+& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{closed} = a \; \mathbf{in}\;\;a[``x"] \; {<}\String{>} = ``foo";$}
 \end{tabular}
 \end{center}
 
@@ -1287,10 +1307,12 @@ identifiers that appear as l-values have their own rule
 {\sc T-IdWrite}.
 
 Another use of the identifier that does not create an
-alias is when indexing the table. Rule {\sc T-IndexId}
-covers this case. For comparison, rule {\sc T-Index}
+alias is when indexing the table. Rule {\sc T-IndexIdRead}
+covers this case (function $rconst$ just strips the {\bf const} qualifier from the value type, if present). For comparison, rule {\sc T-IndexExpRead}
 applies for indexing expressions where the expression
-denoting the table is not an identifier.
+denoting the table is not an identifier. The rules for
+indexing expressions in l-value position are similar,
+except to make sure that the field is not {\bf const} .
 
 A second way of changing a table type is by a 
 {\em coercion expression}. Coercion expressions let
@@ -1417,6 +1439,7 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \label{sec:projections}
 
 \begin{figure*}[t]
+{\small
 \label{fig:projtypes}
 \[
 \begin{array}{c}
@@ -1481,7 +1504,7 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 %\end{array}\\\\
 \begin{array}{rcll}
 proj(S_1 \sqcup S_2, i) & = & proj(S_1, i) \cup proj(S_2, i) \\
-proj(F{*}, i) & = & F \cup \Nil \\
+proj(F{*}, i) & = & nil(F) \\
 proj(F \times P, 1) & = & F \\
 proj(F \times P, i) & = & proj(P, i-1)
 \end{array}\\\\
@@ -1505,7 +1528,7 @@ fonil(F) & = & {\bf void} & \mathrm{if} \; F \subtype \Nil \; \mathrm{and} \; \N
 fonil(F) & = & F & \mathrm{otherwise}
 \end{array}
 \end{array}
-\]
+\]}
 \caption{Rules for Projection Types}
 \end{figure*}
 
