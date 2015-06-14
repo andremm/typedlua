@@ -1574,16 +1574,15 @@ Notice that in the above example the local variables $q$ and $r$ are declared wi
  The rule for typing this {\bf local} statement,
 {\sc T-LocalProj}, introduces a new label in the projection
 environment used for typing the {\bf if} statement.
-The first judgment above the bar of rule {\sc T-LocalProj} uses the auxiliary typing relation $\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$.
 
-Rule {\sc T-ExpListProj} is the typing rule for this auxiliary
+The first judgment above the bar of rule {\sc T-LocalProj} uses the auxiliary typing relation $\env_{1}, \penv \vdash el : E, \env_{2}, (x,S)$. Rule {\sc T-ExpListProj} is the typing rule for this auxiliary
 relation. It does the work of generating a fresh projection label,
 and projection types associated with it, if the last term of
 the expression list has a union of tuple types as its type.
 The rule generates as many projection types as the the length
 of the longest tuple.
 
-In the above example, the combination of these two rules binds $x$ to
+In the $idiv$ example above, the combination of these two rules binds $x$ to
 $(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})$ in the projection environment $\Pi$,
 and $q$ and $r$ respectively to $\pi_{1}^{x}$ and $\pi_{2}^{x}$
 in the type environment used for typing the {\bf if} statement.
