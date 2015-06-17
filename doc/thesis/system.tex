@@ -18,25 +18,33 @@ and features, such as refinement of tables, multiple assignment, and multiple re
 \section{Types}
 \label{sec:types}
 
-\begin{figure}[!ht]
+Typed Lua includes types that can appear in annotations and some
+special types that cannot appear in annotations, though they
+play special role in type checking some Lua idioms and handling flow typing.
+Special types cannot appear in annotations because they do not have
+a corresponding concrete syntax, so we also isolated them in the
+formalization to make the implementation easier.
+First we present the types that compose the type language of our
+type system, and then we present the special types, indicating
+why they are necessary.
+
+\begin{figure*}[!ht]
 \textbf{Type Language}\\
 \dstart
 $$
 \begin{array}{rlr}
-T ::= & & \textsc{first-level types:}\\
+F ::= & & \textsc{first-level types:}\\
 & \;\; L & \textit{literal types}\\
 & | \; B & \textit{base types}\\
 & | \; \Nil & \textit{nil type}\\
 & | \; \Value & \textit{top type}\\
 & | \; \Any & \textit{dynamic type}\\
 & | \; \Self & \textit{self type}\\
-& | \; T_{1} \cup T_{2} & \textit{disjoint union types}\\
+& | \; F_{1} \cup F_{2} & \textit{union types}\\
 & | \; S_{1} \rightarrow S_{2} & \textit{function types}\\
-& | \; \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open|fixed|closed} & \textit{table types}\\
-& | \; x & \textit{type variables}\\
-& | \; \mu x.T & \textit{recursive types}\\
-& | \; \phi(T_{1},T_{2}) & \textit{filter types}\\
-& | \; \pi_{i}^{x} & \textit{projection types}\\
+& | \; \{\overline{F{:}V}\}_{unique|open|fixed|closed} & \textit{table types}\\
+& |\; x & \textit{type variables}\\
+& | \; \mu x.F & \textit{recursive types}\\
 %\multicolumn{3}{c}{}\\
 L ::= & & \textsc{{\small literal types:}}\\
 & \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} &\\
@@ -44,40 +52,35 @@ L ::= & & \textsc{{\small literal types:}}\\
 B ::= & & \textsc{{\small base types:}}\\
 & \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String &\\
 %\multicolumn{3}{c}{}\\
-K ::= & & \textsc{{\small key types:}}\\
-& \;\; L \; | \; B \; | \; \Value &\\
-%\multicolumn{3}{c}{}\\
 V ::= & & \textsc{{\small value types:}}\\
-& \;\; T \; | \; \Const \; T &\\ 
+& \;\; F \; | \; \Const \; F &\\
 %\multicolumn{3}{c}{}\\
 S ::= & & \textsc{second-level types:}\\
 & \;\; P & \textit{tuple types}\\
 & | \; S_{1} \sqcup S_{2} & \textit{unions of tuple types}\\
 %\multicolumn{3}{c}{}\\
 P ::= & & \textsc{{\small tuple types:}}\\
-& \;\; \Void & \textit{void type}\\
-& | \; T{*} & \textit{variadic types}\\
-& | \; T \times P & \textit{pair types}
+& \;\; F{*} & \textit{variadic types}\\
+& | \; F \times P & \textit{pair types}
 \end{array}
 $$
 \dend
 \caption{The abstract syntax of Typed Lua types}
 \label{fig:typelang}
-\end{figure}
+\end{figure*}
 
 Figure \ref{fig:typelang} presents the abstract syntax of
 Typed Lua types.
 Typed Lua splits types into two categories:
 \emph{first-level types} and \emph{second-level types}.
 First-level types represent first-class Lua values and
-second-level types represent tuples of values that appear in 
-assignments and function applications.
+second-level types represent tuples of values that appear in the
+input and output of functions.
 First-level types include literal types, base types, the type $\Nil$,
 the top type $\Value$, the dynamic type $\Any$, the type $\Self$,
-union types, function types, table types, recursive types,
-filter types, and projection types.
+union types, function types, table types, and recursive types.
 Second-level types include tuple types and unions of tuple types.
-Tuple types include the type $\Void$, variadic types, and pair types.
+Tuple types include variadic types and pair types.
 Types are ordered by a subtype relationship that we introduce
 in Section \ref{sec:subtyping}, so Lua values may belong to
 several distinct types.
@@ -110,26 +113,27 @@ along with variadic types, helps the type system to drop extra values
 on assignments and function calls, thus preserving the
 semantics of Lua in these cases.
 
+Typed Lua includes the dynamic type $\Any$ for allowing programmers
+to mix static and dynamic typing.
+
 Typed Lua uses the type $\Self$ to represent the \emph{receiver}
 in object-oriented method definitions and method calls.
 As we mentioned in Section \ref{sec:oop}, we need the type
 $\Self$ to prevent programs from indexing a method without
 calling it with the correct receiver.
 
-Union types $T_{1} \cup T_{2}$ represent data types that can hold a value
+Union types $F_{1} \cup F_{2}$ represent data types that can hold a value
 of two different types.
 
 Function types have the form $S_{1} \rightarrow S_{2}$ and represent Lua functions,
 where $S$ is a second-level type.
 
 Second-level types are either tuple types or unions of tuple types.
-Tuple types are tuples of first-level types that can end with
-either an empty tuple or with a variadic type.
+Tuple types are tuples of first-level types that end with a variadic type.
 Typed Lua needs second-level types because tuples are not first-class
 values in Lua, only appearing on argument passing, multiple returns,
 and multiple assignments.
-The type $\Void$ is the type of an empty tuple.
-A variadic type $T{*}$ represents a sequence of values of type $T \cup \Nil$;
+A variadic type $F{*}$ represents a sequence of values of type $F \cup \Nil$;
 it is the type of a vararg expression.
 Second-level types include unions of tuples because Lua programs
 usually overload the return type of functions to denote error,
@@ -141,18 +145,18 @@ while $\sqcup$ represents the union between two tuple types.
 
 Back to first-level types, table types represent the various forms
 that Lua tables can take.
-The syntactical form of table types is $\{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{tag}$,
-where each $K_{i}$ represents the type of a table key,
-and each $V_{i}$ represents the type of the value that table keys of type $K_{i}$ map to.
-Key types can only be literal types, base types, or the top type.
-We made this restriction to the type of the keys because the statistics
-that we discussed in Section \ref{sec:statistics} showed that most
-of the tables are records, lists, and hashes.
-The type $\Value$ is an option when we need a loose table type.
-For instance, $\{\Value:\Value\}_{closed}$ represents the type of a
-table in which both indices and values can have any type.
-Value types can be any first-level type, and can optionally include
-the $\Const$ type to denote immutable values.
+The syntactical form of table types is $\{\overline{F{:}V}\}_{unique|open|fixed|closed}$,
+where the notation $\overline{F{:}V}$ denotes the list $F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}$.
+Each $V_{i}$ represents the type of the value that table keys of type $F_{i}$ map to.
+%Key types can only be literal types, base types, or the top type.
+%We made this restriction to the type of the keys because the statistics
+%that we discussed in Section \ref{sec:statistics} showed that most
+%of the tables are records, lists, and hashes.
+%The type $\Value$ is an option when we need a loose table type.
+%For instance, $\{\Value:\Value\}_{closed}$ represents the type of a
+%table in which both indices and values can have any type.
+Value types represent mutable values by default, but we can use the
+$\Const$ type to make them represent immutable values. 
 
 We also use the tags \emph{unique}, \emph{open}, \emph{fixed}, and \emph{closed}
 to classify table types.
@@ -177,8 +181,8 @@ In Section \ref{sec:rules} we formalize the definition of well-formed table type
 We delay the proper formalization of well-formed table types because we use
 consistent-subtyping in this formalization.
 
-Recursive types have the form $\mu x.T$,
-where $T$ is a first-level type that $x$ represents.
+Recursive types have the form $\mu x.F$,
+where $F$ is a first-level type that $x$ represents.
 For instance, $\mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}$
 is a type for singly-linked lists of integers.
 In Section \ref{sec:alias} we mentioned that we can use the following
@@ -189,6 +193,47 @@ interface declaration as an alias to this type:
       next:Element?
     end
 \end{verbatim}
+
+With the recursive types we finish the dicussion about Typed Lua types,
+and we begin the discussion about the special types.
+
+\begin{figure*}[!ht]
+\textbf{Special Types}\\
+\dstart
+$$
+\begin{array}{rlr}
+T ::= & & \textsc{expression types:}\\
+& \;\; F & \textit{first-level types}\\
+& | \; \phi(F_{1},F_{2}) & \textit{filter types}\\
+& | \; \pi_{i}^{x} & \textit{projection types}\\
+%\multicolumn{3}{c}{}\\
+E ::= & & \textsc{expression list types:}\\
+& \;\; T{*} & \textit{variadic types}\\
+& | \; T \times E & \textit{pair types}\\
+%\multicolumn{3}{c}{}\\
+R ::= & & \textsc{filter result types:}\\
+& \;\; \mathbf{void} & \textit{void type}\\
+& |\; F & \textit{first-level types}
+\end{array}
+$$
+\dend
+\caption{The special types used by Typed Lua}
+\label{fig:specialtypes}
+\end{figure*}
+
+Figure \ref{fig:specialtypes} presents the special types that
+Typed Lua includes for typing some Lua idioms and flow typing.
+Typed Lua splits special types into three categories:
+\emph{expression types}, \emph{expression list types}, and
+\emph{filter result types}.
+Expression types represent the type of expressions in the type system,
+which can be any first-level type, a filter type, or a projection type.
+Expression list types represent the type of lists of expressions,
+which are tuples of expression types that end with a variadic type.
+Filter result types are either the type $\Void$ or a first-level type.
+In Section \ref{sec:fap} we will show that Typed Lua uses filter types
+in flow typing, being the type $\Void$ a type with no values, used by the
+type system as a way to detect branches that are unreachable due to flow typing.
 
 Typed Lua includes filter types as a way to discriminate the type of local
 variables inside conditions.
@@ -208,9 +253,6 @@ when they appear in the right-hand side of the declaration of local variables,
 as we mentioned in Section \ref{sec:unions}.
 We also show how this feature allows our type system to constrain
 the type of a local variable that depends on the type of another local variable.
-
-Typed Lua includes the dynamic type $\Any$ for allowing programmers
-to mix static and dynamic typing.
 
 \section{Subtyping}
 \label{sec:subtyping}
