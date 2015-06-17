@@ -483,13 +483,17 @@ fields enable {\em depth subtyping} between table types.
 
 The difference between {\em unique}, {\em open} and
 {\em fixed} tables is the guarantees that the type system
-gives about the reference to a value of that type. A reference
-to an {\em unique} table is guaranteed to have no aliases,
+gives about the reference to a value of that type. A
+reference to an {\em unique} table is guaranteed to
+point to a table that has no other references to it,
 so it allows greater flexibility in reinterpreting its type;
 a reference to an {\em open} table is guaranteed to have
-only {\em closed} aliases (we will explain the meaning of the {\em closed} tag shortly), which still lets the type system
+only {\em closed} references pointing to the
+same table (we will explain the meaning of the {\em closed} tag shortly), which still lets the type system
 reinterpret the type of a reference, but with more
-restrictions; a {\em fixed} table can have any number of {\em fixed} or {\em closed} aliases, so its type cannot change
+restrictions; a reference to a {\em fixed} table can have any number of
+{\em fixed} or {\em closed} references point to it, 
+so its type cannot change
 anymore.
 
 Table types with the {\em fixed} tag are suitable for typing tables that are used as maps, lists, or even a mixture of those. The guarantee that there are no keys with a type that is not
@@ -1201,8 +1205,8 @@ yield either a number, a string or a boolean at runtime.
 
 Well-formed table types also do not allow \emph{unique} and
 \emph{open} table types to appear in the type of the values.
-Our type system currently cannot
-track aliases of table fields, so this restriction is
+At the moment, local variables are the only kind of reference that the system
+can track, so this restriction is
 necessary. This limitation of the type system is the reason the {\sc T-Constructor} rule uses the auxiliary function $fix$
 (in the definition of $vt$)
  to change any {\em open} and {\em unique} table types used in the field initializer to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
@@ -1256,7 +1260,7 @@ changes from one rule to the other is the tag in the type of $id$.
 There are analogous rules for adding methods to a {\em unique}
 and {\em open tables} as a side-effect of typechecking a method declaration.
 
-The type system needs to track aliasing of table references,
+The type system needs to track aliasing of tables,
 as the flexibility of {\em unique} and {\em open} tables
 depend on respectively having no aliases and having only {\em closed} aliases. The system conservatively assumes that
 a table has been aliased if its identifier appears in r-value position, with a couple of exceptions which we will explain shortly.
@@ -1368,8 +1372,7 @@ an {\em unique} and {\em open} references is by closing
 over them in a function body. In the environment used for
 typing the function body, all {\em unique} and {\em open}
 tables are {\em closed} with the auxiliary function $closeall$.
-This is not enough, as assignment
-to a closed-over variable can be unsafe. In the following
+Assignment to a closed-over table can be unsafe, because the {\em reference} to it is aliased as well. In the following
 example, assume that $g$ receives a parameter of type
 $\{ ``x": \String \cup \Nil\}_{closed}$:
 \begin{center}
@@ -1377,8 +1380,8 @@ $\{ ``x": \String \cup \Nil\}_{closed}$:
 		\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{open}
 			= \{\} \; \mathbf{in}$}\\
 		& \multicolumn{3}{l}{$\mathbf{local} \; f:\Void \rightarrow \Void =$}\\
-		& & \multicolumn{2}{l}{$\mathbf{fun} \; ():\Void$}\\
-		& & & \multicolumn{1}{l}{$a = \{[``x"]=5\} $}\\
+		& & \multicolumn{2}{l}{$\mathbf{fun} \; ():\Void\;\;\;
+		 a = \{[``x"]=5\} $}\\
 		& \multicolumn{3}{l}{$\mathbf{in} \; \lfloor g({<}\{``x":
 			 \String \cup \Nil\}_{closed}{>} \; a) \rfloor_{0}$}
 	\end{tabular}
@@ -1718,7 +1721,7 @@ table. In Typed Lua's type system the type of a
 table can change, either by assignment
 or by using the table in a context that expects
 a different (but compatible) type from its current one.
-The system tracks aliasing of table references
+The system tracks aliasing of tables
 in order to do this type evolution in a type-safe
 way.
 
