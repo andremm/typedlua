@@ -269,7 +269,8 @@ they handle the dynamic type, and the fact that subtyping is transitive,
 but consistent-subtyping is not.
 
 We present the subtyping rules as a deduction system for the
-subtyping relation $\senv \vdash T_{1} \subtype T_{2}$.
+subtyping relation $\senv \vdash X \subtype Y$, where $X$ and $Y$
+are two types of the same kind.
 The variable $\senv$ is a set of pairs of recursion variables.
 We need this set to record the hypotheses that we assume when checking
 recursive types.
@@ -341,7 +342,7 @@ so any first-level type is a subtype of $\Value$:
 \[
 \begin{array}{c}
 \mylabel{S-VALUE}\\
-\senv \vdash T \subtype \Value
+\senv \vdash F \subtype \Value
 \end{array}
 \]
 
@@ -362,31 +363,31 @@ The subtyping rules for union types are standard:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-UNION1}\\
-\dfrac{\senv \vdash T_{1} \subtype T \;\;\;
-       \senv \vdash T_{2} \subtype T}
-      {\senv \vdash T_{1} \cup T_{2} \subtype T}
+\dfrac{\senv \vdash F_{1} \subtype F \;\;\;
+       \senv \vdash F_{2} \subtype F}
+      {\senv \vdash F_{1} \cup F_{2} \subtype F}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-UNION2}\\
-\dfrac{\senv \vdash T \subtype T_{1}}
-      {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\dfrac{\senv \vdash F \subtype F_{1}}
+      {\senv \vdash F \subtype F_{1} \cup F_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-UNION3}\\
-\dfrac{\senv \vdash T \subtype T_{2}}
-      {\senv \vdash T \subtype T_{1} \cup T_{2}}
+\dfrac{\senv \vdash F \subtype F_{2}}
+      {\senv \vdash F \subtype F_{1} \cup F_{2}}
 \end{array}
 \end{array}
 \]
 
-The first rule shows that a union type $T_{1} \cup T_{2}$
-is a subtype of $T$ if both $T_{1}$ and $T_{2}$ are subtypes
-of $T$;
-and the other rules show that a type $T$ is a subtype
-of a union type $T_{1} \cup T_{2}$ if $T$ is a subtype of
-either $T_{1}$ or $T_{2}$.
+The first rule shows that a union type $F_{1} \cup F_{2}$
+is a subtype of $F$ if both $F_{1}$ and $F_{2}$ are subtypes
+of $F$;
+and the other rules show that a type $F$ is a subtype
+of a union type $F_{1} \cup F_{2}$ if $F$ is a subtype of
+either $F_{1}$ or $F_{2}$.
 
 The subtyping rule for function types is also standard:
 \[
@@ -406,53 +407,32 @@ second-level types to represent the type of the parameter list
 and the return type.
 Now, we explain their subtyping rules.
 
-The type $\Void$ is a subtype of itself and of a variadic type:
-\[
-\begin{array}{c}
-\mylabel{S-VOID2}\\
-\senv \vdash \Void \subtype T{*}
-\end{array}
-\]
-
-A variadic type $T{*}$ represents a sequence of values of type
-$T \cup \Nil$, and the rule \textsc{S-VOID2} handles the case where
-a given sequence is empty.
-
 The subtyping rule for pair types is the standard covariant rule:
 \[
 \begin{array}{c}
 \mylabel{S-PAIR}\\
-\dfrac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
        \senv \vdash P_{1} \subtype P_{2}}
-      {\senv \vdash T_{1} \times P_{1} \subtype T_{2} \times P_{2}}
+      {\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
 \end{array}
 \]
 
 The subtyping rules for variadic types are not so obvious.
-We need six different subtyping rules for variadic types
+We need three different subtyping rules for variadic types
 to handle all the cases where they can appear.
 
-The rule \textsc{S-VARARG1} is a special rule for handling the
-case where we give a sequence of $\Nil$ to the empty tuple:
-\[
-\begin{array}{c}
-\mylabel{S-VARARG1}\\
-\senv \vdash \Nil{*} \subtype \Void
-\end{array}
-\]
-
-The rule \textsc{S-VARARG2} handles the case where both tuple types end
+The rule \textsc{S-VARARG1} handles the case where both tuple types end
 with variadic types:
 \[
 \begin{array}{c}
 \mylabel{S-VARARG2}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
-      {\senv \vdash T_{1}{*} \subtype T_{2}{*}}
+\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \cup \Nil}
+      {\senv \vdash F_{1}{*} \subtype F_{2}{*}}
 \end{array}
 \]
 
-This rule shows that $T_{1}{*}$ is a subtype of $T_{2}{*}$
-if $T_{1} \cup \Nil$ is a subtype of $T_{2} \cup \Nil$.
+This rule shows that $F_{1}{*}$ is a subtype of $F_{2}{*}$
+if $F_{1} \cup \Nil$ is a subtype of $F_{2} \cup \Nil$.
 It explicitly includes $\Nil$ in both sides because otherwise
 $\Nil{*}$ would not be a subtype of several other variadic types.
 For instance, $\Nil{*}$ would not be a subtype of $\Number{*}$,
@@ -462,35 +442,23 @@ The other rules handle the cases where only one tuple type ends with a variadic 
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{S-VARARG3}\\
-\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2}}
-      {\senv \vdash T_{1}{*} \subtype T_{2} \times \Void}
+\mylabel{S-VARARG2}\\
+\dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \;\;\;
+       \senv \vdash F_{1}{*} \subtype P_{2}}
+      {\senv \vdash F_{1}{*} \subtype F_{2} \times P_{2}}
 \end{array}
 \;
 \begin{array}{c}
-\mylabel{S-VARARG4}\\
-\dfrac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil}
-      {\senv \vdash T_{1} \times \Void \subtype T_{2}{*}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-VARARG5}\\
-\dfrac{\senv \vdash T_{1}{*} \subtype T_{2} \times \Void \;\;\;
-       \senv \vdash T_{1}{*} \subtype P_{2}}
-      {\senv \vdash T_{1}{*} \subtype T_{2} \times P_{2}}
-\end{array}
-\\ \\
-\begin{array}{c}
-\mylabel{S-VARARG6}\\
-\dfrac{\senv \vdash T_{1} \times \Void \subtype T_{2}{*} \;\;\;
-       \senv \vdash P_{1} \subtype T_{2}{*}}
-      {\senv \vdash T_{1} \times P_{1} \subtype T_{2}{*}}
+\mylabel{S-VARARG3}\\
+\dfrac{\senv \vdash F_{1} \subtype F_{2} \cup \Nil \;\;\;
+       \senv \vdash P_{1} \subtype F_{2}{*}}
+      {\senv \vdash F_{1} \times P_{1} \subtype F_{2}{*}}
 \end{array}
 \end{array}
 \]
 
-Note that the case where both tuple types end with the type $\Void$ does
-not require any special rule.
+These rules state the conditions when variadic tuples of different
+length are compatible.
 In the next section we will show that we use the subtyping rules for variadic types,
 along with the types $\Value$ and $\Nil$, to make our type system reflect
 the semantics of Lua on discarding extra parameters and
@@ -528,12 +496,12 @@ standard subtyping rule between records:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE1}\\
-\dfrac{\forall i \in 1..n \; \exists j \in 1..m \;\;\;
-       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
-       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
+\dfrac{\forall i \; \exists j \;\;\;
+       \senv \vdash F_{j} \subtype F_{i}' \;\;\;
+       \senv \vdash F_{i}' \subtype F_{j} \;\;\;
        \senv \vdash V_{j} \subtype_{c} V_{i}'}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{fixed|closed} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}} \; m \ge n
+      {\senv \vdash \{\overline{F{:}V}\}_{fixed|closed} \subtype
+                    \{\overline{F'{:}V'}\}_{closed}}
 \end{array}
 \]
 
@@ -548,21 +516,21 @@ We define the relation $\subtype_{c}$ as follows:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-FIELD1}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2} \;\;\;
-       \senv \vdash V_{2} \subtype V_{1}}
-      {\senv \vdash V_{1} \subtype_{c} V_{2}}
+\dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
+       \senv \vdash F_{2} \subtype F_{1}}
+      {\senv \vdash F_{1} \subtype_{c} F_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-FIELD2}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash \Const \; V_{1} \subtype_{c} \Const \; V_{2}}
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash \Const \; F_{1} \subtype_{c} \Const \; F_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{S-FIELD3}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{c} \Const \; V_{2}}
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash F_{1} \subtype_{c} \Const \; F_{2}}
 \end{array}
 \end{array}
 \]
@@ -613,13 +581,13 @@ The following subtyping rule defines the subtyping relation among
 \begin{array}{c}
 \mylabel{S-TABLE2}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..m \; \forall j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+       \forall i \; \forall j \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash V_{i} \subtype_{u} V_{j}'\\
+       \forall j \; \nexists i \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+      {\senv \vdash \{\overline{F{:}V}\}_{unique} \subtype
+                    \{\overline{F'{:}V'}\}_{closed}}
 \end{array}
 \]
 
@@ -638,32 +606,38 @@ We define them as follows:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-FIELD4}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{u} V_{2}}
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash F_{1} \subtype_{u} F_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-FIELD5}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash \Const \; V_{1} \subtype_{u} \Const \; V_{2}}
-\end{array}
-\;
-\begin{array}{c}
-\mylabel{S-FIELD6}\\
-\dfrac{\senv \vdash V_{1} \subtype V_{2}}
-      {\senv \vdash V_{1} \subtype_{u} \Const \; V_{2}}
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash \Const \; F_{1} \subtype_{u} \Const \; F_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{S-FIELD7}\\
-\dfrac{\senv \vdash \Nil \subtype V}
-      {\senv \vdash \Nil \subtype_{o} V}
+\mylabel{S-FIELD6}\\
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash \Const \; F_{1} \subtype_{u} F_{2}}
 \end{array}
 \;
 \begin{array}{c}
+\mylabel{S-FIELD7}\\
+\dfrac{\senv \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash F_{1} \subtype_{u} \Const \; F_{2}}
+\end{array}
+\\ \\
+\begin{array}{c}
 \mylabel{S-FIELD8}\\
-\dfrac{\senv \vdash \Nil \subtype V}
-      {\senv \vdash \Nil \subtype_{o} \Const \; V}
+\dfrac{\senv \vdash \Nil \subtype F}
+      {\senv \vdash \Nil \subtype_{o} F}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{S-FIELD9}\\
+\dfrac{\senv \vdash \Nil \subtype F}
+      {\senv \vdash \Nil \subtype_{o} \Const \; F}
 \end{array}
 \end{array}
 \]
@@ -682,14 +656,13 @@ because it would violate our definition of these other table types:
 \begin{array}{c}
 \mylabel{S-TABLE3}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..m \\
-       \exists j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+       \forall i \; \exists j \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \land \senv \vdash V_{i} \subtype_{u} V_{j}' \\
+       \forall j \; \nexists i \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{unique} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{unique|open|fixed}}
+      {\senv \vdash \{\overline{F{:}V}\}_{unique} \subtype
+                    \{\overline{F'{:}V'}\}_{unique|open|fixed}}
 \end{array}
 \]
 
@@ -699,13 +672,13 @@ types allows width subtyping:
 \begin{array}{c}
 \mylabel{S-TABLE4}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..m \; \forall j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+       \forall i \; \forall j \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+       \forall j \; \nexists i \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{closed}}
+      {\senv \vdash \{\overline{F{:}V}\}_{open} \subtype
+                    \{\overline{F'{:}V'}\}_{closed}}
 \end{array}
 \]
 
@@ -715,14 +688,13 @@ However, the rule that handles subtyping among \emph{open} and
 \begin{array}{c}
 \mylabel{S-TABLE5}\\
 \dfrac{\begin{array}{c}
-       \forall i \in 1..m \\
-       \exists j \in 1..n \;
-       \senv \vdash K_{i} \subtype K_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
-       \forall j \in 1..n \; \not\exists i \in 1..m \;
-       \senv \vdash K_{i} \subtype K_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
+       \forall i \; \exists j \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \land \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+       \forall j \; \nexists i \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \to \senv \vdash \Nil \subtype_{o} V_{j}'
        \end{array}}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{m}{:}V_{m}\}_{open} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{open|fixed}}
+      {\senv \vdash \{\overline{F{:}V}\}_{open} \subtype
+                    \{\overline{F'{:}V'}\}_{open|fixed}}
 \end{array}
 \]
 
@@ -739,12 +711,18 @@ but it allows depth subtyping on $\Const$ fields:
 \[
 \begin{array}{c}
 \mylabel{S-TABLE6}\\
-\dfrac{\forall i \in 1..n \; \exists j \in 1..n \;\;\;
-       \senv \vdash K_{j} \subtype K_{i}' \;\;\;
-       \senv \vdash K_{i}' \subtype K_{j} \;\;\;
-       \senv \vdash V_{j} \subtype_{c} V_{i}'}
-      {\senv \vdash \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{fixed} \subtype
-                    \{K_{1}'{:}V_{1}', ..., K_{n}'{:}V_{n}'\}_{fixed}}
+\dfrac{\begin{array}{c}
+       \forall i \; \exists j \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \;\;\;
+       \senv \vdash F_{j}' \subtype F_{i} \;\;\;
+       \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+       \forall j \; \exists i \;\;\;
+       \senv \vdash F_{i} \subtype F_{j}' \;\;\;
+       \senv \vdash F_{j}' \subtype F_{i} \;\;\;
+       \senv \vdash V_{i} \subtype_{c} V_{j}' \\
+       \end{array}}
+      {\senv \vdash \{\overline{F{:}V}\}_{fixed} \subtype
+                    \{\overline{F'{:}V'}\}_{fixed}}
 \end{array}
 \]
 
@@ -757,8 +735,8 @@ subtyping between recursive types:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-AMBER}\\
-\dfrac{\senv[x_{1} \subtype x_{2}] \vdash T_{1} \subtype T_{2}}
-      {\senv \vdash \mu x_{1}.T_{1} \subtype \mu x_{2}.T_{2}}
+\dfrac{\senv[x_{1} \subtype x_{2}] \vdash F_{1} \subtype F_{2}}
+      {\senv \vdash \mu x_{1}.F_{1} \subtype \mu x_{2}.F_{2}}
 \end{array}
 \;
 \begin{array}{c}
@@ -770,11 +748,11 @@ subtyping between recursive types:
 \]
 
 The rule \textsc{S-AMBER} also uses the rule \textsc{S-ASSUMPTION}
-to check whether $\mu x_{1}.T_{1} \subtype \mu x_{2}.T_{2}$.
+to check whether $\mu x_{1}.F_{1} \subtype \mu x_{2}.F_{2}$.
 Both rules use the set of assumptions $\senv$,
 where each assumption is a pair of recursion variables.
 The rule \textsc{S-AMBER} extends $\senv$ with the assumption
-$x_{1} \subtype x_{2}$ to check whether $T_{1} \subtype T_{2}$.
+$x_{1} \subtype x_{2}$ to check whether $F_{1} \subtype F_{2}$.
 The rule \textsc{S-ASSUMPTION} allows the rule \textsc{S-AMBER}
 to check whether an assumption is valid.
 
@@ -785,14 +763,14 @@ recursive types and other first-level types:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{S-UNFOLDR}\\
-\dfrac{\senv \vdash T_{1} \subtype [x \mapsto \mu x.T_{2}]T_{2}}
-      {\senv \vdash T_{1} \subtype \mu x.T_{2}}
+\dfrac{\senv \vdash F_{1} \subtype [x \mapsto \mu x.F_{2}]F_{2}}
+      {\senv \vdash F_{1} \subtype \mu x.F_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{S-UNFOLDL}\\
-\dfrac{\senv \vdash [x \mapsto \mu x.T_{1}]T_{1} \subtype T_{2}}
-      {\senv \vdash \mu x.T_{1} \subtype T_{2}}
+\dfrac{\senv \vdash [x \mapsto \mu x.F_{1}]F_{1} \subtype F_{2}}
+      {\senv \vdash \mu x.F_{1} \subtype F_{2}}
 \end{array}
 \end{array}
 \]
@@ -814,9 +792,9 @@ the type of the table constructor is a subtype of \texttt{Element}:
 \end{align*}
 
 Filter types are subtypes only of themselves and of $\Value$.
-More precisely, a filter type $\phi(T_{1},T_{2})$ is a subtype of
-the same filter type $\phi(T_{1},T_{2})$, which shares the same
-types $T_{1}$ and $T_{2}$, and it is also a subtype of $\Value$.
+More precisely, a filter type $\phi(F_{1},F_{2})$ is a subtype of
+the same filter type $\phi(F_{1},F_{2})$, which shares the same
+types $F_{1}$ and $F_{2}$, and it is also a subtype of $\Value$.
 
 Projection types are subtypes only of themselves and of $\Value$.
 More precisely, a projection type $\pi_{i}^{x}$ is a subtype of the
@@ -829,7 +807,8 @@ but a separate type that is subtype only of itself and of $\Value$.
 Even though the dynamic type $\Any$ does not interact with subtyping,
 it does interact with consistent-subtyping.
 We present the consistent-subtyping rules as a deduction system for
-the consistent-subtyping relation $\senv \vdash T_{1} \lesssim T_{2}$.
+the consistent-subtyping relation $\senv \vdash X \lesssim Y$,
+where $X$ and $Y$ are two types of the same kind.
 As in the subtyping relation, $\senv$ is also a set of pairs of
 recursion variables.
 We define the consistent-subtyping rules for the dynamic type $\Any$
@@ -838,23 +817,23 @@ as follows:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{C-ANY1}\\
-\senv \vdash T \lesssim \Any
+\senv \vdash F \lesssim \Any
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{C-ANY2}\\
-\senv \vdash \Any \lesssim T
+\senv \vdash \Any \lesssim F
 \end{array}
 \end{array}
 \]
 
 If we had set the type $\Any$ as both bottom and top types of our
-subtyping relation, then any type $T_{1}$ would be a subtype of
-any other type $T_{2}$.
+subtyping relation, then any type $F_{1}$ would be a subtype of
+any other type $F_{2}$.
 The consequence of this is that all programs would type check without errors.
 This would happen due to the transitivity of subtyping, that is,
-we would be able to down-cast any type $T_{1}$ to $\Any$ and then up-cast
-$\Any$ to any other type $T_{2}$.
+we would be able to down-cast any type $F_{1}$ to $\Any$ and then up-cast
+$\Any$ to any other type $F_{2}$.
 The rules \textsc{C-ANY1} and \textsc{C-ANY2} are the rules that
 allow the dynamic type to interact with other first-level types,
 and thus allow dynamically typed code to coexist with statically
