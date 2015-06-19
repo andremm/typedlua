@@ -148,13 +148,6 @@ that Lua tables can take.
 The syntactical form of table types is $\{\overline{F{:}V}\}_{unique|open|fixed|closed}$,
 where the notation $\overline{F{:}V}$ denotes the list $F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}$.
 Each $V_{i}$ represents the type of the value that table keys of type $F_{i}$ map to.
-%Key types can only be literal types, base types, or the top type.
-%We made this restriction to the type of the keys because the statistics
-%that we discussed in Section \ref{sec:statistics} showed that most
-%of the tables are records, lists, and hashes.
-%The type $\Value$ is an option when we need a loose table type.
-%For instance, $\{\Value:\Value\}_{closed}$ represents the type of a
-%table in which both indices and values can have any type.
 Value types represent mutable values by default, but we can use the
 $\Const$ type to make them represent immutable values. 
 
@@ -1257,33 +1250,40 @@ The first uses a list of table fields $([e_{1}] = e_{2})_{1}, ..., ([e_{1}] = e_
 The second uses a list of table fields and an expression that can
 produce multiple values.
 
-The simplest expression involving tables is the empty table constructor.
-Its type checking rule is straightforward:
-\[
-\begin{array}{c}
-\mylabel{T-CONSTRUCTOR1}\\
-\env_{1}, \penv \vdash \{\}:\{\}_{unique}, \env_{1}
-\end{array}
-\]
+The simplest expression involving tables is the empty table constructor $\{\}$;
+it always has type $\{\}_{unique}$.
 
 As a more interesting example, let us see how our type system type checks
 the table constructor $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$.
 
 First, our type system uses the auxiliary relation
-$\env_{1}, \penv \vdash [e_{1}] = e_{2} : (K,V), \env_{2}$ to type check each
+$\env_{1}, \penv \vdash [e_{1}] = e_{2} : (F,V), \env_{2}$ to type check each
 table field.
 This auxiliary relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, checking a table field $[e_{1}] = e_{2}$
-produces a pair $(K,V)$ and a new type environment $\env_{2}$.
-A pair $(K,V)$ means that $e_{1}$ has type $K$ and $e_{2}$ has type $V$,
-where $K$ is the type of the key and $V$ is the type of the value.
+produces a pair $(F,V)$ and a new type environment $\env_{2}$.
+A pair $(F,V)$ means that $e_{1}$ has type $F$ and $e_{2}$ has type $V$,
+where $F$ is the type of the key and $V$ is the type of the value.
 
-After type checking each table field, our type system uses each pair $(K,V)$
+After type checking each table field, our type system uses each pair $(F,V)$
 to build the table type that express the type of a given constructor, and
 uses the predicate \emph{wf} to check whether this table type is well-formed.
 Formally, a table type is well-formed if it obeys the following rule:
 \[
-\forall i \not\exists j \; i \not= j \wedge K_{i} \lesssim K_{j}
+\begin{array}{rcl}
+wf(\{\overline{F:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, F_{i} \lesssim F_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
+& & \;\;\;\; \lnot tag(V_{i},unique) \,\wedge\, \lnot tag(V_{i},open))\\
+wf({\bf const}\; F) & = & wf(F) \\
+wf(F_1 \cup F_2) & = & wf(F_1) \,\wedge\, wf(F_2) \\
+wf(\mu x.F) & = & wf(F) \\
+wf(S_1 \rightarrow S_2) & = & wf(S_1) \,\wedge\, wf(S_2) \\
+wf(S_1 \sqcup S_2) & = & wf(S_1) \,\wedge\, wf(S_2)\\
+wf(F{*}) &=& wf(F) \\
+wf(F \times P) &=& wf(F) \,\wedge\,wf(P)\\
+wf(F) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}\\\\
+tag(F_1 \cup F_2, t) & = & tag(F_1, t) \,\vee\, tag(F_2,t) \\
+tag(\{\overline{F:V}\}_t, t) & = & \top\\
+\end{array}
 \]
 
 Well-formed table types avoid ambiguity.
@@ -1304,7 +1304,8 @@ This means that allowing \emph{unique} and \emph{open} table
 types to appear in the type of a value would allow the
 creation of unsafe aliases.
 The rules that type check table fields use the auxiliary function
-\emph{close} to close the type of the values in a table type.
+\emph{fix} to change any \emph{unique} and \emph{open} table types
+used in the field initializer to \emph{fixed}.
 
 The rule \textsc{T-CONSTRUCTOR2} uses these steps to type check a
 table constructor with a non-empty list of table fields:
@@ -1312,8 +1313,8 @@ table constructor with a non-empty list of table fields:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(K_{i},V_{i}), \env_{i+1} \\
-       T = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique} \;\;\;
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \\
+       T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \;\;\;
        wf(T) \;\;\;
        n = |\;\overline{[e_{1}] = e_{2}}\;| \\
        \env_{f} = merge(\env_{1}, ..., \env_{n+1})
@@ -1327,9 +1328,9 @@ $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
 $\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
 
 As another example, the constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
-has type $\{``x":1, ``y":\{``z":2\}_{closed}\}_{unique}$ through rule
+has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$ through rule
 \textsc{T-CONSTRUCTOR2}.
-The inner table is \emph{closed} to prevent the creation of unsafe aliases.
+The inner table is \emph{fixed} to prevent the creation of unsafe aliases.
 
 After presenting some typing rules of the table constructor,
 we start the discussion of the rules that define the most
@@ -1357,23 +1358,27 @@ We can translate this example to our reduced core as follows:
 In this example, we assign the type $\{\}_{unique}$ to the variable
 $person$, then we refine its type to $\{``firstname":\String\}_{unique}$,
 and then we refine its type to $\{``firstname":\String, ``lastname":\String\}_{unique}$.
-Rule \textsc{T-REFINE} type checks this use of refinement:
+Rule \textsc{T-REFINE1} type checks this use of refinement:
 \[
 \begin{array}{c}
-\mylabel{T-REFINE}\\
+\mylabel{T-REFINE1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n} \}_{open|unique}\\
-       \env_{1}, \penv \vdash k:K, \env_{2} \;\;\;
-       \not \exists i \in 1..n \; K \lesssim K_{i} \;\;\;
-       V = close(T)
+       \env_{1}(id) = \{\overline{F{:}V}\}_{unique}\\
+       \env_{1}, \penv \vdash e:F_{new}, \env_{2} \;\;\;
+       \nexists i \in 1..n \; F_{new} \lesssim F_{i} \;\;\;
+       V_{new} = vt(F_{new},V) \;\;\; n = |\overline{F{:}V}|
        \end{array}}
-      {\env_{1}, \penv \vdash id[k] {<}T{>}:V, \env_{2}[id \mapsto \{ K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}, K{:}V\}_{open|unique}]}
+      {\env_{1}, \penv \vdash id[e] {<}V{>}:V_{new}, \env_{2}[id \mapsto \{\overline{F{:}V}, F_{new}{:}V_{new}\}_{unique}]}
 \end{array}
 \]
 
-We restricted the refinement of table types to include only literal
-keys, because its purpose is to make it easier the construction of
-table types that represent records.
+The rule \textsc{T-REFINE} uses the auxiliary function \emph{vt}
+to adjust the type of the value according to the type of the key.
+More precisely, \emph{vt} includes the type $\Nil$ in the type of
+the value when the type of the key is not a literal type.
+It is also this function that uses \emph{fix} to prevent
+\emph{unique} and \emph{open} table types to appear in the type
+of the values.
 
 We use the refinement of table types to handle the declaration of
 new global variables.
@@ -1403,14 +1408,14 @@ For instance,
 does not type check, as we are trying to add $``x"$ twice.
 
 We also do not allow the refinement of table types to introduce
-fields with table types that are not \emph{closed}.
+fields with table types that are neither \emph{fixed} nor \emph{closed}.
 For instance,
 \begin{center}
 \begin{tabular}{l}
 $\string_ENV[``x"] \; {<}\{\}_{unique}{>} = \{\}$
 \end{tabular}
 \end{center}
-refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{closed}\}_{open}$.
+refines the type of $\string_ENV$ from $\{\}_{open}$ to $\{``x":\{\}_{fixed}\}_{open}$.
 Currently, our type system can only track \emph{unique} and
 \emph{open} table types that are bound to local variables.
 
@@ -1422,6 +1427,11 @@ We can also use multiple assignment to refine table types:
 This example type checks because all the environment changes are consistent, and
 $``foo" \times 1 \times \Nil{*} \lesssim \String \times \Integer \times \Value{*}$.
 By consistent we mean that we are only adding new fields.
+More precisely, the first coercion expression refines the type of $\string_ENV$
+to $\{``x":\String\}_{open}$, while
+the second coercion expression refines the type of $\string_ENV$
+to $\{``y":\Integer\}_{open}$.
+Merging the two yields $\{``x":\String, ``y":\Integer\}_{open}$.
 Nevertheless, the next example does not type check because it tries to add
 the same field to $\string_ENV$, but with different types:
 \[
@@ -1472,125 +1482,76 @@ We define these rules as follows:
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-IDREAD1}\\
-\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env_{1}, \penv \vdash id:close(T_{2}), \env_{1}[id \mapsto open(T_{1})]}
+\dfrac{\env_{1}(id) = F}
+      {\env_{1}, \penv \vdash id:close(F), \env_{1}[id \mapsto open(F)]}
 \end{array}
 \\ \\
 \begin{array}{c}
 \mylabel{T-IDREAD2}\\
-\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = read(\penv, T_{1})}
-      {\env_{1}, \penv \vdash id:fix(T_{2}), \env_{1}[id \mapsto fix(T_{1})]}
+\dfrac{\env_{1}(id) = F}
+      {\env_{1}, \penv \vdash id:fix(F), \env_{1}[id \mapsto fix(F)]}
 \end{array}
 \end{array}
 \]
 
-Both rules use the auxiliary function \emph{read} because they may be
-accessing an identifier that is bound to a filter or projection type.
-As we mentioned in Section \ref{sec:unions}, our type system includes
-a small set of \texttt{type} predicates that allow programmers to
-discriminate union types, and our type system uses filter and projection
-types in the definition of these predicates to handle the discrimination
-of unions types.
-While filter types discriminate unions of first-level types, projection
-types discriminate unions of second-level types and project unions of
-second-level types into unions of first-level types.
-We can define \emph{read} as follows:
-\begin{align*}
-read(\penv, \phi(T_{1},T_{2})) & = T_{2}\\
-read(\penv, \pi_{i}^{x}) & = proj(\penv(x), i)\\
-read(\penv, T) & = T
-\end{align*}
-
-The function \emph{read} uses the auxiliary function \emph{proj}
-to project a union of first-level types, based on an union of
-second-level types and an index from a projection type.
-In Section \ref{sec:fap} we will discuss how our type system uses
-projection types to handle overloaded return types.
-We can define \emph{proj} as follows:
-\begin{align*}
-proj(T_{1} \times ... \times T_{n} \times T{*}, i) & =  T_{i} \;\;\; \text{if $i <= n$}\\
-proj(S_{1} \sqcup S_{2}, i) & = proj(S_{1}, i) \cup proj(S_{2}, i)
-\end{align*}
-
-We also need to close \emph{unique} and \emph{open} tables that
-appear in the left-hand side of assignments, as leaving them
-\emph{unique} and \emph{open} would allow the creation of
-unsafe references.
-
-As an example,
-\begin{center}
-\begin{tabular}{lll}
-\multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{open} = \{\} \; \mathbf{in}$}\\
-& & \multicolumn{1}{l}{$b = a;$}\\
-& & \multicolumn{1}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
-& & \multicolumn{1}{l}{$b[``x"] \; {<}\Integer{>} = 1$}\\
-\end{tabular}
-\end{center}
-does not type check because we cannot add the field $``x"$ to $b$,
-as its type is \emph{closed}.
-Aliasing $a$ changes the type of $a$ from $\emph{unique}$ to
-$\emph{open}$, and that is the reason why we can add the field
-$``x"$ to the type of $a$.
-Aliasing $a$ also produces the type $\{\}_{closed}$, which is
-the same type that $b$ has in left-hand side of the assignment.
-After the assignment, the type of $b$ is \emph{closed} and thus
-does not allow changing the value that is stored in the field
-$``x"$ of $a$.
-
-Rule \textsc{T-IDWRITE} defines this behavior:
+We do not need to close \emph{unique} and \emph{open} tables that
+appear in the left-hand side of assignments, because \textsc{T-IDREAD}
+is sufficient to forbid the creation of an alias to another \emph{unique}
+or \emph{open} table.
+For this reason, identifiers that appear in the left-hand side
+of assignements have their own rule \textsc{T-IDWRITE}:
 \[
 \begin{array}{c}
 \mylabel{T-IDWRITE}\\
-\dfrac{\env_{1}(id) = T_{1} \;\;\; T_{2} = write(T_{1})}
-      {\env_{1}, \penv \vdash id_{l}:close(T_{2}), \env_{1}[id \mapsto close(T_{2})]}
+\dfrac{\env_{1}(id) = F}
+      {\env_{1}, \penv \vdash id_{l}:F, \env_{1}}
 \end{array}
 \]
 
-This rule uses the auxiliary function \emph{write} because it may be
-accessing an identifier that is bound to a filter type.
-As we mentioned in Sections \ref{sec:unions} and \ref{sec:alias},
-assignments restore discriminated union types to their original types,
-and function \emph{write} works in this purpose.
-We can define \emph{write} as follows:
-\begin{align*}
-write(\phi(T_{1},T_{2})) & = T_{1}\\
-write(T) & = T
-\end{align*}
-
 Our type system also has different rules for type checking table indexing to avoid
-changing table types in these operations, as they cannot create aliases:
+changing table types in these operations, as they cannot create aliases.
+These rules also use the auxiliary function \emph{rconst} to strip the
+$\Const$ type from the type of the value, if present.
+We define these rules as follows:
 \[
 \begin{array}{c}
 \begin{array}{c}
-\mylabel{T-INDEX1}\\
+\mylabel{T-INDEXREAD1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = T \;\;\;
-       read(\penv, T) = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}\\
-       \env_{1}, \penv \vdash e_{2}:K, \env_{2} \;\;\;
-       \exists i \in 1{..}n \; K \lesssim K_{i}
+       \env_{1}(id) = \{\overline{F{:}V}\} \;\;\;
+       \env_{1}, \penv \vdash e_{2}:F, \env_{2} \;\;\;
+       \exists i \in 1{..}n \; F \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}|
        \end{array}}
-      {\env_{1}, \penv \vdash id[e_{2}]:V_{i}, \env_{2}}
+      {\env_{1}, \penv \vdash id[e_{2}]:rconst(V_{i}), \env_{2}}
 \end{array}
 \\ \\
 \begin{array}{c}
-\mylabel{T-INDEX2}\\
+\mylabel{T-INDEXREAD2}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e_{1}:\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}, \env_{2}\\
-       \env_{2}, \penv \vdash e_{2}:K, \env_{3} \;\;\;
-       \exists i \in 1{..}n \; K \lesssim K_{i}
+       \env_{1}, \penv \vdash e_{1}:\{\overline{F{:}V}\}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:F, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; F \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}|
        \end{array}}
-      {\env_{1}, \penv \vdash e_{1}[e_{2}]:V_{i}, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]:rconst(V_{i}), \env_{3}}
 \end{array}
 \end{array}
 \]
+
+Rule \textsc{T-INDEXREAD1} defines the case where using an identifier
+to index a table does not create an alias, while rule \textsc{T-INDEXREAD2}
+defines the case for indexing expressions where the expression
+denoting the table is not an identifier.
+The rules for indexing left-hand values are similar to these rules,
+except that they ensure that the field is not $\Const$.
 
 A second form of refinement happens when we want to use an
 \emph{unique} or \emph{open} table type in a context that expects a
 \emph{fixed} or \emph{closed} table type with a different shape.
 This kind of refinement allows programmers to add optional fields
 or merge existing fields.
-To do that, Typed Lua includes a type coercion expression ${<}T{>} \; id$.
+To do that, Typed Lua includes a type coercion expression ${<}F{>} \; id$.
 For instance, we can use this type coercion expression to make the following
 example type check:
 \begin{center}
@@ -1614,17 +1575,25 @@ as it still holds an \emph{open} table.
 At the end of this example, $a$ has type
 $\{``x":\String, ``y":\String \cup \Nil, ``z":\Integer\}_{open}$.
 
-Rule \textsc{T-COERCE} defines the behavior of the type coercion expression:
+Rules \textsc{T-COERCE1} and \textsc{T-COERCE2} define the behavior of the
+type coercion expression:
 \[
 \begin{array}{c}
-\mylabel{T-COERCE}\\
-\dfrac{\env_{1}(id) \subtype T \;\;\;
-       \env_{1}[id \mapsto T], \penv \vdash id:T_{1}, \env_{2}}
-      {\env_{1}, \penv \vdash {<}T{>} \; id:T_{1}, \env_{2}}
+\begin{array}{c}
+\mylabel{T-COERCE1}\\
+\dfrac{\env_{1}(id) \subtype F \;\;\; tag(F,closed)}
+      {\env_{1}, \penv \vdash {<}F{>} \; id:F, \env_{1}[id \mapsto reopen(F)]}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-COERCE2}\\
+\dfrac{\env_{1}(id) \subtype F \;\;\; tag(F,fixed)}
+      {\env_{1}, \penv \vdash {<}F{>} \; id:F, \env_{1}[id \mapsto F]}
+\end{array}
 \end{array}
 \]
 
-Note that rule \textsc{T-COERCE} only allows changing the type
+Note that the coercion rules only allows changing the type
 of a variable if the new type is a supertype of the previous type,
 and the resulting type is always \emph{fixed} or \emph{closed}
 to prevent the creation of unsafe aliases.
@@ -1635,20 +1604,18 @@ To do that, our type system uses some auxiliary functions to change
 the type of variables before type checking a nested scope and
 also to change the type of assigned and referenced variables after
 type checking a nested scope.
-The function \emph{crall} closes all \emph{unique} and \emph{open}
-table types; it also restores filter types to their original types.
-The function \emph{crset} closes a given set of free assigned variables,
-which is given by the function \emph{fav}, and
-it also uses this set to restore filter types to their original types.
+The function \emph{closeall} closes all \emph{unique} and \emph{open} table types.
+The function \emph{closeset} closes a given set of free assigned variables,
+which is given by the function \emph{fav}.
 The function \emph{openset} changes from \emph{unique} to \emph{open}
-a given set of referenced variables, which is given by the function \emph{rv}.
+a given set of referenced variables, which is given by the function \emph{frv}.
 
 As an example,
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique}, b:\{\}_{unique} = \{\}, \{\} \; \mathbf{in}$}\\
-& \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Void \rightarrow \Integer \times \Void =$}\\
-& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Void$}\\
+& \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Nil{*} \rightarrow \Integer \times \Nil{*} =$}\\
+& & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Nil{*}$}\\
 & & & \multicolumn{1}{l}{$b = a \;;\; \mathbf{return} \; x + 1$}\\
 & \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
 \end{tabular}
@@ -1657,13 +1624,13 @@ does not type check because we cannot add the field
 $``x"$ to $b$, as its type is closed.
 The assignment $b = a$ type checks because, at that point,
 $a$ and $b$ have the same type: $\{\}_{closed}$.
-Their type was closed by \emph{crall} before type checking
+Their type was closed by \emph{closeall} before type checking
 the function body.
 Their type would be restored to $\{\}_{unique}$ after type checking
 the function body, but that assignment also triggers other two type changes.
 First, the function \emph{fav} includes $b$ in the set of variables
-that should be closed by \emph{crset}.
-Then, the function \emph{rv} includes $a$ in the set of variables
+that should be closed by \emph{closeset}.
+Then, the function \emph{frv} includes $a$ in the set of variables
 that should change from \emph{unique} to \emph{open} by \emph{openset}.
 After declaring $f$, $a$ has type $\{\}_{open}$ and $b$ has type $\{\}_{closed}$,
 so we can refine the type of $a$, but we cannot refine the type of $b$.
@@ -1673,10 +1640,11 @@ Rule \textsc{T-FUNCTION1} illustrates this case:
 \begin{array}{c}
 \mylabel{T-FUNCTION1}\\
 \dfrac{\begin{array}{c}
-       crall(\env_{1}[\overline{id} \mapsto \overline{T}]), \penv[\ret \mapsto S] \vdash s, \env_{2}\\
-       \env_{3} = openset(crset(\env_{1}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       closeall(\env_{1})[\overline{id \mapsto F}], \penv[\ret \mapsto S] \vdash s, \env_{2} \\
+       \env_{3} = openset(\env_{1}, frv(\mathbf{fun} \; (\overline{id{:}F}){:}S \; s)) \\
+       \env_{4} = closeset(\env_{3}, fav(\mathbf{fun} \; (\overline{id{:}F}){:}S \; s))
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}T}){:}S \; s:\overline{T} \times \Void \rightarrow S, \env_{3}}
+      {\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}F}){:}S \; s:F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S, \env_{4}}
 \end{array}
 \]
 
