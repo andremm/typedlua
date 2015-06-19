@@ -1617,7 +1617,7 @@ As an example,
 & \multicolumn{3}{l}{$\mathbf{local} \; f:\Integer \times \Nil{*} \rightarrow \Integer \times \Nil{*} =$}\\
 & & \multicolumn{2}{l}{$\mathbf{fun} \; (x:\Integer):\Integer \times \Nil{*}$}\\
 & & & \multicolumn{1}{l}{$b = a \;;\; \mathbf{return} \; x + 1$}\\
-& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; f(a[``x"])$}
+& \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; b[``x"] \; {<}\String{>} = ``foo" \;;\; \lfloor f(a[``x"]) \rfloor_{0}$}
 \end{tabular}
 \end{center}
 does not type check because we cannot add the field
@@ -1672,7 +1672,7 @@ As an example, let us assume that \emph{idiv} and \emph{print} are functions
 in the environment.
 The function \emph{idiv} has type
 \[
-\Integer \times \Integer \times \Void \rightarrow (\Integer \times \Integer \times \Void) \sqcup (\Nil \times \String \times \Void)
+\Integer \times \Integer \times \Nil{*} \rightarrow (\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})
 \]
 As we mentioned in Section \ref{sec:unions}, \emph{idiv} performs
 integer division.
@@ -1680,7 +1680,7 @@ In case of success, it returns two integers: the result and the remainder.
 In case of failure, it returns $\Nil$ plus an error message that describes
 the error.
 The function \emph{print} is a variadic function of type
-$\Value{*} \rightarrow \Void$.
+$\Value{*} \rightarrow \Nil{*}$.
 Let us see how our type system type checks the following program:
 \begin{center}
 \begin{tabular}{ll}
@@ -1690,15 +1690,15 @@ Let us see how our type system type checks the following program:
 \end{center}
 
 First, our type system uses the auxiliary relation
-$\env_{1}, \penv \vdash el : S_{1}, \env_{2}, (x,S_{2})$
+$\env_{1}, \penv \vdash el : E, \env_{2}, (x,S)$
 for type checking $idiv(1, 2)$.
 This relation means that given a type environment $\env_{1}$ and
 a projection environment $\penv$, we can check that an expression
-list $el$ has type $S_{1}$ and produces a new type environment $\env_{2}$
-and produces a pair $(x,S_{2})$.
+list $el$ has type $E$ and produces a new type environment $\env_{2}$
+and produces a pair $(x,S)$.
 This pair means that the last expression of an expression list $el$
-produces an union of second-level types $S_{2}$ that should be bound
-to a variable $x$ in the projection environment $\penv$,
+produces an union of second-level types $S$ that should be bound
+to a fresh variable $x$ in the projection environment $\penv$,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
 In our example, our type system uses rule \textsc{T-EXPLIST4} for
@@ -1708,10 +1708,11 @@ type checking $idiv(1, 2)$:
 \mylabel{T-EXPLIST4}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{1}, \penv \vdash me:S, \env_{n+2}\\
-       S = T_{n+1} \times ... \times T_{n+m} \times \Void \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Void\\
-       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
-       n = |\;\overline{e}\;|
+       \env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\;
+       n = |\;\overline{e}\;| \\
+       S = T_{n+1} \times ... \times T_{n+m} \times \Nil{*} \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Nil{*} \;\;\;
+       x \notin \penv \\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2})
        \end{array}}
       {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
 \end{array}
@@ -1724,8 +1725,8 @@ $\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
 \]
 
 In the rule that type checks the declaration of unannotated variables,
-our type system uses the pair $(x,S_{2})$ to bound a union of
-second-level types $S_{2}$ to a variable $x$ in the projection
+our type system uses the pair $(x,S)$ to bound a union of
+second-level types $S$ to a variable $x$ in the projection
 environment $\penv$.
 In our example, declaring $q$ and $r$
 bounds the projection type $\pi_{1}^{x}$ to $q$ and
@@ -1740,11 +1741,12 @@ Rule \textsc{T-LOCAL2} illustrates this intuition:
 \begin{array}{c}
 \mylabel{T-LOCAL2}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash el:S_{1}, \env_{2}, (x,S_{2})\\
-       \env_{2}[id_{1} \mapsto infer(S_{1},1), ..., id_{n} \mapsto infer(S_{1},n)], \penv[x \mapsto S_{2}] \vdash s, \env_{3} \;\;\;
+       \env_{1}, \penv \vdash el:E, \env_{2}, (x,S)\\
+       \env_{3} = \env_{2}[id_{1} \mapsto infer(E,1), ..., id_{n} \mapsto infer(E,n)] \\
+       \env_{3}, \penv[x \mapsto S] \vdash s, \env_{4} \;\;\;
        n = |\;\overline{id}\;|  
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, \env_{3} - \{\overline{id}\}}
+      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s, (\env_{4} - \{\overline{id}\})[\overline{id \mapsto \env_{2}(id)}]}
 \end{array}
 \]
 
@@ -1754,32 +1756,6 @@ the type environment for type checking $s$.
 After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
 new type environment $\env_{3}$ without the variables that it introduced
 before type checking $s$.
-We can define \emph{infer} as follows:
-\begin{align*}
-infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
-\begin{array}{ll}
-general(T_{i}) & \text{if $i < n$}\\
-general(T_{n} \cup \Nil) & \text{if $i >= n$}
-\end{array} \right.
-\\ 
-general(\False) & = \Boolean\\
-general(\True) & = \Boolean\\
-general({\it int}) & = \Integer\\
-general({\it float}) & = \Number\\
-general({\it string}) & = \String\\
-general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
-general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
-general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
-general(\mu x.T) & = \mu x.general(T)\\
-general(T) & = T\\
-\end{align*}
-
-\begin{align*}
-general2(\Void) & = \Void\\
-general2(T{*}) & = general(T){*}\\
-general2(T \times P) & = general(T) \times general2(P)\\
-general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
-\end{align*}
 
 After assigning projection types to $q$ and $r$, reading $q$ will
 use the projection type $\pi_{1}^{x}$ to project the type of $q$
@@ -1797,28 +1773,32 @@ discriminates a projection type based on the tag \texttt{nil}:
 \begin{array}{c}
 \mylabel{T-IF3}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = \pi_{i}^{x}\\
+       S_{t} = fonilpt(\penv(x), i) \;\;\;
+       S_{e} = finilpt(\penv(x), i) \\
+       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2} \;\;\;
+       \env_{1}, \penv[x \mapsto S_{e}] \vdash s_{2}, \env_{3}\\
+       \env_{4} = join(\env_{2}, \env_{3})
       \end{array}}
       {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
 \end{array}
 \]
 
-Rule \textsc{T-IF3} uses the auxiliary functions \emph{fpt} and \emph{gpt}
+Rule \textsc{T-IF3} uses the auxiliary functions \emph{fonilpt} and \emph{finilpt}
 to filter a projection $x$, affecting all variables that bind to the same projection.
+The former function filters out the tuples that contain $\Nil$ in the $i$-th component,
+while the latter function filters out the tuples that do not contain $\Nil$ in the $i$-th component.
 For instance, our previous example type checks through rule \textsc{T-IF3},
 because it uses the information provided by the projection type $\pi_{1}^{x}$,
 which is the type of $q$, to make the rule \textsc{T-IF3} use the function call
 \[
-fpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
+fonilpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
 $\Integer \times \Integer \times \Nil{*}$ inside the $\mathbf{if}$ branch,
 and the function call
 \[
-gpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
+finilpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
 $\Nil \times \String \times \Nil{*}$ inside the $\mathbf{else}$ branch.
@@ -1829,3 +1809,20 @@ inside the $\mathbf{else}$ branch.
 Outside the condition, $q$ and $r$ use the original projection, that is,
 they project to $\Integer \cup \Nil$ and $\Integer \cup \String$, respectively.
 
+Typed Lua does not allow assignments to left-hand values that are bound
+to a projection type.
+This kind of assignment would be unsound, because it could break the
+dependency relation that the components of each tuple of the union have.
+For instance, the following example does not type check:
+\begin{center}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(1, 2) \; \mathbf{in}$}\\
+& \multicolumn{1}{l}{$r = ``foo";$}\\
+& \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; \lfloor print(q + r) \rfloor_{0} \; \mathbf{else} \; \lfloor print(``ERROR: " \; .. \; r) \rfloor_{0}$}
+\end{tabular}
+\end{center}
+
+In this example, the projected type of $r$ outsided of the $\mathbf{if}$
+statement is $\Integer \cup \String$, so the assignment looks fine.
+However, the projected type of $r$ inside the $\mathbf{if}$ branch is $\Integer$,
+not matching the $\String$ value that $r$ has after the assignment.
