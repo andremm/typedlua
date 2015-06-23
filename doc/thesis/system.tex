@@ -418,7 +418,7 @@ The rule \textsc{S-VARARG1} handles the case where both tuple types end
 with variadic types:
 \[
 \begin{array}{c}
-\mylabel{S-VARARG2}\\
+\mylabel{S-VARARG1}\\
 \dfrac{\senv \vdash F_{1} \cup \Nil \subtype F_{2} \cup \Nil}
       {\senv \vdash F_{1}{*} \subtype F_{2}{*}}
 \end{array}
@@ -1372,7 +1372,7 @@ Rule \textsc{T-REFINE1} type checks this use of refinement:
 \end{array}
 \]
 
-The rule \textsc{T-REFINE} uses the auxiliary function \emph{vt}
+The rule \textsc{T-REFINE1} uses the auxiliary function \emph{vt}
 to adjust the type of the value according to the type of the key.
 More precisely, \emph{vt} includes the type $\Nil$ in the type of
 the value when the type of the key is not a literal type.
