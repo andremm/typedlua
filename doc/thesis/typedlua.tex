@@ -110,8 +110,7 @@ First-level types include literal types, base types, the type \texttt{nil},
 the top type \texttt{value}, the dynamic type \texttt{any},
 the self type \texttt{self}, named types, function types, table types,
 and union types.
-Second-level types include the type void \texttt{()},
-vararg types, tuple types, and unions of tuple types.
+Second-level types include vararg types, tuple types, and unions of tuple types.
 
 Typed Lua uses subtyping to order types.
 Any first-level type is a subtype of \texttt{value}.
@@ -392,12 +391,12 @@ second-level types also appear in function types.
 
 Figure \ref{fig:functions} shows that Typed Lua uses second-level
 types in the definition of function types.
-A second-level type is either the type void \texttt{()},
-a tuple of first-level types optionally ending in a variadic type,
-or a union of these tuples.
-The type void \texttt{()} represents the type of the empty tuple.
+A second-level type is either a tuple of first-level types optionally
+ending in a variadic type or a union of these tuples.
 A variadic type \texttt{t*} is a generator for a sequence of values
 of the union type \texttt{t|nil}.
+The empty tuple \texttt{()} is syntactic sugar to \texttt{(nil*)},
+as we will show that Typed Lua always ends a tuple type in a variadic type.
 Union of tuple types appear in the return type of function types to
 represent overloading on the return type.
 We will explain union types in more detail in the next section.
@@ -406,16 +405,16 @@ because it is syntactic sugar to the tuple type \texttt{(t)}.
 
 Typed Lua provides two operation modes: the \emph{default} mode and
 the \emph{strict} mode.
-In the default mode, the compiler adds a variadic tail to the
-type of the parameter list and to the return type if the
-programmer does not specify one.
-The default mode has this behavior to preserve the semantics
-of function calls in Lua, that is, it discards extra arguments and
-uses \texttt{nil} to replace missing arguments.
-In the strict mode, the compiler does not add a variadic tail
-to the type of the parameter list and to the return type.
-Instead, it preserves the type defined by the programmer to catch
-arity mismatch.
+In the default mode, the compiler adds \texttt{value*} to the type
+of the parameter list and \texttt{nil*} to the return type when
+the programmer does not specify a variadic tail. 
+It has this behavior to preserve the semantics
+of function calls in Lua, that is, it uses \texttt{value*} to discard
+extra arguments and \texttt{nil*} to replace missing arguments.
+In the strict mode, the compiler adds \texttt{nil*} to both
+parts of the function type.
+Even though it still uses \texttt{nil*} to replace missing values,
+it also uses \texttt{nil*} instead of \texttt{value*} to catch arity mismatch.
 
 We will use the following function to illustrate how these two
 operation modes work:
@@ -434,8 +433,8 @@ warnings because Typed Lua uses \texttt{value*} to drop the extra
 argument \texttt{3}.
 
 In the strict mode, \texttt{sum} has type
-\texttt{(integer, integer) -> (integer)}.
-The compiler does not add \texttt{value*} to the type of the parameter
+\texttt{(integer, integer, nil*) -> (integer, nil*)}.
+The compiler adds \texttt{nil*} to the type of the parameter
 list to catch arity mismatch.
 For instance, the call \texttt{sum(1, 2, 3)} compiles with a warning
 because we are passing an extra argument \texttt{3} to \texttt{sum}.
@@ -512,11 +511,11 @@ For instance,
 \end{verbatim}
 has type \texttt{(string*) -> (string*)} in both operation modes.
 The function call \texttt{v()} compiles without any compile-time warnings in
-the default and strict modes because \texttt{(value*)} and \texttt{()}
-are consistent with \texttt{(string*)}.
-The call \texttt{v("hello", "world")} compiles without any warnings
-in the default and strict modes because \texttt{("hello", "world", nil*)}
-and \texttt{("hello", "world")} are consistent with \texttt{(string*)}.
+both modes because the type of the argument list is \texttt{(nil*)},
+which is consistent with \texttt{(string*)}.
+The call \texttt{v("hello", "world")} also compiles without any warnings
+in both modes because the type of the argument list is \texttt{("hello", "world", nil*)},
+which is consistent with \texttt{(string*)}.
 Calling \texttt{v(...)} compiles without any warnings in both
 operation modes because the type of the argument list is \texttt{(string*)},
 assuming that the vararg expression (\texttt{...}) has type \texttt{string}.
@@ -584,16 +583,16 @@ with a missing argument in both operation modes:
 \end{verbatim}
 
 The type of the function \texttt{message} is
-\texttt{(string, string|nil, value*) -> (string, nil*)}
-in the default mode, and
-\texttt{(string, string|nil) -> (string)}
+\texttt{(string, string|nil, value*) -> (string, nil*)} in the
+default mode, and
+\texttt{(string, string|nil, nil*) -> (string, nil*)}
 in the strict mode.
-The function call \texttt{message("Typed Lua")} compiles without
+The call \texttt{message("Typed Lua")} compiles without
 any compile-time warnings in both modes, because the argument list
 \texttt{("Typed Lua")} has type \texttt{("Typed Lua", nil*)} that
 is consistent with the input type \texttt{(string, string|nil, value*)}
 in the default mode, and that is also consistent with the input type
-\texttt{(string, string|nil)} in the strict mode.
+\texttt{(string, string|nil, nil*)} in the strict mode.
 The compiler includes \texttt{nil*} in the tail of
 an argument list in both modes, as it is necessary
 to replace any optional parameters that may appear in

@@ -1011,7 +1011,7 @@ This relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, we can check that an expression $e$ has
 type $T$ and produces a new type environment $\env_{2}$.
 
-\subsection{Assignment and function application}
+\subsection*{Assignment and function application}
 \label{sec:assignment}
 
 Lua has multiple assignment, and our type system uses three
@@ -1240,7 +1240,7 @@ also does not type check through the rule \textsc{T-APPLY1}, because
 1 \times 2 \times 3 \times \Nil{*} \not\lesssim \Integer \times \Integer \times \Nil{*}
 \]
 
-\subsection{Tables and refinement}
+\subsection*{Tables and refinement}
 \label{sec:refinement}
 
 Our abstract syntax reduces the syntactic forms of the table constructor
@@ -1662,7 +1662,7 @@ $\penv$ to type check return statements:
 \end{array}
 \]
 
-\subsection{Projections}
+\subsection*{Projections}
 \label{sec:fap}
 
 Lua programmers often overload the return type of functions to denote errors,
