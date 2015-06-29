@@ -262,8 +262,8 @@ they handle the dynamic type, and the fact that subtyping is transitive,
 but consistent-subtyping is not.
 
 We present the subtyping rules as a deduction system for the
-subtyping relation $\senv \vdash X \subtype Y$, where $X$ and $Y$
-are two types of the same kind.
+subtyping relation $\senv \vdash T_{1} \subtype T_{2}$,
+where $T_{1}$ and $T_{2}$ are two types of the same kind.
 The variable $\senv$ is a set of pairs of recursion variables.
 We need this set to record the hypotheses that we assume when checking
 recursive types.
@@ -414,8 +414,8 @@ The subtyping rules for variadic types are not so obvious.
 We need three different subtyping rules for variadic types
 to handle all the cases where they can appear.
 
-The rule \textsc{S-VARARG1} handles the case where both tuple types end
-with variadic types:
+The rule \textsc{S-VARARG1} handles subtyping between two
+variadic types:
 \[
 \begin{array}{c}
 \mylabel{S-VARARG1}\\
@@ -431,7 +431,7 @@ $\Nil{*}$ would not be a subtype of several other variadic types.
 For instance, $\Nil{*}$ would not be a subtype of $\Number{*}$,
 as $\Nil \not\subtype \Number$.
 
-The other rules handle the cases where only one tuple type ends with a variadic type:
+The other rules handle subtyping between a varidic type and a pair type:
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -450,7 +450,7 @@ The other rules handle the cases where only one tuple type ends with a variadic 
 \end{array}
 \]
 
-These rules state the conditions when variadic tuples of different
+These rules state the conditions when tuple types of different
 length are compatible.
 In the next section we will show that we use the subtyping rules for variadic types,
 along with the types $\Value$ and $\Nil$, to make our type system reflect
@@ -589,6 +589,10 @@ It allows covariant keys because we also want to use \emph{unique}
 table types as a way to join table fields that inhabit \emph{closed} table types.
 For instance, we want to use the table constructor to initialize
 a variable with a table type that describes a hash.
+More precisely, this rule states that it is safe to recast the table type
+$\{``x":\Integer, ``y":\Integer, ``z":\Integer\}_{unique}$ to
+$\{\String:\Integer \cup \Nil\}_{closed}$, as long as the
+new type becomes inacessible with the original type.
 
 The rule \textsc{S-TABLE2} introduced the auxiliary relations
 $\subtype_{u}$ and $\subtype_{o}$.
@@ -639,7 +643,8 @@ Using \emph{unique} table types to represent the type of the table
 constructor allows our type system to type check the previous example.
 More precisely,
 \[
-\{``x":1, ``y":2\}_{unique} \subtype \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
+\{``x":1, ``y":2\}_{unique} \subtype
+\{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
 \]
 
 Even though we allow width subtyping between \emph{unique} and \emph{closed}
@@ -800,8 +805,8 @@ but a separate type that is subtype only of itself and of $\Value$.
 Even though the dynamic type $\Any$ does not interact with subtyping,
 it does interact with consistent-subtyping.
 We present the consistent-subtyping rules as a deduction system for
-the consistent-subtyping relation $\senv \vdash X \lesssim Y$,
-where $X$ and $Y$ are two types of the same kind.
+the consistent-subtyping relation $\senv \vdash T_{1} \lesssim T_{2}$,
+where $T_{1}$ and $T_{2}$ are two types of the same kind.
 As in the subtyping relation, $\senv$ is also a set of pairs of
 recursion variables.
 We define the consistent-subtyping rules for the dynamic type $\Any$
