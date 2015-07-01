@@ -1261,7 +1261,7 @@ it always has type $\{\}_{unique}$.
 As a more interesting example, let us see how our type system type checks
 the table constructor $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$.
 
-First, our type system uses the auxiliary relation
+First, Typed Lua uses the auxiliary relation
 $\env_{1}, \penv \vdash [e_{1}] = e_{2} : (F,V), \env_{2}$ to type check each
 table field.
 This auxiliary relation means that given a type environment $\env_{1}$
@@ -1308,12 +1308,43 @@ track of aliases to table fields.
 This means that allowing \emph{unique} and \emph{open} table
 types to appear in the type of a value would allow the
 creation of unsafe aliases.
-The rules that type check table fields use the auxiliary function
-\emph{fix} to change any \emph{unique} and \emph{open} table types
+Due to this restriction, the rule that type check table fields
+use the auxiliary function \emph{fix} (in the definition of \emph{vt})
+to change any \emph{unique} and \emph{open} table types
 used in the field initializer to \emph{fixed}.
+Rule \textsc{T-FIELD} defines this behavior:
+\[
+\begin{array}{c}
+\mylabel{T-FIELD}\\
+\dfrac{\env_{1}, \penv \vdash e_{2}:V, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{1}:F, \env_{3}}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (F,vt(V)), \env_{3}}
+\end{array}
+\]
+
+The rule \textsc{T-FIELD} uses the auxiliary function \emph{vt}
+to adjust the type of the value according to the type of the key.
+More precisely, \emph{vt} includes the type $\Nil$ in the type of
+the value when the type of the key is not a literal type.
+It also uses \emph{fix} to prevent \emph{unique} and \emph{open}
+table types to appear in the type of the values.
+We define these functions as follows:
+\begin{align*}
+vt(L, V) & = fix(V) \\
+vt(F_1, F_2) & = nil(fix(F_2))\\
+vt(F_1, {\bf const}\;F_2) & = {\bf const}\;nil(fix(F_2))\\
+\\
+nil(T) & = T \;\;\; \mathrm{if}\;\Nil \lesssim T\\
+nil(T) & = T \cup \Nil \;\;\; \mathrm{otherwise}\\
+\\
+fix(F_{1} \cup F_{2}) & = fix(F_{1}) \cup fix(F_{2})\\
+fix(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{fixed} \\
+fix(F) & = F
+\end{align*}
 
 The rule \textsc{T-CONSTRUCTOR2} uses these steps to type check a
-table constructor with a non-empty list of table fields:
+table constructor with a list of table fields that do not end with
+an expression that potentially returns multiple values:
 \[
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR2}\\
@@ -1331,6 +1362,10 @@ table constructor with a non-empty list of table fields:
 Back to our example, the constructor
 $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
 $\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
+The subtyping rule for \emph{unique} table types allows us assigning
+this table to a variable with a more general type such as
+$\{1:\String, 2:\String, 3:\String\}_{closed}$ or even
+$\{\Integer:\String \cup \Nil\}_{closed}$.
 
 As another example, the constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$ through rule
@@ -1377,13 +1412,25 @@ Rule \textsc{T-REFINE1} type checks this use of refinement:
 \end{array}
 \]
 
-The rule \textsc{T-REFINE1} uses the auxiliary function \emph{vt}
-to adjust the type of the value according to the type of the key.
-More precisely, \emph{vt} includes the type $\Nil$ in the type of
-the value when the type of the key is not a literal type.
-It is also this function that uses \emph{fix} to prevent
-\emph{unique} and \emph{open} table types to appear in the type
-of the values.
+The rule for refining \emph{open} table types is similar,
+changing only the tag in the type of $id$:
+\[
+\begin{array}{c}
+\mylabel{T-REFINE2}\\
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \{\overline{F{:}V}\}_{open}\\
+       \env_{1}, \penv \vdash e:F_{new}, \env_{2} \;\;\;
+       \nexists i \in 1..n \; F_{new} \lesssim F_{i} \;\;\;
+       V_{new} = vt(F_{new},V) \;\;\; n = |\overline{F{:}V}|
+       \end{array}}
+      {\env_{1}, \penv \vdash id[e] {<}V{>}:V_{new}, \env_{2}[id \mapsto \{\overline{F{:}V}, F_{new}{:}V_{new}\}_{open}]}
+\end{array}
+\]
+
+Our type system also includes analogous rules for adding methods
+to \emph{unique} and \emph{open} tables as a side-effect of
+type checking a method declaration, but we will not discuss them
+in this section for brevity.
 
 We use the refinement of table types to handle the declaration of
 new global variables.
@@ -1602,6 +1649,10 @@ Note that the coercion rules only allows changing the type
 of a variable if the new type is a supertype of the previous type,
 and the resulting type is always \emph{fixed} or \emph{closed}
 to prevent the creation of unsafe aliases.
+If the coercion is to a \emph{closed} table type the type of the
+table changes to an \emph{open} table type with the same shape,
+but if the coercion is to a \emph{fixed} table type the table
+has to assume the same type.
 
 We also need to make sure to close all \emph{unique} and \emph{open}
 table types before we type check a nested scope.
@@ -1640,7 +1691,8 @@ that should change from \emph{unique} to \emph{open} by \emph{openset}.
 After declaring $f$, $a$ has type $\{\}_{open}$ and $b$ has type $\{\}_{closed}$,
 so we can refine the type of $a$, but we cannot refine the type of $b$.
 
-Rule \textsc{T-FUNCTION1} illustrates this case:
+Rule \textsc{T-FUNCTION1} types non-variadic function declarations,
+and it illustrates this case:
 \[
 \begin{array}{c}
 \mylabel{T-FUNCTION1}\\
@@ -1666,6 +1718,10 @@ $\penv$ to type check return statements:
       {\env_{1} \vdash \mathbf{return} \; el, \env_{2}}
 \end{array}
 \]
+
+%The rules for declaring variadic functions and recursive functions
+%are similar to \textsc{T-FUNCTION1}, and we will not
+%show them in this section for brevity.
 
 \subsection*{Projections}
 \label{sec:fap}
