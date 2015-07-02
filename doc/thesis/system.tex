@@ -1719,15 +1719,16 @@ $\penv$ to type check return statements:
 \end{array}
 \]
 
-%The rules for declaring variadic functions and recursive functions
-%are similar to \textsc{T-FUNCTION1}, and we will not
-%show them in this section for brevity.
+The rules for declaring variadic functions and recursive functions
+are similar to \textsc{T-FUNCTION1}, and we will not
+show them in this section for brevity.
 
 \subsection*{Projections}
 \label{sec:fap}
 
 Lua programmers often overload the return type of functions to denote errors,
-and our type system uses projection types to handle this idiom.
+returning \texttt{nil} and an error message in case of error instead of
+the usual return values, and our type system uses projection types to handle this idiom.
 
 As an example, let us assume that \emph{idiv} and \emph{print} are functions
 in the environment.
@@ -1823,11 +1824,26 @@ use the projection type $\pi_{1}^{x}$ to project the type of $q$
 into the union type $\Integer \cup \Nil$, while reading $r$ will
 use the projection type $\pi_{2}^{x}$ to project the type of $r$
 into the union type $\Integer \cup \String$.
-Now, we may want to discriminate these variables to check whether
-the function call returned with success.
+Our type system defines this behavior through rule \textsc{T-IDREAD4},
+which uses the auxiliary function \emph{proj} to project an
+union of second-level types into an union of first-level types:
+\[
+\begin{array}{c}
+\mylabel{T-IDREAD4}\\
+\dfrac{\env_{1}(id) = \pi_{i}^{x}}
+      {\env_{1}, \penv \vdash id:proj(\penv(x), i), \env_{1}}
+\end{array}
+\]
 
+Now, we may want to discriminate $q$ and $r$ to check whether
+the function call returned with success.
 Introducing a projection variable $x$ in the projection environment allows our
-type system to discriminate projection types $\pi_{i}^{x}$.
+type system to discriminate projection types $\pi_{i}^{x}$,
+as they are a general way to not compromise the depency between
+the types of $q$ and $r$ after discriminating one of them,
+so flow typing can narrow the type of both variables by testing
+just one of them because the projection types of both variables
+bound to the same projection variable.
 The rule \textsc{T-IF3} shows the case where our type system
 discriminates a projection type based on the tag \texttt{nil}:
 \[
