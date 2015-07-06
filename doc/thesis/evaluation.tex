@@ -97,19 +97,20 @@ a lower bound on how much static type safety
 we could add to each one of our case studies.
 
 The \emph{poly} category shows the percentage of members that
-we made minimal use of the dynamic type as a replacement for the
+we made minimal use of the dynamic type, as a replacement for the
 lack of type parameters.
 For instance, the function \texttt{table.sort} from the Lua
 standard library is in this category because it is a generic function.
-This function sorts a given list of elements, which is a generic list.
+It sorts a given list of elements, which is a generic list.
 However, we had to assign to this function the type
 \texttt{(\{any\}, nil|(any, any) -> (boolean)) -> ()} because
-Typed Lua does not have parametric polymorphism.
+Typed Lua does not support parametric polymorphism.
+A better type for it would be
+\texttt{(\{<T>\}, nil|(<T>, <T>) -> (boolean)) -> ()}.
 
 The \emph{over} category shows the percentage of members that
-we gave a static type that is not precise enough,
-as these members are overloaded functions that require intersection
-types to describe their precise static types.
+require intersection types to describe their precise static types,
+as they are overloaded functions.
 For instance, the function \texttt{math.abs} from the Lua
 standard library is in this category because it has two types:
 \texttt{(integer) -> (integer)} and \texttt{(number) -> (number)}.
@@ -125,11 +126,11 @@ However, we cannot give such a precise type to this function because
 Typed Lua does not support overloaded functions.
 
 The \emph{hard} category shows the percentage of members that
-we could not give a precise static type.
-For instance, the function \texttt{assert} from the Lua
-standard library is in this category because it can return any number
-of values of any type, being difficult to type this behavior.
-Still, we gave this function the type \texttt{(value*) -> (any*)}.
+do not fit in one of the previous categories, as they are difficult to type.
+For instance, the function \texttt{string.format} from the Lua
+standard library is in this category because it relies on format
+strings, which are difficult to type.
+Still, we gave this function the type \texttt{(string, value*) -> (string)}.
 
 In the following sections we discuss each case study in more detail.
 For each case study, we split the evaluation results according
