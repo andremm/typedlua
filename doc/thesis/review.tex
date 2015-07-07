@@ -804,57 +804,57 @@ vararg expression.
 Typed Lua should include a \emph{vararg type} to handle variadic
 functions and vararg expressions.
 
-We end this chapter presenting a summary of the statistics that
-we just presented:
-\begin{itemize}
-\item table constructor
-\begin{itemize}
-\item only use literal keys: 73\%
-\item empty: 26\%
-\item only use non-literal keys: 1\%
-\end{itemize}
-\item table indexing
-\begin{itemize}
-\item reads: 86\%
-\begin{itemize}
-\item use literals: 93\%
-\item use non-literals: 7\%
-\end{itemize}
-\item writes: 14\%
-\begin{itemize}
-\item use literals: 71\%
-\item use non-literals: 29\%
-\end{itemize}
-\end{itemize}
-\item iteration over tables
-\begin{itemize}
-\item files that call \texttt{pairs}: 23\%
-\item files that call \texttt{ipairs}: 21\%
-\item files that use the numeric for along with the length operator: 10\%
-\end{itemize}
-\item function declarations
-\begin{itemize}
-\item perform dynamic type checking in their input parameters: 9\%
-\begin{itemize}
-\item asserting input parameters: 50\%
-\item overloading input parameters: 50\%
-\end{itemize}
-\item return multiple values: 10\%
-\begin{itemize}
-\item return \texttt{nil} plus something else: 50\%
-\item return \texttt{false} plus something else: 10\%
-\item return other multiple values: 40\%
-\end{itemize}
-\item are method declarations: 23\%
-\item are variadic: 8\%
-\end{itemize}
-\item object-oriented programming
-\begin{itemize}
-\item projects that extend metatables and declare methods: 45\%
-\end{itemize}
-\item modules
-\begin{itemize}
-\item files that define modules: 61\%
-\item files that are plain scripts: 39\%
-\end{itemize}
-\end{itemize}
+Table \ref{tab:statistics} summarizes the statistics that we presented in this section.
+
+\begin{table}[!ht]
+\begin{center}
+\begin{tabular}{|l|p{6cm}|c|}
+\hline
+\multirow{5}{*}{table constructor}
+& create a record & 36\% \\
+\cline{2-3}
+& create a list & 29\% \\
+\cline{2-3}
+& create an empty table & 26\% \\
+\cline{2-3}
+& create a table with a record part and a list part & 8\% \\
+\cline{2-3}
+& create a table with non-literal keys & 1\% \\
+\hline
+\multirow{4}{*}{table access}
+& reading with literal keys & 80\% \\
+\cline{2-3}
+& writing with literal keys & 10\% \\
+\cline{2-3}
+& reading with non-literal keys & 6\% \\
+\cline{2-3}
+& writing with non-literal keys & 4\% \\
+\hline
+\multirow{2}{*}{iteration over tables} &
+files that iterate over a list & 27\% \\
+\cline{2-3}
+& files that iterate over a map & 23\% \\
+\hline
+\multirow{4}{*}{function declarations}
+& inspect the tags of their input parameters & 9\% \\
+\cline{2-3}
+& return multiple values to signal errors & 6\% \\
+\cline{2-3}
+& are variadic & 8\% \\
+\cline{2-3}
+& are method declarations & 23\% \\
+\hline
+\multirow{1}{*}{object-oriented programming}
+& projects that use metatables and declare methods & 45\% \\
+\hline
+\multirow{2}{*}{modules}
+& files that are modules & 61\% \\
+\cline{2-3}
+& files that are plain scripts & 39\% \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Summary of the statistics about the usage of Lua}
+\label{tab:statistics}
+\end{table}
+
