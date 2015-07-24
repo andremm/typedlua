@@ -1324,7 +1324,7 @@ Rule \textsc{T-FIELD} defines this behavior:
 \mylabel{T-FIELD}\\
 \dfrac{\env_{1}, \penv \vdash e_{2}:V, \env_{2} \;\;\;
        \env_{2}, \penv \vdash e_{1}:F, \env_{3}}
-      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (F,vt(V)), \env_{3}}
+      {\env_{1}, \penv \vdash [e_{1}] = e_{2}: (F,vt(F,V)), \env_{3}}
 \end{array}
 \]
 
@@ -1348,12 +1348,12 @@ fix(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{fixed} \\
 fix(F) & = F
 \end{align*}
 
-The rule \textsc{T-CONSTRUCTOR2} uses these steps to type check a
+The rule \textsc{T-CONSTRUCTOR1} uses these steps to type check a
 table constructor with a list of table fields that do not end with
 an expression that potentially returns multiple values:
 \[
 \begin{array}{c}
-\mylabel{T-CONSTRUCTOR2}\\
+\mylabel{T-CONSTRUCTOR1}\\
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \\
        T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \;\;\;
@@ -1367,7 +1367,7 @@ an expression that potentially returns multiple values:
 
 Back to our example, the constructor
 $\{ [1] = ``x", [2] = ``y", [3] = ``z" \}$ has type
-$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR2}.
+$\{1:``x", 2:``y", 3:``z"\}_{unique}$ through rule \textsc{T-CONSTRUCTOR1}.
 The subtyping rule for \emph{unique} table types allows us assigning
 this table to a variable with a more general type such as
 $\{1:\String, 2:\String, 3:\String\}_{closed}$ or even
@@ -1375,7 +1375,7 @@ $\{\Integer:\String \cup \Nil\}_{closed}$.
 
 As another example, the constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$ through rule
-\textsc{T-CONSTRUCTOR2}.
+\textsc{T-CONSTRUCTOR1}.
 The inner table is \emph{fixed} to prevent the creation of unsafe aliases.
 
 After presenting some typing rules of the table constructor,
@@ -1557,10 +1557,10 @@ appear in the left-hand side of assignments, because \textsc{T-IDREAD}
 is sufficient to forbid the creation of an alias to another \emph{unique}
 or \emph{open} table.
 For this reason, identifiers that appear in the left-hand side
-of assignements have their own rule \textsc{T-IDWRITE}:
+of assignements have their own rule \textsc{T-IDWRITE1}:
 \[
 \begin{array}{c}
-\mylabel{T-IDWRITE}\\
+\mylabel{T-IDWRITE1}\\
 \dfrac{\env_{1}(id) = F}
       {\env_{1}, \penv \vdash id_{l}:F, \env_{1}}
 \end{array}
