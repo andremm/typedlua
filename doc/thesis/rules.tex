@@ -299,9 +299,31 @@ This appendix presents the complete type system of Typed Lua.
 \senv \vdash T \subtype T
 \]
 
-\mylabel{S-EXPRESSIONLIST}
+\mylabel{S-PAIR2}
 \[
-\senv \vdash E \subtype E
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \;\;\;
+       \senv \vdash E_{1} \subtype E_{2}}
+      {\senv \vdash T_{1} \times E_{1} \subtype T_{2} \times E_{2}}
+\]
+
+\mylabel{S-VARARG4}
+\[
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \cup \Nil}
+      {\senv \vdash T_{1}{*} \subtype T_{2}{*}}
+\]
+
+\mylabel{S-VARARG5}
+\[
+\dfrac{\senv \vdash T_{1} \cup \Nil \subtype T_{2} \;\;\;
+       \senv \vdash T_{1}{*} \subtype E_{2}}
+      {\senv \vdash T_{1}{*} \subtype T_{2} \times E_{2}}
+\]
+
+\mylabel{S-VARARG6}
+\[
+\dfrac{\senv \vdash T_{1} \subtype T_{2} \cup \Nil \;\;\;
+       \senv \vdash E_{1} \subtype T_{2}{*}}
+      {\senv \vdash T_{1} \times E_{1} \subtype T_{2}{*}}
 \]
 
 \mylabel{C-ANY1}
@@ -332,24 +354,24 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-ASSIGNMENT}
 \[
-\dfrac{\env_{1}, \penv \vdash el:E_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash \overline{l}:E_{2}, \env_{3} \;\;\;
-       E_{1} \lesssim E_{2}}
+\dfrac{\env_{1}, \penv \vdash el:S_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash \overline{l}:S_{2}, \env_{3} \;\;\;
+       S_{1} \lesssim S_{2}}
       {\env_{1}, \penv \vdash \overline{l} = el,\env_{3}}
 \]
 
 \mylabel{T-METHOD1}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\;
-       T_{s} = \{\overline{F{:}V}\}_{unique} \\
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{unique} \\
        \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
        \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
        n = |\overline{F{:}V}| \\
-       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto T_{s}],
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       T_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{unique}\\
-       \env_{4} = openset(\env_{1}[id_{1} \mapsto T_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{unique}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
        \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
@@ -360,15 +382,15 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-METHOD2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\;
-       T_{s} = \{\overline{F{:}V}\}_{open} \\
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{open} \\
        \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
        \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
        n = |\overline{F{:}V}| \\
-       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto T_{s}],
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       T_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{open}\\
-       \env_{4} = openset(\env_{1}[id_{1} \mapsto T_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{open}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
        \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
@@ -379,15 +401,15 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-METHOD3}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\;
-       T_{s} = \{\overline{F{:}V}\}_{unique} \\
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{unique} \\
        \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
        \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
        n = |\overline{F{:}V}| \\
-       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto T_{s}],
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       T_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{unique}\\
-       \env_{4} = openset(\env_{1}[id_{1} \mapsto T_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{unique}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
        \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
@@ -398,15 +420,15 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-METHOD4}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\;
-       T_{s} = \{\overline{F{:}V}\}_{open} \\
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{open} \\
        \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
        \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
        n = |\overline{F{:}V}| \\
-       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto T_{s}],
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       T_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{open}\\
-       \env_{4} = openset(\env_{1}[id_{1} \mapsto T_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{open}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
        \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
@@ -414,39 +436,116 @@ This appendix presents the complete type system of Typed Lua.
        \end{array}}
 \]
 
-\mylabel{T-METHOD5}
+%\mylabel{T-METHOD5}
+%\[
+%\dfrac{\begin{array}{c}
+%       \env_{1}(id_{1}) = F_{s} \;\;\;
+%       F_{s} = \{\overline{F{:}V}\}_{unique} \;\;\;
+%       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
+%       \exists i \in 1..n \; L \subtype F_{i} \wedge F_{i} \subtype L \wedge
+%       \Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S \subtype V_{i} \;\;\;
+%       n = |\overline{F{:}V}| \\
+%       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto F_{s}],
+%       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+%       V_{i} = \Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\\
+%       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto F_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+%       \end{array}}
+%      {\begin{array}{c}
+%       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T}){:}S \; s, \env_{4}\\
+%       \end{array}}
+%\]
+
+%\mylabel{T-METHOD6}
+%\[
+%\dfrac{\begin{array}{c}
+%       \env_{1}(id_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open} \;\;\;
+%       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
+%       crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, {...} \mapsto T, \self \mapsto T_{s}]),
+%       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+%       \exists i \in 1..n \; L \subtype K_{i} \wedge K_{i} \subtype L \;\;\;
+%       \Const \; \Self \times \overline{T} \times T{*} \rightarrow S \subtype V_{i}\\
+%       V_{i} = \Const \; \Self \times \overline{T} \times T{*} \rightarrow S\\
+%       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
+%       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+%       \end{array}}
+%      {\begin{array}{c}
+%       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T},{...}{:}T){:}S \; s, \env_{4}\\
+%       \end{array}}
+%\]
+
+\mylabel{T-METHOD1}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open} \;\;\;
-       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
-       crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, \self \mapsto T_{s}]),
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{unique} \\
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
+       \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}| \\
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       \exists i \in 1..n \; L \subtype K_{i} \wedge K_{i} \subtype L \;\;\;
-       \Const \; \Self \times \overline{T} \times \Void \rightarrow S \subtype V_{i}\\
-       V_{i} = \Const \; \Self \times \overline{T} \times \Void \rightarrow S\\
-       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
-       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{unique}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
-       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T}){:}S \; s, \env_{4}\\
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}F}){:}S \; s, \env_{5}\\
        \end{array}}
 \]
 
-\mylabel{T-METHOD6}
+\mylabel{T-METHOD2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id_{1}) = T_{s} \;\;\; T_{s} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open} \;\;\;
-       \env_{1}, \penv \vdash id_{2} : L, \env_{2}\\
-       crall(\env_{1}[self \mapsto \Self, \overline{id} \mapsto \overline{T}, {...} \mapsto T, \self \mapsto T_{s}]),
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{open} \\
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
+       \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}| \\
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, \self \mapsto F_{s}],
        \penv[\ret \mapsto S] \vdash s, \env_{3}\\
-       \exists i \in 1..n \; L \subtype K_{i} \wedge K_{i} \subtype L \;\;\;
-       \Const \; \Self \times \overline{T} \times T{*} \rightarrow S \subtype V_{i}\\
-       V_{i} = \Const \; \Self \times \overline{T} \times T{*} \rightarrow S\\
-       T_{o} = \{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{unique|open}\\
-       \env_{4} = openset(crset(\env_{1}[id_{1} \mapsto T_{o}], fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)),rv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times \Nil{*} \rightarrow S\}_{open}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
        \end{array}}
       {\begin{array}{c}
-       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}T},{...}{:}T){:}S \; s, \env_{4}\\
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}F}){:}S \; s, \env_{5}\\
+       \end{array}}
+\]
+
+\mylabel{T-METHOD3}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{unique} \\
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
+       \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}| \\
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto F_{s}],
+       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{unique}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       \end{array}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}F},{...}{:}F){:}S \; s, \env_{5}\\
+       \end{array}}
+\]
+
+\mylabel{T-METHOD4}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id_{1}) = F_{s} \;\;\;
+       F_{s} = \{\overline{F{:}V}\}_{open} \\
+       \env_{1}, \penv \vdash id_{2} : L, \env_{2} \;\;\;
+       \nexists i \in 1..n \; L \lesssim F_{i} \;\;\;
+       n = |\overline{F{:}V}| \\
+       closeall(\env_{1})[self \mapsto \Self, \overline{id \mapsto F}, {...} \mapsto F, \self \mapsto F_{s}],
+       \penv[\ret \mapsto S] \vdash s, \env_{3}\\
+       F_{o} = \{\overline{F{:}V}, L{:}\Const \; \Self \times F_{1} \times ... \times F_{n} \times F{*} \rightarrow S\}_{open}\\
+       \env_{4} = openset(\env_{1}[id_{1} \mapsto F_{o}], frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
+       \env_{5} = closeset(\env_{4}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+       \end{array}}
+      {\begin{array}{c}
+       \env_{1}, \penv \vdash \mathbf{fun} \; id_{1}{:}id_{2} \; (\overline{id{:}F},{...}{:}F){:}S \; s, \env_{5}\\
        \end{array}}
 \]
 

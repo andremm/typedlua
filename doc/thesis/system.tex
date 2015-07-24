@@ -149,8 +149,9 @@ The syntactical form of table types is $\{\overline{F{:}V}\}_{unique|open|fixed|
 where the notation $\overline{F{:}V}$ denotes the list $F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}$.
 Each $V_{i}$ represents the type of the value that table keys of type $F_{i}$ map to.
 Value types represent mutable values by default, but we can use the
-$\Const$ type to make them represent immutable values. 
+$\Const$ type to make them represent immutable values.
 
+\label{def:tabletype}
 We also use the tags \emph{unique}, \emph{open}, \emph{fixed}, and \emph{closed}
 to classify table types.
 The tag \emph{unique} represents tables with no keys that do not
@@ -228,6 +229,7 @@ In Section \ref{sec:fap} we will show that Typed Lua uses filter types
 in flow typing, being the type $\Void$ a type with no values, used by the
 type system as a way to detect branches that are unreachable due to flow typing.
 
+\label{def:filtertype}
 Typed Lua includes filter types as a way to discriminate the type of local
 variables inside conditions.
 Our type system uses filter types to formalize the \texttt{type} predicates
@@ -238,6 +240,7 @@ union types.
 In a filter type $\phi(T_{1},T_{2})$, $T_{1}$ is the original type and
 $T_{2}$ is the discriminated type.
 
+\label{def:projectiontype}
 Typed Lua includes projection types as a way to project
 unions of tuple types into unions of first-level types.
 In Section \ref{sec:fap} we will show in more detail how our type system
@@ -403,7 +406,7 @@ Now, we explain their subtyping rules.
 The subtyping rule for pair types is the standard covariant rule:
 \[
 \begin{array}{c}
-\mylabel{S-PAIR}\\
+\mylabel{S-PAIR1}\\
 \dfrac{\senv \vdash F_{1} \subtype F_{2} \;\;\;
        \senv \vdash P_{1} \subtype P_{2}}
       {\senv \vdash F_{1} \times P_{1} \subtype F_{2} \times P_{2}}
@@ -789,15 +792,18 @@ the type of the table constructor is a subtype of \texttt{Element}:
 & \mu x.\{``info":\Integer, ``next":x \;\cup\; \Nil\}_{closed}
 \end{align*}
 
-Filter types are subtypes only of themselves and of $\Value$.
+Filter types are subtypes only of themselves.
 More precisely, a filter type $\phi(F_{1},F_{2})$ is a subtype of
 the same filter type $\phi(F_{1},F_{2})$, which shares the same
-types $F_{1}$ and $F_{2}$, and it is also a subtype of $\Value$.
+types $F_{1}$ and $F_{2}$.
 
-Projection types are subtypes only of themselves and of $\Value$.
+Projection types are subtypes only of themselves.
 More precisely, a projection type $\pi_{i}^{x}$ is a subtype of the
 same projection type $\pi_{i}^{x}$, which shares the same union of
-tuples $x$ and the same index $i$, and it is also a subtype of $\Value$.
+tuples $x$ and the same index $i$.
+
+The subtyping rules for expression list types are similar to the
+subtyping rules for tuple types.
 
 The dynamic type $\Any$ is neither the bottom nor the top type,
 but a separate type that is subtype only of itself and of $\Value$.
@@ -851,7 +857,7 @@ Another example is the union type \texttt{number|nil|1} that
 results in the union type \texttt{number|nil}, because
 \texttt{1} is consistent-subtype of \texttt{number}.
 
-\section{Typing rules}
+\section{Type checking}
 \label{sec:rules}
 
 In this section we use a reduced core of Typed Lua to present the

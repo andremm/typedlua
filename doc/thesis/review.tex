@@ -189,6 +189,7 @@ formalize optional type systems.
 \section{Gradual Typing}
 \label{sec:gradual}
 
+\label{def:dynamictype}
 The main goal of gradual typing \cite{siek2006gradual} is to allow
 programmers to choose between static and dynamic typing in the same
 language.
@@ -222,6 +223,7 @@ $$
 \label{fig:gtlc}
 \end{figure}
 
+\label{def:consistency}
 The central idea of gradual typing is the \emph{consistency}
 relation, written $T_{1} \sim T_{2}$.
 The consistency relation allows implicit conversions to and from the
@@ -338,6 +340,7 @@ Subtyping is transitive, so we know that
 Therefore, downcasts combined with the transitivity of subtyping
 accepts programs that should be rejected.
 
+\label{def:consistent-subtyping}
 Later, Siek and Taha \cite{siek2007objects} reported that the consistency relation
 is orthogonal to the subtyping relation, so we can combine them to achieve
 the \emph{consistent-subtyping} relation, written $T_{1} \lesssim T_{2}$.
