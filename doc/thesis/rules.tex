@@ -1153,6 +1153,24 @@ This appendix presents the complete type system of Typed Lua.
       {\env_{1}, \penv \vdash id_{l}:F_{1}, \env_{1}[id \mapsto F_{1}]}
 \]
 
+\mylabel{T-INDEXWRITE1}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}, \penv \vdash e_{1}:\{\overline{F{:}V}\}, \env_{2} \\
+       \env_{2}, \penv \vdash e_{2}:F, \env_{3} \;\;\;
+       \exists i \in 1{..}n \; F \lesssim F_{i} \wedge \neg \; const(V_{i}) \;\;\;
+       n = |\overline{F{:}V}|
+       \end{array}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]_{l}:V_{i}, \env_{3}}
+\]
+
+\mylabel{T-INDEXWRITE2}
+\[
+\dfrac{\env_{1}, \penv \vdash e_{1}:\Any, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash e_{2}:F, \env_{3}}
+      {\env_{1}, \penv \vdash e_{1}[e_{2}]_{l}:\Any, \env_{3}}
+\]
+
 \mylabel{T-REFINE1}
 \[
 \dfrac{\begin{array}{c}

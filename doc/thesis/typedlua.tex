@@ -908,32 +908,33 @@ union types, as we are not just allowing the programmer to change
 the type of the variable \texttt{person}, but we are actually allowing
 the programmer to change the type of the value that \texttt{person} points to.
 
-Typed Lua tags a variable that holds a table type as either
-\emph{unique}, \emph{open}, \emph{fixed}, or \emph{closed}.
-If a variable gets its type from a table constructor then it is
-\emph{unique}, otherwise it is \emph{closed}.
-Any alias to \emph{unique} variables makes them \emph{open}, as we use the
-tag \emph{open} to keep track of \emph{unique} variables that are aliased.
+Typed Lua tags table types as either \emph{unique}, \emph{open},
+\emph{fixed}, or \emph{closed} to identify which operations are safe.
+The table constructor describes \emph{unique} table types,
+as they are tables that we know all the fields and that there is
+no alias to it.
+Any alias to \emph{unique} tables makes them \emph{open},
+as we use this tag to keep track of \emph{unique} aliasing.
 In the previous example, \texttt{person} has an \emph{unique} type
 because it has no alias.
 In Section \ref{sec:oop} we will show that we use the tag
 \emph{fixed} to describe the type of classes.
+Type annotations define \emph{closed} table types, as this tag
+describes table types that do not provide any guarantees about keys
+that do not appear in the table type.
 Typed Lua also has different subtyping rules that handle these
 different tags, which we explain in Section \ref{sec:subtyping}.
 
 Typed Lua uses three rules to decide whether it is sound to
 allow field assignment to change the type of \emph{unique} and
-\emph{open} variables:
-the variable must be local to the current block,
+\emph{open} tables:
+the table must assigned to a local variable to the current block,
 the new type must only add new fields, and
 the variable cannot have been assigned in another function.
 
-Before discussing each one of these rules, it is worth discussing
-why Typed Lua needs \emph{unique} and \emph{open} table types.
 Even though both \emph{unique} and \emph{open} table types
 allow the refinement of table types, we need both tags to
 increase usability and to avoid some unsafe behaviors.
-
 If we did not have \emph{unique} table types and \emph{open}
 table types had the same behavior that they have now,
 we would not be able to type check some safe constructions,
@@ -1010,7 +1011,7 @@ that is stored in \texttt{person.firstname}, regardless of its type.
 Taking the changes individually looks fine, but the truth is that
 aliasing makes one of them unsound.
 
-We can create aliases to \emph{open} variables, but they are always \emph{closed}.
+We can create aliases to \emph{open} tables, but they are always \emph{closed}.
 Any mutation in the original reference and in the aliased reference
 is not a problem, as the type of the original reference can only
 add new fields.
