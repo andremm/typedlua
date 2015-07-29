@@ -530,30 +530,21 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-WHILE2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = F_{1} \cup F_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(F_{1} \cup F_{2}, filter(F_{1} \cup F_{2}, \Nil))]), \penv \vdash s, \env_{2}\\
-       \env_{3} = openset(closeset(\env_{1}[id \mapsto F_{1} \cup F_{2}], fav(s)),rv(s))
+       \env_{1}(id) = F\\
+       closeall(\env_{1}[id \mapsto \phi(F, filter(F, \Nil))]), \penv \vdash s, \env_{2}\\
+       \env_{3} = openset(\env_{1}[id \mapsto F], frv(s))\\
+       \env_{4} = closeset(\env_{3}, fav(s))
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{while} \; id \; \mathbf{do} \; s,\env_{3}}
-\]
-
-\mylabel{T-WHILE3}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s, \env_{2}\\
-       \env_{3} = openset(closeset(\env_{1}, fav(s)),rv(s))
-       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{while} \; id \; \mathbf{do} \; s,\env_{3}}
+      {\env_{1}, \penv \vdash \mathbf{while} \; id \; \mathbf{do} \; s,\env_{4}}
 \]
 
 \mylabel{T-IF1}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e:T, \env_{2}\\
-       closeall(\env_{2}), \penv \vdash s_{1}:\env_{3} \\
-       closeall(\env_{2}), \penv \vdash s_{2}:\env_{4} \\
-       \env_{5} = openset(closeset(\env_{2}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2})))
+       \env_{1}, \penv \vdash e:T, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash s_{1}:\env_{3} \;\;\;
+       \env_{2}, \penv \vdash s_{2}:\env_{4} \;\;\;
+       \env_{5} = join(\env_{3}, \env_{4})
        \end{array}}
       {\env_{1} \vdash \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{5}}
 \]
@@ -561,10 +552,12 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-IF2}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = T_{1} \cup T_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},filter(T_{1} \cup T_{2}, \Nil))]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},\Nil)]), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[id \mapsto T_{1} \cup T_{2}], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = F \;\;\;
+       F_{t} = fot(F, \Nil) \;\;\;
+       F_{e} = fit(F, \Nil) \\
+       \env_{1}[id \mapsto \phi(F,F_{t})], \penv \vdash s_{1}, \env_{2}\\
+       \env_{1}[id \mapsto \phi(F,F_{e})], \penv \vdash s_{2}, \env_{3}\\
+       \env_{4} = join(\env_{2}, \env_{3})
       \end{array}}
       {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
 \]
@@ -572,112 +565,71 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-IF3}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Nil,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Nil,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = F \;\;\;
+       F_{t} = fot(F, \Nil) \;\;\;
+       F_{e} = fit(F, \Nil) \\
+       F_{e} = \Void \;\;\;
+       \env_{1}[id \mapsto \phi(F,F_{t})], \penv \vdash s_{1}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
 \]
 
 \mylabel{T-IF4}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = T_{1} \cup T_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},\Boolean)]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},filter(T_{1} \cup T_{2}, \Boolean))]), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[id \mapsto T_{1} \cup T_{2}], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = F \;\;\;
+       F_{t} = fot(F, \Nil) \;\;\;
+       F_{e} = fit(F, \Nil) \\
+       F_{t} = \Void \;\;\;
+       \env_{1}[id \mapsto \phi(F,F_{e})], \penv \vdash s_{2}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``boolean" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
 \]
 
 \mylabel{T-IF5}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Boolean,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Boolean,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{t} = fopt(\penv(x), \Nil, i) \;\;\;
+       S_{e} = fipt(\penv(x), \Nil, i) \\
+       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2}\\
+       \env_{1}, \penv[x \mapsto S_{e}] \vdash s_{2}, \env_{3}\\
+       \env_{4} = join(\env_{2}, \env_{3})
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``boolean" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
 \]
 
 \mylabel{T-IF6}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = T_{1} \cup T_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},\Integer)]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},filter(T_{1} \cup T_{2}, \Integer))]), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[id \mapsto T_{1} \cup T_{2}], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{t} = fopt(\penv(x), \Nil, i) \\
+       fit(proj(\penv(x), i), \Nil) = \Void \\
+       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``integer" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
 \]
 
 \mylabel{T-IF7}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Integer,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Integer,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{e} = fipt(\penv(x), \Nil, i) \\
+       fot(proj(\penv(x), i), \Nil) = \Void \\
+       \env_{1}, \penv[x \mapsto S_{e}] \vdash s_{2}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``integer" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\]
-
-\mylabel{T-IF8}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = T_{1} \cup T_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},\Number)]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},filter(T_{1} \cup T_{2}, \Number))]), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[id \mapsto T_{1} \cup T_{2}], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
-      \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``number" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\]
-
-\mylabel{T-IF9}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\Number,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\Number,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
-      \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``number" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\]
-
-\mylabel{T-IF10}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = T_{1} \cup T_{2}\\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},\String)]), \penv \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}[id \mapsto \phi(T_{1} \cup T_{2},filter(T_{1} \cup T_{2}, \String))]), \penv \vdash s_{2}, \env_{3}\\
-       \env_{4} = openset(closeset(\env_{1}[id \mapsto T_{1} \cup T_{2}], fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
-      \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\]
-
-\mylabel{T-IF11}
-\[
-\dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x} \;\;\; \penv(x) = S\\
-       closeall(\env_{1}), \penv[x \mapsto gpt(S,\String,i)] \vdash s_{1}, \env_{2} \\
-       closeall(\env_{1}), \penv[x \mapsto fpt(S,\String,i)] \vdash s_{2}, \env_{3} \\
-       \env_{4} = openset(closeset(\env_{1}, fav(s_{1}) \cup fav(s_{2})),rv(s_{1}) \cup rv(s_{2}))
-      \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
 \]
 
 \mylabel{T-LOCAL1}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash el:S, \env_{2} \;\;\;
+       \env_{1}, \penv \vdash el:S, \env_{2} \\
        S \lesssim F_{1} \times ... \times F_{n} \times \Value{*} \;\;\;
        n = |\;\overline{id{:}F}\;| \\
-       \env_{3} = \env_{2}[\overline{id \mapsto F}] \\
-       \env_{3}, \penv \vdash s, \env_{4}
+       \env_{2}[\overline{id \mapsto F}], \penv \vdash s, \env_{3}
        \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s, (\env_{4} - \{\overline{id}\})[\overline{id \mapsto \env_{2}(id)]}}
+      {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s, (\env_{3} - \{\overline{id}\})[\overline{id \mapsto \env_{2}(id)]}}
 \]
 
 \mylabel{T-LOCAL2}
@@ -696,7 +648,7 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\env_{1}[id \mapsto F], \penv \vdash f:F_{1}, \env_{2} \;\;\;
        F_{1} \lesssim F \;\;\;
        \env_{2}, \penv \vdash s, \env_{3}}
-      {\env_{1}, \penv \vdash \mathbf{rec} \; id{:}F = f \; \mathbf{in} \; s, \env_{3} - \{id\}}
+      {\env_{1}, \penv \vdash \mathbf{rec} \; id{:}F = f \; \mathbf{in} \; s, (\env_{3} - \{id\})[\overline{id \mapsto \env_{2}(id)]}}
 \]
 
 \mylabel{T-RETURN}
@@ -837,10 +789,10 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-CONSTRUCTOR1}
 \[
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \\
-       T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \;\;\;
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \;\;\;
+       T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \\
        wf(T) \;\;\;
-       n = |\;\overline{[e_{1}] = e_{2}}\;| \\
+       n = |\;\overline{[e_{1}] = e_{2}}\;| \;\;\;
        \env_{f} = merge(\env_{1}, ..., \env_{n+1})
        \end{array}}
       {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
@@ -1126,13 +1078,13 @@ This appendix presents the complete type system of Typed Lua.
 \mylabel{T-EXPAPPLY1}
 \[
 \dfrac{\env_{1}, \penv \vdash e(el):S, \env_{2}}
-      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{1}:first(S), \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{1}:proj(S,1), \env_{2}}
 \]
 
 \mylabel{T-EXPINVOKE1}
 \[
 \dfrac{\env_{1}, \penv \vdash e{:}n(el):S, \env_{2}}
-      {\env_{1}, \penv \vdash \lfloor e{:}n(el) \rfloor_{1}:first(S), \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e{:}n(el) \rfloor_{1}:proj(S,1), \env_{2}}
 \]
 
 \mylabel{T-EXPDOTS}
@@ -1332,85 +1284,94 @@ wf(S_1 \rightarrow S_2) & = wf(S_1) \,\wedge\, wf(S_2) \\
 wf(S_1 \sqcup S_2) & = wf(S_1) \,\wedge\, wf(S_2)\\
 wf(F{*}) & = wf(F) \\
 wf(F \times P) & = wf(F) \,\wedge\,wf(P)\\
-wf(F) & = \top\\
-\\
+wf(F) & = \top \;\;\;\mathrm{for\; all\; other\; cases}
+\end{align*}
+
+\begin{align*}
 tag(F_1 \cup F_2, t) & = tag(F_1, t) \,\vee\, tag(F_2,t) \\
-tag(\{\overline{F{:}V}\}_t, t) & = \top\\
-tag(F, t) & = \bot\\
-\\
+tag(\{\overline{F{:}V}\}_{t}, t) & = \top\\
+tag(\{\overline{F{:}V}\}_{t_{1}}, t_{2}) & = \bot\\
+tag(F, t) & = \bot
+\end{align*}
+
+\begin{align*}
 vt(L, V) & = fix(V) \\
 vt(F_1, F_2) & = nil(fix(F_2))\\
-vt(F_1, {\bf const}\;F_2) & = {\bf const}\;nil(fix(F_2))\\
-\\
-nil(T) & = T \;\;\; \mathrm{if}\;\Nil \lesssim T\\
-nil(T) & = T \cup \Nil \;\;\; \mathrm{otherwise}\\
-\\
-first(\Void) & = \Nil\\
-first(T{*}) & = T \cup \Nil\\
-first(T \times P) & = T\\
-first(S_{1} \sqcup S_{2}) & = first(S_{1}) \cup first(S_{2})\\
-\\
-infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+vt(F_1, {\bf const}\;F_2) & = {\bf const}\;nil(fix(F_2))
+\end{align*}
+
+\begin{align*}
+nil(T) & = \left\{
 \begin{array}{ll}
-general(T_{i}) & \text{if $i < n$}\\
-general(T_{n} \cup \Nil) & \text{if $i >= n$}
+T & \text{if $\Nil \lesssim T$} \\
+T \cup \Nil & \text{otherwise}
 \end{array} \right.
-\\ \\
-general(\False) & = \Boolean\\
-general(\True) & = \Boolean\\
-general({\it int}) & = \Integer\\
-general({\it float}) & = \Number\\
-general({\it string}) & = \String\\
-general(T_{1} \cup T_{2}) & = general(T_{1}) \cup general(T_{2})\\
-general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
-general(\{K_{1}{:}V_{1}, ..., K_{n}{:}V_{n}\}_{tag}) & = \{K_{1}{:}general(V_{1}), ..., K_{n}{:}general(V_{n})\}_{tag}\\
-general(\mu x.T) & = \mu x.general(T)\\
-general(T) & = T\\
-\\
-general2(\Void) & = \Void\\
-general2(T{*}) & = general(T){*}\\
-general2(T \times P) & = general(T) \times general2(P)\\
-general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})\\
-\\
+\end{align*}
+
+\begin{align*}
+fix(F_{1} \cup F_{2}) & = fix(F_{1}) \cup fix(F_{2})\\
+fix(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{fixed} \\
+fix(F) & = F
+\end{align*}
+
+\begin{align*}
+close(F_{1} \cup F_{2}) & = close(F_{1}) \cup close(F_{2})\\
+close(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{closed} \\
+close(F) & = F
+\end{align*}
+
+\begin{align*}
+open(F_{1} \cup F_{2}) & = open(F_{1}) \cup open(F_{2})\\
+open(\{\overline{F{:}V}\}_{unique}) & = \{\overline{F{:}V}\}_{open} \\
+open(F) & = F
+\end{align*}
+
+\begin{align*}
+reopen(\{\overline{F:V}\}_{closed}) & = \{\overline{F:V}\}_{open}\\
+reopen(F) & = F
+\end{align*}
+
+\begin{align*}
+rconst({\bf const}\;F) & = F\\
+rconst(F) & = F
+\end{align*}
+
+\begin{align*}
 proj(S_1 \sqcup S_2, i) & = proj(S_1, i) \cup proj(S_2, i) \\
 proj(F{*}, i) & = nil(F) \\
 proj(F \times P, 1) & = F \\
 proj(F \times P, i) & = proj(P, i-1)\\
 proj(E{*}, i) & = nil(E) \\
 proj(T \times E, 1) & = T \\
-proj(T \times E, i) & = proj(E, i-1)\\
+proj(T \times E, i) & = proj(E, i-1)
+\end{align*}
+
+\begin{align*}
+infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+\begin{array}{ll}
+general(T_{i}) & \text{if $i < n$}\\
+general(nil(T_{n})) & \text{if $i >= n$}
+\end{array} \right.
 \\
-filter(T_{1} \cup T_{2}, T_{1}) & = filter(T_{2}, T_{1})\\
-filter(T_{1} \cup T_{2}, T_{2}) & = filter(T_{1}, T_{2})\\
-filter(T_{1} \cup T_{2}, T_{3}) & = filter(T_{1}, T_{3}) \cup filter(T_{2}, T_{3})\\
-filter(T_{1}, T_{2}) & = T_{1}\\
-\\
-fonilpt(P_1 \sqcup P_2) & = P_2 \;\;\; \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = P_1 \;\;\; \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = P_1 \sqcup P_2 \;\;\; \mathrm{otherwise}\\
-fonilpt(P \sqcup S) & = fonilpt(S) \;\;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(P \sqcup S) & = P \sqcup fonilpt(S) \;\;\; \mathrm{otherwise}\\
-fonilpt(S \sqcup P_2) & = fonilpt(S) \;\;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(S \sqcup P) & = fonilpt(S) \sqcup P \;\;\; \mathrm{otherwise}\\
-fonilpt(S_1 \sqcup S_2) & = fonilpt(S_1) \sqcup fonilpt(S_2)\\
-\\
-fonil(F_1 \cup F_2) & = fonil(F_1) \;\;\; \mathrm{if}\;fonil(F_2) = {\bf void}\\
-fonil(F_1 \cup F_2) & = fonil(F_2) \;\;\; \mathrm{if}\;fonil(F_1) = {\bf void}\\
-fonil(F_1 \cup F_2) & = fonil(F_1) \cup fonil(F_2) \;\;\; \mathrm{otherwise}\\
-fonil(F) & = {\bf void} \;\;\; \mathrm{if} \; F \subtype \Nil \; \mathrm{and} \; \Nil \subtype F\\
-fonil(F) & = F \;\;\; \mathrm{otherwise}\\
-\\
-close(F_{1} \cup F_{2}) & = close(F_{1}) \cup close(F_{2})\\
-close(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{closed} \\
-close(F) & = F\\
-\\
-fix(F_{1} \cup F_{2}) & = fix(F_{1}) \cup fix(F_{2})\\
-fix(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{fixed} \\
-fix(F) & = F\\
-\\
-open(F_{1} \cup F_{2}) & = open(F_{1}) \cup open(F_{2})\\
-open(\{\overline{F{:}V}\}_{unique}) & = \{\overline{F{:}V}\}_{open} \\
-open(F) & = F\\
+\end{align*}
+
+\begin{align*}
+general(\False) & = \Boolean\\
+general(\True) & = \Boolean\\
+general({\it int}) & = \Integer\\
+general({\it float}) & = \Number\\
+general({\it string}) & = \String\\
+general(F_{1} \cup F_{2}) & = general(F_{1}) \cup general(F_{2})\\
+general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
+general(\{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{tag}) & = \{F_{1}{:}general(V_{1}), ..., F_{n}{:}general(V_{n})\}_{tag}\\
+general(\mu x.F) & = \mu x.general(F)\\
+general(T) & = T
+\end{align*}
+
+\begin{align*}
+general2(F{*}) & = general(F){*}\\
+general2(F \times P) & = general(F) \times general2(P)\\
+general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
 \end{align*}
 
 \begin{align*}
@@ -1426,39 +1387,91 @@ openset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto open(\env(id_{1})
 \end{align*}
 
 \begin{align*}
+filter(F_{1} \cup F_{2}, F_{1}) & = filter(F_{2}, F_{1})\\
+filter(F_{1} \cup F_{2}, F_{2}) & = filter(F_{1}, F_{2})\\
+filter(F_{1} \cup F_{2}, F_{3}) & = filter(F_{1}, F_{3}) \cup filter(F_{2}, F_{3})\\
+filter(F_{1}, F_{2}) & = F_{1}
+\end{align*}
+
+\begin{align*}
+fopt(P_1 \sqcup P_2, F, i) & = P_2 & \mathrm{if} \; fot(proj(P_1, i),F) = {\bf void} \\
+fopt(P_1 \sqcup P_2, F, i) & = P_1 & \mathrm{if} \; fot(proj(P_2, i),F) = {\bf void} \\
+fopt(P_1 \sqcup P_2, F, i) & = P_1 \sqcup P_2 & \mathrm{otherwise}\\
+fopt(P \sqcup S, F, i) & = fopt(S,F,i) & \mathrm{if} \; fot(proj(P, i),F) = {\bf void} \\
+fopt(P \sqcup S, F, i) & = P \sqcup fopt(S,F,i) & \mathrm{otherwise}\\
+fopt(S \sqcup P_2, F, i) & = fopt(S,F,i) & \mathrm{if} \; fot(proj(P, i),F) = {\bf void} \\
+fopt(S \sqcup P, F, i) & = fopt(S,F,i) \sqcup P & \mathrm{otherwise}\\
+fopt(S_1 \sqcup S_2, F, i) & = fopt(S_1,F,i) \sqcup fopt(S_2,F,i)
+\end{align*}
+
+\begin{align*}
+fot(F_1 \cup F_2,F_3) & = fot(F_1,F_3) & \mathrm{if}\;fot(F_2,F_3) = {\bf void}\\
+fot(F_1 \cup F_2,F_3) & = fot(F_2,F_3) & \mathrm{if}\;fot(F_1,F_3) = {\bf void}\\
+fot(F_1 \cup F_2,F_3) & = fot(F_1,F_3) \cup fot(F_2,F_3) & \mathrm{otherwise}\\
+fot(F_1,F_2) & = {\bf void} & \mathrm{if} \; F_1 \subtype F_2 \; \mathrm{and} \; F_2 \subtype F_1\\
+fot(F_1,F_2) & = F_1 & \mathrm{otherwise}
+\end{align*}
+
+\begin{align*}
+fipt(P_1 \sqcup P_2, F, i) & = P_2 & \mathrm{if} \; fit(proj(P_1, i),F) = {\bf void} \\
+fipt(P_1 \sqcup P_2, F, i) & = P_1 & \mathrm{if} \; fit(proj(P_2, i),F) = {\bf void} \\
+fipt(P_1 \sqcup P_2, F, i) & = P_1 \sqcup P_2 & \mathrm{otherwise}\\
+fipt(P \sqcup S, F, i) & = fipt(S,F,i) & \mathrm{if} \; fit(proj(P, i),F) = {\bf void} \\
+fipt(P \sqcup S, F, i) & = P \sqcup fipt(S,F,i) & \mathrm{otherwise}\\
+fipt(S \sqcup P_2, F, i) & = fipt(S,F,i) & \mathrm{if} \; fit(proj(P, i),F) = {\bf void} \\
+fipt(S \sqcup P, F, i) & = fipt(S,F,i) \sqcup P & \mathrm{otherwise}\\
+fipt(S_1 \sqcup S_2, F, i) & = fipt(S_1,F,i) \sqcup fipt(S_2,F,i)
+\end{align*}
+
+\begin{align*}
+fit(F_1 \cup F_2,F_3) & = fit(F_1,F_3) & \mathrm{if}\;fit(F_2,F_3) = {\bf void}\\
+fit(F_1 \cup F_2,F_3) & = fit(F_2,F_3) & \mathrm{if}\;fit(F_1,F_3) = {\bf void}\\
+fit(F_1 \cup F_2,F_3) & = fit(F_1,F_3) \cup fit(F_2,F_3) & \mathrm{otherwise}\\
+fit(F_1,F_2) & = F_1 & \mathrm{if} \; F_2 \subtype F_1\\
+fit(F_1,F_2) & = {\bf void} & \mathrm{otherwise}
+\end{align*}
+
+\begin{align*}
 merge(\overline{\env}) & = reduce(\overline{\env}, merge2)\\
 merge2(\env_1,\env_2) & = \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
 merget(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
 merget(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
-%\mathrm{the\;next\;case\;applies\;if}
-%\overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
-merget(\{\overline{F:V^l},\overline{F^{\prime}:V^\prime}\}_{unique},
-       \{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
-       \{\overline{F:sup_u(V^l,V^r)},\overline{F^\prime:V^\prime},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}\\
-%& \mathrm{the\;next\;case\;applies\;if}\;
-%  \overline{V^l \lesssim_c V_r \,\vee\, V^r \lesssim_c V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
-merget(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique|open},
-       \{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) & =
-       \{\overline{F:sup_c(V^l,V^r)},\overline{F^\prime:V^\prime},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{open}\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
+& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+merget(\{\overline{F:V^l},\overline{F^{\prime}:V^\prime}\}_{unique},\\
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
+\{\overline{F:sup_u(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
+& \;\;\;\;\; \overline{V^l \lesssim_c V_r \,\vee\, V^r \lesssim_c V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+merget(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique|open},\\
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) & =
+\{\overline{F:sup_c(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{open}\\
 merget(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
+\end{align*}
+
+\begin{align*}
+sup_u(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
+sup_u(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1
 \end{align*}
 
 \begin{align*}
 join(\env_1,\env_2) & = \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
 joint(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
 joint(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
-%\mathrm{the\;next\;case\;applies\;if}\;
-%\overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\;\mathrm{and\;the\;right\; side\; is\;}wf}\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if}\; \\
+& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
 joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
 \{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
-\{\overline{F:sup_u(V^l,V^r)},\overline{F^\prime:nil(V^\prime)},\overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
+\{\overline{F:sup_u(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:nil(V^\prime)},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
 joint(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
 \end{align*}
 
-\begin{align*}
-sup_u(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
-sup_u(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1\\
-\\
-reopen(\{\overline{F:V}\}_{closed}) & = \{\overline{F:V}\}_{open}\\
-reopen(F) & = F
-\end{align*}

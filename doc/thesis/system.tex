@@ -148,26 +148,45 @@ that Lua tables can take.
 The syntactical form of table types is $\{\overline{F{:}V}\}_{unique|open|fixed|closed}$,
 where the notation $\overline{F{:}V}$ denotes the list $F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}$.
 Each $V_{i}$ represents the type of the value that table keys of type $F_{i}$ map to.
-Value types represent mutable values by default, but we can use the
-$\Const$ type to make them represent immutable values.
+Value types represent mutable fields by default, but we can use the
+$\Const$ type to make them represent immutable fields.
+Making a field $\Const$ does not guarantee that its value cannot change,
+as the table may have aliases with a non-$\Const$ type for that field.
+Typed Lua needs immutable fields to enable depth subtyping between table types.
 
 \label{def:tabletype}
 We also use the tags \emph{unique}, \emph{open}, \emph{fixed}, and \emph{closed}
 to classify table types.
-The tag \emph{unique} represents tables with no keys that do not
-inhabit one of the table's key types, and with no alias.
-In particular, the type of the table constructor has this tag.
-The tag \emph{open} represents \emph{unique} table types that
-have at least one alias.
-The tag \emph{fixed} represents \emph{unique} table types that we
-do not know how many aliases they have.
-In particular, the type of a class has this tag.
 The tag \emph{closed} represents table types that do not provide
 any guarantees about keys with types not listed in the table type.
 In particular, in the concrete syntax, type annotations, interface
 declarations, and userdata declarations always describe \emph{closed} table types.
-In the next sections we explain in more detail why we need
-different table types.
+The tags \emph{unique}, \emph{open}, and \emph{fixed} represent
+tables with no keys that do not inhabit one of the table's key types,
+but with different guarantees about the reference to a value of
+that type.
+A reference to an \emph{unique} table is guaranteed to point
+to a table that has no other references to it.
+In particular, the type of the table constructor has this tag,
+as it allows greater flexibility in reinterpreting its type.
+A reference to an \emph{open} table is guaranteed to have only
+\emph{closed} references pointing to the same table,
+a guarantee that still lets the type system reinterpret the type
+of a reference, but with more restrictions.
+A reference to a \emph{fixed} table can have any number of
+\emph{fixed} or \emph{closed} references point to it,
+so its type cannot change anymore.
+In particular, the type of a class has this tag in our type system.
+
+A \emph{fixed} table type guarantees that there are
+no keys with a type that is not one of its key types.
+Even though this guarantee allows type-safe iteration on
+\emph{fixed} table types, it forbids width subtyping that
+is necessary for object-oriented programming, so \emph{closed}
+table types remove this guarantee to allow width subytping
+between other table types and \emph{closed} table types.
+This means that objects have \emph{closed} table types,
+while their classes have \emph{fixed} table types.
 
 Any table type has to be \emph{well-formed}.
 Informally, a table type is well-formed if key types do not overlap.
@@ -188,8 +207,8 @@ interface declaration as an alias to this type:
     end
 \end{verbatim}
 
-With the recursive types we finish the dicussion about Typed Lua types,
-and we begin the discussion about the special types.
+With recursive types we finish the dicussion about Typed Lua types,
+and we begin the discussion about special types.
 
 \begin{figure*}[!ht]
 \textbf{Special Types}\\
@@ -235,10 +254,10 @@ variables inside conditions.
 Our type system uses filter types to formalize the \texttt{type} predicates
 that we mentioned in Section \ref{sec:unions}.
 This means that \texttt{type} predicates use filter types of the form
-$\phi(T_{1},T_{2})$ to discriminate local variables that are bound to
+$\phi(F_{1},F_{2})$ to discriminate local variables that are bound to
 union types.
-In a filter type $\phi(T_{1},T_{2})$, $T_{1}$ is the original type and
-$T_{2}$ is the discriminated type.
+In a filter type $\phi(F_{1},T_{2})$, $F_{1}$ is the original type and
+$F_{2}$ is the discriminated type.
 
 \label{def:projectiontype}
 Typed Lua includes projection types as a way to project
@@ -646,7 +665,7 @@ Using \emph{unique} table types to represent the type of the table
 constructor allows our type system to type check the previous example.
 More precisely,
 \[
-\{``x":1, ``y":2\}_{unique} \subtype
+\{``x":1, ``y":2\}_{unique} \subtype 
 \{``x":\Integer, ``y":\Integer \cup \Nil\}_{closed}
 \]
 
@@ -1057,10 +1076,10 @@ expression list where all expressions can only produce a single value:
 \[
 \begin{array}{c}
 \mylabel{T-EXPLIST1}\\
-\dfrac{\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash e_{i}:F_{i}, \env_{i+1} \;\;\;
        \env_{f} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{e}\;|}
-      {\env_{1}, \penv \vdash \overline{e}:T_{1} \times ... \times T_{n} \times \Nil{*}, \env_{f}}
+      {\env_{1}, \penv \vdash \overline{e}:F_{1} \times ... \times F_{n} \times \Nil{*}, \env_{f}}
 \end{array}
 \]
 
@@ -1086,10 +1105,10 @@ check a list of left-hand values:
 \[
 \begin{array}{c}
 \mylabel{T-LHSLIST}\\
-\dfrac{\env_{1}, \penv \vdash l_{i}:T_{i}, \env_{i+1} \;\;\;
+\dfrac{\env_{1}, \penv \vdash l_{i}:F_{i}, \env_{i+1} \;\;\;
        \env_{f} = merge(\env_{1}, ..., \env_{n+1}) \;\;\;
        n = |\;\overline{l}\;|}
-      {\env_{1}, \penv \vdash \overline{l}:T_{1} \times ... \times T_{n} \times \Value{*}, \env_{f}}
+      {\env_{1}, \penv \vdash \overline{l}:F_{1} \times ... \times F_{n} \times \Value{*}, \env_{f}}
 \end{array}
 \]
 
@@ -1099,9 +1118,9 @@ The rule \textsc{T-ASSIGNMENT} is the general rule that expresses this idea:
 \[
 \begin{array}{c}
 \mylabel{T-ASSIGNMENT}\\
-\dfrac{\env_{1}, \penv \vdash el:E_{1}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash \overline{l}:E_{2}, \env_{3} \;\;\;
-       E_{1} \lesssim E_{2}}
+\dfrac{\env_{1}, \penv \vdash el:S_{1}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash \overline{l}:S_{2}, \env_{3} \;\;\;
+       S_{1} \lesssim S_{2}}
       {\env_{1}, \penv \vdash \overline{l} = el,\env_{3}}
 \end{array}
 \]
@@ -1146,10 +1165,10 @@ are expressions that produce multiple values:
 \[
 \begin{array}{c}
 \mylabel{T-APPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e:E_{1} \rightarrow E_{2}, \env_{2} \;\;\;
-       \env_{2}, \penv \vdash el:E_{3}, \env_{3} \;\;\;
-       E_{3} \lesssim E_{1}}
-      {\env_{1}, \penv \vdash e(el):E_{2}, \env_{3}}
+\dfrac{\env_{1}, \penv \vdash e:S_{1} \rightarrow S_{2}, \env_{2} \;\;\;
+       \env_{2}, \penv \vdash el:S_{3}, \env_{3} \;\;\;
+       S_{3} \lesssim S_{1}}
+      {\env_{1}, \penv \vdash e(el):S_{2}, \env_{3}}
 \end{array}
 \]
 
@@ -1158,28 +1177,37 @@ that handle the cases where function applications are either statements
 that produce no value or expressions that produce only one value.
 The rule \textsc{T-STMAPPLY1} discards the produced values,
 while the rule \textsc{T-EXPAPPLY1} uses the auxiliary function
-\emph{first} to ensure that only one value is produced:
+\emph{proj} to ensure that only the first value is produced:
 \[
 \begin{array}{c}
 \begin{array}{c}
 \mylabel{T-STMAPPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e(el):E, \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el):S, \env_{2}}
       {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{0},\env_{2}}
 \end{array}
 \;
 \begin{array}{c}
 \mylabel{T-EXPAPPLY1}\\
-\dfrac{\env_{1}, \penv \vdash e(el):E, \env_{2}}
-      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{1}:first(E), \env_{2}}
+\dfrac{\env_{1}, \penv \vdash e(el):S, \env_{2}}
+      {\env_{1}, \penv \vdash \lfloor e(el) \rfloor_{1}:proj(S,1), \env_{2}}
 \end{array}
 \end{array}
 \]
 
-We can define \emph{first} inductively as follows:
+We can define \emph{proj} inductively as follows:
 \begin{align*}
-first(F{*}) & = F \cup \Nil\\
-first(F \times P) & = F\\
-first(S_{1} \sqcup S_{2}) & = first(S_{1}) \cup first(S_{2})
+proj(S_1 \sqcup S_2, i) & = proj(S_1, i) \cup proj(S_2, i) \\
+proj(F{*}, i) & = nil(F) \\
+proj(F \times P, 1) & = F \\
+proj(F \times P, i) & = proj(P, i-1)\\
+proj(E{*}, i) & = nil(E) \\
+proj(T \times E, 1) & = T \\
+proj(T \times E, i) & = proj(E, i-1) \\
+nil(T) & = \left\{
+\begin{array}{ll}
+T & \text{if $\Nil \lesssim T$} \\
+T \cup \Nil & \text{otherwise}
+\end{array} \right.
 \end{align*}
 
 As an example, let us assume that $f$ is a local function in the environment,
@@ -1274,11 +1302,13 @@ This auxiliary relation means that given a type environment $\env_{1}$
 and a projection environment $\penv$, checking a table field $[e_{1}] = e_{2}$
 produces a pair $(F,V)$ and a new type environment $\env_{2}$.
 A pair $(F,V)$ means that $e_{1}$ has type $F$ and $e_{2}$ has type $V$,
-where $F$ is the type of the key and $V$ is the type of the value.
+where $F$ is the type of the key and $V$ is the type of the field value.
 
 After type checking each table field, our type system uses each pair $(F,V)$
 to build the table type that express the type of a given constructor, and
 uses the predicate \emph{wf} to check whether this table type is well-formed.
+The predicate \emph{wf} also uses the auxiliary predicate \emph{tag} to
+forbid \emph{unique} and \emph{open} fields.
 Formally, a table type is well-formed if it obeys the following rule:
 \[
 \begin{array}{rcl}
@@ -1291,9 +1321,7 @@ wf(S_1 \rightarrow S_2) & = & wf(S_1) \,\wedge\, wf(S_2) \\
 wf(S_1 \sqcup S_2) & = & wf(S_1) \,\wedge\, wf(S_2)\\
 wf(F{*}) &=& wf(F) \\
 wf(F \times P) &=& wf(F) \,\wedge\,wf(P)\\
-wf(F) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}\\\\
-tag(F_1 \cup F_2, t) & = & tag(F_1, t) \,\vee\, tag(F_2,t) \\
-tag(\{\overline{F:V}\}_t, t) & = & \top\\
+wf(F) & = & \top \;\;\;\mathrm{for\; all\; other\; cases}
 \end{array}
 \]
 
@@ -1308,7 +1336,7 @@ which is not the literal type $1$, can be $\Number$ or $\Boolean$,
 as $\Integer \lesssim \Integer$, and $\Integer \lesssim \Any$.
 
 Well-formed table types also do not allow \emph{unique} and
-\emph{open} table types to appear in the type of the values.
+\emph{open} table types to appear in the type of the field values.
 We made this restriction because our type system does not keep
 track of aliases to table fields.
 This means that allowing \emph{unique} and \emph{open} table
@@ -1333,15 +1361,12 @@ to adjust the type of the value according to the type of the key.
 More precisely, \emph{vt} includes the type $\Nil$ in the type of
 the value when the type of the key is not a literal type.
 It also uses \emph{fix} to prevent \emph{unique} and \emph{open}
-table types to appear in the type of the values.
+table types to appear in the type of the field values.
 We define these functions as follows:
 \begin{align*}
 vt(L, V) & = fix(V) \\
 vt(F_1, F_2) & = nil(fix(F_2))\\
 vt(F_1, {\bf const}\;F_2) & = {\bf const}\;nil(fix(F_2))\\
-\\
-nil(T) & = T \;\;\; \mathrm{if}\;\Nil \lesssim T\\
-nil(T) & = T \cup \Nil \;\;\; \mathrm{otherwise}\\
 \\
 fix(F_{1} \cup F_{2}) & = fix(F_{1}) \cup fix(F_{2})\\
 fix(\{\overline{F{:}V}\}_{unique|open}) & = \{\overline{F{:}V}\}_{fixed} \\
@@ -1355,10 +1380,10 @@ an expression that potentially returns multiple values:
 \begin{array}{c}
 \mylabel{T-CONSTRUCTOR1}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \\
-       T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \;\;\;
+       \env_{1}, \penv \vdash ([e_{1}] = e_{2})_{i}:(F_{i},V_{i}), \env_{i+1} \;\;\;
+       T = \{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{unique} \\
        wf(T) \;\;\;
-       n = |\;\overline{[e_{1}] = e_{2}}\;| \\
+       n = |\;\overline{[e_{1}] = e_{2}}\;| \;\;\;
        \env_{f} = merge(\env_{1}, ..., \env_{n+1})
        \end{array}}
       {\env_{1}, \penv \vdash \{\;\overline{[e_{1}] = e_{2}}\;\}:T, \env_{f}}
@@ -1440,7 +1465,7 @@ in this section for brevity.
 
 We use the refinement of table types to handle the declaration of
 new global variables.
-In Lua, the assignment \texttt{v = v + 1} translates to
+In Lua, the assignment \texttt{v = v + 1} translates to the statement
 \texttt{\string_ENV["v"] = \string_ENV["v"] + 1} when \texttt{v}
 is not a local variable, where \texttt{\string_ENV} is a table
 that stores the global environment.
@@ -1726,8 +1751,8 @@ $\penv$ to type check return statements:
 \]
 
 The rules for declaring variadic functions and recursive functions
-are similar to \textsc{T-FUNCTION1}, and we will not
-show them in this section for brevity.
+are similar to \textsc{T-FUNCTION1}, and we did not discuss them in
+this section for brevity.
 
 \subsection*{Projections}
 \label{sec:fap}
@@ -1738,28 +1763,29 @@ the usual return values, and our type system uses projection types to handle thi
 
 As an example, let us assume that \emph{idiv} and \emph{print} are functions
 in the environment.
-The function \emph{idiv} has type
+As we mentioned in Section \ref{sec:unions}, \emph{idiv} performs
+integer division and has type
 \[
 \Integer \times \Integer \times \Nil{*} \rightarrow (\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})
 \]
-As we mentioned in Section \ref{sec:unions}, \emph{idiv} performs
-integer division.
 In case of success, it returns two integers: the result and the remainder.
 In case of failure, it returns $\Nil$ plus an error message that describes
 the error.
 The function \emph{print} is a variadic function of type
 $\Value{*} \rightarrow \Nil{*}$.
+Let us also assume that $a$ and $b$ are local variables in the environment,
+and that both have type $\Integer$.
 Let us see how our type system type checks the following program:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(1, 2) \; \mathbf{in}$}\\
+\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(a, b) \; \mathbf{in}$}\\
 & \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; \lfloor print(q + r) \rfloor_{0} \; \mathbf{else} \; \lfloor print(``ERROR: " \; .. \; r) \rfloor_{0}$}
 \end{tabular}
 \end{center}
 
 First, our type system uses the auxiliary relation
 $\env_{1}, \penv \vdash el : E, \env_{2}, (x,S)$
-for type checking $idiv(1, 2)$.
+for type checking $idiv(a, b)$.
 This relation means that given a type environment $\env_{1}$ and
 a projection environment $\penv$, we can check that an expression
 list $el$ has type $E$ and produces a new type environment $\env_{2}$
@@ -1769,24 +1795,23 @@ produces an union of second-level types $S$ that should be bound
 to a fresh variable $x$ in the projection environment $\penv$,
 as the resulting type of this expression is a tuple of projection
 types $\pi_{i}^{x}$.
-In our example, our type system uses rule \textsc{T-EXPLIST4} for
-type checking $idiv(1, 2)$:
+In our example, our type system uses rule \textsc{T-EXPLIST3} for
+type checking $idiv(a, b)$:
 \[
 \begin{array}{c}
-\mylabel{T-EXPLIST4}\\
+\mylabel{T-EXPLIST3}\\
 \dfrac{\begin{array}{c}
-       \env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
-       \env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\;
-       n = |\;\overline{e}\;| \\
-       S = T_{n+1} \times ... \times T_{n+m} \times \Nil{*} \sqcup T_{n+1}' \times ... \times T_{n+m}' \times \Nil{*} \;\;\;
-       x \notin \penv \\
-       \env_{f} = merge(\env_{1}, ..., \env_{n+2})
+       \env_{1}, \penv \vdash e_{i}:F_{i}, \env_{i+1} \;\;\;
+       \env_{1}, \penv \vdash me:S, \env_{n+2}\\
+       S = F_{n+1} \times ... \times F_{n+m} \times \Nil{*} \sqcup F_{n+1}' \times ... \times F_{n+m}' \times \Nil{*} \\
+       \env_{f} = merge(\env_{1}, ..., \env_{n+2}) \;\;\;
+       n = |\;\overline{e}\;|
        \end{array}}
-      {\env_{1}, \penv \vdash \overline{e},me:T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
+      {\env_{1}, \penv \vdash \overline{e},me:F_{1} \times ... \times F_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x} \times \Nil{*}, \env_{f}, (x,S)}
 \end{array}
 \]
 
-Note that $idiv(1, 2)$ has type
+Note that $idiv(a, b)$ has type
 $\pi_{1}^{x} \times \pi_{2}^{x} \times \Nil{*}$ and produces the pair
 \[
 (x,(\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*})) 
@@ -1899,7 +1924,7 @@ dependency relation that the components of each tuple of the union have.
 For instance, the following example does not type check:
 \begin{center}
 \begin{tabular}{ll}
-\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(1, 2) \; \mathbf{in}$}\\
+\multicolumn{2}{l}{$\mathbf{local} \; q, r = idiv(a, b) \; \mathbf{in}$}\\
 & \multicolumn{1}{l}{$r = ``foo";$}\\
 & \multicolumn{1}{l}{$\mathbf{if} \; q \; \mathbf{then} \; \lfloor print(q + r) \rfloor_{0} \; \mathbf{else} \; \lfloor print(``ERROR: " \; .. \; r) \rfloor_{0}$}
 \end{tabular}
