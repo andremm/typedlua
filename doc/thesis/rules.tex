@@ -1432,6 +1432,21 @@ fit(F_1,F_2) & = {\bf void} & \mathrm{otherwise}
 \end{align*}
 
 \begin{align*}
+join(\env_1,\env_2) & = \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
+joint(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
+joint(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if}\; \\
+& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
+\{\overline{F:sup_u(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:nil(V^\prime)},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
+joint(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
+\end{align*}
+
+\begin{align*}
 merge(\overline{\env}) & = reduce(\overline{\env}, merge2)\\
 merge2(\env_1,\env_2) & = \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
 merget(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
@@ -1458,20 +1473,5 @@ merget(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
 \begin{align*}
 sup_u(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
 sup_u(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1
-\end{align*}
-
-\begin{align*}
-join(\env_1,\env_2) & = \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
-joint(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
-joint(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
-& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if}\; \\
-& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
-& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
-joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
-\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
-\{\overline{F:sup_u(V^l,V^r)},\\
-& \;\;\;\;\;\; \overline{F^\prime:nil(V^\prime)},\\
-& \;\;\;\;\;\; \overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
-joint(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
 \end{align*}
 

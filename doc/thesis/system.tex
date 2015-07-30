@@ -207,7 +207,7 @@ interface declaration as an alias to this type:
     end
 \end{verbatim}
 
-With recursive types we finish the dicussion about Typed Lua types,
+With recursive types we finish the discussion about Typed Lua types,
 and we begin the discussion about special types.
 
 \begin{figure*}[!ht]
@@ -614,7 +614,7 @@ a variable with a table type that describes a hash.
 More precisely, this rule states that it is safe to recast the table type
 $\{``x":\Integer, ``y":\Integer, ``z":\Integer\}_{unique}$ to
 $\{\String:\Integer \cup \Nil\}_{closed}$, as long as the
-new type becomes inacessible with the original type.
+new type becomes inaccessible with the original type.
 
 The rule \textsc{S-TABLE2} introduced the auxiliary relations
 $\subtype_{u}$ and $\subtype_{o}$.
@@ -1578,11 +1578,11 @@ We define these rules as follows:
 \]
 
 We do not need to close \emph{unique} and \emph{open} tables that
-appear in the left-hand side of assignments, because \textsc{T-IDREAD}
-is sufficient to forbid the creation of an alias to another \emph{unique}
-or \emph{open} table.
+appear in the left-hand side of assignments, because \textsc{T-IDREAD1}
+and \textsc{T-IDREAD2} are sufficient to forbid the creation of an alias
+to another \emph{unique} or \emph{open} table.
 For this reason, identifiers that appear in the left-hand side
-of assignements have their own rule \textsc{T-IDWRITE1}:
+of assignments have their own rule \textsc{T-IDWRITE1}:
 \[
 \begin{array}{c}
 \mylabel{T-IDWRITE1}\\
@@ -1844,11 +1844,36 @@ Rule \textsc{T-LOCAL2} illustrates this intuition:
 \]
 
 This rule uses the auxiliary function \emph{infer} to get the
-most general first-level types of each variable that should be introduced in
+most general types of each variable that should be introduced in
 the type environment for type checking $s$.
 After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
 new type environment $\env_{3}$ without the variables that it introduced
 before type checking $s$.
+We can define \emph{infer} as follows:
+\begin{align*}
+infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
+\begin{array}{ll}
+general(T_{i}) & \text{if $i < n$}\\
+general(nil(T_{n})) & \text{if $i >= n$}
+\end{array} \right.
+\end{align*}
+
+\begin{align*}
+general(\False) & = \Boolean\\
+general(\True) & = \Boolean\\
+general({\it int}) & = \Integer\\
+general({\it float}) & = \Number\\
+general({\it string}) & = \String\\
+general(F_{1} \cup F_{2}) & = general(F_{1}) \cup general(F_{2})\\
+general(S_{1} \rightarrow S_{2}) & = general2(S_{1}) \rightarrow general2(S_{2})\\
+general(\{F_{1}{:}V_{1}, ..., F_{n}{:}V_{n}\}_{tag}) & = \{F_{1}{:}general(V_{1}), ..., F_{n}{:}general(V_{n})\}_{tag}\\
+general(\mu x.F) & = \mu x.general(F)\\
+general(T) & = T\\
+\\
+general2(F{*}) & = general(F){*}\\
+general2(F \times P) & = general(F) \times general2(P)\\
+general2(S_{1} \sqcup S_{2}) & = general2(S_{1}) \sqcup general2(S_{2})
+\end{align*}
 
 After assigning projection types to $q$ and $r$, reading $q$ will
 use the projection type $\pi_{1}^{x}$ to project the type of $q$
@@ -1870,21 +1895,27 @@ Now, we may want to discriminate $q$ and $r$ to check whether
 the function call returned with success.
 Introducing a projection variable $x$ in the projection environment allows our
 type system to discriminate projection types $\pi_{i}^{x}$,
-as they are a general way to not compromise the depency between
+as they are a general way to not compromise the dependency between
 the types of $q$ and $r$ after discriminating one of them,
 so flow typing can narrow the type of both variables by testing
 just one of them because the projection types of both variables
 bound to the same projection variable.
-The rule \textsc{T-IF3} shows the case where our type system
-discriminates a projection type based on the tag \texttt{nil}:
+
+The rule \textsc{T-IF5} shows the case where our type system
+discriminates a projection type based on the tag \texttt{nil}.
+It uses the auxiliary functions \emph{fopt} and \emph{fipt}
+to filter a projection $x$, affecting all variables that bind to the same projection.
+More precisely, the former function filters out the tuples that contain a type $\Nil$ in the $i$-th component,
+while the latter function filters out the tuples that do not contain $\Nil$ in the $i$-th component.
+We define \textsc{T-IF5} as follows:
 \[
 \begin{array}{c}
-\mylabel{T-IF3}\\
+\mylabel{T-IF5}\\
 \dfrac{\begin{array}{c}
-       \env_{1}(id) = \pi_{i}^{x}\\
-       S_{t} = fonilpt(\penv(x), i) \;\;\;
-       S_{e} = finilpt(\penv(x), i) \\
-       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2} \;\;\;
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{t} = fopt(\penv(x), \Nil, i) \;\;\;
+       S_{e} = fipt(\penv(x), \Nil, i) \\
+       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2}\\
        \env_{1}, \penv[x \mapsto S_{e}] \vdash s_{2}, \env_{3}\\
        \env_{4} = join(\env_{2}, \env_{3})
       \end{array}}
@@ -1892,21 +1923,17 @@ discriminates a projection type based on the tag \texttt{nil}:
 \end{array}
 \]
 
-Rule \textsc{T-IF3} uses the auxiliary functions \emph{fonilpt} and \emph{finilpt}
-to filter a projection $x$, affecting all variables that bind to the same projection.
-The former function filters out the tuples that contain $\Nil$ in the $i$-th component,
-while the latter function filters out the tuples that do not contain $\Nil$ in the $i$-th component.
-For instance, our previous example type checks through rule \textsc{T-IF3},
+As an example, our previous example type checks through rule \textsc{T-IF5},
 because it uses the information provided by the projection type $\pi_{1}^{x}$,
-which is the type of $q$, to make the rule \textsc{T-IF3} use the function call
+which is the type of $q$, to make the rule \textsc{T-IF5} use the function call
 \[
-fonilpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
+fopt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
 $\Integer \times \Integer \times \Nil{*}$ inside the $\mathbf{if}$ branch,
 and the function call
 \[
-finilpt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
+fipt((\Integer \times \Integer \times \Nil{*}) \sqcup (\Nil \times \String \times \Nil{*}), \Nil, 1)
 \]
 to discriminate the projection $x$ to the single tuple
 $\Nil \times \String \times \Nil{*}$ inside the $\mathbf{else}$ branch.
@@ -1916,6 +1943,38 @@ but it projects $\pi_{1}^{x}$ to $\Nil$ and $\pi_{2}^{x}$ to $\String$
 inside the $\mathbf{else}$ branch.
 Outside the condition, $q$ and $r$ use the original projection, that is,
 they project to $\Integer \cup \Nil$ and $\Integer \cup \String$, respectively.
+
+Our type system also includes rules that check whether a branch is unreachable.
+Rules \textsc{T-IF6} and \textsc{T-IF7} respectively cover the case where the
+$\mathbf{else}$ branch is unreachable and the case where the $\mathbf{then}$
+branch is unreachable, because either the projected type of $\pi_{i}^{x}$ is
+not a supertype of $\Nil$ or it is $\Nil$.
+We define these rules as follows:
+\[
+\begin{array}{c}
+\begin{array}{c}
+\mylabel{T-IF6}\\
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{t} = fopt(\penv(x), \Nil, i) \\
+       fit(proj(\penv(x), i), \Nil) = \Void \\
+       \env_{1}, \penv[x \mapsto S_{t}] \vdash s_{1}, \env_{2}
+      \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+\end{array}
+\;
+\begin{array}{c}
+\mylabel{T-IF7}\\
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \pi_{i}^{x} \\
+       S_{e} = fipt(\penv(x), \Nil, i) \\
+       fot(proj(\penv(x), i), \Nil) = \Void \\
+       \env_{1}, \penv[x \mapsto S_{e}] \vdash s_{2}, \env_{2}
+      \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+\end{array}
+\end{array}
+\]
 
 Typed Lua does not allow assignments to left-hand values that are bound
 to a projection type.
@@ -1930,7 +1989,7 @@ For instance, the following example does not type check:
 \end{tabular}
 \end{center}
 
-In this example, the projected type of $r$ outsided of the $\mathbf{if}$
+In this example, the projected type of $r$ outside of the $\mathbf{if}$
 statement is $\Integer \cup \String$, so the assignment looks fine.
 However, the projected type of $r$ inside the $\mathbf{if}$ branch is $\Integer$,
 not matching the $\String$ value that $r$ has after the assignment.
