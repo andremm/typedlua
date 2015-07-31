@@ -559,7 +559,7 @@ This appendix presents the complete type system of Typed Lua.
        \env_{1}[id \mapsto \phi(F,F_{e})], \penv \vdash s_{2}, \env_{3}\\
        \env_{4} = join(\env_{2}, \env_{3})
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}[id \mapsto F]}
 \]
 
 \mylabel{T-IF3}
@@ -571,7 +571,7 @@ This appendix presents the complete type system of Typed Lua.
        F_{e} = \Void \;\;\;
        \env_{1}[id \mapsto \phi(F,F_{t})], \penv \vdash s_{1}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}[id \mapsto F]}
 \]
 
 \mylabel{T-IF4}
@@ -583,7 +583,7 @@ This appendix presents the complete type system of Typed Lua.
        F_{t} = \Void \;\;\;
        \env_{1}[id \mapsto \phi(F,F_{e})], \penv \vdash s_{2}, \env_{2}
       \end{array}}
-      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}[id \mapsto F]}
 \]
 
 \mylabel{T-IF5}
@@ -621,6 +621,43 @@ This appendix presents the complete type system of Typed Lua.
       {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}}
 \]
 
+\mylabel{T-IF8}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \phi(F_{1},F_{2}) \;\;\;
+       F_{t} = fit(F_{2}, \String) \;\;\;
+       F_{e} = fot(F_{2}, \String) \\
+       \env_{1}[id \mapsto \phi(F_{1},F_{t})], \penv \vdash s_{1}, \env_{2}\\
+       \env_{1}[id \mapsto \phi(F_{1},F_{e})], \penv \vdash s_{2}, \env_{3}\\
+       \env_{4} = join(\env_{2}, \env_{3})
+      \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}[id \mapsto F_{1}]}
+\]
+
+\mylabel{T-IF9}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \phi(F_{1},F_{2}) \;\;\;
+       F_{t} = fit(F_{2}, \String) \;\;\;
+       F_{e} = fot(F_{2}, \String) \\
+       F_{t} = \Void \;\;\;
+       \env_{1}[id \mapsto \phi(F_{1},F_{e})], \penv \vdash s_{2}, \env_{2}
+      \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}[id \mapsto F_{1}]}
+\]
+
+\mylabel{T-IF10}
+\[
+\dfrac{\begin{array}{c}
+       \env_{1}(id) = \phi(F_{1},F_{2}) \;\;\;
+       F_{t} = fit(F_{2}, \String) \;\;\;
+       F_{e} = fot(F_{2}, \String) \\
+       F_{e} = \Void \;\;\;
+       \env_{1}[id \mapsto \phi(F_{1},F_{t})], \penv \vdash s_{1}, \env_{2}
+      \end{array}}
+      {\env_{1}, \penv \vdash \mathbf{if} \; type(id) == ``string" \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{2}[id \mapsto F_{1}]}
+\]
+
 \mylabel{T-LOCAL1}
 \[
 \dfrac{\begin{array}{c}
@@ -645,10 +682,10 @@ This appendix presents the complete type system of Typed Lua.
 
 \mylabel{T-LOCALREC}
 \[
-\dfrac{\env_{1}[id \mapsto F], \penv \vdash f:F_{1}, \env_{2} \;\;\;
+\dfrac{\env_{1}[id \mapsto F], \penv \vdash e:F_{1}, \env_{2} \;\;\;
        F_{1} \lesssim F \;\;\;
        \env_{2}, \penv \vdash s, \env_{3}}
-      {\env_{1}, \penv \vdash \mathbf{rec} \; id{:}F = f \; \mathbf{in} \; s, (\env_{3} - \{id\})[\overline{id \mapsto \env_{2}(id)]}}
+      {\env_{1}, \penv \vdash \mathbf{rec} \; id{:}F = e \; \mathbf{in} \; s, (\env_{3} - \{id\})[\overline{id \mapsto \env_{2}(id)]}}
 \]
 
 \mylabel{T-RETURN}
@@ -1110,7 +1147,7 @@ This appendix presents the complete type system of Typed Lua.
 \dfrac{\begin{array}{c}
        \env_{1}, \penv \vdash e_{1}:\{\overline{F{:}V}\}, \env_{2} \\
        \env_{2}, \penv \vdash e_{2}:F, \env_{3} \;\;\;
-       \exists i \in 1{..}n \; F \lesssim F_{i} \wedge \neg \; const(V_{i}) \;\;\;
+       \exists i \in 1{..}n \; F \lesssim F_{i} \wedge \neg const(V_{i}) \;\;\;
        n = |\overline{F{:}V}|
        \end{array}}
       {\env_{1}, \penv \vdash e_{1}[e_{2}]_{l}:V_{i}, \env_{3}}
@@ -1337,6 +1374,11 @@ rconst(F) & = F
 \end{align*}
 
 \begin{align*}
+const({\bf const}\;F) & = \top\\
+const(F) & = \bot
+\end{align*}
+
+\begin{align*}
 proj(S_1 \sqcup S_2, i) & = proj(S_1, i) \cup proj(S_2, i) \\
 proj(F{*}, i) & = nil(F) \\
 proj(F \times P, 1) & = F \\
@@ -1352,7 +1394,6 @@ infer(T_{1} \times ... \times T_{n}{*}, i) & = \left\{
 general(T_{i}) & \text{if $i < n$}\\
 general(nil(T_{n})) & \text{if $i >= n$}
 \end{array} \right.
-\\
 \end{align*}
 
 \begin{align*}
@@ -1384,6 +1425,55 @@ closeset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto close(\env(id_{1
 
 \begin{align*}
 openset(\env, \{id_{1}, ..., id_{n}\}) & = \env[id_{1} \mapsto open(\env(id_{1})), ..., id_{n} \mapsto open(\env(id_{n}))]
+\end{align*}
+
+\begin{align*}
+merge(\overline{\env}) & = reduce(\overline{\env}, merge2)\\
+merge2(\env_1,\env_2) & = \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
+merget(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
+merget(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
+& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+merget(\{\overline{F:V^l},\overline{F^{\prime}:V^\prime}\}_{unique},\\
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
+\{\overline{F:sup_u(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
+& \;\;\;\;\; \overline{V^l \lesssim_c V_r \,\vee\, V^r \lesssim_c V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+merget(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique|open},\\
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) & =
+\{\overline{F:sup_c(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{open}\\
+merget(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
+\end{align*}
+
+\begin{align*}
+sup_u(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
+sup_u(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1
+\end{align*}
+
+\begin{align*}
+sup_c(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_c V_2\\
+sup_c(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_c V_1
+\end{align*}
+
+\begin{align*}
+join(\env_1,\env_2) & = \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
+joint(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
+joint(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
+& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if}\; \\
+& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
+& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
+joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
+\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
+\{\overline{F:sup_u(V^l,V^r)},\\
+& \;\;\;\;\;\; \overline{F^\prime:nil(V^\prime)},\\
+& \;\;\;\;\;\; \overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
+joint(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
 \end{align*}
 
 \begin{align*}
@@ -1427,51 +1517,8 @@ fipt(S_1 \sqcup S_2, F, i) & = fipt(S_1,F,i) \sqcup fipt(S_2,F,i)
 fit(F_1 \cup F_2,F_3) & = fit(F_1,F_3) & \mathrm{if}\;fit(F_2,F_3) = {\bf void}\\
 fit(F_1 \cup F_2,F_3) & = fit(F_2,F_3) & \mathrm{if}\;fit(F_1,F_3) = {\bf void}\\
 fit(F_1 \cup F_2,F_3) & = fit(F_1,F_3) \cup fit(F_2,F_3) & \mathrm{otherwise}\\
-fit(F_1,F_2) & = F_1 & \mathrm{if} \; F_2 \subtype F_1\\
+fit(F_1,F_2) & = F_1 & \mathrm{if} \; F_1 \subtype F_2 \; \mathrm{and} \; F_2 \subtype F_1\\
 fit(F_1,F_2) & = {\bf void} & \mathrm{otherwise}
 \end{align*}
 
-\begin{align*}
-join(\env_1,\env_2) & = \{\overline{(id,joint(\env_1(id),\env_2(id))}\}\\
-joint(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
-joint(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
-& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if}\; \\
-& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
-& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
-joint(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique},
-\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
-\{\overline{F:sup_u(V^l,V^r)},\\
-& \;\;\;\;\;\; \overline{F^\prime:nil(V^\prime)},\\
-& \;\;\;\;\;\; \overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
-joint(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
-\end{align*}
-
-\begin{align*}
-merge(\overline{\env}) & = reduce(\overline{\env}, merge2)\\
-merge2(\env_1,\env_2) & = \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
-merget(T_1, T_2) & = T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
-merget(T_1, T_2) & = T_2 \;\;\; \mathrm{if\;} T_1 \lesssim T_2\\
-& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
-& \;\;\;\;\; \overline{V^l \lesssim_u V_r \,\vee\, V^r \lesssim_u V_l}\\
-& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
-merget(\{\overline{F:V^l},\overline{F^{\prime}:V^\prime}\}_{unique},\\
-\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) & =
-\{\overline{F:sup_u(V^l,V^r)},\\
-& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
-& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}\\
-& \;\;\;\;\; \mathrm{the\;next\;case\;applies\;if} \\
-& \;\;\;\;\; \overline{V^l \lesssim_c V_r \,\vee\, V^r \lesssim_c V_l}\\
-& \;\;\;\;\; \mathrm{and\;the\;right\; side\; is\;}wf\\
-merget(\{\overline{F:V^l},\overline{F^{\prime}:V^{\prime}}\}_{unique|open},\\
-\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique|open}) & =
-\{\overline{F:sup_c(V^l,V^r)},\\
-& \;\;\;\;\;\; \overline{F^\prime:V^\prime},\\
-& \;\;\;\;\;\; \overline{F^{\prime\prime}:V^{\prime\prime}}\}_{open}\\
-merget(T_1, T_2) & = \bot \;\;\; \mathrm{otherwise}
-\end{align*}
-
-\begin{align*}
-sup_u(V_1, V_2) & = V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
-sup_u(V_1, V_2) & = V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1
-\end{align*}
 

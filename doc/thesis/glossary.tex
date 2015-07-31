@@ -21,7 +21,7 @@ it reverses the subtyping order.
 \item[covariant] A part of the type constructor is covariant when
 it preserves the subtyping order.
 
-\item[depth subtyping] An operation that allows variance in the type of
+\item[depth subtyping] An operation over records that allows variance in the type of
 record fields.
 
 \item[dynamic type] A type used by gradual typing to denote unknown values.
@@ -91,7 +91,7 @@ See complete definition in page \pageref{sec:refinement}.
 
 \item[top type] A type that is supertype of all types.
 
-\item[type environment] An environment used by Typed Lua to assign variable names to first-level types.
+\item[type environment] An environment that binds variable names to types.
 
 \item[type tag] A tag that describes the type of a value during run-time in dynamically
 typed languages.
@@ -110,9 +110,10 @@ or libraries that are written in C.
 
 \item[variadic function] A function that can receive an arbitrary number of arguments.
 
-\item[variance] A way to define the subtyping order between the components
+\item[variance] A property that defines the subtyping order between the components
 of a type constructor.
 
-\item[width subtyping] An operation that allows adding fields to a record.
+\item[width subtyping] An operation over records that allows the subtype to include
+fields that do not exist in the supertype.
 
 \end{description}

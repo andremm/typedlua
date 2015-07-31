@@ -1083,12 +1083,12 @@ expression list where all expressions can only produce a single value:
 \end{array}
 \]
 
-In Section \ref{sec:refinement} we will show that table refinement can
+Later, in this section we will show that table refinement can
 change the type environment while typing an expression or a left-hand value.
 Thus, the rules that type check lists of expressions and lists of
 left-hand values use a partial auxiliary function \emph{merge} to collect
 all environment changes in a new environment $\env_{f}$, if there are no conflicts.
-In Section \ref{sec:refinement} we will also show that we can only change the
+We will also show that we can only change the
 environment to add new table fields in a table type, and we cannot change the
 type of a variable or a table field which is already present in a table type.
 
@@ -1676,7 +1676,7 @@ type coercion expression:
 \end{array}
 \]
 
-Note that the coercion rules only allows changing the type
+Note that the coercion rules only allow changing the type
 of a variable if the new type is a supertype of the previous type,
 and the resulting type is always \emph{fixed} or \emph{closed}
 to prevent the creation of unsafe aliases.
@@ -1847,7 +1847,7 @@ This rule uses the auxiliary function \emph{infer} to get the
 most general types of each variable that should be introduced in
 the type environment for type checking $s$.
 After type checking the statement $s$, rule \textsc{T-LOCAL2} produces a
-new type environment $\env_{3}$ without the variables that it introduced
+new type environment $\env_{4}$ without the variables that it introduced
 before type checking $s$.
 We can define \emph{infer} as follows:
 \begin{align*}
@@ -1905,8 +1905,8 @@ The rule \textsc{T-IF5} shows the case where our type system
 discriminates a projection type based on the tag \texttt{nil}.
 It uses the auxiliary functions \emph{fopt} and \emph{fipt}
 to filter a projection $x$, affecting all variables that bind to the same projection.
-More precisely, the former function filters out the tuples that contain a type $\Nil$ in the $i$-th component,
-while the latter function filters out the tuples that do not contain $\Nil$ in the $i$-th component.
+More precisely, the former function filters out the tuples that contain a type $F$ in the $i$-th component,
+while the latter function filters out the tuples that do not contain $F$ in the $i$-th component.
 We define \textsc{T-IF5} as follows:
 \[
 \begin{array}{c}
@@ -1923,7 +1923,7 @@ We define \textsc{T-IF5} as follows:
 \end{array}
 \]
 
-As an example, our previous example type checks through rule \textsc{T-IF5},
+Our previous example type checks through rule \textsc{T-IF5},
 because it uses the information provided by the projection type $\pi_{1}^{x}$,
 which is the type of $q$, to make the rule \textsc{T-IF5} use the function call
 \[
