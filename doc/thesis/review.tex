@@ -811,9 +811,9 @@ Table \ref{tab:statistics} summarizes the statistics that we presented in this s
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{|l|p{6cm}|c|}
+\begin{tabular}{|p{6cm}|p{6cm}|c|}
 \hline
-\multirow{5}{*}{table constructor}
+\multirow{5}{*}{\minitab[l]{table constructor \\ (\% per static occurrences)}}
 & create a record & 36\% \\
 \cline{2-3}
 & create a list & 29\% \\
@@ -824,7 +824,7 @@ Table \ref{tab:statistics} summarizes the statistics that we presented in this s
 \cline{2-3}
 & create a table with non-literal keys & 1\% \\
 \hline
-\multirow{4}{*}{table access}
+\multirow{4}{*}{\minitab[l]{table access \\ (\% per static occurrences)}}
 & reading with literal keys & 80\% \\
 \cline{2-3}
 & writing with literal keys & 10\% \\
@@ -833,12 +833,12 @@ Table \ref{tab:statistics} summarizes the statistics that we presented in this s
 \cline{2-3}
 & writing with non-literal keys & 4\% \\
 \hline
-\multirow{2}{*}{iteration over tables} &
+\multirow{2}{*}{\minitab[l]{iteration over tables \\ (\% per files)}} &
 files that iterate over a list & 27\% \\
 \cline{2-3}
 & files that iterate over a map & 23\% \\
 \hline
-\multirow{4}{*}{function declarations}
+\multirow{4}{*}{\minitab[l]{function declarations \\ (\% per static occurrences)}}
 & inspect the tags of their input parameters & 9\% \\
 \cline{2-3}
 & return multiple values to signal errors & 6\% \\
@@ -847,10 +847,10 @@ files that iterate over a list & 27\% \\
 \cline{2-3}
 & are method declarations & 23\% \\
 \hline
-\multirow{1}{*}{object-oriented programming}
+\multirow{1}{*}{\minitab[l]{object-oriented programming \\ (\% per projects)}}
 & projects that use metatables and declare methods & 45\% \\
 \hline
-\multirow{2}{*}{modules}
+\multirow{2}{*}{\minitab[l]{modules \\ (\% per files)}}
 & files that are modules & 61\% \\
 \cline{2-3}
 & files that are plain scripts & 39\% \\
