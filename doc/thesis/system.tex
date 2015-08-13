@@ -1309,7 +1309,7 @@ to build the table type that express the type of a given constructor, and
 uses the predicate \emph{wf} to check whether this table type is well-formed.
 The predicate \emph{wf} also uses the auxiliary predicate \emph{tag} to
 forbid \emph{unique} and \emph{open} fields.
-Formally, a table type is well-formed if it obeys the following rule:
+Formally, we can define \emph{wf} inductivelly as follows:
 \[
 \begin{array}{rcl}
 wf(\{\overline{F:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, F_{i} \lesssim F_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\

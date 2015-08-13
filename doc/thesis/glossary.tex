@@ -15,14 +15,18 @@ See complete definition in page \pageref{def:consistency}.
 \item[consistent-subtyping] A relation that combines consistency and subtyping.
 See complete definition in page \pageref{def:consistent-subtyping}.
 
-\item[contravariant] A part of the type constructor is contravariant when
-it reverses the subtyping order.
+\item[contravariant] A part of a type constructor is contravariant when it
+reverses the subtyping order, that is, the part $T_{1}$ of a type being
+a subtype of the corresponding part $T_{2}$ of another type implies that
+$T_{2} \subtype T_{1}$.
 
-\item[covariant] A part of the type constructor is covariant when
-it preserves the subtyping order.
+\item[covariant] A part of a type constructor is covariant when it
+preserves the subtyping order, that is, the part $T_{1}$ of a type being
+a subtype of the corresponding part $T_{2}$ of another type implies that
+$T_{1} \subtype T_{2}$.
 
-\item[depth subtyping] An operation over records that allows variance in the type of
-record fields.
+\item[depth subtyping] A subtyping relation over records that allows variance
+in the type of record fields.
 
 \item[dynamic type] A type used by gradual typing to denote unknown values.
 See complete definition in page \pageref{def:dynamictype}.
@@ -33,7 +37,7 @@ See complete definition in page \pageref{def:filtertype}.
 
 \item[fixed table type] A table type which guarantees that there are no
 keys with a type that is not one of its key types, and that can have
-any number of \emph{fixed} or \emph{closed} references point to it.
+any number of \emph{fixed} or \emph{closed} references.
 See complete definition in page \pageref{def:tabletype}.
 
 \item[flow typing] An approach that combines static typing and flow analysis to
@@ -41,8 +45,9 @@ allow variables to have different types at different parts of the program.
 
 \item[free assigned variable] A free variable that appears in an assignment.
 
-\item[gradual type system] A type system that uses the consistency relation
-instead of type equality to perform static type checking.
+\item[gradual type system] A type system that uses either the consistency relation
+or the consistent-subtyping relation instead of type equality to perform
+static type checking.
 See complete definition in page \pageref{sec:gradual}.
 
 \item[gradual typing] An approach that uses a gradual type system to allow
@@ -50,7 +55,9 @@ static and dynamic typing in the same code, but inserting run-time checks
 between statically typed and dynamically typed code.
 See complete definition in page \pageref{sec:gradual}.
 
-\item[invariant] A part of the type constructor is invariant when it forbids variance.
+\item[invariant] A part of a type constructor is invariant when it forbids variance,
+that is, the part $T_{1}$ of a type being a subtype of the corresponding part $T_{2}$ of
+another type implies that $T_{1} \subtype T_{2}$ and $T_{2} \subtype T_{1}$.
 It is also a way to define type equality through subtyping.
 
 \item[metatable] A Lua table that allows changing the behavior of other tables
@@ -61,7 +68,7 @@ compatibility among them.
 
 \item[open table type] A table type which guarantees that there are no
 keys with a type that is not one of its key types, and that only have
-\emph{closed} references point to it.
+\emph{closed} references.
 See complete definition in page \pageref{def:tabletype}.
 
 \item[optional type system] A type system that allows combining static and
@@ -97,8 +104,7 @@ See complete definition in page \pageref{sec:refinement}.
 typed languages.
 
 \item[unique table type] A table type which guarantees that there are no
-keys with a type that is not one of its key types, and that do not have
-any references point to it.
+keys with a type that is not one of its key types, and that has only one reference.
 See complete definition in page \pageref{def:tabletype}.
 
 \item[unsound type system] A type system that type checks certain programs that contain type errors.
@@ -108,12 +114,12 @@ or libraries that are written in C.
 
 \item[vararg expression] A Lua expression that can result in an arbitrary number of values.
 
-\item[variadic function] A function that can receive an arbitrary number of arguments.
+\item[variadic function] A function that can use an arbitrary number of arguments.
 
 \item[variance] A property that defines the subtyping order between the components
 of a type constructor.
 
-\item[width subtyping] An operation over records that allows the subtype to include
-fields that do not exist in the supertype.
+\item[width subtyping] A subtyping relation over records that allows the subtype to
+include fields that do not exist in the supertype.
 
 \end{description}

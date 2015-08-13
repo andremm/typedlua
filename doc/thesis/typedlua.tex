@@ -403,7 +403,7 @@ We will explain union types in more detail in the next section.
 We can use only one first-level type \texttt{t} in the return type
 because it is syntactic sugar to the tuple type \texttt{(t)}.
 
-Typed Lua provides two operation modes: the \emph{default} mode and
+Typed Lua provides two modes of operation: the \emph{default} mode and
 the \emph{strict} mode.
 In the default mode, the compiler adds \texttt{value*} to the type
 of the parameter list and \texttt{nil*} to the return type when
@@ -417,7 +417,7 @@ Even though it still uses \texttt{nil*} to replace missing values,
 it also uses \texttt{nil*} instead of \texttt{value*} to catch arity mismatch.
 
 We will use the following function to illustrate how these two
-operation modes work:
+modes work:
 \begin{verbatim}
     local function sum (x:integer, y:integer):integer
       return x + y
@@ -439,12 +439,12 @@ list to catch arity mismatch.
 For instance, the call \texttt{sum(1, 2, 3)} compiles with a warning
 because we are passing an extra argument \texttt{3} to \texttt{sum}.
 
-Even though these operation modes affect function calls, they do not
+Even though these modes of operation affect function calls, they do not
 affect other multiple assignments.
-This means that both operation modes discard extra arguments in
+This means that both modes discard extra arguments in
 multiple assignments and they also use \texttt{nil} to replace missing
 arguments in multiple assignments.
-We made this design decision to avoid being to restrictive, that is,
+We made this design decision to avoid being too restrictive, that is,
 we did not want to give unnecessary warnings to programmers,
 as discarded values do not have any implications during run-time.
 
@@ -452,11 +452,11 @@ As an example,
 \begin{verbatim}
     local x:integer, y:integer = 1, 2, 3
 \end{verbatim}
-compiles without any compile-time warnings in both operation modes.
+compiles without any compile-time warnings in both modes of operation.
 This means that the left-hand side of this local declaration has the
 tuple type \texttt{(integer, integer, value*)}, while the expression
 list in the right-hand side of this local declaration has the tuple
-type \texttt{(1, 2, 3, nil*)} in both operation modes.
+type \texttt{(1, 2, 3, nil*)} in both modes.
 The literal type \texttt{3} is consistent with \texttt{value},
 and the type \texttt{nil*} generates a value of type \texttt{nil}
 that is also consistent with \texttt{value}.
@@ -465,11 +465,11 @@ As another example,
 \begin{verbatim}
     local x:integer, y:integer = sum(2, 2)
 \end{verbatim}
-compiles with one compile-time warning in both of the operation modes.
+compiles with one compile-time warning in both modes of operation.
 This means that the left-hand side of this local declaration has
 the tuple type \texttt{(integer, integer, value*)}, while the
 expression list in the right-hand side of this local declaration
-has the tuple type \texttt{(integer, nil*)} in both operation modes.
+has the tuple type \texttt{(integer, nil*)} in both modes.
 The type \texttt{nil*} generates a value of type \texttt{nil}
 that is not consistent with \texttt{integer}, the type of \texttt{y}.
 
@@ -488,7 +488,7 @@ As an example,
 \begin{verbatim}
     local x:integer, y:integer, z:string = m(), m()
 \end{verbatim}
-compiles without compile-time warnings in both operation modes.
+compiles without compile-time warnings in both modes of operation.
 This happens because in the right-hand side of the multiple
 assignment, only the first value produced by the first call
 to \texttt{m} gets used, so the type of the right-hand side
@@ -509,7 +509,7 @@ For instance,
       return ...
     end
 \end{verbatim}
-has type \texttt{(string*) -> (string*)} in both operation modes.
+has type \texttt{(string*) -> (string*)} in both modes of operation.
 The function call \texttt{v()} compiles without any compile-time warnings in
 both modes because the type of the argument list is \texttt{(nil*)},
 which is consistent with \texttt{(string*)}.
@@ -576,7 +576,7 @@ In the case of \texttt{greeting}, the assignment changes its type
 from \texttt{string|nil} to \texttt{string}. 
 
 After we define the function \texttt{message}, we can call it
-with a missing argument in both operation modes:
+with a missing argument in both modes of operation:
 \begin{verbatim}
     print(message("Typed Lua"))         --> Hello Typed Lua
     print(message("Typed Lua", "Hi "))  --> Hi Typed Lua
