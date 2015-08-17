@@ -910,25 +910,32 @@ the programmer to change the type of the value that \texttt{person} points to.
 
 Typed Lua tags table types as either \emph{unique}, \emph{open},
 \emph{fixed}, or \emph{closed} to identify which operations are safe.
-The table constructor describes \emph{unique} table types,
-as they are tables that we know all the fields and that there is
-no alias to it.
-Any alias to \emph{unique} tables makes them \emph{open},
-as we use this tag to keep track of \emph{unique} aliasing.
-In the previous example, \texttt{person} has an \emph{unique} type
-because it has no alias.
-In Section \ref{sec:oop} we will show that we use the tag
-\emph{fixed} to describe the type of classes.
 Type annotations define \emph{closed} table types, as this tag
 describes table types that do not provide any guarantees about keys
 that do not appear in the table type.
+In contrast, \emph{unique}, \emph{open}, and \emph{fixed} table types
+guarantee that a table does not contain any keys which are
+not listed in its table type, though they provide different guarantees
+over their references.
+An \emph{unique} table type guarantees that it has only one reference.
+In particular, this is the case of table constructors, so they
+always have \emph{unique} table types.
+In the previous example, \texttt{person} has an \emph{unique} type
+because it has no alias.
+Any alias to \emph{unique} tables makes them \emph{open},
+as we use this tag to keep track of \emph{unique} aliasing.
+This means that \emph{open} table types can only have \emph{closed}
+aliases, and it is guaranteed that only one reference remains \emph{open}.
+Finally, \emph{fixed} table types can have any number of \emph{closed}
+and \emph{fixed} aliases, so its type cannot change.
+In Section \ref{sec:oop} we will show that we use \emph{fixed} table
+types to describe the type of classes.
 Typed Lua also has different subtyping rules that handle these
 different tags, which we explain in Section \ref{sec:subtyping}.
 
-Typed Lua uses three rules to decide whether it is sound to
-allow field assignment to change the type of \emph{unique} and
-\emph{open} tables:
-the table must assigned to a local variable to the current block,
+Typed Lua uses three rules to check whether field assignment can
+change the type of \emph{unique} and \emph{open} tables:
+the table must be assigned to a local variable to the current block,
 the new type must only add new fields, and
 the variable cannot have been assigned in another function.
 
@@ -973,8 +980,8 @@ unsafe behavior, as it would be allowed by \emph{unique} table
 types due to their loose subtyping rules.
 
 Back to the rules that Typed Lua uses to allow the refinement
-of table types, the following example shows that it is not sound
-to allow the type of the fields to change:
+of table types, the following example shows that it is forbidden
+to change the type of existing fields:
 \begin{verbatim}
     local person = { firstname = "Lewis", lastname = "Reed" }
     person.middlename = "Allan"
@@ -983,10 +990,21 @@ to allow the type of the fields to change:
     print("bye bye " .. person.firstname)
 \end{verbatim}
 
-In this example, both third and fourth lines are unsound because
+In this example, both third and fourth lines are not valid because
 they are trying to change the type of fields that already exist.
+Even though it would be sound to allow changing the type of fields
+in \emph{unique} table types because they cannot have any alias,
+this could still lead to a weak static type checking approach.
+In other words, allowing the type of the fields to evolve from a
+base type to an union type or even to the dynamic type could hide
+some type errors, so our design choice was to keep it as precise
+as we could.
+Moreover, it would be unsound to allow changing the type of fields
+in \emph{open} table types because they can have \emph{closed} aliases,
+so it made more sense to have the same rule to both table types.
 
-It is also not sound to allow changing the type of an alias:
+The following example shows that it is not allowed to change
+the type of an alias:
 \begin{verbatim}
     local person = {}
     local bogus = person
@@ -1109,7 +1127,6 @@ After we define the type \texttt{Person}, we can use it in type annotations:
       return "Goodbye " .. person.firstname ..
              " " .. person.lastname
     end
-
 
     local user1 = { firstname = "Lewis",
                     middlename = "Allan",
@@ -1368,6 +1385,7 @@ Typed Lua uses \emph{closed} table types along with the type
 We use the following example to discuss this feature:
 \begin{verbatim}
     local Shape = { x = 0.0, y = 0.0 }
+
     function Shape:move (dx:number, dy:number)
       self.x = self.x + dx
       self.y = self.y + dy
@@ -1498,8 +1516,7 @@ We use the following example to discuss single inheritance in Typed Lua:
 
     Circle.radius = 0.0
 
-    const function Circle:new (x:number,
-                               y:number,
+    const function Circle:new (x:number, y:number,
                                radius:value):self
       local c:self = setmetatable(Shape:new(x, y),
                                   { __index = self })
