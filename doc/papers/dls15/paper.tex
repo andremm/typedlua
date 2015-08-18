@@ -1050,28 +1050,28 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \end{array}
 \begin{array}{c}
 \mylabel{T-CoerceClosed}\\
-\dfrac{\env_{1}(id) \subtype F \;\;\; tag(F,closed)}
+\dfrac{\env(id) \subtype F \;\;\; tag(F,closed)}
 {\env, \penv \vdash {<}F{>} \; id:F, \env[id \mapsto reopen(F)]}
 \end{array}
 \begin{array}{c}
 \mylabel{T-CoerceFixed}\\
-\dfrac{\env_{1}(id) \subtype F \;\;\; tag(F,fixed)}
+\dfrac{\env(id) \subtype F \;\;\; tag(F,fixed)}
 {\env, \penv \vdash {<}F{>} \; id:F, \env[id \mapsto F]}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{T-Function}\\
 \dfrac{\begin{array}{c}
 	closeall(\env_{1})[\overline{id \mapsto F}], \penv[\ret \mapsto S] \vdash s, \env_{2}\\
-	\env_{3} = openset(\env_{1}, frv(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s)) \\
-	\env_{4} = closeset(\env_{3}, fav(\mathbf{fun} \; (\overline{id{:}T}){:}S \; s))
+	\env_{3} = openset(\env_{1}, frv(\mathbf{fun} \; (\overline{id{:}F}){:}S \; s)) \\
+	\env_{4} = closeset(\env_{3}, fav(\mathbf{fun} \; (\overline{id{:}F}){:}S \; s))
 	\end{array}}
-{\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}F}){:}S \; s:F_1 \times \ldots F_n \times \Void \rightarrow S, \env_{3}}
+{\env_{1}, \penv \vdash \mathbf{fun} \; (\overline{id{:}F}){:}S \; s:F_1 \times \ldots F_n \times \Void \rightarrow S, \env_{4}}
 \end{array}
 \begin{array}{c}
 \mylabel{T-Local}\\
 \dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash el:E, \env_{2} \\
-	E \lesssim F_1 \times \ldots \times F_n \times \Value{*} \\
+	\env_{1}, \penv \vdash el:P, \env_{2} \\
+	P \lesssim F_1 \times \ldots \times F_n \times \Value{*} \\
 	\env_{2}[\overline{id \mapsto F}], \penv \vdash s, \env_{3}
 	\end{array}}
 {\env_{1}, \penv \vdash \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s, (\env_{3} - \{\overline{id}\})[\overline{id \mapsto \env_2(id)}]}
@@ -1236,7 +1236,7 @@ can add a field with the same key, as long as they have
 the same type or one is a supertype of the other, respecting
 any restrictions with regards to depth subtyping that the table may have.  
 
-Rule {\sc T-Constructor} also checks if the resulting type is {\em well-formed} with the predicate $wf$. Checking for well-formedness avoids ambiguous table types. An example of ambiguous table type is
+Rule {\sc T-Constructor} also checks if the resulting type is {\em well-formed} with the predicate $wf$. Checking for well-formedness avoids ambiguous table types. An example of ambiguous table type is the type
 $\{1:\Number, \Integer:\String, \Any:\Boolean\}$,
 where indexing it with a key of type $\Integer$ could
 yield either a number, a string or a boolean at runtime.
@@ -1503,12 +1503,12 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \begin{array}{c}
 \mylabel{T-ExpListProj}\\
 \dfrac{\begin{array}{c}
-	\env_{1}, \penv \vdash e_{i}:T_{i}, \env_{i+1} \;\;\;
+	\env_{1}, \penv \vdash e_{i}:F_{i}, \env_{i+1} \;\;\;
 	\env_{1}, \penv \vdash me:S, \env_{n+2} \;\;\; n=|\overline{e}|\\
 	S = S_1 \sqcup S_2 \;\;\;m = max(|S_1|, |S_2|) \;\;\; x \notin \Pi\\
 	\env_{f} = merge(\env_{1}, ..., \env_{n+2})
 	\end{array}}
-{\env_{1}, \penv \vdash \overline{e},me:}\\ {T_{1} \times ... \times T_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x}{*}, \env_{f}, (x,S)}
+{\env_{1}, \penv \vdash \overline{e},me:}\\ {F_{1} \times ... \times F_{n} \times \pi_{1}^{x} \times ... \times \pi_{m}^{x}{*}, \env_{f}, (x,S)}
 \end{array}\\\\
 \begin{array}{c}
 \mylabel{T-IfFilterProjThen}\\
