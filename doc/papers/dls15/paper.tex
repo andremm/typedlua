@@ -1,4 +1,4 @@
-\documentclass[preprint]{sigplanconf}
+\documentclass[10pt]{sigplanconf}
 
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
@@ -180,6 +180,7 @@ is a constructor for objects with {\tt x} and {\tt y}
 fields and a {\tt move} method.
 
 \begin{figure}[t]
+{\footnotesize
 \begin{verbatim}
   function new_point(x, y)
     local point = {}
@@ -193,6 +194,7 @@ fields and a {\tt move} method.
     return point
   end
 \end{verbatim}
+}
 \caption{Building an object piece-by-piece}
 \label{fig:newpoint}
 \end{figure}
@@ -210,6 +212,7 @@ returns, and how a caller of this function can discriminate
 which list of multiple values the function returned.
 
 \begin{figure}[t]
+{\footnotesize
 \begin{verbatim}
   function idiv(x, y)
     if y == 0 then
@@ -226,6 +229,7 @@ which list of multiple values the function returned.
     error(r)
   end
 \end{verbatim}
+}
 \caption{Overloading on multiple returns}
 \label{fig:over}
 \end{figure}
@@ -366,7 +370,8 @@ tuples after a destructuring assignment.
 \section{Types}
 \label{sec:types}
 
-\begin{figure*}[t]
+\begin{figure}[t]
+{\scriptsize
 $$
 \begin{array}{rlr}
 F ::= & & \textsc{first-level types:}\\
@@ -383,10 +388,10 @@ F ::= & & \textsc{first-level types:}\\
 & | \; \mu x.F & \textit{recursive types}\\
 %\multicolumn{3}{c}{}\\
 L ::= & & \textsc{{\small literal types:}}\\
-& \;\; \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} &\\
+&  \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} &\\
 %\multicolumn{3}{c}{}\\
 B ::= & & \textsc{{\small base types:}}\\
-& \;\; \Boolean \; | \; \Integer \; | \; \Number \; | \; \String &\\\\
+& \Boolean \ |\  \Integer \ |\ \Number\ |\ \String &\\\\
 %\multicolumn{3}{c}{}\\
 %\multicolumn{3}{c}{}\\
 S ::= & & \textsc{second-level types:}\\
@@ -399,11 +404,13 @@ P ::= & & \textsc{{\small tuple types:}}\\
 & | \; F \times P & \textit{pair types}\\\\
 \end{array}
 $$
+}
 \caption{Type Language}
 \label{fig:typelang}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
+{\footnotesize
 $$
 \begin{array}{rlr}
 T ::= & & \textsc{{\small expression types:}}\\
@@ -423,9 +430,10 @@ R ::= & & \textsc{\small{filter result type:}}\\
 & |\; F
 \end{array}
 $$
+}
 \caption{Special Types}
 \label{fig:special}
-\end{figure*}
+\end{figure}
 
 Figure~\ref{fig:typelang} presents the abstract syntax of
 the core Typed Lua types. They are split into two categories:
@@ -570,6 +578,7 @@ Most of the subtyping rules are standard, so we will
 focus on the interesting cases.
 
 \begin{figure}[t]
+{\footnotesize
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -598,6 +607,7 @@ focus on the interesting cases.
 \end{array}
 \end{array}
 \]
+}
 \caption{Subtyping for second-level types}	
 \label{fig:subtuples}
 \end{figure}
@@ -640,6 +650,7 @@ from these axioms by transitivity, but having the rules makes
 the subtyping relation easier to implement.
 
 \begin{figure}[t]
+{\footnotesize
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -720,11 +731,13 @@ the subtyping relation easier to implement.
 \end{array}
 \end{array}
 \]
+}
 \caption{Subtyping for table types}
 \label{fig:tablesub}
 \end{figure}
 
 \begin{figure}[t]
+{\footnotesize
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -782,6 +795,7 @@ the subtyping relation easier to implement.
 \end{array}
 \end{array}
 \]
+}
 \caption{Subtyping for fields}
 \label{fig:subfield}
 \end{figure}
@@ -830,6 +844,7 @@ We will revisit the subtyping rules among table types on
 Section~\ref{sec:tables}.
 
 \begin{figure}[t]
+{\footnotesize
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -856,11 +871,13 @@ Section~\ref{sec:tables}.
 \end{array}
 \end{array}
 \]
+}
 \caption{Subtyping for recursive types}
 \label{fig:subrec}
 \end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
+{\scriptsize
 	$$
 	\begin{array}{rlr}
 	s ::= & & \textsc{statements:}\\
@@ -873,7 +890,7 @@ Section~\ref{sec:tables}.
 	& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
 	& | \; \mathbf{rec} \; id{:}F = e \; \mathbf{in} \; s & \textit{recursive declaration} \\
 	& | \; \mathbf{return} \; el & \textit{return} \\
-	& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
+	& | \; \lfloor a \rfloor_{0} & \textit{function call}\\
 	& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
 	e ::= & & \textsc{expressions:}\\
 	& \;\; \mathbf{nil} & \textit{nil}\\
@@ -893,12 +910,12 @@ Section~\ref{sec:tables}.
 	| \; e_{1} \; \mathbf{or} \; e_{2} & \textit{binary operations}\\
 	& | \; \mathbf{not} \; e \;
 	| \; \# \; e & \textit{unary operations} \\
-	& | \; \lfloor me \rfloor_{1} & \textit{expressions with one result}\\
-	l ::= & & \textsc{left-hand values:}\\
+	& | \; \lfloor me \rfloor_{1} & \textit{one result}\\
+	l ::= & & \textsc{lvalues:}\\
 	& \;\; id_{l} & \textit{variable assignment}\\
 	& | \; e_{1}[e_{2}]_{l} & \textit{table assignment}\\
 	& | \; id[e] \; {<}V{>} & \textit{type coercion}\\
-	k ::= & & \textsc{literal constants:}\\
+	k ::= & & \textsc{literals:}\\
 	& \;\; \mathbf{false} \; | \;
 	\mathbf{true} \; | \;
 	{\it int} \; | \;
@@ -910,19 +927,20 @@ Section~\ref{sec:tables}.
 	me ::= & & \textsc{multiple results:}\\
 	& \;\; a & \textit{application}\\
 	& | \; {...} & \textit{vararg expression}\\
-	a ::= & & \textsc{applications:}\\
-	& \;\; e(el) & \textit{function application}\\
-	& | \; e{:}n(el) & \textit{method application}\\
-	f ::= & & \textsc{function declarations:}\\
+	a ::= & & \textsc{calls:}\\
+	& \;\; e(el) & \textit{function call}\\
+	& | \; e{:}n(el) & \textit{method call}\\
+	f ::= & & \textsc{functions:}\\
 	& \;\; \mathbf{fun} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \\
 	pl ::= & & \textsc{parameter lists:}\\
 	& \;\; \overline{id{:}F} \; | \;
 	\overline{id{:}F},{...}{:}F & \\
 	\end{array}
 	$$
+}
 	\caption{Abstract Syntax}
 	\label{fig:syntax}
-\end{figure*}
+\end{figure}
 
 Figure~\ref{fig:subrec} shows the subtyping rules for
 recursive types. Rule {\sc S-Amber} is the \emph{Amber rule}~\cite{cardelli1986amber} for subtyping between
@@ -966,7 +984,7 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \label{sec:rules}
 
 \begin{figure*}[t]
-{\small
+{\footnotesize
 \[
 \begin{array}{c}
 \begin{array}{c}
@@ -1109,12 +1127,14 @@ its use in Section~\ref{sec:projections}.
 \subsection{Tables and Evolution of Table Types}
 \label{sec:tables}
 
-\begin{figure*}
-	{\small
+\begin{figure}
+	{\footnotesize
 	\[
 	\begin{array}{rcl}
-	wf(\{\overline{F:V}\}_{unique|open|fixed|closed}) & = & \forall i \; ((\nexists j \; i \not= j \,\wedge\, F_{i} \lesssim F_{j}) \,\wedge\, wf(V_{i}) \,\wedge\\
-	& & \;\;\;\; \lnot tag(V_{i},unique) \,\wedge\, \lnot tag(V_{i},open))\\
+	wf(\{\overline{F:V}\}_{u|o|f|c}) & = &
+	 \forall i \; ((\nexists j \; i \not= j \,\wedge\, F_{i} \lesssim F_{j}) \,\wedge \\
+	 & &  wf(V_{i}) \,\wedge\, \lnot tag(V_{i},unique) \,\wedge\\
+	 & &  \lnot tag(V_{i},open))\\
 	wf({\bf const}\; F) & = & wf(F) \\
 	wf(F_1 \cup F_2) & = & wf(F_1) \,\wedge\, wf(F_2) \\
 	wf(\mu x.F) & = & wf(F) \\
@@ -1126,7 +1146,7 @@ its use in Section~\ref{sec:projections}.
 	tag(F_1 \cup F_2, t) & = & tag(F_1, t) \,\vee\, tag(F_2,t) \\
 	tag(\{\overline{F:V}\}_t, t) & = & \top\\
 	\multicolumn{3}{c}{
-		\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\mathrm{other\;recusive\;cases\;are\;similar,\;other\;base\;cases\;are\;}\bot}\\
+		\;\;\;\;\mathrm{other\;recusive\;cases\;are\;similar,\;other\;base\;cases\;are\;}\bot}\\
 \\\\
     vt(L, V) & = & fix(V) \\
     vt(F_1, F_2) & = & nil(fix(F_2))\\
@@ -1135,7 +1155,17 @@ its use in Section~\ref{sec:projections}.
     nil(T) & = & T \cup \Nil \;\;\; \mathrm{otherwise}\\\\
 	fix(\{\overline{F:V}\}_{unique|open}) & = &
 	\{\overline{F:V}\}_{fixed}\\
-	\multicolumn{3}{c}{\;\;\;\;\;\;\;\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}\\\\
+	\multicolumn{3}{c}{\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}
+	\end{array}
+	\]}
+	\caption{Auxiliary Functions}
+\label{fig:funcs}
+\end{figure}
+
+\begin{figure*}
+{\footnotesize
+\[
+\begin{array}{rcl}
 	merge(\overline{\env}) & = & reduce(\overline{\env}, merge2)\\
 	merge2(\env_1,\env_2) & = & \{\overline{(id,merget(\env_1(id),\env_2(id))}\}\\
 	merget(T_1, T_2) & = & T_1 \;\;\; \mathrm{if\;} T_2 \lesssim T_1\\
@@ -1162,14 +1192,14 @@ its use in Section~\ref{sec:projections}.
 	\{\overline{F:V^r},\overline{F^{\prime\prime}:V^{\prime\prime}}\}_{unique}) &=&
 	\{\overline{F:sup_u(V^l,V^r)},\overline{F^\prime:nil(V^\prime)},\overline{F^{\prime\prime}:nil(V^{\prime\prime})}\}_{unique}\\
 	joint(T_1, T_2) & = & \bot \;\;\; \mathrm{otherwise}\\\\
-	sup_u(V_1, V_2) & = & V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2\\
-	sup_u(V_1, V_2) & = & V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1\\\\
-	reopen(\{\overline{F:V}\}_{closed}) & = & \{\overline{F:V}\}_{open} \\
-	reopen(F) & = & F
-	\end{array}
-	\]}
-	\caption{Auxiliary Functions}
-\label{fig:funcs}
+	sup_u(V_1, V_2) \,=\, V_2 \;\;\; \mathrm{if}\; V_1 \lesssim_u V_2 & &
+	   sup_u(V_1, V_2) \,=\, V_1 \;\;\; \mathrm{if}\; V_2 \lesssim_u V_1 \\
+	\\
+	reopen(\{\overline{F:V}\}_{closed}) \,=\, \{\overline{F:V}\}_{open} & &
+	  reopen(F) \,=\, F\end{array}
+\]}
+\caption{Merge and Join Functions}
+\label{fig:mergejoin}
 \end{figure*}
 
 The simplest expression involving tables is the empty
@@ -1217,6 +1247,7 @@ Lua. The first way is by assignment to a non-existing
 field. Let us go back to the example shown in Figure~\ref{fig:newpoint}. Assuming that the type of the
 $x$ and $y$ is $\Number$, we can translate the first three lines
 of function {\tt new\_point} to the abstract syntax of Figure~\ref{fig:syntax}:
+{\small
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -1224,6 +1255,7 @@ of function {\tt new\_point} to the abstract syntax of Figure~\ref{fig:syntax}:
 & \multicolumn{1}{l}{$point[``y"] \; {<}\Number{>} = y$}
 \end{tabular}
 \end{center}
+}
 
 The expressions on the left-side of the assignment are type
 coercion l-values, and their type-checking is responsible
@@ -1242,13 +1274,14 @@ $\{``x":\Number, ``y": \Number\}_{unique}$.
 
 We could add both fields with a single assignment statement,
 as in the following example:
+{\small
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
 		& \multicolumn{1}{l}{$point[``x"] \; {<}\Number{>},point[``y"] \; {<}\Number{>} = x,y;$}
 	\end{tabular}
 \end{center}
-
+}
 In this case, the first coercion expression would still change the type of $point$ to $\{``x":\Number\}_{unique}$, but the
 second would change it to $\{``y":\Number\}_{unique}$.
 Merging the two yields $\{``x":\Number, ``y": \Number\}_{unique}$
@@ -1279,12 +1312,14 @@ if necessary.
  
 Consider the following example, where we make an alias
 of a {\em unique} table:
+{\small
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
 & \multicolumn{2}{l}{$\mathbf{local} \; b:\{\}_{closed} = a \; \mathbf{in}\;\;a[``x"] \; {<}\String{>} = ``foo";$}
 \end{tabular}
 \end{center}
+}
 
 This example typechecks; after the initialization of $b$
 the type of $a$ is {\em open} instead of {\em unique}, but
@@ -1342,6 +1377,7 @@ In the example below, we use a coercion expression to
 widen the type of a field in a {\em unique}
 table, and then add another field, to show that the
 table is now {\em open}:
+{\small
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
@@ -1352,6 +1388,7 @@ table is now {\em open}:
 & & & \multicolumn{1}{l}{$a[``z"] \; {<}\Integer{>} = 1$}
 \end{tabular}
 \end{center}
+}
 
 The type $a$ has by the time of the inner {\bf local} block
 is $\{``x":\String, ``y":\String\}_{unique}$. This type is
@@ -1375,6 +1412,7 @@ tables are {\em closed} with the auxiliary function $closeall$.
 Assignment to a closed-over table can be unsafe, because the {\em reference} to it is aliased as well. In the following
 example, assume that $g$ receives a parameter of type
 $\{ ``x": \String \cup \Nil\}_{closed}$:
+{\small
 \begin{center}
 	\begin{tabular}{llll}
 		\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{open}
@@ -1386,6 +1424,7 @@ $\{ ``x": \String \cup \Nil\}_{closed}$:
 			 \String \cup \Nil\}_{closed}{>} \; a) \rfloor_{0}$}
 	\end{tabular}
 \end{center}
+}
 
 The type of $a$ on line 4 is $\{\}_{closed}$, so the assignment
 would type-check. But then the function call on the last line
@@ -1414,6 +1453,7 @@ similar. Functions $closeall$, $closeset$, $openset$, $fav$,
 and $frv$ are straightforward, and were omitted for brevity.
 
 The following example typechecks, and uses all the parts of {\sc T-Function}:
+{\small
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique}, b:\{\}_{unique} = \{\}, \{\} \; \mathbf{in}$}\\
@@ -1423,6 +1463,7 @@ The following example typechecks, and uses all the parts of {\sc T-Function}:
 & \multicolumn{3}{l}{$\mathbf{in} \; a[``x"] \; {<}\Integer{>} = 1 \;;\; \lfloor f(a[``x"]) \rfloor_0$}\\
 \end{tabular}
 \end{center}
+}
 
 The assignment $b=a$ typechecks because, at that point, 
 both $b$ and $a$ have type $\{\}_{closed}$ due to $closeall$.
@@ -1438,7 +1479,7 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \label{sec:projections}
 
 \begin{figure*}[t]
-{\small
+{\footnotesize
 \label{fig:projtypes}
 \[
 \begin{array}{c}
@@ -1548,11 +1589,13 @@ a function is to test the first returned value. We
 can translate that code to the abstract syntax of
 Figure~\ref{fig:syntax}, leaving placeholders for
 the body of the {\bf then} and {\bf else} branches:
+{\small
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in} \, \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
 	\end{tabular}
 \end{center}
+}
 
 A standard way of decomposing the union in the assignment
 would let the type of $q$ be $\Integer \times \Nil$ and
@@ -1618,12 +1661,14 @@ the projected type of $r$ outside of the {\bf if} statement
 is $\Integer \cup \String$, so the assignment seems correct,
 but inside $s_1$ the projected type of $r$ would still be
 $\Integer$:
+{\small
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in}$} \\
 		&  $r = ``foo" ;\; \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$
 	\end{tabular}
 \end{center}
+}
 
 \section{Related Work}
 \label{sec:related}
