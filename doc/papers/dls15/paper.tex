@@ -1,6 +1,6 @@
 \documentclass[10pt]{sigplanconf}
 
-%\usepackage[compact]{titlesec}
+\usepackage[compact]{titlesec}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -8,7 +8,7 @@
 \usepackage{color}
 \usepackage{multirow}
 
-\setlength{\textfloatsep}{10pt}
+\setlength{\textfloatsep}{8pt}
 
 \newcommand{\Value}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
@@ -76,8 +76,7 @@ an existing dynamically typed language is challenging, as its types should feel 
 this language.
 
 In this work, we give a formal description of Typed Lua, an
-optional type system for Lua, with a focus on two of its novel type system features: incremental evolution of imperative record and object types that is both lightweight and type-safe, and
-the combination of flow typing, functions that return multiple values, and multiple assignment. While our type system is tailored to the features and idioms of Lua, its features can be adapted to other imperative scripting languages.
+optional type system for Lua, with a focus on two of its novel type system features: incremental evolution of imperative record and object types that is both lightweight and type-safe, and {\em projection types}, a combination of flow typing, functions that return multiple values, and multiple assignment. While our type system is tailored to the features and idioms of Lua, its features can be adapted to other imperative scripting languages.
 \end{abstract}
 
 \category{D.3.1}{Programming Languages}{Formal Definitions and Theory}[Type Systems]
@@ -126,15 +125,25 @@ approaches for blending static and dynamic typing in the same
 language. Their aim is to offer programmers the option
 of adding type annotations where static typing is needed,
 allowing the incremental migration from dynamic to static
-typing. The difference between these two approaches is the
+typing. 
+
+The difference between these two approaches is the
 way they treat the runtime semantics of the language:
-optional type systems preserve the original semantics
-of a dynamically typed language, at the cost of runtime
-safety, while gradual typing changes the semantics to
-include more extensive runtime checking. These extra checks
-ensure that
-dynamically typed portions of the program do not violate
-the type safety of statically typed portions.
+optional type systems have the {\em trace preservation}
+property~\cite{strongscript}, where type annotations
+do not influence runtime behavior, and the original
+semantics of the dynamically typed language is preserved,
+ while gradual typing changes the semantics to
+include more extensive runtime checking in the
+interface between typed and untyped code. 
+In an optionally-typed language, dynamically typed code
+can lead to type errors in statically typed code, even
+if the optional type system is sound. In a gradually-typed
+language, the extra runtime checks ensure that 
+this does not occur.
+ The decision
+between the two approaches is not binary, and languages
+can have both optional and gradual types~\cite{liketypes,strongscript}.
 
 A key feature in optional type systems is usability.
 Optional type systems retrofitted to an existing
@@ -202,7 +211,8 @@ fields and a {\tt move} method.
 The {\tt new\_point} function builds the object piece-by-piece,
 from an initially empty table. Typed Lua
 lets record and object types evolve incrementally 
-via assignment while not sacrificing width subtyping.
+via assignment while not sacrificing width subtyping,
+where we can form a supertype of a table type by ``forgetting'' fields.
 
 The other idiom that we focus on combines overloading on the return values of a function, multiple return values, multiple assignment
 to decompose multiple return values,
@@ -232,7 +242,8 @@ In the {\bf then} branch it is guaranteed that both {\tt q}
 and {\tt r} are integers, and in the {\bf else} branch it is
 guaranteed that {\tt q} is {\tt nil} and {\tt r} is a string.
 In Typed Lua, the return type of {\tt idiv} can be a union of
-tuples describing the possible return values. Typed Lua deconstructs unions of tuples in a way that the dependencies between the types of each value in the tuple can be tracked.
+tuples describing the possible return values. Typed Lua deconstructs unions of tuples into {\em projection types}, and these types track
+the dependencies between the types of each value in the tuple.
 
 The remainder of the paper is organized as follows:
 Section \ref{sec:statistics} presents the methodology and results of
@@ -261,7 +272,7 @@ as those could skew the result towards non-idiomatic uses
 of Lua. This left 2,598 scripts out of a total of 3,928, from
 262 different projects. The scripts were parsed, and their
 abstract syntax trees analyzed to collect the data that we
-show in the rest of this section.
+show in the rest of this section. 
 
 Tables are the core data structure of Lua programs, and
 the language has features that let tables be used as
@@ -471,17 +482,20 @@ depends on its {\em tag}: the {\em unique}, {\em open}
 and {\em fixed} tags all denote tables where it is
 guaranteed that every key belongs to one of the {\em key
 types} $F_i$. 
+
 %We restrict key types to literal types,
 %base types, and the top type to make the system simpler
 %for the user, as our survey of Lua programs showed that
 %this restriction reflects the way Lua tables are commonly used.
 
 Fields are assignable by default, but can be marked
-as non-assignable with the {\bf const} qualifier. Having
-a field be {\bf const} is not a guarantee that its
+as non-assignable with the {\bf const} qualifier in its key type.
+Having a field be {\bf const} is not a guarantee that its
 value cannot change, as the table may have aliases with
 a non-{\bf const} type for that field. Non-assignable
-fields enable {\em depth subtyping} between table types.
+fields enable {\em depth subtyping} between table types: these
+fields are covariant on the types of their values, while
+assignable fields are always invariant.
 
 The difference between {\em unique}, {\em open} and
 {\em fixed} tables is the guarantees that the type system
@@ -1109,7 +1123,7 @@ We present the typing rules as a deduction system for two typing relations, one 
 given a type environment $\env_{1}$ and a {\em projection environment} $\penv$ we can prove that a statement $s$ produces a new type environment $\env_{2}$. Typing judgments for
 expressions have the form $\env_{1}, \penv \vdash e : T, \env_{2}$, meaning that given a type environment $\env_{1}$
 and a projection environment $\penv$ we can prove that an expression $e$ has type $T$ and produces a new type environment $\env_{2}$.
-Only the most relevant rules for the features that we are focusing on are shown.
+Only the most relevant rules are shown. The first author's Ph. D. thesis has the full set of rules~\cite{maidl2015tl}.
 
 The type environment is standard, and maps
 identifiers to expression types. Some typing rules of
@@ -1677,12 +1691,6 @@ Löve Studio, an IDE for game development using Lua.
 It is unsound by design, and primarily for supporting
 IDE autocompletion. There is no evolution of table types.
 
-Ravi~\cite{ravi} is an experimental Lua dialect
-with an LLVM-based JIT compiler. It has a basic
-optional type system to improve performance
-of numerical code. This type system only supports
-numbers (integers and floating point) and arrays.
-
 Typed Racket~\cite{tobin-hochstadt2008ts} is a statically typed version of the Racket language, which is a Scheme dialect.
 The main purpose of Typed Racket is to allow programmers to combine untyped modules, which are written in Racket, with typed modules, which are written in Typed Racket. Typed Racket tracks
 values that cross the boundary between the typed and
@@ -1717,8 +1725,8 @@ that preserve the gradual typing guarantee.
 
 Several dynamically typed languages now have optional
 type systems: Clojure~\cite{bonnaire-sergeant2015typed-clojure},
-JavaScript~\cite{typescript}, Python~\cite{mypy}, 
-and PHP~\cite{hack}. While Lua has some similarities to
+JavaScript, Python~\cite{mypy}, 
+and PHP. While Lua has some similarities to
 all of these languages, none of these optional type
 systems have the features described in this paper.
 Most of these languages do not have idioms
@@ -1729,7 +1737,7 @@ the issue by having allowing an empty record to
 have any record or object type, as the type of
 missing fields is the bottom type of its type system.
 
-Dart~\cite{dart} and Grace~\cite{black2013sg} are
+Grace~\cite{black2013sg} and Dart are
 two languages that have been designed from scratch
 to have an optional type system, instead of being
 existing dynamically typed languages with a retrofitted 
@@ -1777,7 +1785,9 @@ We evaluated 29 modules from 8 different case studies,
 and we could give precise static types to 83\% of the 449
 values that these modules export.
 For half of the modules, we could give precise static types to
-at least 89\% of the exports from each module.
+at least 89\% of the exports from each module. The methodology,
+detailed results and analysis of this evaluation is part
+of the first author's Ph. D. thesis~\cite{maidl2015tl}.
 
 Our evaluation results show that our type system can statically
 type check several Lua idioms and features, though the evaluation
@@ -1814,6 +1824,12 @@ as the LuaRocks package manager, which is a key
 piece of infrastructure for the Lua library ecosystem,
 and ZeroBrane Studio, an IDE for Lua programs that is itself
 written in Lua.
+
+\acks
+
+The authors thank the anonymous reviewers for their feedback.
+Work on Typed Lua has been supported by grants from Google
+Summer of Code and CNPq, the Brazilian Research Council.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
