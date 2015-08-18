@@ -871,7 +871,7 @@ Section~\ref{sec:tables}.
 	| \; \mathbf{if} \; e \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2} & \textit{control flow}\\
 	& | \; \mathbf{local} \; \overline{id{:}F} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
 	& | \; \mathbf{local} \; \overline{id} = el \; \mathbf{in} \; s & \textit{variable declaration}\\
-	& | \; \mathbf{rec} \; id{:}F = f \; \mathbf{in} \; s & \textit{recursive function} \\
+	& | \; \mathbf{rec} \; id{:}F = e \; \mathbf{in} \; s & \textit{recursive declaration} \\
 	& | \; \mathbf{return} \; el & \textit{return} \\
 	& | \; \lfloor a \rfloor_{0} & \textit{application with no results}\\
 	& | \; \mathbf{fun} \; id_{1}{:}id_{2} \; (pl){:}S \; s \;;\; \mathbf{return} \; el & \textit{method declaration}\\
@@ -897,7 +897,7 @@ Section~\ref{sec:tables}.
 	l ::= & & \textsc{left-hand values:}\\
 	& \;\; id_{l} & \textit{variable assignment}\\
 	& | \; e_{1}[e_{2}]_{l} & \textit{table assignment}\\
-	& | \; id[k] \; {<}V{>} & \textit{type coercion}\\
+	& | \; id[e] \; {<}V{>} & \textit{type coercion}\\
 	k ::= & & \textsc{literal constants:}\\
 	& \;\; \mathbf{false} \; | \;
 	\mathbf{true} \; | \;
@@ -984,12 +984,12 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \mylabel{T-NewFieldUnique}\\
 \dfrac{\begin{array}{c}
 	\env_{1}(id) = \{ \overline{F:V} \}_{unique}\\
-	\env_{1}, \penv \vdash k:F^{new}, \env_{2} \;\;\;
+	\env_{1}, \penv \vdash e:F^{new}, \env_{2} \;\;\;
 	\overline{F^{new} \not\lesssim F} \;\;\;
 	V^{new} = vt(F^{new}, V)
 	\end{array}}
 {\begin{array}{l}
-	\env_{1}, \penv \vdash id[k] {<}V{>}:V^{new},
+	\env_{1}, \penv \vdash id[e] {<}V{>}:V^{new},
 	\env_{2}[id \mapsto \{ \overline{F{:}V}, F^{new}{:}V^{new}\}_{unique}]
 	\end{array}}
 \end{array}\\\\
@@ -1085,7 +1085,7 @@ with two coercion terms, the l-value $id[k] \; {<}V{>}$ for adding a field to
 a table through assignment, and the r-value ${<}F{>} \;id$ for reinterpreting
 a table type to a compatible type that is expected by the context;
 \item all function declarations are anonymous, so there is a
-statement for declaring recursive functions;
+statement for recursive declarations;
 \item function or method applications that throw away all
 results or all but the first result are explicitly annotated
 as such, instead this being implicit in their syntactic context;
