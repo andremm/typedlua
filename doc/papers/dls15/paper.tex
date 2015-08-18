@@ -1,11 +1,14 @@
 \documentclass[10pt]{sigplanconf}
 
+%\usepackage[compact]{titlesec}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{url}
 \usepackage{color}
 \usepackage{multirow}
+
+\setlength{\textfloatsep}{10pt}
 
 \newcommand{\Value}{\mathbf{value}}
 \newcommand{\Any}{\mathbf{any}}
@@ -184,12 +187,9 @@ fields and a {\tt move} method.
 \begin{verbatim}
   function new_point(x, y)
     local point = {}
-    point.x = x
-    point.y = y
+    point.x, point.y = x, y
     function point:move(dx, dy)
-      self.x = self.x + dx
-      self.y = self.y + dy
-      return self
+      self.x, self.y = self.x + dx, self.y + dy
     end
     return point
   end
@@ -215,19 +215,13 @@ which list of multiple values the function returned.
 {\footnotesize
 \begin{verbatim}
   function idiv(x, y)
-    if y == 0 then
-      return nil, "division by zero"
-    else
-      return x // y, x % y
-    end 
+    if y == 0 then return nil, "division by zero"
+    else return x // y, x % y end 
   end
   
   local q, r = idiv(a, b)
-  if q then
-    assert(a == q*b + r)
-  else
-    error(r)
-  end
+  if q then assert(a == q*b + r)
+  else error(r) end
 \end{verbatim}
 }
 \caption{Overloading on multiple returns}
@@ -818,7 +812,7 @@ table type can only appear on the left side of a subtyping
 judgment if the reference to the table with the {\em unique}
 tag is being destroyed. This rule allows width subtyping, depth subtyping on any field, not only immutable fields, as well as the addition of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$. 
 
-The rationale for the permissiveness of rule {\sc S-TableUtoC} derives from the fact that reading a non-existing key just yields $\Nil$ instead of being an error in Lua semantics, plus the fact
+The rationale for the permissiveness of {\sc S-TableUtoC} derives from the fact that reading a non-existing key just yields $\Nil$ instead of being an error in Lua semantics, plus the fact
 that the type system guarantees that a table with an
 {\em unique} type has no keys with a value that does not
 belong to one of its key types, and does not have any
@@ -973,7 +967,7 @@ of another if the first type is a subtype of a type
 that is consistent with the other, or if the first type
 is consistent with a type that is a subtype of the other.
 
-In the implementation of Typed Lua, we also use consistent-subtyping to normalize and simplify union types.
+The implementation of Typed Lua also uses consistent-subtyping to normalize and simplify union types.
 For instance, the union type $\Boolean \cup \Any$ simplifies
 to $\Any$, because $\Boolean$ is a consistent-subtype
 of $\Any$. Another example is the union type
@@ -1206,7 +1200,7 @@ The simplest expression involving tables is the empty
 table constructor $\{\}$. The empty table constructor always
 has type $\{\}_{unique}$. A more interesting example is $\{ [``x"] = 1, [``y"] = 2 \}$, which has type $\{ ``x":1 , ``y": 2 \}_{unique}$. The subtyping rule for {\em unique} tables lets
 us assign this table to a variable with a more general
-type such as $\{ ``x":\Number , ``y": \Number \}_{unique}$ or
+type: $\{ ``x":\Number , ``y": \Number \}_{unique}$, or
 even $\{ \String:\Number \cup \Nil \}_{unique}$. 
 
 Figure~\ref{fig:tablerules} presents the typing rules for table types.
@@ -1228,7 +1222,7 @@ can add a field with the same key, as long as they have
 the same type or one is a supertype of the other, respecting
 any restrictions with regards to depth subtyping that the table may have.  
 
-Rule {\sc T-Constructor} also checks if the resulting type is {\em well-formed} with the predicate $wf$. Checking for well-formedness avoids ambiguous table types like
+Rule {\sc T-Constructor} also checks if the resulting type is {\em well-formed} with the predicate $wf$. Checking for well-formedness avoids ambiguous table types. An example of ambiguous table type is
 $\{1:\Number, \Integer:\String, \Any:\Boolean\}$,
 where indexing it with a key of type $\Integer$ could
 yield either a number, a string or a boolean at runtime.
@@ -1247,12 +1241,12 @@ Lua. The first way is by assignment to a non-existing
 field. Let us go back to the example shown in Figure~\ref{fig:newpoint}. Assuming that the type of the
 $x$ and $y$ is $\Number$, we can translate the first three lines
 of function {\tt new\_point} to the abstract syntax of Figure~\ref{fig:syntax}:
-{\small
+{\footnotesize
 \begin{center}
 \begin{tabular}{ll}
 \multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
-& \multicolumn{1}{l}{$point[``x"] \; {<}\Number{>} = x;$}\\
-& \multicolumn{1}{l}{$point[``y"] \; {<}\Number{>} = y$}
+& \multicolumn{1}{l}{$point[``x"] \; {<}\Number{>} = x;\;
+point[``y"] \; {<}\Number{>} = y$}
 \end{tabular}
 \end{center}
 }
@@ -1274,7 +1268,7 @@ $\{``x":\Number, ``y": \Number\}_{unique}$.
 
 We could add both fields with a single assignment statement,
 as in the following example:
-{\small
+{\footnotesize
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \; point: \{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -1312,7 +1306,7 @@ if necessary.
  
 Consider the following example, where we make an alias
 of a {\em unique} table:
-{\small
+{\footnotesize
 \begin{center}
 \begin{tabular}{lll}
 \multicolumn{3}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{\} \; \mathbf{in}$}\\
@@ -1377,12 +1371,12 @@ In the example below, we use a coercion expression to
 widen the type of a field in a {\em unique}
 table, and then add another field, to show that the
 table is now {\em open}:
-{\small
+{\footnotesize
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique} = \{ \} \; \mathbf{in}$}\\
-& \multicolumn{3}{l}{$a[``x"] \; {<}\String{>} = ``foo";$}\\
-& \multicolumn{3}{l}{$a[``y"] \; {<}\String{>} = ``bar";$}\\
+& \multicolumn{3}{l}{$a[``x"] \; {<}\String{>} = ``foo";\;
+a[``y"] \; {<}\String{>} = ``bar";$}\\
 & \multicolumn{3}{l}{$\mathbf{local} \; b:\{``x":\String, ``y":\String \cup \Nil \}_{closed} =$}\\
 & & \multicolumn{2}{l}{${<}\{``x":\String, ``y":\String \cup \Nil\}_{closed}{>} \; a \; \mathbf{in}$}\\
 & & & \multicolumn{1}{l}{$a[``z"] \; {<}\Integer{>} = 1$}
@@ -1412,15 +1406,14 @@ tables are {\em closed} with the auxiliary function $closeall$.
 Assignment to a closed-over table can be unsafe, because the {\em reference} to it is aliased as well. In the following
 example, assume that $g$ receives a parameter of type
 $\{ ``x": \String \cup \Nil\}_{closed}$:
-{\small
+{\footnotesize
 \begin{center}
 	\begin{tabular}{llll}
 		\multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{open}
 			= \{\} \; \mathbf{in}$}\\
-		& \multicolumn{3}{l}{$\mathbf{local} \; f:\Void \rightarrow \Void =$}\\
-		& & \multicolumn{2}{l}{$\mathbf{fun} \; ():\Void\;\;\;
+		& \multicolumn{3}{l}{$\mathbf{local} \; f:\Void \rightarrow \Void =\;\mathbf{fun} \; ():\Void\;\;\;
 		 a = \{[``x"]=5\} $}\\
-		& \multicolumn{3}{l}{$\mathbf{in} \; \lfloor g({<}\{``x":
+		& & \multicolumn{2}{l}{$\mathbf{in} \; \lfloor g({<}\{``x":
 			 \String \cup \Nil\}_{closed}{>} \; a) \rfloor_{0}$}
 	\end{tabular}
 \end{center}
@@ -1453,7 +1446,7 @@ similar. Functions $closeall$, $closeset$, $openset$, $fav$,
 and $frv$ are straightforward, and were omitted for brevity.
 
 The following example typechecks, and uses all the parts of {\sc T-Function}:
-{\small
+{\footnotesize
 \begin{center}
 \begin{tabular}{llll}
 \multicolumn{4}{l}{$\mathbf{local} \; a:\{\}_{unique}, b:\{\}_{unique} = \{\}, \{\} \; \mathbf{in}$}\\
@@ -1531,49 +1524,40 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 	\env_{4} = join(\env_{2}, \env_{3}) 
 	\end{array}}
 {\env_{1}, \penv \vdash \mathbf{if} \; id \; \mathbf{then} \; s_{1} \; \mathbf{else} \; s_{2}, \env_{4}}
-\end{array}\\\\
-%\begin{array}{rcll}
-%last(F_1{*} \sqcup F_2{*}) & = & F_1{*} & \mathrm{if} \; F_2{*} \subtype F_1{*}\\
-%last(F_1{*} \sqcup F_2{*}) & = & F_2{*} & \mathrm{if} \; F_1{*} \subtype F_2{*}\\
-%last(F_1{*} \sqcup F_2{*}) & = & (F_1 \cup F_2){*} & \mathrm{otherwise}\\
-%last(F{*} \sqcup T \times P) & = & last(\Nil{*} \sqcup P) \\
-%last(T \times P \sqcup F{*}) & = & last(P \sqcup \Nil{*}) \\
-%last(P \sqcup S) & = & last(P \sqcup last(S)) \\
-%last(S \sqcup P) & = & last(last(S) \sqcup P) \\
-%last(S_1 \sqcup S_2) & = & last(last(S_1) \sqcup last(S_2))
-%\end{array}\\\\
-\begin{array}{rcll}
-proj(S_1 \sqcup S_2, i) & = & proj(S_1, i) \cup proj(S_2, i) \\
-proj(F{*}, i) & = & nil(F) \\
-proj(F \times P, 1) & = & F \\
-proj(F \times P, i) & = & proj(P, i-1)\\
-proj(E{*}, i) & = & nil(E) \\
-proj(T \times E, 1) & = & T \\
-proj(T \times E, i) & = & proj(E, i-1)
-\end{array}\\\\
-\begin{array}{rcll}
-fonilpt(P_1 \sqcup P_2) & = & P_2 & \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = & P_1 & \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = & P_1 \sqcup P_2 & \mathrm{otherwise}\\
-fonilpt(P \sqcup S) & = & fonilpt(S) & \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(P \sqcup S) & = & P \sqcup fonilpt(S) & \mathrm{otherwise}\\
-fonilpt(S \sqcup P_2) & = & fonilpt(S) & \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(S \sqcup P) & = & fonilpt(S) \sqcup P & \mathrm{otherwise}\\
-fonilpt(S_1 \sqcup S_2) & = & fonilpt(S_1) \sqcup fonilpt(S_2)
-\end{array}\\\\
-\begin{array}{rcll}
-fonil(F_1 \cup F_2) & = & fonil(F_1) & \mathrm{if}\;fonil(F_2) = {\bf void}\\
-fonil(F_1 \cup F_2) & = & fonil(F_2) & \mathrm{if}\;fonil(F_1) = {\bf void}\\
-fonil(F_1 \cup F_2) & = & fonil(F_1) \cup fonil(F_2) & \mathrm{otherwise}\\
-%\multicolumn{4}{c}{\mathrm{the\;next\;two\;cases\;apply\;if\;}F
-%	\;\mathrm{is\;not\;a\;union}}\\
-fonil(F) & = & {\bf void} & \mathrm{if} \; F \subtype \Nil \; \mathrm{and} \; \Nil \subtype F\\
-fonil(F) & = & F & \mathrm{otherwise}
 \end{array}
 \end{array}
 \]}
 \caption{Rules for Projection Types}
 \end{figure*}
+
+\begin{figure}[t]
+{\scriptsize
+\label{fig:projtypes}
+\[
+\begin{array}{c}
+\begin{array}{rcl}
+fonilpt(P_1 \sqcup P_2) & = & P_2 \;\; \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2) & = & P_1 \;\; \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2) & = & P_1 \sqcup P_2 \;\; \mathrm{otherwise}\\
+fonilpt(P \sqcup S) & = & fonilpt(S) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(P \sqcup S) & = & P \sqcup fonilpt(S) \;\; \mathrm{otherwise}\\
+fonilpt(S \sqcup P_2) & = & fonilpt(S) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(S \sqcup P) & = & fonilpt(S) \sqcup P \;\; \mathrm{otherwise}\\
+fonilpt(S_1 \sqcup S_2) & = & fonilpt(S_1) \sqcup fonilpt(S_2)
+\end{array}\\\\
+\begin{array}{rcl}
+fonil(F_1 \cup F_2) & = & fonil(F_1) \;\; \mathrm{if}\;fonil(F_2) = {\bf void}\\
+fonil(F_1 \cup F_2) & = & fonil(F_2) \;\; \mathrm{if}\;fonil(F_1) = {\bf void}\\
+fonil(F_1 \cup F_2) & = & fonil(F_1) \cup fonil(F_2) \;\; \mathrm{otherwise}\\
+%\multicolumn{4}{c}{\mathrm{the\;next\;two\;cases\;apply\;if\;}F
+%	\;\mathrm{is\;not\;a\;union}}\\
+fonil(F) & = & {\bf void} \;\; \mathrm{if} \; F \subtype \Nil \; \mathrm{and} \; \Nil \subtype F\\
+fonil(F) & = & F \;\; \mathrm{otherwise}
+\end{array}
+\end{array}
+\]}
+\caption{Auxiliary Functions for Projection Types}
+\end{figure}
 
 As we have seen in Section~\ref{sec:statistics}, Lua
 programmers often overload the return type of functions
@@ -1589,7 +1573,7 @@ a function is to test the first returned value. We
 can translate that code to the abstract syntax of
 Figure~\ref{fig:syntax}, leaving placeholders for
 the body of the {\bf then} and {\bf else} branches:
-{\small
+{\footnotesize
 \begin{center}
 	\begin{tabular}{ll}
 		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in} \, \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
@@ -1661,11 +1645,10 @@ the projected type of $r$ outside of the {\bf if} statement
 is $\Integer \cup \String$, so the assignment seems correct,
 but inside $s_1$ the projected type of $r$ would still be
 $\Integer$:
-{\small
+{\footnotesize
 \begin{center}
 	\begin{tabular}{ll}
-		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in}$} \\
-		&  $r = ``foo" ;\; \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$
+		\multicolumn{2}{l}{$\mathbf{local} \, q, r = idiv(a, b) \, \mathbf{in}\; r = ``foo" ;\; \mathbf{if} \, q \, \mathbf{then} \, s_1 \, \mathbf{else} \, s_2$}
 	\end{tabular}
 \end{center}
 }
