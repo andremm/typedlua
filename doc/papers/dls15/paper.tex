@@ -392,18 +392,20 @@ F ::= & & \textsc{first-level types:}\\
 & |\; x & \textit{type variables}\\
 & | \; \mu x.F & \textit{recursive types}\\
 %\multicolumn{3}{c}{}\\
-L ::= & & \textsc{{\small literal types:}}\\
+L ::= & & \textsc{{\tiny literal types:}}\\
 &  \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} &\\
 %\multicolumn{3}{c}{}\\
-B ::= & & \textsc{{\small base types:}}\\
+B ::= & & \textsc{{\tiny base types:}}\\
 & \Boolean \ |\  \Integer \ |\ \Number\ |\ \String &\\\\
 %\multicolumn{3}{c}{}\\
 %\multicolumn{3}{c}{}\\
+V ::= & & \textsc{{\tiny value types:}}\\
+& \;\; F \; | \; \Const \; F &\\
 S ::= & & \textsc{second-level types:}\\
 & \;\; P & \textit{tuple types}\\
 & | \; S_{1} \sqcup S_{2} & \textit{unions of tuple types}\\
 %\multicolumn{3}{c}{}\\
-P ::= & & \textsc{{\small tuple types:}}\\
+P ::= & & \textsc{{\tiny tuple types:}}\\
 %& \;\; \Void & \textit{void type}\\
 & | \; F{*} & \textit{variadic types}\\
 & | \; F \times P & \textit{pair types}\\\\
@@ -418,21 +420,19 @@ $$
 {\footnotesize
 $$
 \begin{array}{rlr}
-T ::= & & \textsc{{\small expression types:}}\\
-& \;\; F & \\
+T ::= & & \textsc{expression types:}\\
+& \;\; F & \textit{first-level types}\\
 & | \; \phi(F_{1},F_{2}) & \textit{filter types}\\
 & | \; \pi_{i}^{x} & \textit{projection types}\\
-E ::= & & \textsc{{\small expression list types:}}\\
-& \;\; T{*} & \\
-& | \; T \times E & \\
+E ::= & & \textsc{expression list types:}\\
+& \;\; T{*} & \textit{variadic types}\\
+& | \; T \times E & \textit{pair types}\\
 %K ::= & & \textsc{{\small key types:}}\\
 %& \;\; L \; | \; B \; | \; \Value &\\
 %\multicolumn{3}{c}{}\\
-V ::= & & \textsc{{\small value types:}}\\
-& \;\; F \; | \; \Const \; F &\\
-R ::= & & \textsc{\small{filter result type:}}\\
+R ::= & & \textsc{filter result type:}\\
 & \;\; \mathbf{void} & \textit{void type}\\
-& |\; F
+& |\; F & \textit{first-level types}
 \end{array}
 $$
 }
@@ -534,8 +534,8 @@ type, although it can work as either, as a value of
 any type can be coerced to $\Any$ and vice-versa.
 Gradual type systems augment these coercions with
 information that can be used to blame the dynamically
-typed of the program for type errors that may occur in the
-statically typed part. Currently Typed Lua only 
+typed part of the program for type errors that may occur in the
+statically typed part. Currently Typed Lua only
 warns the programmer that coercions to and from $\Any$
 may be unsafe.
 
@@ -558,8 +558,8 @@ in addition to first-level types, can also be
 {\em filter types}, which are the result of flow typing,
 and {\em projection types}, which are the result of
 decomposing a union of tuples. {\em Expression list types}
-denote the type of lists of expressions. {\em Key types}
-and {\em value types} have also been mentioned above. Finally, {\em filter result types}
+denote the type of lists of expressions.
+Finally, {\em filter result types}
 are also used in flow typing; the {\bf void} type is
 a type with no values.
 
@@ -821,7 +821,7 @@ standard subtyping rule between mutable records, with
 width subtyping plus depth subtyping from a mutable
 or immutable field to an immutable field.
 
-Rule {\sc S-TableUtoC} for subtyping between {\em unique} and {\em closed} table types is more permissive, as the typing rules of Section~\ref{sec:tables} guarantee that a {\em unique}
+Rule {\sc S-TableUtoC} for subtyping between {\em unique} and {\em closed} table types is more permissive, as the typing rules of Section~\ref{sec:tables} guarantee that an {\em unique}
 table type can only appear on the left side of a subtyping
 judgment if the reference to the table with the {\em unique}
 tag is being destroyed. This rule allows width subtyping, depth subtyping on any field, not only immutable fields, as well as the addition of new fields and the merging of existing fields, as long as the types of the values of new and merged fields include $\Nil$. 
@@ -848,7 +848,7 @@ Finally, rule {\sc S-TableFtoF} for subtyping between {\em fixed} table types is
 subtyping, merging fields, or adding fields, just standard
 depth subtyping.
 
-We will revisit the subtyping rules among table types on
+We will revisit the subtyping rules among table types in
 Section~\ref{sec:tables}.
 
 \begin{figure}[t]
@@ -959,9 +959,9 @@ or vice-versa.
 The dynamic type $\Any$ is only a subtype of itself and of
 $\Value$, and no type except $\Any$ is a subtype of $\Any$.
 The type $\Any$ interacts with other types through the
-{\em consistency} and {\em consistent-subtyping} 
+{\em consistency} and {\em consistent-subtyping}
 relations~\cite{siek2007objects}. We use the symbol $\sim$ for
-the consistency, and $\lesssim$ for consistent-subtyping.
+consistency, and $\lesssim$ for consistent-subtyping.
 
 The type $\Any$ is trivially consistent with all types, and all types
 are consistent with $\Any$. A type is also consistent with
@@ -969,7 +969,7 @@ itself. Two union types $F_1 \cup F_2$ and $F_3 \cup F_4$ are
 consistent if either $F_1 \sim F_3$ and $F_2 \sim F_4$ or
 $F_1 \sim F_4$ and $F_2 \sim F_3$. Two function types
 $S_1 \rightarrow S_2$ and $S_3 \rightarrow S_4$ are consistent
-if and only if $S_1 \sim S_3$ and $S_2 \sim S_4$. Two table types are consistent if and only if they have the same key types, and the value types of each key type are consistent. Two recursive types are consistent if and only if their contents are consistent assuming that their type variables are consistent. Unions of tuple types follow the same rules as unions of first-level types. Variadic types are consistent if and only if their base types are consistent. 
+if and only if $S_3 \sim S_1$ and $S_2 \sim S_4$. Two table types are consistent if and only if they have the same key types, and the value types of each key type are consistent. Two recursive types are consistent if and only if their contents are consistent assuming that their type variables are consistent. Unions of tuple types follow the same rules as unions of first-level types. Variadic types are consistent if and only if their base types are consistent. 
 Finally, pair types $F_1 \times P_1$ and $F_2 \times P_2$ are
 consistent if and only if $F_1 \sim F_2$ and $P_1 \sim P_2$.
 
@@ -1079,7 +1079,7 @@ $\Number \cup \Nil$, because $1$ is a consistent-subtype of $\Number$.
 \end{array}
 \]
 }
-\caption{Typing Rules}
+\caption{Typing Rules for Table Types}
 \label{fig:tablerules}
 \end{figure*}
 
@@ -1107,7 +1107,7 @@ operators are $==$ and $<$, and the only bitwise operator
 is $\&$, as all other operators have typing rules identical to
 one of these;
 \item type coercion for evolution of table types is explicit,
-with two coercion terms, the l-value $id[k] \; {<}V{>}$ for adding a field to 
+with two coercion terms, the l-value $id[e] \; {<}V{>}$ for adding a field to 
 a table through assignment, and the r-value ${<}F{>} \;id$ for reinterpreting
 a table type to a compatible type that is expected by the context;
 \item all function declarations are anonymous, so there is a
@@ -1166,7 +1166,7 @@ its use in Section~\ref{sec:projections}.
 	\multicolumn{3}{c}{\mathrm{other\;cases\;by\;straightforward\;structural\;recursion}}
 	\end{array}
 	\]}
-	\caption{Auxiliary Functions}
+	\caption{Auxiliary Functions for Table Types}
 \label{fig:funcs}
 \end{figure}
 
@@ -1245,12 +1245,12 @@ Well-formed table types also do not allow \emph{unique} and
 \emph{open} table types to appear in the type of the values.
 At the moment, local variables are the only kind of reference that the system
 can track, so this restriction is
-necessary. This limitation of the type system is the reason the {\sc T-Constructor} rule uses the auxiliary function $fix$
+necessary. This limitation of the type system is the reason why the {\sc T-Constructor} rule uses the auxiliary function $fix$
 (in the definition of $vt$)
  to change any {\em open} and {\em unique} table types used in the field initializer to {\em fixed}. As an example, the table constructor $\{[``x"] = 1, [``y"] = \{[``z"] = 2\}\}$
 has type $\{``x":1, ``y":\{``z":2\}_{fixed}\}_{unique}$.
 
-There are two ways the type of a {\em unique} and {\em open} tables can change in Typed
+There are two ways the type of {\em unique} and {\em open} tables can change in Typed
 Lua. The first way is by assignment to a non-existing
 field. Let us go back to the example shown in Figure~\ref{fig:newpoint}. Assuming that the type of the
 $x$ and $y$ is $\Number$, we can translate the first three lines
@@ -1298,7 +1298,7 @@ through the third case of function $merget$ defined in Figure~\ref{fig:funcs}.
 Open tables have a rule {\sc T-NewFieldOpen} that is not shown
 in Figure~\ref{fig:tablerules} due to brevity. The only thing that
 changes from one rule to the other is the tag in the type of $id$.
-There are analogous rules for adding methods to a {\em unique}
+There are analogous rules for adding methods to {\em unique}
 and {\em open tables} as a side-effect of typechecking a method declaration.
 
 The type system needs to track aliasing of tables,
@@ -1315,11 +1315,11 @@ is to construct a {\em closed} type for the alias,
 if necessary. Its auxiliary function $open$ is similar
 to $fix$ and $close$, except that it changes the type of
 {\em unique} tables to {\em open}. Its purpose
-is to track the fact that a $id$ now has an alias,
+is to track the fact that an $id$ now has an alias,
 if necessary.
- 
+
 Consider the following example, where we make an alias
-of a {\em unique} table:
+of an {\em unique} table:
 {\footnotesize
 \begin{center}
 \begin{tabular}{lll}
@@ -1339,8 +1339,8 @@ as the type of expression $a$ is $\{\}_{closed}$.
 If we did not change the tag on the type produced by $a$
 we could break type safety, as we could declare $b$ with
 tag {\em unique} or {\em open} and add fields that would
-conflict with the type of the fields on $a$, but at
-runtime both reference the same table. 
+conflict with the type of the fields in $a$, but at
+runtime both reference the same table.
 
 It is not a problem for an {\em unique} or {\em open}
 table to appear as an l-value, because {\sc T-IdRead} is
@@ -1359,7 +1359,7 @@ except to make sure that the field is not {\bf const} .
 
 A second way of changing a table type is by a 
 {\em coercion expression}. Coercion expressions let
-a {\em unique} or {\em open} table be used in a context
+an {\em unique} or {\em open} table be used in a context
 that expects a table type with a different shape.
 Coercion expressions always create an alias, so
 the type produced by the coercion is always
@@ -1382,7 +1382,7 @@ of aliases makes the subtyping relation of {\em unique}
 very flexible.
 
 In the example below, we use a coercion expression to
-widen the type of a field in a {\em unique}
+widen the type of a field in an {\em unique}
 table, and then add another field, to show that the
 table is now {\em open}:
 {\footnotesize
@@ -1398,9 +1398,9 @@ a[``y"] \; {<}\String{>} = ``bar";$}\\
 \end{center}
 }
 
-The type $a$ has by the time of the inner {\bf local} block
+The type of $a$ by the time of the inner {\bf local} block
 is $\{``x":\String, ``y":\String\}_{unique}$. This type is
-a subtype of the $\{``x":\String, ``y":\String\cup\Nil\}_{closed}$, as {\em unique} tables
+a subtype of $\{``x":\String, ``y":\String\cup\Nil\}_{closed}$, as {\em unique} tables
 have depth subtyping even in non-{\bf const} fields.
 The coercion expression and the initialization of $b$
 typecheck, and the type of $a$ changes to
@@ -1413,7 +1413,7 @@ to $\String \cup \Nil$, as that could break type safety
 $``x"$ using the alias $b$).
 
 Lua has first-class functions, so another way of aliasing
-an {\em unique} and {\em open} references is by closing
+{\em unique} and {\em open} references is by closing
 over them in a function body. In the environment used for
 typing the function body, all {\em unique} and {\em open}
 tables are {\em closed} with the auxiliary function $closeall$.
@@ -1433,11 +1433,11 @@ $\{ ``x": \String \cup \Nil\}_{closed}$:
 \end{center}
 }
 
-The type of $a$ on line 4 is $\{\}_{closed}$, so the assignment
+The type of $a$ on line 2 is $\{\}_{closed}$, so the assignment
 would type-check. But then the function call on the last line
 would also type-check, as $\{\}_{open}$ can be coerced to
 $\{ ``x": \String \cup \Nil\}$. A solution is to change the
-type of $a$ from {\em unique} to {\em closed} after the function
+type of $a$ from {\em open} to {\em closed} after the function
 declaration. In order to do that, we use the auxiliary function
 $fav$ ({\em free assigned-to variables}) to collect this
 set of identifiers, and then function $closeset$ changes
@@ -1550,14 +1550,14 @@ an issue, as $\{\}_{closed}$ is a supertype of $\{``x": \Integer\}_{open}$.
 \[
 \begin{array}{c}
 \begin{array}{rcl}
-fonilpt(P_1 \sqcup P_2) & = & P_2 \;\; \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = & P_1 \;\; \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
-fonilpt(P_1 \sqcup P_2) & = & P_1 \sqcup P_2 \;\; \mathrm{otherwise}\\
-fonilpt(P \sqcup S) & = & fonilpt(S) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(P \sqcup S) & = & P \sqcup fonilpt(S) \;\; \mathrm{otherwise}\\
-fonilpt(S \sqcup P_2) & = & fonilpt(S) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
-fonilpt(S \sqcup P) & = & fonilpt(S) \sqcup P \;\; \mathrm{otherwise}\\
-fonilpt(S_1 \sqcup S_2) & = & fonilpt(S_1) \sqcup fonilpt(S_2)
+fonilpt(P_1 \sqcup P_2, i) & = & P_2 \;\; \mathrm{if} \; fonil(proj(P_1, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2, i) & = & P_1 \;\; \mathrm{if} \; fonil(proj(P_2, i)) = {\bf void} \\
+fonilpt(P_1 \sqcup P_2, i) & = & P_1 \sqcup P_2 \;\; \mathrm{otherwise}\\
+fonilpt(P \sqcup S, i) & = & fonilpt(S,i) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(P \sqcup S, i) & = & P \sqcup fonilpt(S,i) \;\; \mathrm{otherwise}\\
+fonilpt(S \sqcup P_2, i) & = & fonilpt(S,i) \;\; \mathrm{if} \; fonil(proj(P, i)) = {\bf void} \\
+fonilpt(S \sqcup P, i) & = & fonilpt(S,i) \sqcup P \;\; \mathrm{otherwise}\\
+fonilpt(S_1 \sqcup S_2, i) & = & fonilpt(S_1,i) \sqcup fonilpt(S_2,i)
 \end{array}\\\\
 \begin{array}{rcl}
 fonil(F_1 \cup F_2) & = & fonil(F_1) \;\; \mathrm{if}\;fonil(F_2) = {\bf void}\\
@@ -1611,7 +1611,7 @@ just one of them.
 Intuitively, a projection type $\pi_{i}^{x}$ denotes the union of
 the i-th components of all the tuples in the union of tuple types
 denoted by the label $x$. Unions of tuple types referenced by projections are kept in their own {\em projection environment} $\Pi$. A fresh label is generated whenever the last term
-in an expression list has a union of tuple types as its type.
+in an expression list has an union of tuple types as its type.
 Figure~\ref{fig:projtypes} presents the rules for introducing and filtering projection types.
 
 Notice that in the above example the local variables $q$ and $r$ are declared without an explicit type. 
@@ -1639,7 +1639,7 @@ by the projection type.
 Rule \textsc{T-IfFilterProjBoth} uses the auxiliary functions \emph{fonilpt} ({\em filter-out nil in projection type}) and \emph{finilpt} ({\em filter-in nil in projection type}) to
 filter the union referenced by $\pi_{i}^{x}$, respectively
 filtering $\Nil$ out at every i-th component (removing
-the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th component (removing the entire tuple if it is not $\Nil$). These functions respectively use the functions $fonil$ and $finil$ to filter regular unions, plus $proj$ to test projected components. The definitions of $finilpt$ and $finil$ are analogous to the definitions of $finilpt$ and $finil$.
+the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th component (removing the entire tuple if it is not $\Nil$). These functions respectively use the functions $fonil$ and $finil$ to filter regular unions, plus $proj$ to test projected components. The definitions of $finilpt$ and $finil$ are analogous to the definitions of $fonilpt$ and $fonil$.
 
 Rule {\sc T-IfFilterProjBoth} also uses the auxiliary function $join$ defined in Figure~\ref{fig:funcs} to try to combine the environments that result from typing the two branches. In a $join$ only one environment is guaranteed to be from code that has been executed.
 
@@ -1764,7 +1764,7 @@ way.
 In the second idiom, a function that can return different
 kinds of tuples of return values (for example, one
 tuple for its usual path, another for error conditions)
-is modeled by having a union of tuple types as its return
+is modeled by having an union of tuple types as its return
 type. A destructuring assignment on a union of tuple types
 decomposes the tuple in a way that the dependencies between
 the types of each member of the union can be tracked.
@@ -1829,7 +1829,7 @@ written in Lua.
 
 The authors thank the anonymous reviewers for their feedback.
 Work on Typed Lua has been supported by grants from Google
-Summer of Code and CNPq, the Brazilian Research Council.
+Summer of Code as well as CAPES and CNPq, two Brazilian Research Councils.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
