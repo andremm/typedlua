@@ -36,11 +36,13 @@
 
 \begin{document}
 
+\toappear{}
+
 \special{papersize=8.5in,11in}
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\conferenceinfo{DLS '15}{October 25-30, 2015, Pittsburgh, PA, USA}
+\conferenceinfo{DLS '15}{October 27th, 2015, Pittsburgh, PA, USA}
 \copyrightyear{2015}
 \copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
 \doi{nnnnnnn.nnnnnnn}
@@ -55,7 +57,7 @@
            {amaidl@inf.puc-rio.br}
 \authorinfo{Fabio Mascarenhas}
            {UFRJ}
-           {fabiom@dcc.ufrj.br}
+           {mascarenhas@acm.org}
 \authorinfo{Roberto Ierusalimschy}
            {PUC-Rio}
            {roberto@inf.puc-rio.br}
@@ -396,7 +398,7 @@ L ::= & & \textsc{{\tiny literal types:}}\\
 &  \False \; | \; \True \; | \; {\it int} \; | \; {\it float} \; | \; {\it string} &\\
 %\multicolumn{3}{c}{}\\
 B ::= & & \textsc{{\tiny base types:}}\\
-& \Boolean \ |\  \Integer \ |\ \Number\ |\ \String &\\\\
+& \Boolean \, |\,  \Integer \, |\, \Number\, |\, \String &\\\\
 %\multicolumn{3}{c}{}\\
 %\multicolumn{3}{c}{}\\
 V ::= & & \textsc{{\tiny value types:}}\\
@@ -1643,7 +1645,7 @@ the entire tuple if it is $\Nil$) and filtering $\Nil$ in at every i-th componen
 
 Rule {\sc T-IfFilterProjBoth} also uses the auxiliary function $join$ defined in Figure~\ref{fig:funcs} to try to combine the environments that result from typing the two branches. In a $join$ only one environment is guaranteed to be from code that has been executed.
 
-In our example, $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ in the {\bf then} branch, and would be bound
+In our example, variable $x$ would be bound to $\Integer \times \Integer \times \Nil{*}$ inside the {\bf then} branch, and bound
 to $\Nil \times \String \times \Nil{*}$ inside the {\bf else}
 branch. Now $q$ and $r$ project to $\Integer$ and $\Integer$
 in the {\bf then} branch, and to $\Nil$ and $\String$ in the
