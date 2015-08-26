@@ -455,6 +455,8 @@
 \newcommand{\puc@adviserR}{}
 \newcommand{\adviserR}[1]{\renewcommand{\puc@adviserR}{#1}}
 
+\newcommand{\puc@adviserRA}{\puc@adviserR \, (Advisor)}
+
 \newcommand{\puc@adviserInst}{}
 \newcommand{\adviserInst}[1]{\renewcommand{\puc@adviserInst}{#1}}
 
@@ -463,6 +465,8 @@
 
 \newcommand{\puc@coadviserR}{}
 \newcommand{\coadviserR}[1]{\renewcommand{\puc@coadviserR}{#1}}
+
+\newcommand{\puc@coadviserRA}{\puc@coadviserR \, (Co-Advisor)}
 
 \newcommand{\puc@coadviserInst}{}
 \newcommand{\coadviserInst}[1]{\renewcommand{\puc@coadviserInst}{#1}}
@@ -553,6 +557,7 @@
 \newcommand{\acknowledgment}[1]{\renewcommand{\puc@acknowledgment}{#1}}
 
 \newcommand{\key}[1]{}
+\newcommand{\lastkey}[1]{}
 \newcommand{\puc@keywords}{}
 \newcommand{\keywords}[1]{\renewcommand{\puc@keywords}{#1}}
 
@@ -773,12 +778,12 @@
   \ifthenelse{\equal{\puc@adviserInst}{}}{%
     %\jurymember{\puc@adviser}{Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
     %\jurymember{\puc@adviser}{Adviser \\\puc@adviserInst}}
-    \jurymember{\puc@adviser}{Advisor \\ Departmento de \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@adviser}{Advisor \\ Departamento de \puc@department\ --- \puc@uni}}{%
     \jurymember{\puc@adviser}{Advisor \\\puc@adviserInst}}
   \ifthenelse{\equal{\puc@coadviserInst}{}}{%
     %\jurymember{\puc@coadviser}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
     %\jurymember{\puc@coadviser}{Co--Adviser \\\puc@coadviserInst}}
-    \jurymember{\puc@coadviser}{Co--Advisor \\ Departmento de \puc@department\ --- \puc@uni}}{%
+    \jurymember{\puc@coadviser}{Co--Advisor \\ Departamento de \puc@department\ --- \puc@uni}}{%
     \jurymember{\puc@coadviser}{Co--Advisor \\\puc@coadviserInst}}
   \ifthenelse{\equal{\puc@coadviserIIInst}{}}{%
     %\jurymember{\puc@coadviserII}{Co--Adviser \\ Department of \puc@department\ --- \puc@uni}}{%
@@ -820,19 +825,20 @@
   \puc@rightmargin{\small \arial Bibliographic data}%
   \par%
   \puc@leftmargin{%
-    \begin{tabular}{|p{0.95\linewidth}|} \hline%
+    \begin{tabular}{|p{0.96\linewidth}|} \hline%
       \noindent \puc@authorR \\ \\ \par%
       %\hspace*{.6cm} \puc@title\relax\ / \puc@author; adviser: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--adviser\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@city\ : \puc@uni, Department of \puc@department, \puc@year. \\ \\ \par%
       \hspace*{.6cm} \puc@title\relax\ / \puc@author; advisor: \puc@adviser\ifthenelse{\equal{\puc@coadviser}{}}{}{; co--advisor\ifthenelse{\equal{\puc@coadviserII}{}}{}{s}: \puc@coadviser}\ifthenelse{\equal{\puc@coadviserII}{}}{}{, \puc@coadviserII}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{, \puc@coadviserIII}. --- \puc@year. \\ \\ \par%
       %\hspace*{.6cm} v., \pageref{LastPage} f: il. ; 29,7 cm \\ \\ \par%
       \hspace*{.6cm} \pageref{LastPage} f. : il. ; 30 cm \\ \\ \par%
       %\hspace*{.6cm} 1.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} - \puc@university, Department of \puc@department. \\ \\ \par%
-      \hspace*{.6cm} \ifthenelse{\boolean{puc@phd}}{Tese (Doutorado em \puc@program{})}{MsC Thesis} - \puc@university, \puc@city, \puc@year. \\ \\ \par%
+      \hspace*{.6cm} \ifthenelse{\boolean{puc@phd}}{Tese (doutorado)}{MsC Thesis} - \puc@university, Departamento de \puc@department, \puc@year. \\ \\ \par%
       %\hspace*{.6cm} Bibliography included. \\ \\ \par%
       \hspace*{.6cm} Inclui bibliografia. \\ \\ \par% 
       \hspace*{.6cm}%
         \newcounter{keycount}\setcounter{keycount}{1}%
         \renewcommand{\key}[1]{\arabic{keycount}. ##1.\addtocounter{keycount}{1}\ }%
+        \renewcommand{\lastkey}[1]{\arabic{keycount}. ##1.\addtocounter{keycount}{1}\ }%
         %\key{\puc@department\ -- \ifthenelse{\boolean{puc@phd}}{Thesis}{Dissertation}}%
         \key{\puc@department\ -- \ifthenelse{\boolean{puc@phd}}{Teses}{Dissertation}}%
         %\puc@keywords%
@@ -844,7 +850,7 @@
         \key{\puc@coadviserIIR}%
         \key{\puc@coadviserIIIR}%
         %\key{\puc@university. Department of \puc@department}%
-        \key{\puc@university. Departmento de \puc@department}%
+        \key{\puc@university. Departamento de \puc@department}%
         %\key{Title}%
         \key{T\'{i}tulo}%
       \\%
@@ -910,7 +916,7 @@
   \par\indent%
   \begin{minipage}{12cm}\singlespacing%
   %\puc@authorR; \puc@adviserR\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserR}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{PhD Thesis}{MsC Thesis} --- Department of \puc@department, \puc@university.%
-  \puc@authorR; \puc@adviserR\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserR}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{DSc Thesis}{MsC Thesis} --- Departmento de \puc@department, \puc@university.%
+  \puc@authorR; \puc@adviserRA\ifthenelse{\equal{\puc@coadviser}{}}{}{; \puc@coadviserRA}\ifthenelse{\equal{\puc@coadviserII}{}}{}{; \puc@coadviserIIR}\ifthenelse{\equal{\puc@coadviserIII}{}}{}{; \puc@coadviserIIIR}. \textbf{\puc@title}. \puc@city, \puc@year. \pageref{LastPage}p.   \ifthenelse{\boolean{puc@phd}}{Doctoral Thesis}{MsC Thesis} --- Departamento de \puc@department, \puc@university.%
   \end{minipage}\onehalfspacing%
   \vspace*{\stretch{1}}%
   \par%
@@ -923,7 +929,8 @@
   \par%
   \noindent \large \arial \textbf{Keywords} \normalfont \normalsize%
   \par%
-  \renewcommand{\key}[1]{##1.\hspace{3mm} }%
+  \renewcommand{\key}[1]{##1;\hspace{3mm} }%
+  \renewcommand{\lastkey}[1]{##1\hspace{3mm} }%
   \indent \puc@keywords%
   \vspace*{\stretch{4}}%
   \par%
@@ -957,7 +964,8 @@
   \par%
   \noindent \large \arial \textbf{Palavras--chave} \normalfont \normalsize%
   \par%
-  \renewcommand{\key}[1]{##1.\hspace{3mm} }%
+  \renewcommand{\key}[1]{##1;\hspace{3mm} }%
+  \renewcommand{\lastkey}[1]{##1\hspace{3mm} }%
   \indent \puc@keywordsbr%
   \vspace*{\stretch{4}}%
   \par%
