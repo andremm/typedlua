@@ -920,7 +920,7 @@
   \end{minipage}\onehalfspacing%
   \vspace*{\stretch{1}}%
   \par%
-  \noindent\begin{minipage}{13.5cm}%
+  \noindent\begin{minipage}{14.0cm}%
 %--------%
  \puc@abstract%
 %--------%
@@ -955,7 +955,7 @@
   \end{minipage}\onehalfspacing%
   \vspace*{\stretch{1}}%
   \par%
-  \noindent\begin{minipage}{13.5cm}%
+  \noindent\begin{minipage}{14.0cm}%
 %--------%
  \puc@abstractbr%
 %--------%
