@@ -743,7 +743,10 @@ end
 
 local function subtype_variable (env, t1, t2)
   if tltype.isVariable(t1) and tltype.isVariable(t2) then
-    return env[t1[1] .. t2[1]]
+    if t1[1] == t2[1] then
+      return true
+    end
+    return env[t1[1] .."@".. t2[1]]
   else
     return false
   end
@@ -751,18 +754,18 @@ end
 
 local function subtype_recursive (env, t1, t2, relation)
   if tltype.isRecursive(t1) and tltype.isRecursive(t2) then
-    env[t1[1] .. t2[1]] = true
+    env[t1[1] .."@".. t2[1]] = true
     return subtype(env, t1[2], t2[2], relation)
   elseif tltype.isRecursive(t1) and not tltype.isRecursive(t2) then
-    if not env[t1[1] .. t1[1]] then
-      env[t1[1] .. t1[1]] = true
+    if not env[t1[1] .."@".. t1[1]] then
+      env[t1[1] .."@".. t1[1]] = true
       return subtype(env, t1[2], t2, relation)
     else
       return subtype(env, tltype.Variable(t1[1]), t2, relation)
     end
   elseif not tltype.isRecursive(t1) and tltype.isRecursive(t2) then
-    if not env[t2[1] .. t2[1]] then
-      env[t2[1] .. t2[1]] = true
+    if not env[t2[1] .."@".. t2[1]] then
+      env[t2[1] .."@".. t2[1]] = true
       return subtype(env, t1, t2[2], relation)
     else
       return subtype(env, t1, tltype.Variable(t2[1]), relation)
