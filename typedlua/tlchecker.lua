@@ -66,6 +66,7 @@ local function replace_names (env, t, pos, ignore)
     local r = tltype.Recursive(t[1], replace_names(env, t[2], pos, ignore))
     r.name = t.name
     ignore[t[1]] = link
+    return r
   elseif tltype.isLiteral(t) or
      tltype.isBase(t) or
      tltype.isNil(t) or
