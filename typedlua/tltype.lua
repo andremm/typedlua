@@ -523,6 +523,61 @@ function tltype.isRecursive (t)
   return t.tag == "TRecursive"
 end
 
+local function unfold_recursive (tr, t)
+  if tltype.isRecursive(t) then
+    if t[1] ~= tr[1] then
+      local r = tltype.Recursive(t[1], unfold_recursive(tr, t[2]))
+      r.name = t.name
+      return r
+    else
+      return t
+    end
+  elseif tltype.isLiteral(t) or
+     tltype.isBase(t) or
+     tltype.isNil(t) or
+     tltype.isValue(t) or
+     tltype.isAny(t) or
+     tltype.isSelf(t) or
+     tltype.isVoid(t) then
+    return t
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+    local r = { tag = t.tag, name = t.name }
+    for k, v in ipairs(t) do
+      r[k] = unfold_recursive(tr, v)
+    end
+    return r
+  elseif tltype.isFunction(t) then
+    local r = tltype.Function(unfold_recursive(tr, t[1]), unfold_recursive(tr, t[2]), t[3])
+    r.name = t.name
+    return r
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.Field(v.const, v[1], unfold_recursive(tr, v[2])))
+    end
+    local r = tltype.Table(table.unpack(l))
+    r.unique = t.unique
+    r.open = t.open
+    return r
+  elseif tltype.isVariable(t) then
+    if t[1] == tr[1] then
+      return tr
+    else
+      return t
+    end
+  elseif tltype.isVararg(t) then
+    return tltype.Vararg(unfold_recursive(trec, t[1]))
+  else
+    return t
+  end
+end
+
+function tltype.unfold (t)
+  return unfold_recursive(t, t[2])
+end
+
 local function check_recursive (t, name)
   if tltype.isLiteral(t) or
      tltype.isBase(t) or
@@ -757,19 +812,9 @@ local function subtype_recursive (env, t1, t2, relation)
     env[t1[1] .."@".. t2[1]] = true
     return subtype(env, t1[2], t2[2], relation)
   elseif tltype.isRecursive(t1) and not tltype.isRecursive(t2) then
-    if not env[t1[1] .."@".. t1[1]] then
-      env[t1[1] .."@".. t1[1]] = true
-      return subtype(env, t1[2], t2, relation)
-    else
-      return subtype(env, tltype.Variable(t1[1]), t2, relation)
-    end
+    return subtype(env, tltype.unfold(t1), t2, relation)
   elseif not tltype.isRecursive(t1) and tltype.isRecursive(t2) then
-    if not env[t2[1] .."@".. t2[1]] then
-      env[t2[1] .."@".. t2[1]] = true
-      return subtype(env, t1, t2[2], relation)
-    else
-      return subtype(env, t1, tltype.Variable(t2[1]), relation)
-    end
+    return subtype(env, t1, tltype.unfold(t2), relation)
   else
     return false
   end

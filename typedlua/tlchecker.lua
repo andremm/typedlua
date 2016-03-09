@@ -589,9 +589,10 @@ local function check_parameters (env, parlist, pos)
   end
 end
 
-local function check_explist (env, explist)
+local function check_explist (env, explist, lselfs)
+  lselfs = lselfs or {}
   for k, v in ipairs(explist) do
-    check_exp(env, v)
+    check_exp(env, v, lselfs[k])
   end
 end
 
@@ -612,7 +613,9 @@ local function check_return_type (env, inf_type, dec_type, pos)
   end
 end
 
-local function check_function (env, exp)
+local function check_function (env, exp, tself)
+  local oself = env.self
+  env.self = tself
   local idlist, ret_type, block = exp[1], exp[2], exp[3]
   local infer_return = false
   if not block then
@@ -647,6 +650,7 @@ local function check_function (env, exp)
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
   set_type(exp, t)
+  env.self = oself
 end
 
 local function check_table (env, exp)
@@ -771,18 +775,36 @@ local function check_arguments (env, func_name, dec_type, infer_type, pos)
   end
 end
 
-local function replace_self (env, t)
-  local s = env.self or Nil
-  if tltype.isTuple(t) then
-    local l = {}
+local function replace_self (env, t, tself)
+  tself = tself or Nil
+  if tltype.isSelf(t) then
+    return tself
+  elseif tltype.isRecursive(t) then
+    local r = tltype.Recursive(t[1], replace_self(env, t[2], tself))
+    r.name = t.name
+    return r
+  elseif tltype.isLiteral(t) or
+     tltype.isBase(t) or
+     tltype.isNil(t) or
+     tltype.isValue(t) or
+     tltype.isAny(t) or
+     tltype.isTable(t) or
+     tltype.isVariable(t) or
+     tltype.isVoid(t) then
+    return t
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+    local r = { tag = t.tag, name = t.name }
     for k, v in ipairs(t) do
-      if tltype.isSelf(v) then
-        table.insert(l, s)
-      else
-        table.insert(l, v)
-      end
+      r[k] = replace_self(env, t[k], tself)
     end
-    return tltype.Tuple(l)
+    return r
+  elseif tltype.isFunction(t) then
+    assert(not t[3], "bare function type " .. tltype.tostring(t) .. " cannot be a method")
+    return tltype.Function(replace_self(env, t[1], tself), replace_self(env, t[2], tself), false)
+  elseif tltype.isVararg(t) then
+    return tltype.Vararg(replace_self(env, t[1], tself))
   else
     return t
   end
@@ -833,12 +855,12 @@ local function check_call (env, exp)
       set_type(exp, Any)
     end
   else
-    local t = tltype.first(get_type(exp1))
-    local inferred_type = arglist2type(explist, env.strict)
+    local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
+    local inferred_type = replace_self(env, arglist2type(explist, env.strict), env.self)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
-      check_arguments(env, var2name(exp1), replace_self(env, t[1]), replace_self(env, inferred_type), exp.pos)
-      set_type(exp, replace_self(env, t[2]))
+      check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
+      set_type(exp, t[2])
     elseif tltype.isAny(t) then
       set_type(exp, Any)
       msg = string.format(msg, var2name(exp1), tltype.tostring(t))
@@ -864,26 +886,26 @@ local function check_invoke (env, exp)
   table.insert(explist, 1, { type = Self })
   local t1, t2 = get_type(exp1), get_type(exp2)
   t1 = replace_names(env, t1, exp1.pos)
-  if tltype.isRecursive(t1) then t1 = t1[2] end
-  if tltype.isSelf(t1) and env.self then t1 = env.self end
+  t1 = replace_self(env, t1, env.self)
+  if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
-    local inferred_type = arglist2type(explist, env.strict)
+    local inferred_type = replace_self(env, arglist2type(explist, env.strict), env.self)
     local t3
     if tltype.isTable(t1) then
-      t3 = tltype.getField(t2, t1)
-      local s = env.self or Nil
-      if not tltype.subtype(s, t1) then env.self = t1 end
+      t3 = replace_self(env, tltype.getField(t2, t1), t1)
+      --local s = env.self or Nil
+      --if not tltype.subtype(s, t1) then env.self = t1 end
     else
       local string_userdata = env["loaded"]["string"] or tltype.Table()
-      t3 = tltype.getField(t2, string_userdata)
+      t3 = replace_self(env, tltype.getField(t2, string_userdata), t1)
       inferred_type[1] = String
     end
     local msg = "attempt to call method '%s' of type '%s'"
     if tltype.isFunction(t3) then
       check_arguments(env, "field", t3[1], inferred_type, exp.pos)
-      set_type(exp, replace_self(env, t3[2]))
+      set_type(exp, t3[2])
     elseif tltype.isAny(t3) then
       set_type(exp, Any)
       msg = string.format(msg, exp2[1], tltype.tostring(t3))
@@ -1061,14 +1083,16 @@ local function check_return (env, stm)
 end
 
 local function check_assignment (env, varlist, explist)
+  local lselfs = {}
   for k, v in ipairs(varlist) do
     if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
       local t = get_type(l)
-      if tltype.isTable(t) then env.self = t end
+      -- a brittle hack to type a method definition in the right-hand side?
+      if tltype.isTable(t) then lselfs[k] = t end
     end
   end
-  check_explist(env, explist)
+  check_explist(env, explist, lselfs)
   local l = {}
   for k, v in ipairs(varlist) do
     check_var(env, v, explist[k])
@@ -1384,14 +1408,11 @@ local function check_index (env, exp)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   t1 = replace_names(env, t1, exp1.pos)
   local msg = "attempt to index '%s' with '%s'"
-  if tltype.isRecursive(t1) then t1 = t1[2] end
-  if tltype.isSelf(t1) and env.self then t1 = env.self end
+  t1 = replace_self(env, t1, env.self)
+  if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
   if tltype.isTable(t1) then
-    if exp1.tag == "Id" and exp1[1] ~= "_ENV" then
-      local s = env.self or Nil
-      if not tltype.subtype(s, t1) then env.self = t1 end
-    end
-    local field_type = tltype.getField(t2, t1)
+    -- FIX: methods should not leave objects, this is unsafe!
+    local field_type = replace_self(env, tltype.getField(t2, t1), t1)
     if not tltype.isNil(field_type) then
       set_type(exp, field_type)
     else
@@ -1430,9 +1451,11 @@ function check_var (env, var, exp)
     local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
     t1 = replace_names(env, t1, exp1.pos)
     local msg = "attempt to index '%s' with '%s'"
-    if tltype.isRecursive(t1) then t1 = t1[2] end
-    if tltype.isSelf(t1) and env.self then t1 = env.self end
+    t1 = replace_self(env, t1, env.self)
+    if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
     if tltype.isTable(t1) then
+      local oself = env.self
+      -- another brittle hack for defining methods
       if exp1.tag == "Id" and exp1[1] ~= "_ENV" then env.self = t1 end
       local field_type = tltype.getField(t2, t1)
       if not tltype.isNil(field_type) then
@@ -1469,6 +1492,7 @@ function check_var (env, var, exp)
           set_type(var, Nil)
         end
       end
+      env.self = oself
     elseif tltype.isAny(t1) then
       set_type(var, Any)
       msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
@@ -1483,7 +1507,7 @@ function check_var (env, var, exp)
   end
 end
 
-function check_exp (env, exp)
+function check_exp (env, exp, tself)
   local tag = exp.tag
   if tag == "Nil" then
     set_type(exp, Nil)
@@ -1498,7 +1522,7 @@ function check_exp (env, exp)
   elseif tag == "String" then
     set_type(exp, tltype.Literal(exp[1]))
   elseif tag == "Function" then
-    check_function(env, exp)
+    check_function(env, exp, tself)
   elseif tag == "Table" then
     check_table(env, exp)
   elseif tag == "Op" then

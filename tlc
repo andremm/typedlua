@@ -7,7 +7,7 @@ local tlcode = require "typedlua.tlcode"
 
 local VERSION = "scm"
 local PROGNAME = "tlc"
-local OUTPUT = PROGNAME .. ".lua"
+local OUTPUT
 
 local DUMPAST = false
 local PRINTAST = false
@@ -94,6 +94,10 @@ local i = doargs()
 local filename = arg[i]
 if not filename then
   usage("no input file given")
+end
+
+if not OUTPUT then
+  OUTPUT = filename:gsub("[.]tl$", ".lua")
 end
 
 local subject = getcontents(filename)
