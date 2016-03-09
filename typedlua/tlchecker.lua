@@ -58,37 +58,49 @@ local function get_interface (env, name, pos)
   end
 end
 
-local function replace_names (env, t, pos)
-  if tltype.isLiteral(t) or
+local function replace_names (env, t, pos, ignore)
+  ignore = ignore or {}
+  if tltype.isRecursive(t) then
+    local link = ignore[t[1]]
+    ignore[t[1]] = true
+    local r = tltype.Recursive(t[1], replace_names(env, t[2], pos, ignore))
+    r.name = t.name
+    ignore[t[1]] = link
+  elseif tltype.isLiteral(t) or
      tltype.isBase(t) or
      tltype.isNil(t) or
      tltype.isValue(t) or
      tltype.isAny(t) or
      tltype.isSelf(t) or
-     tltype.isVoid(t) or
-     tltype.isRecursive(t) then
+     tltype.isVoid(t) then
     return t
   elseif tltype.isUnion(t) or
          tltype.isUnionlist(t) or
          tltype.isTuple(t) then
-    local r = { tag = t.tag }
+    local r = { tag = t.tag, name = t.name }
     for k, v in ipairs(t) do
-      r[k] = replace_names(env, t[k], pos)
+      r[k] = replace_names(env, t[k], pos, ignore)
     end
     return r
   elseif tltype.isFunction(t) then
-    t[1] = replace_names(env, t[1], pos)
-    t[2] = replace_names(env, t[2], pos)
+    t[1] = replace_names(env, t[1], pos, ignore)
+    t[2] = replace_names(env, t[2], pos, ignore)
     return t
   elseif tltype.isTable(t) then
     for k, v in ipairs(t) do
-      t[k][2] = replace_names(env, t[k][2], pos)
+      t[k][2] = replace_names(env, t[k][2], pos, ignore)
     end
     return t
   elseif tltype.isVariable(t) then
-    return replace_names(env, get_interface(env, t[1], pos), pos)
+    if not ignore[t[1]] then
+      local r = replace_names(env, get_interface(env, t[1], pos), pos, ignore)
+      r.name = t[1]
+      return r
+    else
+      return t
+    end
   elseif tltype.isVararg(t) then
-    t[1] = replace_names(env, t[1], pos)
+    t[1] = replace_names(env, t[1], pos, ignore)
     return t
   else
     return t
@@ -189,6 +201,8 @@ local function check_interface (env, stm)
     msg = string.format(msg, name)
     typeerror(env, "alias", msg, stm.pos)
   else
+    local t = replace_names(env, t, stm.pos)
+    t.name = name
     tlst.set_interface(env, name, t, is_local)
   end
   return false
@@ -541,7 +555,7 @@ local function check_paren (env, exp)
   set_type(exp, tltype.first(t1))
 end
 
-local function check_parameters (env, parlist)
+local function check_parameters (env, parlist, pos)
   local len = #parlist
   if len == 0 then
     if env.strict then
@@ -556,7 +570,7 @@ local function check_parameters (env, parlist)
     end
     for i = 1, len do
       if not parlist[i][2] then parlist[i][2] = Any end
-      l[i] = parlist[i][2]
+      l[i] = replace_names(env, parlist[i][2], pos)
     end
     if parlist[len].tag == "Dots" then
       local t = parlist[len][1] or Any
@@ -607,12 +621,13 @@ local function check_function (env, exp)
   end
   tlst.begin_function(env)
   tlst.begin_scope(env)
-  local input_type = check_parameters(env, idlist)
+  local input_type = check_parameters(env, idlist, exp.pos)
   local t = tltype.Function(input_type, ret_type)
   local len = #idlist
   if len > 0 and idlist[len].tag == "Dots" then len = len - 1 end
   for k = 1, len do
     local v = idlist[k]
+    v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
     check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
@@ -974,7 +989,7 @@ local function check_localrec (env, id, exp)
     infer_return = true
   end
   tlst.begin_function(env)
-  local input_type = check_parameters(env, idlist)
+  local input_type = check_parameters(env, idlist, exp.pos)
   local t = tltype.Function(input_type, ret_type)
   t = replace_names(env, t, exp.pos)
   id[2] = t

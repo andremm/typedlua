@@ -10,7 +10,7 @@ tltype.integer = false
 
 -- literal types
 
--- Literal : (boolean|number|string) -> (type) 
+-- Literal : (boolean|number|string) -> (type)
 function tltype.Literal (l)
   return { tag = "TLiteral", [1] = l }
 end
@@ -1004,8 +1004,10 @@ end
 -- tostring
 
 -- type2str (type) -> (string)
-local function type2str (t)
-  if tltype.isLiteral(t) then
+local function type2str (t, full)
+  if not full and t.name then
+    return t.name
+  elseif tltype.isLiteral(t) then
     return tostring(t[1])
   elseif tltype.isBase(t) then
     return t[1]
@@ -1056,8 +1058,8 @@ local function type2str (t)
 end
 
 -- tostring : (type) -> (string)
-function tltype.tostring (t)
-  return type2str(t)
+function tltype.tostring (t, full)
+  return type2str(t, full)
 end
 
 return tltype
