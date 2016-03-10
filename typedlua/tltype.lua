@@ -511,6 +511,18 @@ function tltype.isVariable (t)
   return t.tag == "TVariable"
 end
 
+-- global type variables
+
+-- GlobalVariable : (string) -> (type)
+function tltype.GlobalVariable (env, name, pos, namespace)
+  return { tag = "TGlobalVariable", [1] = name, [2] = env, [3] = pos, [4] = namespace }
+end
+
+-- isVariable : (type) -> (boolean)
+function tltype.isGlobalVariable (t)
+  return t.tag == "TGlobalVariable"
+end
+
 -- recursive types
 
 -- Recursive : (string, type) -> (type)
@@ -574,8 +586,24 @@ local function unfold_recursive (tr, t)
   end
 end
 
-function tltype.unfold (t)
-  return unfold_recursive(t, t[2])
+function tltype.unfold (t, typeerror)
+  if tltype.isGlobalVariable(t) then
+    local env, name = t[1], t[2]
+    local t = env[name]
+    if t then
+      return t
+    else
+      local pos = t[3]
+      local msg = "type alias '%s' is not defined"
+      msg = string.format(msg, name)
+      typeerror(env, "alias", msg, pos)
+      return Nil
+    end
+  elseif tltype.isRecursive(t) then
+    return unfold_recursive(t, t[2])
+  else
+    return t
+  end
 end
 
 local function check_recursive (t, name)
@@ -796,6 +824,46 @@ local function subtype_table (env, t1, t2, relation)
   end
 end
 
+local function subtype_global_variable(env, t1, t2, relation)
+  if env[t1] and env[t1][t2] then return true end
+  if env[t1] then
+    env[t1][t2] = true
+  else
+    env[t1] = { [t2] = true }
+  end
+  if tltype.isGlobalVariable(t1) and tltype.isGlobalVariable(t2) then
+    local name1, name2 = t1[1], t2[1]
+    local env1, env2 = t1[2], t2[2]
+    if subtype(env, env1[name], env2[name], relation) then
+      return true
+    else
+      env[t1][t2] = nil
+      return false
+    end
+  elseif tltype.isGlobalVariable(t1) then
+    local tname = t1[1]
+    local tenv = t1[2]
+    if subtype(env, tenv[tname], t2, relation) then
+      return true
+    else
+      env[t1][t2] = nil
+      return false
+    end
+  elseif tltype.isGlobalVariable(t2) then
+    local tname = t2[1]
+    local tenv = t2[2]
+    if subtype(env, t1, tenv[tname], relation) then
+      return true
+    else
+      env[t1][t2] = nil
+      return false
+    end
+  else
+    env[t1][t2] = nil
+    return false
+  end
+end
+
 local function subtype_variable (env, t1, t2)
   if tltype.isVariable(t1) and tltype.isVariable(t2) then
     if t1[1] == t2[1] then
@@ -914,6 +982,7 @@ function subtype (env, t1, t2, relation)
            subtype_function(env, t1, t2, relation) or
            subtype_table(env, t1, t2, relation) or
            subtype_variable(env, t1, t2) or
+           subtype_global_variable(env, t1, t2, relation) or
            subtype_recursive(env, t1, t2, relation)
   end
 end
@@ -1086,6 +1155,12 @@ local function type2str (t, n)
     return "{" .. table.concat(l, ", ") .. "}"
   elseif tltype.isVariable(t) then
     return t[1]
+  elseif tltype.isGlobalVariable(t) then
+    if t[4] then
+      return t[4] .. "." .. t[1]
+    else
+      return t[1]
+    end
   elseif tltype.isRecursive(t) then
     return t[1] .. "." .. type2str(t[2], n-1)
   elseif tltype.isVoid(t) then

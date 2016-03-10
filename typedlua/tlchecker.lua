@@ -43,7 +43,7 @@ local function set_type (node, t)
 end
 
 local function get_type (node)
-  return node and node["type"] or Nil
+  return node and tltype.unfold(node["type"], typeerror) or Nil
 end
 
 local check_self_field
@@ -136,10 +136,7 @@ end
 local function get_interface (env, name, pos)
   local t = tlst.get_interface(env, name)
   if not t then
-    local msg = "type alias '%s' is not defined"
-    msg = string.format(msg, name)
-    typeerror(env, "alias", msg, pos)
-    return Nil
+    return tltype.GlobalVariable(env["interface"], name, pos)
   else
     return t
   end
@@ -597,7 +594,7 @@ end
 local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
-  local t1 = replace_names(env, tltype.first(get_type(exp1)), exp1.pos)
+  local t1 = tltype.first(get_type(exp1))
   local msg = "attempt to get length of a '%s'"
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table()) then
@@ -686,8 +683,6 @@ end
 
 local function check_return_type (env, inf_type, dec_type, pos)
   local msg = "return type '%s' does not match '%s'"
-  inf_type = replace_names(env, inf_type, pos)
-  dec_type = replace_names(env, dec_type, pos)
   if tltype.isUnionlist(dec_type) then
     dec_type = tltype.unionlist2tuple(dec_type)
   end
@@ -704,7 +699,7 @@ end
 local function check_function (env, exp, tself)
   local oself = env.self
   env.self = tself
-  local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  local idlist, ret_type, block = exp[1], replace_names(env, exp[2], exp.pos), exp[3]
   local infer_return = false
   if not block then
     block = ret_type
@@ -734,7 +729,6 @@ local function check_function (env, exp, tself)
     t = tltype.Function(input_type, ret_type)
     set_type(exp, t)
   end
-  t = replace_names(env, t, exp.pos)
   if env.self then
     t = check_self_field(env, t, t, exp.pos)
   else
@@ -856,8 +850,6 @@ end
 
 local function check_arguments (env, func_name, dec_type, infer_type, pos)
   local msg = "attempt to pass '%s' to %s of input type '%s'"
-  dec_type = replace_names(env, dec_type, pos)
-  infer_type = replace_names(env, infer_type, pos)
   if tltype.subtype(infer_type, dec_type) then
   elseif tltype.consistent_subtype(infer_type, dec_type) then
     msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
@@ -977,9 +969,7 @@ local function check_invoke (env, exp)
   check_explist(env, explist)
   table.insert(explist, 1, { type = Self })
   local t1, t2 = get_type(exp1), get_type(exp2)
-  t1 = replace_names(env, t1, exp1.pos)
   t1 = replace_self(env, t1, env.self)
-  if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
@@ -1023,7 +1013,6 @@ end
 
 local function check_local_var (env, id, inferred_type, close_local)
   local local_name, local_type, pos = id[1], id[2], id.pos
-  inferred_type = replace_names(env, inferred_type, pos)
   if tltype.isMethod(inferred_type) then
     local msg = "attempt to create a method reference"
     typeerror(env, "local", msg, pos)
@@ -1098,7 +1087,7 @@ local function check_local (env, idlist, explist)
 end
 
 local function check_localrec (env, id, exp)
-  local idlist, ret_type, block = exp[1], exp[2], exp[3]
+  local idlist, ret_type, block = exp[1], replace_names(env, exp[2], exp.pos), exp[3]
   local infer_return = false
   if not block then
     block = ret_type
@@ -1108,7 +1097,6 @@ local function check_localrec (env, id, exp)
   tlst.begin_function(env)
   local input_type = check_parameters(env, idlist, exp.pos)
   local t = tltype.Function(input_type, ret_type)
-  t = replace_names(env, t, exp.pos)
   id[2] = t
   set_type(id, t)
   check_masking(env, id[1], id.pos)
@@ -1136,7 +1124,6 @@ local function check_localrec (env, id, exp)
     tlst.set_local(env, id)
     set_type(exp, t)
   end
-  t = replace_names(env, t, exp.pos)
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
   return false
@@ -1193,7 +1180,7 @@ local function check_assignment (env, varlist, explist)
     table.insert(l, get_type(v))
   end
   table.insert(l, tltype.Vararg(Value))
-  local var_type, exp_type = replace_names(env, tltype.Tuple(l), varlist.pos), replace_names(env, explist2typelist(explist), explist.pos)
+  local var_type, exp_type = tltype.Tuple(l), explist2typelist(explist)
   local msg = "attempt to assign '%s' to '%s'"
   if tltype.subtype(exp_type, var_type) then
   elseif tltype.consistent_subtype(exp_type, var_type) then
@@ -1500,10 +1487,8 @@ local function check_index (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  t1 = replace_names(env, t1, exp1.pos)
   local msg = "attempt to index '%s' with '%s'"
   t1 = replace_self(env, t1, env.self)
-  if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
   if tltype.isTable(t1) then
     -- FIX: methods should not leave objects, this is unsafe!
     local field_type = replace_self(env, tltype.getField(t2, t1), tltype.Any())
@@ -1543,10 +1528,8 @@ function check_var (env, var, exp)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-    t1 = replace_names(env, t1, exp1.pos)
     local msg = "attempt to index '%s' with '%s'"
     t1 = replace_self(env, t1, env.self)
-    if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
     if tltype.isTable(t1) then
       local oself = env.self
       -- another brittle hack for defining methods
@@ -1560,8 +1543,6 @@ function check_var (env, var, exp)
             local t3 = tltype.general(get_type(exp))
             local t = tltype.general(t1)
             table.insert(t, tltype.Field(var.const, t2, t3))
-            t = replace_names(env, t, var.pos)
-            t1 = replace_names(env, t1, var.pos)
             if tltype.subtype(t, t1) then
               table.insert(t1, tltype.Field(var.const, t2, t3))
             else
