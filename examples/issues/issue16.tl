@@ -2,15 +2,6 @@ interface SubA
   subaname: string
 end
 
-interface A
-  aname: string
-  child: SubA
-  new:() => (self)
-  afoo:() => (self)
-  arun:(string) => ()
-  abar:(SubA) => ()
-end
-
 local A = {}
 A.aname = '<class A proto>'
 A.child = {subaname='the subaname'}
@@ -32,6 +23,9 @@ end
 
 function A:arun(name: string)
   print('arun', name)
+end
+
+function A:awrong(x: self)
 end
 
 function A:abar(obj: SubA)

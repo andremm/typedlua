@@ -46,6 +46,93 @@ local function get_type (node)
   return node and node["type"] or Nil
 end
 
+local check_self_field
+
+local function check_self (env, torig, t, pos)
+  local msg = string.format("self type appearing in a place that is not a first parameter or a return type inside type '%s', replacing with 'any'", tltype.tostring(torig))
+  if tltype.isSelf(t) then
+    typeerror(env, "self", msg, pos)
+    return tltype.Any()
+  elseif tltype.isRecursive(t) then
+    local r = tltype.Recursive(t[1], check_self(env, torig, t[2], pos))
+    r.name = t.name
+    return r
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+   local r = { tag = t.tag, name = t.name }
+   for k, v in ipairs(t) do
+     r[k] = check_self(env, torig, v, pos)
+   end
+   return r
+  elseif tltype.isFunction(t) then
+    local r = tltype.Function(check_self(env, torig, t[1], pos),
+                              check_self(env, torig, t[2], pos))
+    r.name = t.name
+    return r
+  elseif tltype.isVararg(t) then
+    local r = tltype.Vararg(check_self(env, torig, t[1], pos))
+    r.name = t.name
+    return r
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
+    end
+    local r = tltype.Table(table.unpack(l))
+    r.unique = t.unique
+    r.open = t.open
+    return r
+  else
+    return t
+  end
+end
+
+function check_self_field(env, torig, t, pos)
+  local msg = string.format("self type cannot appear in declaration of type '%s', replacing with 'any'", tltype.tostring(torig))
+  if tltype.isRecursive(t) then
+    local r = tltype.Recursive(t[1], check_self_field(env, torig, t[2], pos))
+    r.name = t.name
+    return r
+  elseif tltype.isUnion(t) or
+         tltype.isUnionlist(t) or
+         tltype.isTuple(t) then
+   local r = { tag = t.tag, name = t.name }
+   for k, v in ipairs(t) do
+     r[k] = check_self_field(env, torig, v, pos)
+   end
+   return r
+  elseif tltype.isFunction(t) then
+    local input = t[1]
+    assert(tltype.isTuple(input), "BUG: function input type is not a tuple")
+    if tltype.isSelf(input[1]) then -- method
+      local ninput = { tag = input.tag, tltype.Self() }
+      for i = 2, #input do
+        ninput[i] = check_self(env, torig, input[i], pos)
+      end
+      local r = tltype.Function(ninput, t[2])
+      r.name = t.name
+      return r
+    else
+      local r = tltype.Function(check_self(env, torig, t[1], pos),
+                                check_self(env, torig, t[2], pos))
+      r.name = t.name
+      return r
+    end
+  elseif tltype.isTable(t) then
+    local l = {}
+    for k, v in ipairs(t) do
+      table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
+    end
+    local r = tltype.Table(table.unpack(l))
+    r.unique = t.unique
+    r.open = t.open
+    return r
+  else
+    return check_self(env, torig, t, pos)
+  end
+end
+
 local function get_interface (env, name, pos)
   local t = tlst.get_interface(env, name)
   if not t then
@@ -202,6 +289,7 @@ local function check_interface (env, stm)
     msg = string.format(msg, name)
     typeerror(env, "alias", msg, stm.pos)
   else
+    check_self(env, t, t, stm.pos)
     local t = replace_names(env, t, stm.pos)
     t.name = name
     tlst.set_interface(env, name, t, is_local)
@@ -647,6 +735,11 @@ local function check_function (env, exp, tself)
     set_type(exp, t)
   end
   t = replace_names(env, t, exp.pos)
+  if env.self then
+    t = check_self_field(env, t, t, exp.pos)
+  else
+    t = check_self(env, t, t, exp.pos)
+  end
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
   set_type(exp, t)
@@ -797,12 +890,11 @@ local function replace_self (env, t, tself)
          tltype.isTuple(t) then
     local r = { tag = t.tag, name = t.name }
     for k, v in ipairs(t) do
-      r[k] = replace_self(env, t[k], tself)
+      r[k] = replace_self(env, v, tself)
     end
     return r
   elseif tltype.isFunction(t) then
-    assert(not t[3], "bare function type " .. tltype.tostring(t) .. " cannot be a method")
-    return tltype.Function(replace_self(env, t[1], tself), replace_self(env, t[2], tself), false)
+    return tltype.Function(replace_self(env, t[1], tself), replace_self(env, t[2], tself))
   elseif tltype.isVararg(t) then
     return tltype.Vararg(replace_self(env, t[1], tself))
   else
@@ -942,6 +1034,7 @@ local function check_local_var (env, id, inferred_type, close_local)
       local_type = Any
     else
       local_type = tltype.general(inferred_type)
+      if not local_type.name then local_type.name = local_name end
       if inferred_type.unique then
         local_type.unique = nil
         local_type.open = true
@@ -949,6 +1042,7 @@ local function check_local_var (env, id, inferred_type, close_local)
       if close_local then local_type.open = nil end
     end
   else
+    check_self(env, local_type, local_type, pos)
     local_type = replace_names(env, local_type, pos)
     local msg = "attempt to assign '%s' to '%s'"
     msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
@@ -1412,7 +1506,7 @@ local function check_index (env, exp)
   if tltype.isRecursive(t1) then t1 = tltype.unfold(t1) end
   if tltype.isTable(t1) then
     -- FIX: methods should not leave objects, this is unsafe!
-    local field_type = replace_self(env, tltype.getField(t2, t1), t1)
+    local field_type = replace_self(env, tltype.getField(t2, t1), tltype.Any())
     if not tltype.isNil(field_type) then
       set_type(exp, field_type)
     else

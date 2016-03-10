@@ -12,7 +12,7 @@ tltype.integer = false
 
 -- Literal : (boolean|number|string) -> (type)
 function tltype.Literal (l)
-  return { tag = "TLiteral", [1] = l }
+  return { tag = "TLiteral", [1] = l, name = tostring(l) }
 end
 
 -- False : () -> (type)
@@ -82,7 +82,7 @@ end
 
 -- Base : ("boolean"|"number"|"string") -> (type)
 function tltype.Base (s)
-  return { tag = "TBase", [1] = s }
+  return { tag = "TBase", [1] = s, name = s }
 end
 
 -- Boolean : () -> (type)
@@ -134,7 +134,7 @@ end
 
 -- Nil : () -> (type)
 function tltype.Nil ()
-  return { tag = "TNil" }
+  return { tag = "TNil", name = "nil" }
 end
 
 -- isNil : (type) -> (boolean)
@@ -146,7 +146,7 @@ end
 
 -- Value : () -> (type)
 function tltype.Value ()
-  return { tag = "TValue" }
+  return { tag = "TValue", name = "value" }
 end
 
 -- isValue : (type) -> (boolean)
@@ -158,7 +158,7 @@ end
 
 -- Any : () -> (type)
 function tltype.Any ()
-  return { tag = "TAny" }
+  return { tag = "TAny", name = "any" }
 end
 
 -- isAny : (type) -> (boolean)
@@ -170,7 +170,7 @@ end
 
 -- Self : () -> (type)
 function tltype.Self ()
-  return { tag = "TSelf" }
+  return { tag = "TSelf", name = "self" }
 end
 
 -- isSelf : (type) -> (boolean)
@@ -182,7 +182,7 @@ end
 
 -- Void : () -> (type)
 function tltype.Void ()
-  return { tag = "TVoid" }
+  return { tag = "TVoid", name = "void" }
 end
 
 -- isVoid : (type) -> (boolean)
@@ -285,7 +285,7 @@ end
 
 -- Vararg : (type) -> (type)
 function tltype.Vararg (t)
-  return { tag = "TVararg", [1] = t }
+  return { tag = "TVararg", [1] = t, name = t.name and t.name .. "*" }
 end
 
 -- isVararg : (type) -> (boolean)
@@ -1049,8 +1049,9 @@ end
 -- tostring
 
 -- type2str (type) -> (string)
-local function type2str (t, full)
-  if not full and t.name then
+local function type2str (t, n)
+  n = n or 0
+  if n > 0 and t.name then
     return t.name
   elseif tltype.isLiteral(t) then
     return tostring(t[1])
@@ -1068,16 +1069,16 @@ local function type2str (t, full)
          tltype.isUnionlist(t) then
     local l = {}
     for k, v in ipairs(t) do
-      l[k] = type2str(v)
+      l[k] = type2str(v, n-1)
     end
     return "(" .. table.concat(l, " | ") .. ")"
   elseif tltype.isFunction(t) then
-    return type2str(t[1]) .. " -> " .. type2str(t[2])
+    return type2str(t[1], n-1) .. " -> " .. type2str(t[2], n-1)
   elseif tltype.isTable(t) then
     --if t.interface then return t.interface end
     local l = {}
     for k, v in ipairs(t) do
-      l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
+      l[k] = type2str(v[1], n-1) .. ":" .. type2str(v[2], n-1)
       if tltype.isConstField(v) then
         l[k] = "const " .. l[k]
       end
@@ -1086,25 +1087,25 @@ local function type2str (t, full)
   elseif tltype.isVariable(t) then
     return t[1]
   elseif tltype.isRecursive(t) then
-    return t[1] .. "." .. type2str(t[2])
+    return t[1] .. "." .. type2str(t[2], n-1)
   elseif tltype.isVoid(t) then
     return "(void)"
   elseif tltype.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do
-      l[k] = type2str(v)
+      l[k] = type2str(v, n-1)
     end
     return "(" .. table.concat(l, ", ") .. ")"
   elseif tltype.isVararg(t) then
-    return type2str(t[1]) .. "*"
+    return type2str(t[1], n-1) .. "*"
   else
     error("trying to convert type to string but got " .. t.tag)
   end
 end
 
 -- tostring : (type) -> (string)
-function tltype.tostring (t, full)
-  return type2str(t, full)
+function tltype.tostring (t, n)
+  return type2str(t, n)
 end
 
 return tltype
