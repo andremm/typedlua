@@ -843,7 +843,9 @@ local function subtype_global_variable(env, t1, t2, relation)
   elseif tltype.isGlobalVariable(t1) then
     local tname = t1[1]
     local tenv = t1[2]
-    if subtype(env, tenv[tname], t2, relation) then
+    local t = tenv[name]
+    if not t then return false end
+    if subtype(env, t, t2, relation) then
       return true
     else
       env[t1][t2] = nil
@@ -852,7 +854,9 @@ local function subtype_global_variable(env, t1, t2, relation)
   elseif tltype.isGlobalVariable(t2) then
     local tname = t2[1]
     local tenv = t2[2]
-    if subtype(env, t1, tenv[tname], relation) then
+    local t = tenv[tname]
+    if not t then return false end
+    if subtype(env, t1, t, relation) then
       return true
     else
       env[t1][t2] = nil
