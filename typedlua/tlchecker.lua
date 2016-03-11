@@ -43,7 +43,7 @@ local function set_type (node, t)
 end
 
 local function get_type (node)
-  return node and tltype.unfold(node["type"], typeerror) or Nil
+  return node and tltype.unfold(node["type"]) or Nil
 end
 
 local check_self_field
@@ -136,7 +136,7 @@ end
 local function get_interface (env, name, pos)
   local t = tlst.get_interface(env, name)
   if not t then
-    return tltype.GlobalVariable(env["interface"], name, pos)
+    return tltype.GlobalVariable(env, name, pos, typeerror)
   else
     return t
   end
@@ -686,6 +686,7 @@ local function check_return_type (env, inf_type, dec_type, pos)
   if tltype.isUnionlist(dec_type) then
     dec_type = tltype.unionlist2tuple(dec_type)
   end
+  local dec_type = tltype.unfold(dec_type)
   if tltype.subtype(inf_type, dec_type) then
   elseif tltype.consistent_subtype(inf_type, dec_type) then
     msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
@@ -1034,6 +1035,7 @@ local function check_local_var (env, id, inferred_type, close_local)
     check_self(env, local_type, local_type, pos)
     local_type = replace_names(env, local_type, pos)
     local msg = "attempt to assign '%s' to '%s'"
+    local local_type = tltype.unfold(local_type)
     msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
     if tltype.subtype(inferred_type, local_type) then
     elseif tltype.consistent_subtype(inferred_type, local_type) then

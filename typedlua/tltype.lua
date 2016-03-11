@@ -514,8 +514,8 @@ end
 -- global type variables
 
 -- GlobalVariable : (string) -> (type)
-function tltype.GlobalVariable (env, name, pos, namespace)
-  return { tag = "TGlobalVariable", [1] = name, [2] = env, [3] = pos, [4] = namespace }
+function tltype.GlobalVariable (env, name, pos, typeerror, namespace)
+  return { tag = "TGlobalVariable", [1] = name, [2] = env, [3] = pos, [4] = typeerror, [5] = namespace }
 end
 
 -- isVariable : (type) -> (boolean)
@@ -586,18 +586,19 @@ local function unfold_recursive (tr, t)
   end
 end
 
-function tltype.unfold (t, typeerror)
+function tltype.unfold (t)
   if tltype.isGlobalVariable(t) then
-    local env, name = t[1], t[2]
-    local t = env[name]
-    if t then
-      return t
+    local env, name = t[2], t[1]
+    local tt = env.interface[name]
+    if tt then
+      return tt
     else
       local pos = t[3]
+      local typeerror = t[4]
       local msg = "type alias '%s' is not defined"
       msg = string.format(msg, name)
       typeerror(env, "alias", msg, pos)
-      return Nil
+      return tltype.Nil()
     end
   elseif tltype.isRecursive(t) then
     return unfold_recursive(t, t[2])
@@ -832,27 +833,21 @@ local function subtype_global_variable(env, t1, t2, relation)
     env[t1] = { [t2] = true }
   end
   if tltype.isGlobalVariable(t1) and tltype.isGlobalVariable(t2) then
-    local name1, name2 = t1[1], t2[1]
-    local env1, env2 = t1[2], t2[2]
-    if subtype(env, env1[name], env2[name], relation) then
+    if subtype(env, tltype.unfold(t1), tltype.unfold(t2), relation) then
       return true
     else
       env[t1][t2] = nil
       return false
     end
   elseif tltype.isGlobalVariable(t1) then
-    local tname = t1[1]
-    local tenv = t1[2]
-    if subtype(env, tenv[tname], t2, relation) then
+    if subtype(env, tltype.unfold(t1), t2, relation) then
       return true
     else
       env[t1][t2] = nil
       return false
     end
   elseif tltype.isGlobalVariable(t2) then
-    local tname = t2[1]
-    local tenv = t2[2]
-    if subtype(env, t1, tenv[tname], relation) then
+    if subtype(env, t1, tltype.unfold(t2), relation) then
       return true
     else
       env[t1][t2] = nil
@@ -1156,8 +1151,8 @@ local function type2str (t, n)
   elseif tltype.isVariable(t) then
     return t[1]
   elseif tltype.isGlobalVariable(t) then
-    if t[4] then
-      return t[4] .. "." .. t[1]
+    if t[5] then
+      return t[5] .. "." .. t[1]
     else
       return t[1]
     end
