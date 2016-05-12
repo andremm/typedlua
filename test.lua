@@ -1,5 +1,7 @@
 #!/usr/bin/env lua
 
+local abort_on_error = false
+
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
 local tltype = require "typedlua.tltype"
@@ -54,6 +56,25 @@ local function generate (s)
   end
 end
 
+local passed_tests = 0
+local failed_tests = 0
+
+local function check (e, r)
+  if e == r then
+    passed_tests = passed_tests + 1
+  else
+    failed_tests = failed_tests + 1
+    print("e:")
+    print(e)
+    print("r:")
+    print(r)
+  end
+
+  if abort_on_error then
+    assert(e == r)
+  end
+end
+
 local function fixint (s)
   return _VERSION < "Lua 5.3" and s:gsub("%.0","") or s
 end
@@ -71,7 +92,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- testing empty file
@@ -81,7 +102,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- expressions
 
@@ -93,7 +114,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- floating points
 
@@ -106,7 +127,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == fixint(e))
+check(fixint(e), r)
 
 s = [=[
 local f1 = 1.e-1
@@ -117,7 +138,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == fixint(e))
+check(fixint(e), r)
 
 s = [=[
 local f1 = 1.1e+1
@@ -128,7 +149,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == fixint(e))
+check(fixint(e), r)
 
 s = [=[
 local f1 = .1
@@ -139,7 +160,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == fixint(e))
+check(fixint(e), r)
 
 s = [=[
 local f1 = 1E1
@@ -150,7 +171,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == fixint(e))
+check(fixint(e), r)
 
 -- integers
 
@@ -163,7 +184,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local h = 0x76c
@@ -174,7 +195,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- long comments
 
@@ -194,7 +215,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- long strings
 
@@ -217,7 +238,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 --[==[
@@ -236,7 +257,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- short strings
 
@@ -253,7 +274,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- short string test begin
@@ -268,7 +289,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- short string test begin
@@ -286,7 +307,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- short string test begin
@@ -302,7 +323,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- short string test begin
@@ -322,7 +343,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- syntax error
 
@@ -336,7 +357,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{',
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = 5.e
@@ -346,7 +367,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{',
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = .9e-
@@ -356,7 +377,7 @@ test.lua:1:14: syntax error, unexpected '-', expecting '=', ',', 'String', '{', 
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = 5.9e+
@@ -366,7 +387,7 @@ test.lua:1:15: syntax error, unexpected '+', expecting '=', ',', 'String', '{', 
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- integers
 
@@ -380,7 +401,7 @@ test.lua:4:1: syntax error, unexpected 'EOF', expecting '=', ',', 'String', '{',
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- long strings
 
@@ -404,7 +425,7 @@ test.lua:5:13: syntax error, unexpected '[', expecting '(', 'Name', '{', 'functi
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- short strings
 
@@ -420,7 +441,7 @@ test.lua:3:13: syntax error, unexpected '"', expecting '(', 'Name', '{', 'functi
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 -- short string test begin
@@ -435,7 +456,7 @@ e = [=[
 ]=]
 
 r = parse(s)
---assert(r == e)
+--check(e, r)
 
 -- unfinished comments
 
@@ -449,7 +470,7 @@ test.lua:3:1: syntax error, unexpected 'comment', expecting '=', ',', 'String', 
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 print("> testing parser...")
 
@@ -465,7 +486,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local test = function ( a , b , ... ) end
@@ -475,7 +496,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local test = function (...) return ...,0 end
@@ -485,7 +506,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- arithmetic expressions
 
@@ -497,7 +518,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local pow = -3^-2^2
@@ -507,7 +528,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 q, r, f = 3//2, 3%2, 3/2
@@ -517,7 +538,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- assignments
 
@@ -529,7 +550,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a()[1] = 1;
@@ -539,7 +560,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 i = a.f(1)
@@ -549,7 +570,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 i = a[f(1)]
@@ -559,7 +580,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a[f()] = sub
@@ -570,7 +591,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a:b(1)._ = some_value
@@ -580,7 +601,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- bitwise expressions
 
@@ -592,7 +613,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 b = 1 & 0 | 1 >> 1 ~ 1
@@ -602,7 +623,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- break
 
@@ -616,7 +637,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 while 1 do
@@ -631,7 +652,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 repeat
@@ -643,7 +664,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i=1,10 do
@@ -659,7 +680,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- block statements
 
@@ -674,7 +695,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- calls
 
@@ -687,7 +708,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- concatenation expressions
 
@@ -699,7 +720,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- empty files
 
@@ -711,7 +732,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- for generic
 
@@ -723,7 +744,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- for numeric
 
@@ -735,7 +756,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i=1,10 do end
@@ -745,7 +766,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- global functions
 
@@ -757,7 +778,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function test (...) end
@@ -767,7 +788,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function t.a:b() end
@@ -777,7 +798,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function t.a() end
@@ -787,7 +808,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function testando . funcao . com : espcacos ( e, com , parametros, ... ) end
@@ -797,7 +818,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- goto
 
@@ -810,7 +831,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::label::
@@ -821,7 +842,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 goto label
@@ -832,7 +853,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::label::
@@ -843,7 +864,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::label::
@@ -854,7 +875,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::label::
@@ -865,7 +886,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 do goto label end
@@ -876,7 +897,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 do do do do do goto label end end end end end
@@ -887,7 +908,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- if-else
 
@@ -899,7 +920,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then return a else return end
@@ -909,7 +930,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then
@@ -925,7 +946,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then
@@ -941,7 +962,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then return a
@@ -954,7 +975,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then
@@ -967,7 +988,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- interfaces
 
@@ -979,7 +1000,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface X
@@ -991,7 +1012,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -1004,7 +1025,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Element
@@ -1017,7 +1038,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- labels
 
@@ -1031,7 +1052,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- locals
 
@@ -1043,7 +1064,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a,b,c
@@ -1053,7 +1074,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a = 1 , 1 + 2, 5.1
@@ -1063,7 +1084,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a,b,c = 1.9
@@ -1073,7 +1094,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function test() end
@@ -1083,7 +1104,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function test ( a , b , c , ... ) end
@@ -1093,7 +1114,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function test(...) return ... end
@@ -1103,7 +1124,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- relational expressions
 
@@ -1115,7 +1136,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- repeat
 
@@ -1130,7 +1151,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- return
 
@@ -1142,7 +1163,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 return 1
@@ -1152,7 +1173,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 return 1,1-2*3+4,"alo"
@@ -1162,7 +1183,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 return;
@@ -1172,7 +1193,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 return 1;
@@ -1182,7 +1203,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 return 1,1-2*3+4,"alo";
@@ -1192,7 +1213,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- tables
 
@@ -1204,7 +1225,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = { 1.5 }
@@ -1214,7 +1235,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = {1,2;
@@ -1230,7 +1251,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = {[1]=1,[2]=2;
@@ -1246,7 +1267,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = {{{}}, {"alo"}}
@@ -1256,7 +1277,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- vararg
 
@@ -1270,7 +1291,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = function ()
@@ -1284,7 +1305,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x, ...)
@@ -1296,7 +1317,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = function (x, ...)
@@ -1308,7 +1329,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- while
 
@@ -1324,7 +1345,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- type annotations
 
@@ -1336,7 +1357,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:false, y:true
@@ -1346,7 +1367,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:1, y:1.1
@@ -1356,7 +1377,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:"hello", y:'world' 
@@ -1366,7 +1387,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:number, z:string 
@@ -1376,7 +1397,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:any
@@ -1386,7 +1407,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -1396,7 +1417,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|nil
@@ -1406,7 +1427,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|string|nil
@@ -1416,7 +1437,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|nil|nil|nil|nil
@@ -1426,7 +1447,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|nil|string|nil|number|boolean|string
@@ -1436,7 +1457,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|string?
@@ -1446,7 +1467,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:(number) -> (number)
@@ -1456,7 +1477,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:(value*) -> (nil*)
@@ -1466,7 +1487,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:(number,string,boolean) -> (string,number,boolean)
@@ -1476,7 +1497,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:(number,string,value*) -> (string,number,nil*)
@@ -1486,7 +1507,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{}
@@ -1496,7 +1517,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{{{{{}}}}}
@@ -1506,7 +1527,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{string}
@@ -1516,7 +1537,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{string:number}
@@ -1526,7 +1547,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{'firstname':string, 'lastname':string}
@@ -1536,7 +1557,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{'tag':string, number:string}
@@ -1546,7 +1567,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{'f':(number) -> (number), 't':{number:number}}
@@ -1556,7 +1577,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k:number, v:string in ipairs({"hello", "world"}) do end
@@ -1566,7 +1587,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k:string, v in pairs({}) do end
@@ -1576,7 +1597,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k, v:boolean in pairs({}) do end
@@ -1586,7 +1607,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:any) end
@@ -1596,7 +1617,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:any):(any) end
@@ -1606,7 +1627,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (...:any) end
@@ -1616,7 +1637,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:any, ...:any) end
@@ -1626,7 +1647,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x, ...:any) end
@@ -1636,7 +1657,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:any, ...) end
@@ -1646,7 +1667,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:any, ...:any):(any) end
@@ -1656,7 +1677,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:(any) -> (any)):((any) -> (any)) end
@@ -1666,7 +1687,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x:(number, number) -> (number, nil*)):(number*) end
@@ -1676,7 +1697,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(number, nil*) end
@@ -1686,7 +1707,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():number end
@@ -1696,7 +1717,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():number? end
@@ -1706,7 +1727,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(number) | (nil,string) end
@@ -1716,7 +1737,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(number)? end
@@ -1726,7 +1747,7 @@ e = [=[
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- syntax error
 
@@ -1740,7 +1761,7 @@ test.lua:1:19: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = function (...,a) end
@@ -1750,7 +1771,7 @@ test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a = function (1) end
@@ -1760,7 +1781,7 @@ test.lua:1:21: syntax error, unexpected '1', expecting ')', '...', 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local test = function ( a , b , c , ... )
@@ -1770,7 +1791,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'N
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- arithmetic expressions
 
@@ -1782,7 +1803,7 @@ test.lua:1:9: syntax error, unexpected '/', expecting '(', 'Name', '{', 'functio
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- bitwise expressions
 
@@ -1794,7 +1815,7 @@ test.lua:1:8: syntax error, unexpected '&', expecting '(', 'Name', '{', 'functio
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 b = 1 <> 0
@@ -1804,7 +1825,7 @@ test.lua:1:8: syntax error, unexpected '>', expecting '(', 'Name', '{', 'functio
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 b = 1 < < 0
@@ -1814,7 +1835,7 @@ test.lua:1:9: syntax error, unexpected '<', expecting '(', 'Name', '{', 'functio
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- break
 
@@ -1826,7 +1847,7 @@ test.lua:1:1: syntax error, <break> not inside a loop
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f (x)
@@ -1838,7 +1859,7 @@ test.lua:2:13: syntax error, <break> not inside a loop
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 while 1 do
@@ -1850,7 +1871,7 @@ test.lua:3:1: syntax error, <break> not inside a loop
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- concatenation expressions
 
@@ -1862,7 +1883,7 @@ test.lua:1:15: syntax error, unexpected '.1', expecting 'return', '(', 'Name', '
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- for generic
 
@@ -1874,7 +1895,7 @@ test.lua:1:6: syntax error, unexpected ';', expecting 'in', ',', ':', '='
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k,v in pairs(t:any) do end
@@ -1884,7 +1905,7 @@ test.lua:1:23: syntax error, unexpected ')', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- for numeric
 
@@ -1896,7 +1917,7 @@ test.lua:1:13: syntax error, unexpected 'do', expecting '(', 'Name', '{', 'funct
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i=1,n:number do end
@@ -1906,7 +1927,7 @@ test.lua:1:18: syntax error, unexpected 'do', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- global functions
 
@@ -1918,7 +1939,7 @@ test.lua:1:21: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function func(...,a) end
@@ -1928,7 +1949,7 @@ test.lua:1:18: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function a.b:c:d () end
@@ -1938,7 +1959,7 @@ test.lua:1:15: syntax error, unexpected ':', expecting '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- goto
 
@@ -1951,7 +1972,7 @@ test.lua:2:1: syntax error, unexpected 'goto', expecting ';', '(', 'Name', '{', 
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 goto label
@@ -1961,7 +1982,7 @@ test.lua:1:1: syntax error, no visible label 'label' for <goto>
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 goto label
@@ -1972,7 +1993,7 @@ test.lua:1:1: syntax error, no visible label 'label' for <goto>
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::other_label::
@@ -1983,7 +2004,7 @@ test.lua:2:10: syntax error, no visible label 'label' for <goto>
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- if-else
 
@@ -1995,7 +2016,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'else', 'elseif',
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then else
@@ -2005,7 +2026,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'end', 'return', '(', 'N
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a then
@@ -2021,7 +2042,7 @@ test.lua:7:1: syntax error, unexpected 'end', expecting '(', 'Name', '{', 'funct
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if a:any then else end
@@ -2031,7 +2052,7 @@ test.lua:1:10: syntax error, unexpected 'then', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- interfaces
 
@@ -2048,7 +2069,7 @@ test.lua:1:7: syntax error, attempt to redeclare field 'x'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface X
@@ -2060,7 +2081,7 @@ test.lua:1:7: syntax error, attempt to redeclare field 'x'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface boolean end
@@ -2070,7 +2091,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'boolean'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface number end
@@ -2080,7 +2101,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'number'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface string end
@@ -2090,7 +2111,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'string'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface value end
@@ -2100,7 +2121,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'value'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface any end
@@ -2110,7 +2131,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'any'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface self end
@@ -2120,7 +2141,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'self'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface const end
@@ -2130,7 +2151,7 @@ test.lua:1:7: syntax error, attempt to redeclare type 'const'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- labels
 
@@ -2143,7 +2164,7 @@ test.lua:2:4: syntax error, unexpected 'not', expecting 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 ::label::
@@ -2155,7 +2176,7 @@ test.lua:3:1: syntax error, label 'label' already defined
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- locals
 
@@ -2167,7 +2188,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting '(', 'Name', '{', 'funct
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function t.a() end
@@ -2177,7 +2198,7 @@ test.lua:1:17: syntax error, unexpected '.', expecting '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function test (a,) end
@@ -2187,7 +2208,7 @@ test.lua:1:24: syntax error, unexpected ')', expecting '...', 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function test(...,a) end
@@ -2197,7 +2218,7 @@ test.lua:1:24: syntax error, unexpected ',', expecting ')', ':'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function (a, b, c, ...) end
@@ -2207,7 +2228,7 @@ test.lua:1:16: syntax error, unexpected '(', expecting 'Name'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- repeat
 
@@ -2221,7 +2242,7 @@ test.lua:4:1: syntax error, unexpected 'EOF', expecting 'until', 'return', '(', 
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- return
 
@@ -2238,7 +2259,7 @@ test.lua:2:1: syntax error, unexpected 'return', expecting ';', '(', 'Name', '{'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- tables
 
@@ -2250,7 +2271,7 @@ test.lua:1:7: syntax error, unexpected ',', expecting '}', '(', '{', 'function',
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- vararg
 
@@ -2264,7 +2285,7 @@ test.lua:2:10: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f ()
@@ -2278,7 +2299,7 @@ test.lua:3:12: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (x)
@@ -2290,7 +2311,7 @@ test.lua:2:10: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local f = function (x)
@@ -2302,7 +2323,7 @@ test.lua:2:10: syntax error, cannot use '...' outside a vararg function
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- while
 
@@ -2317,7 +2338,7 @@ test.lua:3:3: syntax error, unexpected 'i', expecting 'do', 'or', 'and', '>', '<
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 -- type annotations
 
@@ -2329,7 +2350,7 @@ test.lua:1:8: syntax error, unexpected ']', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 x:number, y, z:boolean = 1, nil, true
@@ -2339,7 +2360,7 @@ test.lua:1:9: syntax error, unexpected ',', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 x = x:any
@@ -2349,7 +2370,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 x = ...:any
@@ -2359,7 +2380,7 @@ test.lua:1:8: syntax error, unexpected ':', expecting 'return', '(', 'Name', 'ty
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 f(x:any)
@@ -2369,7 +2390,7 @@ test.lua:1:8: syntax error, unexpected ')', expecting 'String', '{', '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 f(...:any)
@@ -2379,7 +2400,7 @@ test.lua:1:6: syntax error, unexpected ':', expecting ')', ',', 'or', 'and', '>'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number*
@@ -2389,7 +2410,7 @@ test.lua:1:15: syntax error, unexpected '*', expecting 'return', '(', 'Name', 't
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|
@@ -2399,7 +2420,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting '{', '(', 'Type'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?|string?
@@ -2409,7 +2430,7 @@ test.lua:1:16: syntax error, unexpected '|', expecting 'return', '(', 'Name', 't
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:() -> number
@@ -2419,7 +2440,7 @@ test.lua:1:15: syntax error, unexpected 'number', expecting '('
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:() -> (number)? | (string)?
@@ -2429,7 +2450,7 @@ test.lua:1:35: syntax error, unexpected '?', expecting '->'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{()->():string}
@@ -2439,7 +2460,7 @@ test.lua:1:16: syntax error, unexpected ':', expecting '}', '?', '|'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{string:t 1}
@@ -2449,7 +2470,7 @@ test.lua:1:19: syntax error, unexpected '1', expecting '}', '?', '|'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:{{{{{}}}}
@@ -2459,7 +2480,7 @@ test.lua:2:1: syntax error, unexpected 'EOF', expecting '}', '?', '|'
 ]=]
 
 r = parse(s)
-assert(r == e)
+check(e, r)
 
 print("> testing types...")
 
@@ -2839,7 +2860,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x, y, z = 1, "foo", false
@@ -2849,7 +2870,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:string, z:boolean = 1, "foo", false
@@ -2859,7 +2880,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:nil = true, nil
@@ -2869,7 +2890,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?, y:number|nil = 1 
@@ -2879,7 +2900,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number = 1 + 1
@@ -2889,7 +2910,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:string = "hello" .. "world"
@@ -2899,7 +2920,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:boolean = nil == false, false == true
@@ -2909,7 +2930,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:boolean = 1 == 2, "foo" == "bar"
@@ -2919,7 +2940,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:boolean = 1 < 2, "foo" < "bar"
@@ -2929,7 +2950,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:nil, y:boolean = nil and 1, false and 1 
@@ -2939,7 +2960,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:string? = 1 and 2, "foo" and nil
@@ -2949,7 +2970,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:number = nil or 1, false or 1 
@@ -2959,7 +2980,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:string? = 1 or 2, "foo" or nil
@@ -2969,7 +2990,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -2980,7 +3001,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:boolean = not nil, not false
@@ -2990,7 +3011,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number = -1
@@ -3000,7 +3021,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number = #"foo"
@@ -3010,7 +3031,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 while 1 do break end
@@ -3020,7 +3041,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 repeat break until 1
@@ -3030,7 +3051,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then local x = 1 end
@@ -3040,7 +3061,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then local x = 1 else local x = "foo" end
@@ -3050,7 +3071,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -3070,7 +3091,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3085,7 +3106,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3100,7 +3121,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3115,7 +3136,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3130,7 +3151,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|string?
@@ -3152,7 +3173,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number|string?
@@ -3177,7 +3198,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i = 1, 10 do local x = i end
@@ -3187,7 +3208,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i = 10, 1, -1 do local x = i end
@@ -3197,7 +3218,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 -- do not type check
 
@@ -3212,7 +3233,7 @@ test.lua:2:28: type error, attempt to assign 'value' to 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean, y:boolean, z:number = 1, "foo"
@@ -3224,7 +3245,7 @@ test.lua:1:29: type error, attempt to assign 'nil' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:number, z:string = false, true
@@ -3236,7 +3257,7 @@ test.lua:1:27: type error, attempt to assign 'nil' to 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x, y = 1 + "foo", "foo" + 1
@@ -3250,7 +3271,7 @@ test.lua:1:25: type error, attempt to perform arithmetic on a 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x, y = "foo" .. 1, 1 .. "foo"
@@ -3264,7 +3285,7 @@ test.lua:1:26: type error, attempt to concatenate a 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x, y = 1 < "foo", "foo" < 1
@@ -3278,7 +3299,7 @@ test.lua:1:25: type error, attempt to compare 'string' with 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x, y = nil < 1, true < "false"
@@ -3289,7 +3310,7 @@ test.lua:1:23: type error, attempt to compare 'boolean' with 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:number = nil and 1, false and 1 
@@ -3303,7 +3324,7 @@ test.lua:1:17: type error, attempt to assign 'false' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:string, y:number|string = 1 and 2, "foo" and nil
@@ -3314,7 +3335,7 @@ test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:nil, y:boolean = nil or 1, false or 1 
@@ -3328,7 +3349,7 @@ test.lua:1:14: type error, attempt to assign '1' to 'boolean'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:string, y:number|string = 1 or 2, "foo" or nil
@@ -3339,7 +3360,7 @@ test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3350,7 +3371,7 @@ test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:string = not nil, not false
@@ -3361,7 +3382,7 @@ test.lua:1:17: type error, attempt to assign 'boolean' to 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number, y:string = not 1, not "foo"
@@ -3372,7 +3393,7 @@ test.lua:1:17: type error, attempt to assign 'boolean' to 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x = -"foo"
@@ -3384,7 +3405,7 @@ test.lua:1:12: type error, attempt to perform arithmetic on a 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x = #1
@@ -3396,7 +3417,7 @@ test.lua:1:12: type error, attempt to get length of a 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 while 1 + "foo" do break end
@@ -3406,7 +3427,7 @@ test.lua:1:11: type error, attempt to perform arithmetic on a 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 repeat break until 1 + nil
@@ -3416,7 +3437,7 @@ test.lua:1:24: type error, attempt to perform arithmetic on a 'nil'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then local x:string = 1 end
@@ -3426,7 +3447,7 @@ test.lua:1:17: type error, attempt to assign '1' to 'string'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then local x:number = 1 else local x:number = "foo" end
@@ -3436,7 +3457,7 @@ test.lua:1:41: type error, attempt to assign 'foo' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -3457,7 +3478,7 @@ test.lua:8:9: type error, attempt to assign '4' to 'boolean'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3483,7 +3504,7 @@ test.lua:14:5: type error, attempt to concatenate a '(string | nil)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:boolean|number|string?
@@ -3503,7 +3524,7 @@ test.lua:11:5: type error, attempt to perform arithmetic on a '(boolean | number
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3519,7 +3540,7 @@ test.lua:3:9: type error, attempt to access undeclared global 'y'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i = nil, 10 do local x = i end
@@ -3529,7 +3550,7 @@ test.lua:1:9: type error, 'for' initial value must be a number
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i = 1, "foo" do local x = i end
@@ -3539,7 +3560,7 @@ test.lua:1:12: type error, 'for' limit must be a number
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i = 10, 1, false do local x = i end
@@ -3549,7 +3570,7 @@ test.lua:1:16: type error, 'for' step must be a number
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 -- new tests
 
@@ -3567,7 +3588,7 @@ test.lua:4:11: type error, require must have one argument
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(number, number) return 1, 2 end
@@ -3578,7 +3599,7 @@ test.lua:2:27: type error, attempt to assign 'nil' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(number) end
@@ -3588,7 +3609,7 @@ test.lua:1:18: type error, return type '(nil*)' does not match '(number, nil*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(any) return 1 end
@@ -3598,7 +3619,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -3609,7 +3630,7 @@ test.lua:2:37: type error, table index can be nil
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number = 1
@@ -3620,7 +3641,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function fib (n:number)
@@ -3638,7 +3659,7 @@ test.lua:7:12: type error, attempt to perform arithmetic on a 'nil'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function fib (n:number):number
@@ -3656,7 +3677,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i,j,k in 1,2,3 do
@@ -3675,7 +3696,7 @@ test.lua:1:5: type error, attempt to iterate over 1
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k, v in pairs({ foo = 1, bar = 2}) do
@@ -3695,7 +3716,7 @@ test.lua:10:9: type error, attempt to concatenate a 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:any = 1
@@ -3707,7 +3728,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x
@@ -3724,7 +3745,7 @@ test.lua:4:1: type error, attempt to assign '(2, nil*)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x
@@ -3737,7 +3758,7 @@ test.lua:4:1: type error, attempt to call local 'y' of type 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t:{"x":any} = {}
@@ -3754,7 +3775,7 @@ test.lua:7:1: type error, attempt to index 'number' with 'x'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local o = { x = 1 }
@@ -3766,7 +3787,7 @@ test.lua:3:7: type error, attempt to create a method reference
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f ():(nil*) return end
@@ -3790,7 +3811,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 -- paper dyla
 
@@ -3810,7 +3831,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function abs(n:number)
@@ -3830,7 +3851,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function multiple ()
@@ -3847,7 +3868,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function message (name:string, greeting:string?)
@@ -3863,7 +3884,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function message (name:string, greeting:string?)
@@ -3876,7 +3897,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (s:string?)
@@ -3892,7 +3913,7 @@ test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local s:string?
@@ -3908,7 +3929,7 @@ test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function rep (s:string, n:number, sep:string?):string
@@ -3933,7 +3954,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function overload (s1:string, s2:string|number)
@@ -3949,7 +3970,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function idiv (d1:number, d2:number):(number, number) | (nil, string)
@@ -3976,7 +3997,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function x() : (number, boolean)|(string, number)
@@ -3997,7 +4018,7 @@ test.lua:11:16: type error, attempt to concatenate a '(number | string)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t:{string:number} = { foo = 1 }
@@ -4009,7 +4030,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t:{string:number?} = { foo = 1 or nil }
@@ -4022,7 +4043,7 @@ test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t1:{"foo":number} = { foo = 1, bar = "foo" }
@@ -4033,7 +4054,7 @@ test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:(number |
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local days:{string} = { "Sunday", "Monday", "Tuesday", "Wednesday",
@@ -4046,7 +4067,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
@@ -4057,7 +4078,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
@@ -4072,7 +4093,7 @@ test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:st
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t1:{{string}} = { { "foo", "bar", "z" }, { "z", "bar", "foo" }, 4 }
@@ -4086,7 +4107,7 @@ test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:n
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t:{const "foo":string?} = { const foo = "foo" or nil }
@@ -4102,7 +4123,7 @@ test.lua:6:1: type error, attempt to assign '({const foo:(string | nil)}, nil*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = { ... }
@@ -4115,7 +4136,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = { ... }
@@ -4126,7 +4147,7 @@ test.lua:2:1: type error, attempt to assign '(1, nil*)' to '((string | nil), val
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = { ... }
@@ -4138,7 +4159,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t1:{"foo":number, number:string|nil} = { foo = 1, ... }
@@ -4152,7 +4173,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local person:{"firstname":string, "lastname":string} =
@@ -4163,7 +4184,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local person:Person = { firstname = "Lou", lastname = "Reed" }
@@ -4174,7 +4195,7 @@ test.lua:1:7: type error, attempt to assign '{firstname:string, lastname:string}
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4200,7 +4221,7 @@ test.lua:16:7: type error, attempt to pass '({1:string, 2:string}, nil*)' to loc
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4217,7 +4238,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4234,7 +4255,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4250,7 +4271,7 @@ test.lua:7:7: type error, attempt to redeclare interface 'Person'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 interface Test
@@ -4270,7 +4291,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 interface Attribute
@@ -4300,7 +4321,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Element
@@ -4313,7 +4334,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local person = {}
@@ -4325,7 +4346,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local bogus = { firstname = 1 }
@@ -4341,7 +4362,7 @@ test.lua:4:1: type error, attempt to assign '(Reed, nil*)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local person = {}
@@ -4356,7 +4377,7 @@ test.lua:3:1: type error, attempt to assign '(1, nil*)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local person = {}
@@ -4378,7 +4399,7 @@ test.lua:8:3: type error, attempt to assign '(Lou, nil*)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local t = {}
@@ -4397,7 +4418,7 @@ test.lua:8:11: type error, attempt to access undeclared global 'g'
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4416,7 +4437,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4436,7 +4457,7 @@ test.lua:11:7: type error, attempt to assign '{firstname:string, middlename:stri
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface Person
@@ -4456,7 +4477,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local str = "foo"
@@ -4468,7 +4489,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local str = "foo"
@@ -4479,7 +4500,7 @@ test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input typ
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (...:{1:string})
@@ -4496,7 +4517,7 @@ test.lua:4:1: type error, attempt to assign '((number*) -> (string*), nil*)' to 
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 interface Shape
@@ -4551,7 +4572,7 @@ e = [=[
 ]=]
 
 r = typecheck(s)
-assert(r == e)
+check(e, r)
 
 print("> testing code generation...")
 
@@ -4565,7 +4586,7 @@ zero, um = false, true
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 n,s = 1, "alo"
@@ -4575,7 +4596,7 @@ n, s = 1, "alo"
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 t = ...,nil
@@ -4585,7 +4606,7 @@ t = ..., nil
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = 2 * 3 + 5
@@ -4595,7 +4616,7 @@ a = 2 * 3 + 5
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = (2 * 3) + 5
@@ -4605,7 +4626,7 @@ a = (2 * 3) + 5
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = 1 - 2 / 3 % 4 ^ 5
@@ -4615,7 +4636,7 @@ a = 1 - 2 / 3 % 4 ^ 5
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 c = "alo" .. "mundo" 
@@ -4625,7 +4646,7 @@ c = "alo" .. "mundo"
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = 1 == 2
@@ -4646,7 +4667,7 @@ f = 2 <= 1
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 a = not 1 and 2 or 3
@@ -4656,7 +4677,7 @@ a = not (1) and 2 or 3
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 t = { 1, 2, 3 }
@@ -4666,7 +4687,7 @@ t = {1, 2, 3}
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- do
 
@@ -4678,7 +4699,7 @@ do do do do do  end end end end end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- for
 
@@ -4690,7 +4711,7 @@ for i = 1, 10 do break end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for i=1,10,-1 do break end
@@ -4700,7 +4721,7 @@ for i = 1, 10, -(1) do break end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 for k,v in pairs({}) do end
@@ -4710,7 +4731,7 @@ for k, v in pairs({}) do  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- function
 
@@ -4722,7 +4743,7 @@ f = function ()  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f () end
@@ -4732,7 +4753,7 @@ f = function ()  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f (a) return a end
@@ -4742,7 +4763,7 @@ f = function (a) return a end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f (a, b, c) end
@@ -4752,7 +4773,7 @@ f = function (a, b, c)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f (a, b, c, ...) end
@@ -4762,7 +4783,7 @@ f = function (a, b, c, ...)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 function f (...) end
@@ -4772,7 +4793,7 @@ f = function (...)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f () end
@@ -4782,7 +4803,7 @@ local function f ()  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (a) return a end
@@ -4792,7 +4813,7 @@ local function f (a) return a end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (a, b, c) end
@@ -4802,7 +4823,7 @@ local function f (a, b, c)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (a, b, c, ...) end
@@ -4812,7 +4833,7 @@ local function f (a, b, c, ...)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local function f (...) end
@@ -4822,7 +4843,7 @@ local function f (...)  end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- goto
 
@@ -4837,7 +4858,7 @@ do goto eof end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- if
 
@@ -4854,7 +4875,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -4873,7 +4894,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -4900,7 +4921,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -4931,7 +4952,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 if 1 then
@@ -4980,7 +5001,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local x:number?
@@ -4995,7 +5016,7 @@ if type(x) == "nil" then print("error") else x = x + 1 end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- local
 
@@ -5007,7 +5028,7 @@ local a
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a:any?, b:any?, c:any?
@@ -5017,7 +5038,7 @@ local a, b, c
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a = 1
@@ -5027,7 +5048,7 @@ local a = 1
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local a, b:any? = 1
@@ -5037,7 +5058,7 @@ local a, b = 1
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- repeat
 
@@ -5049,7 +5070,7 @@ repeat break until true
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- while
 
@@ -5066,7 +5087,7 @@ end
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 -- complete examples
 
@@ -5163,7 +5184,7 @@ print_l(e)
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 local interface NoArv
@@ -5222,7 +5243,7 @@ print_tree(a)
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
 s = [=[
 interface Shape
@@ -5327,6 +5348,10 @@ circle2:area()
 ]=]
 
 r = generate(s)
-assert(r == e)
+check(e, r)
 
-print("OK")
+if failed_tests == 0 then
+  print("OK: " .. passed_tests .. " PASSED TESTS")
+else
+  print(failed_tests .. " FAILED TESTS, " .. passed_tests .. " PASSED TESTS")
+end
