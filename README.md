@@ -1,4 +1,5 @@
 # Typed Lua
+[![Build Status](https://travis-ci.org/andremm/typedlua.svg?branch=master)](https://travis-ci.org/andremm/typedlua)
 
 Typed Lua is a typed superset of Lua that compiles to plain Lua.
 It provides optional type annotations, compile-time type checking, and
