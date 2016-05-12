@@ -76,7 +76,7 @@ local function check_self (env, torig, t, pos)
     return r
   elseif tltype.isTable(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
     end
     local r = tltype.Table(table.unpack(l))
@@ -121,7 +121,7 @@ function check_self_field(env, torig, t, pos)
     end
   elseif tltype.isTable(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
     end
     local r = tltype.Table(table.unpack(l))
@@ -163,7 +163,7 @@ local function replace_names (env, t, pos, ignore)
          tltype.isUnionlist(t) or
          tltype.isTuple(t) then
     local r = { tag = t.tag, name = t.name }
-    for k, v in ipairs(t) do
+    for k, _ in ipairs(t) do
       r[k] = replace_names(env, t[k], pos, ignore)
     end
     return r
@@ -172,7 +172,7 @@ local function replace_names (env, t, pos, ignore)
     t[2] = replace_names(env, t[2], pos, ignore)
     return t
   elseif tltype.isTable(t) then
-    for k, v in ipairs(t) do
+    for k, _ in ipairs(t) do
       t[k][2] = replace_names(env, t[k][2], pos, ignore)
     end
     return t
@@ -196,7 +196,7 @@ local function close_type (t)
   if tltype.isUnion(t) or
      tltype.isUnionlist(t) or
      tltype.isTuple(t) then
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       close_type(v)
     end
   else
@@ -244,7 +244,7 @@ local function check_masking (env, local_name, pos)
   local masked_local = tlst.masking(env, local_name)
   if masked_local then
     local l, c = lineno(env.subject, masked_local.pos)
-    msg = "masking previous declaration of local %s on line %d"
+    local msg = "masking previous declaration of local %s on line %d"
     msg = string.format(msg, local_name, l)
     typeerror(env, "mask", msg, pos)
   end
@@ -312,7 +312,7 @@ local function check_tld (env, name, path, pos)
     return Any
   end
   local t = tltype.Table()
-  for k, v in ipairs(ast) do
+  for _, v in ipairs(ast) do
     local tag = v.tag
     if tag == "Id" then
       table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
@@ -341,7 +341,8 @@ local function check_require (env, name, pos, extra_path)
       end
     else
       path = string.gsub(package.path..";", "[.]lua;", ".tld;")
-      local filepath, msg2 = searchpath(extra_path .. name, path)
+      local msg2
+      filepath, msg2 = searchpath(extra_path .. name, path)
       if filepath then
         env["loaded"][name] = check_tld(env, name, filepath, pos)
       else
@@ -686,7 +687,7 @@ local function check_return_type (env, inf_type, dec_type, pos)
   if tltype.isUnionlist(dec_type) then
     dec_type = tltype.unionlist2tuple(dec_type)
   end
-  local dec_type = tltype.unfold(dec_type)
+  dec_type = tltype.unfold(dec_type)
   if tltype.subtype(inf_type, dec_type) then
   elseif tltype.consistent_subtype(inf_type, dec_type) then
     msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
@@ -1050,7 +1051,7 @@ local function check_local_var (env, id, inferred_type, close_local)
 end
 
 local function unannotated_idlist (idlist)
-  for k, v in ipairs(idlist) do
+  for _, v in ipairs(idlist) do
     if v[2] then return false end
   end
   return true
@@ -1145,7 +1146,7 @@ local function explist2typelist (explist)
       last_type = tltype.unionlist2tuple(last_type)
     end
     if tltype.isTuple(last_type) then
-      for k, v in ipairs(last_type) do
+      for _, v in ipairs(last_type) do
         table.insert(l, tltype.first(v))
       end
     else
@@ -1361,7 +1362,7 @@ local function check_if (env, stm)
     local r, isret = check_block(env, block)
     table.insert(rl, r)
     isallret = isallret and isret
-    for k, v in pairs(l) do
+    for _, v in pairs(l) do
       if not tltype.isTuple(v.filter) then
         set_type(v, v.filter)
       else
@@ -1373,7 +1374,7 @@ local function check_if (env, stm)
     end
   end
   if not isallret then
-    for k, v in pairs(l) do
+    for _, v in pairs(l) do
       if not tltype.isUnionlist(get_type(v)) then
         set_type(v, v.bkp)
       else
@@ -1383,7 +1384,7 @@ local function check_if (env, stm)
   end
   if #stm % 2 == 0 then table.insert(rl, false) end
   local r = true
-  for k, v in ipairs(rl) do
+  for _, v in ipairs(rl) do
     r = r and v
   end
   return r
@@ -1670,7 +1671,7 @@ function check_block (env, block)
   local bkp = env.self
   local endswithret = true
   local didgoto, _ = false, nil
-  for k, v in ipairs(block) do
+  for _, v in ipairs(block) do
     r, _, didgoto = check_stm(env, v)
     env.self = bkp
     if didgoto then endswithret = false end
@@ -1697,7 +1698,7 @@ local function load_lua_env (env)
     error("Typed Lua does not support " .. _VERSION)
   end
   local t = check_require(env, "base", 0, path)
-  for k, v in ipairs(l) do
+  for _, v in ipairs(l) do
     local t1 = tltype.Literal(v)
     local t2 = check_require(env, v, 0, path)
     local f = tltype.Field(false, t1, t2)
@@ -1725,7 +1726,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
   load_lua_env(env)
-  for k, v in ipairs(ast) do
+  for _, v in ipairs(ast) do
     check_stm(env, v)
   end
   check_unused_locals(env)
@@ -1743,7 +1744,7 @@ function tlchecker.error_msgs (messages, warnings)
     mask = true,
     unused = true,
   }
-  for k, v in ipairs(messages) do
+  for _, v in ipairs(messages) do
     local tag = v.tag
     if skip_error[tag] then
       if warnings then

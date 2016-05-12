@@ -300,7 +300,7 @@ local function traverse_paren (env, exp)
 end
 
 local function traverse_table (env, fieldlist)
-  for k, v in ipairs(fieldlist) do
+  for _, v in ipairs(fieldlist) do
     local tag = v.tag
     if tag == "Pair" or tag == "Const" then
       local status, msg = traverse_exp(env, v[1])
@@ -445,7 +445,7 @@ end
 local function traverse_local (env, stm)
   local status, msg = traverse_explist(env, stm[2])
   if not status then return status, msg end
-  for k, v in ipairs(stm[1]) do
+  for _, v in ipairs(stm[1]) do
     tlst.set_local(env, v)
   end
   return true
@@ -519,7 +519,7 @@ function traverse_var (env, var)
 end
 
 function traverse_varlist (env, varlist)
-  for k, v in ipairs(varlist) do
+  for _, v in ipairs(varlist) do
     local status, msg = traverse_var(env, v)
     if not status then return status, msg end
   end
@@ -557,7 +557,7 @@ function traverse_exp (env, exp)
 end
 
 function traverse_explist (env, explist)
-  for k, v in ipairs(explist) do
+  for _, v in ipairs(explist) do
     local status, msg = traverse_exp(env, v)
     if not status then return status, msg end
   end
@@ -606,9 +606,8 @@ function traverse_stm (env, stm)
 end
 
 function traverse_block (env, block)
-  local l = {}
   tlst.begin_scope(env)
-  for k, v in ipairs(block) do
+  for _, v in ipairs(block) do
     local status, msg = traverse_stm(env, v)
     if not status then return status, msg end
   end
@@ -618,7 +617,7 @@ end
 
 local function verify_pending_gotos (env)
   for s = tlst.get_maxscope(env), 1, -1 do
-    for k, v in ipairs(tlst.get_pending_gotos(env, s)) do
+    for _, v in ipairs(tlst.get_pending_gotos(env, s)) do
       local l = v[1]
       if not tlst.exist_label(env, s, l) then
         local msg = string.format("no visible label '%s' for <goto>", l)
@@ -639,13 +638,13 @@ local function traverse (ast, errorinfo, strict)
   tlst.set_vararg(env, tltype.String())
   tlst.begin_scope(env)
   tlst.set_local(env, _env)
-  for k, v in ipairs(ast) do
+  for _, v in ipairs(ast) do
     local status, msg = traverse_stm(env, v)
     if not status then return status, msg end
   end
   tlst.end_scope(env)
   tlst.end_function(env)
-  status, msg = verify_pending_gotos(env)
+  local status, msg = verify_pending_gotos(env)
   if not status then return status, msg end
   return ast
 end
