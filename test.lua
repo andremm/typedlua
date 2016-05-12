@@ -5354,6 +5354,8 @@ check(e, r)
 
 if failed_tests == 0 then
   print("OK: " .. passed_tests .. " PASSED TESTS")
+  os.exit(0)
 else
   print(failed_tests .. " FAILED TESTS, " .. passed_tests .. " PASSED TESTS")
+  os.exit(1)
 end
