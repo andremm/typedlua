@@ -30,6 +30,30 @@ Typed Lua must be installed in a standard location; [LuaRocks](http://luarocks.o
         -p      print the AST
         -v      print current version
 
+# Runtime module loader
+
+Typed Lua also provides a runtime loader to use Typed Lua modules on any
+standard Lua virtual machine:
+
+        require "typedlua"
+        package.path = "./?.tl;" .. package.path
+
+        -- It will load my_module.tl if it exists:
+        local my_module = require "my_module"
+        local my_file = loadfile "my_file.tl"
+
+The loader functions use the file extension (chunk name extension in the cases
+of load and loadstring) to decide whether it contains Typed Lua (.tl) or plain
+Lua. If you want to force loading the chunks as Typed Lua you can use the
+functions provided by the typedlua module (these work like their standard Lua
+counterparts):
+
+        local typedlua = require "typedlua"
+        typedlua.loadstring(string, chunkname)
+        typedlua.load(func, chunkname)
+        typedlua.loadfile(filename)
+        typedlua.dofile(filename)
+
 # License
 
 Released under the MIT License (MIT)
