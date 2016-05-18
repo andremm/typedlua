@@ -4491,8 +4491,8 @@ end
 ]=]
 e = [=[
 test.lua:2:9: type error, attempt to assign '{number:({1:string} | nil)}' to '{number:(string | nil)}'
-test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
 test.lua:4:1: type error, attempt to assign '((number*) -> (string*), nil*)' to '(({1:string}*) -> (nil*), value*)'
+test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
 ]=]
 
 r = typecheck(s)
