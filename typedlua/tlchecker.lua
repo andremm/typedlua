@@ -779,7 +779,7 @@ local function check_table (env, exp)
   end
   local t = tltype.Table(table.unpack(l))
   t.unique = true
-  set_type(exp, t)
+  set_type(exp, t)c
 end
 
 local function var2name (var)
@@ -968,9 +968,9 @@ local function check_invoke (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   check_explist(env, explist)
-  table.insert(explist, 1, { type = Self })
   local t1, t2 = get_type(exp1), get_type(exp2)
   t1 = replace_self(env, t1, env.self)
+  table.insert(explist, 1, t1)
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
