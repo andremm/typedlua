@@ -336,7 +336,7 @@ function tlast.exprSuffixed (e1, e2)
   if e2 then
     if e2.tag == "Call" or e2.tag == "Invoke" then
       local e = { tag = e2.tag, pos = e1.pos, [1] = e1 }
-      for k, v in ipairs(e2) do
+      for _, v in ipairs(e2) do
         table.insert(e, v)
       end
       return e
@@ -426,7 +426,7 @@ end
 local function fixed_string (str)
   local new_str = ""
   for i=1,string.len(str) do
-    char = string.byte(str, i)
+    local char = string.byte(str, i)
     if char == 34 then new_str = new_str .. string.format("\\\"")
     elseif char == 92 then new_str = new_str .. string.format("\\\\")
     elseif char == 7 then new_str = new_str .. string.format("\\a")
@@ -489,7 +489,8 @@ function type2str (t)
       l[k] = type2str(v[1]) .. ":" .. type2str(v[2])
     end
     str = str .. "{ " .. table.concat(l, ", ") .. " }"
-  elseif tag == "TVariable" then
+  elseif tag == "TVariable" or
+         tag == "TGlobalVariable" then
     str = str .. " " .. t[1]
   elseif tag == "TRecursive" then
     str = str .. "{ "
