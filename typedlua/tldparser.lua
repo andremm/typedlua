@@ -9,7 +9,6 @@ lpeg.locale(lpeg)
 
 local tlast = require "typedlua.tlast"
 local tllexer = require "typedlua.tllexer"
-local tlst = require "typedlua.tlst"
 local tltype = require "typedlua.tltype"
 
 local G = lpeg.P { "TypedLuaDescription";
@@ -107,7 +106,7 @@ local function traverse (ast, errorinfo, strict)
   assert(type(errorinfo) == "table")
   assert(type(strict) == "boolean")
   local t = tltype.Table()
-  for k, v in ipairs(ast) do
+  for _, v in ipairs(ast) do
     local tag = v.tag
     if tag == "Id" then
       table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
@@ -127,7 +126,7 @@ local function traverse (ast, errorinfo, strict)
         return nil, tllexer.syntaxerror(errorinfo.subject, v.pos, errorinfo.filename, msg)
       end
       if tltype.checkRecursive(t, name) then
-        local msg = string.format("userdata '%s' is recursive", name)
+        msg = string.format("userdata '%s' is recursive", name)
         return nil, tllexer.syntaxerror(errorinfo.subject, v.pos, errorinfo.filename, msg)
       end
     else

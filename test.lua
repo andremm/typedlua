@@ -11,41 +11,41 @@ local e, r, s
 
 local filename = "test.lua"
 
-local function parse (s)
-  local t,m = tlparser.parse(s,filename,false,false)
-  local r
+local function parse (my_s)
+  local t,m = tlparser.parse(my_s,filename,false,false)
+  local my_r
   if not t then
-    r = m
+    my_r = m
   else
-    r = tlast.tostring(t)
+    my_r = tlast.tostring(t)
   end
-  return r .. "\n"
+  return my_r .. "\n"
 end
 
-local function typecheck (s)
-  local t,m = tlparser.parse(s,filename,false,false)
-  local r
+local function typecheck (my_s)
+  local t,m = tlparser.parse(my_s,filename,false,false)
+  local my_r
   if not t then
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,my_s,filename,false,false)
   m = tlchecker.error_msgs(m,false)
   if m then
-    r = m
+    my_r = m
   else
-    r = tlast.tostring(t)
+    my_r = tlast.tostring(t)
   end
-  return r .. "\n"
+  return my_r .. "\n"
 end
 
-local function generate (s)
-  local t,m = tlparser.parse(s,filename,false,false)
+local function generate (my_s)
+  local t,m = tlparser.parse(my_s,filename,false,false)
   if not t then
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,s,filename,false,false)
+  m = tlchecker.typecheck(t,my_s,filename,false,false)
   m = tlchecker.error_msgs(m,false)
   if m then
     return m .. "\n"

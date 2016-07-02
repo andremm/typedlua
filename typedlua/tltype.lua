@@ -245,7 +245,7 @@ function tltype.isUnion (t1, t2)
     return t1.tag == "TUnion"
   else
     if t1.tag == "TUnion" then
-      for k, v in ipairs(t1) do
+      for _, v in ipairs(t1) do
         if tltype.subtype(t2, v) and tltype.subtype(v, t2) then
           return true
         end
@@ -261,7 +261,7 @@ end
 function tltype.filterUnion (u, t)
   if tltype.isUnion(u) then
     local l = {}
-    for k, v in ipairs(u) do
+    for _, v in ipairs(u) do
       if not (tltype.subtype(t, v) and tltype.subtype(v, t)) then
         table.insert(l, v)
       end
@@ -397,7 +397,7 @@ end
 
 function tltype.isMethod (t)
   if tltype.isFunction(t) then
-    for k, v in ipairs(t[1]) do
+    for _, v in ipairs(t[1]) do
       if tltype.isSelf(v) then return true end
     end
     return false
@@ -441,7 +441,7 @@ end
 -- getField : (type, type) -> (type)
 function tltype.getField (f, t)
   if tltype.isTable(t) then
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       if tltype.consistent_subtype(f, v[1]) then
         return v[2]
       end
@@ -455,7 +455,7 @@ end
 -- fieldlist : ({ident}, type) -> (field*)
 function tltype.fieldlist (idlist, t)
   local l = {}
-  for k, v in ipairs(idlist) do
+  for _, v in ipairs(idlist) do
     table.insert(l, tltype.Field(v.const, tltype.Literal(v[1]), t))
   end
   return table.unpack(l)
@@ -475,7 +475,7 @@ function tltype.checkTypeDec (n, t)
   if not predef_type[n] then
     if tltype.isTable(t) then
       local namelist = {}
-      for k, v in ipairs(t) do
+      for _, v in ipairs(t) do
         local f1, f2 = v[1], v[2]
         if tltype.isStr(f1) then
           local name = f1[1]
@@ -566,7 +566,7 @@ local function unfold_recursive (tr, t)
     return r
   elseif tltype.isTable(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], unfold_recursive(tr, v[2])))
     end
     local r = tltype.Table(table.unpack(l))
@@ -619,7 +619,7 @@ local function check_recursive (t, name)
   elseif tltype.isUnion(t) or
          tltype.isUnionlist(t) or
          tltype.isTuple(t) then
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       if check_recursive(v, name) then
         return true
       end
@@ -628,7 +628,7 @@ local function check_recursive (t, name)
   elseif tltype.isFunction(t) then
     return check_recursive(t[1], name) or check_recursive(t[2], name)
   elseif tltype.isTable(t) then
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       if check_recursive(v[2], name) then
         return true
       end
@@ -704,14 +704,14 @@ end
 
 local function subtype_union (env, t1, t2, relation)
   if tltype.isUnion(t1) then
-    for k, v in ipairs(t1) do
+    for _, v in ipairs(t1) do
       if not subtype(env, v, t2, relation) then
         return false
       end
     end
     return true
   elseif tltype.isUnion(t2) then
-    for k, v in ipairs(t2) do
+    for _, v in ipairs(t2) do
       if subtype(env, t1, v, relation) then
         return true
       end
@@ -921,7 +921,7 @@ local function subtype_tuple (env, t1, t2, relation)
       end
       return true
     else
-      for k, v in ipairs(t1) do
+      for k, _ in ipairs(t1) do
         if not subtype(env, t1[k], t2[k], relation) then
           return false
         end
@@ -937,14 +937,14 @@ function subtype (env, t1, t2, relation)
   if tltype.isVoid(t1) and tltype.isVoid(t2) then
     return true
   elseif tltype.isUnionlist(t1) then
-    for k, v in ipairs(t1) do
+    for _, v in ipairs(t1) do
       if not subtype(env, v, t2, relation) then
         return false
       end
     end
     return true
   elseif tltype.isUnionlist(t2) then
-    for k, v in ipairs(t2) do
+    for _, v in ipairs(t2) do
       if subtype(env, t1, v, relation) then
         return true
       end
@@ -1003,7 +1003,7 @@ function tltype.general (t)
     return tltype.String()
   elseif tltype.isUnion(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.general(v))
     end
     return tltype.Union(table.unpack(l))
@@ -1011,7 +1011,7 @@ function tltype.general (t)
     return tltype.Function(tltype.general(t[1]), tltype.general(t[2]))
   elseif tltype.isTable(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], tltype.general(v[2])))
     end
     local n = tltype.Table(table.unpack(l))
@@ -1020,13 +1020,13 @@ function tltype.general (t)
     return n
   elseif tltype.isTuple(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.general(v))
     end
     return tltype.Tuple(l)
   elseif tltype.isUnionlist(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.general(v))
     end
     return tltype.Unionlist(table.unpack(l))
@@ -1088,7 +1088,7 @@ end
 
 function tltype.unionlist2union (t, i)
   local l = {}
-  for k, v in ipairs(t) do
+  for _, v in ipairs(t) do
     l[#l + 1] = v[i]
   end
   return tltype.Union(table.unpack(l))
@@ -1099,7 +1099,7 @@ function tltype.first (t)
     return tltype.first(t[1])
   elseif tltype.isUnionlist(t) then
     local l = {}
-    for k, v in ipairs(t) do
+    for _, v in ipairs(t) do
       table.insert(l, tltype.first(v))
     end
     return tltype.Union(table.unpack(l))
