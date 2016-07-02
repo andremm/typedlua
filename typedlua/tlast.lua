@@ -680,13 +680,11 @@ function stm2str (stm)
     str = str .. "{ "
     local len = #stm
     if len % 2 == 0 then
-      local l = {}
       for i=1,len-2,2 do
         str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i+1]) .. ", "
       end
       str = str .. exp2str(stm[len-1]) .. ", " .. block2str(stm[len])
     else
-      local l = {}
       for i=1,len-3,2 do
         str = str .. exp2str(stm[i]) .. ", " .. block2str(stm[i+1]) .. ", "
       end

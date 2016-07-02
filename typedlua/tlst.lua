@@ -40,7 +40,7 @@ end
 function tlst.begin_scope (env)
   local scope = env.scope
   if scope > 0 then
-    for k, v in pairs(env[scope]["local"]) do
+    for _, v in pairs(env[scope]["local"]) do
       if v["type"] and v["type"].open then
         v["type"].open = nil
         v["type"].reopen = true
@@ -57,7 +57,7 @@ function tlst.end_scope (env)
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
-    for k, v in pairs(env[scope]["local"]) do
+    for _, v in pairs(env[scope]["local"]) do
       if v.assigned and v.bkp then
         v["type"] = v.bkp
       end
@@ -208,7 +208,7 @@ function tlst.set_vararg (env, t)
 end
 
 -- get_vararg : (env) -> (type?)
-function tlst.get_vararg (env, t)
+function tlst.get_vararg (env)
   return env["function"][env.fscope]["vararg"]
 end
 

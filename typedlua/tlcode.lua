@@ -4,7 +4,7 @@ This file implements the code generator for Typed Lua
 local tlcode = {}
 
 local code_block, code_stm, code_exp, code_var
-local code_explist, code_varlist, code_fieldlist, code_idlist
+local code_explist, code_varlist
 
 local function spaces (fmt)
   return string.rep(" ", 2 * fmt.indent)
@@ -26,7 +26,7 @@ end
 local function fix_str (str)
   local new_str = ""
   for i=1,string.len(str) do
-    char = string.byte(str, i)
+    local char = string.byte(str, i)
     if char == 34 then new_str = new_str .. string.format("\\\"")
     elseif char == 92 then new_str = new_str .. string.format("\\\\")
     elseif char == 7 then new_str = new_str .. string.format("\\a")
@@ -97,7 +97,6 @@ local function code_parlist (parlist, fmt)
     is_vararg = true
     len = len - 1
   end
-  local k = 1
   for k=1, len do
     l[k] = code_var(parlist[k], fmt)
   end
