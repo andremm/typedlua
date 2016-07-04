@@ -1,0 +1,28 @@
+language: python
+sudo: false
+
+env:
+  - LUA="lua=5.1"
+  - LUA="lua=5.2"
+  - LUA="lua=5.3"
+  - LUA="luajit=2.0"
+  - LUA="luajit=2.1"
+
+before_install:
+  - pip install hererocks
+  - hererocks lua_install -r^ --$LUA
+  - export PATH=$PATH:$PWD/lua_install/bin
+  - luarocks install luacheck
+  - luarocks install luacov
+#  - luarocks install luacov-coveralls
+
+install:
+  - luarocks make
+
+script:
+  # Don't fail due to luacheck
+  - luacheck --std max tlc typedlua test.lua || true
+  - lua -lluacov test.lua
+
+#after_success:
+#  - luacov-coveralls -e $TRAVIS_BUILD_DIR/lua_install
