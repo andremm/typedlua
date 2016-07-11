@@ -74,6 +74,13 @@ local passed_tests = 0
 local failed_tests = 0
 
 local function check (e, r)
+  r = r or e
+  if type(e) == "string" then
+    e = e:gsub("%s+\n", "\n")
+  end
+  if type(r) == "string" then
+    r = r:gsub("%s+\n", "\n")
+  end
   if e == r then
     passed_tests = passed_tests + 1
   else
