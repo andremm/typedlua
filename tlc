@@ -44,28 +44,37 @@ local function doargs ()
   while i <= #arg do
     if string.find(arg[i], "^-") == nil then
       return i
-    elseif arg[i] == "-d" then
-      DUMPAST = true
-    elseif arg[i] == "-h" then
-      usage()
-    elseif arg[i] == "-o" then
-      i = i + 1
-      if arg[i] == nil or string.find(arg[i], "^-") then
-        usage("'-o' needs argument")
-      else
-        OUTPUT = arg[i]
-      end
-    elseif arg[i] == "-p" then
-      PRINTAST = true
-    elseif arg[i] == "-s" then
-      STRICT = true
-    elseif arg[i] == "-v" then
-      io.write(string.format("Typed Lua %s\n", VERSION))
-      os.exit(0)
-    elseif arg[i] == "-w" then
-      WARNINGS = true
     else
-      usage(string.format("'%s' unknown option", arg[i]))
+      for j = 2, #arg[i] do
+        local option_char = arg[i]:sub(j, j)
+        if option_char == "d" then
+          DUMPAST = true
+        elseif option_char == "h" then
+          usage()
+        elseif option_char == "o" then
+          if j ~= #arg[i] then
+            usage("'-o' appears last in option block")
+          end
+          i = i + 1
+          if arg[i] == nil or string.find(arg[i], "^-") then
+            usage("'-o' needs argument")
+          else
+            OUTPUT = arg[i]
+            break
+          end
+        elseif option_char == "p" then
+          PRINTAST = true
+        elseif option_char == "s" then
+          STRICT = true
+        elseif option_char == "v" then
+          io.write(string.format("Typed Lua %s\n", VERSION))
+          os.exit(0)
+        elseif option_char == "w" then
+          WARNINGS = true
+        else
+          usage(string.format("'%s' unknown option", arg[i]))
+        end
+      end
     end
     i = i + 1
   end
