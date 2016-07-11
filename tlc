@@ -105,8 +105,13 @@ if not filename then
   usage("no input file given")
 end
 
+if i < #arg then
+  io.stderr:write(string.format("%s: Ignored extra arguments (%s)\n", progname, table.concat(arg, ", ", i+1, #arg)))
+end
+
 if not OUTPUT then
-  OUTPUT = filename:gsub("[.]tl$", ".lua")
+  local name_part = filename:match("(.*)[.]tl$") or "tlc"
+  OUTPUT = name_part .. ".lua"
 end
 
 local subject = getcontents(filename)
