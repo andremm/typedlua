@@ -317,7 +317,7 @@ local function check_tld (env, name, path, pos)
   for _, v in ipairs(ast) do
     local tag = v.tag
     if tag == "Id" then
-      table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), v[2]))
+      table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), replace_names(env, v[2], pos)))
     elseif tag == "Interface" then
       check_interface(env, v)
     elseif tag == "Userdata" then
@@ -1489,7 +1489,7 @@ local function check_index (env, exp)
   t1 = replace_self(env, t1, env.self)
   if tltype.isTable(t1) then
     -- FIX: methods should not leave objects, this is unsafe!
-    local field_type = replace_self(env, tltype.getField(t2, t1), tltype.Any())
+    local field_type = tltype.unfold(replace_self(env, tltype.getField(t2, t1), tltype.Any()))
     if not tltype.isNil(field_type) then
       set_type(exp, field_type)
     else
