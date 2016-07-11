@@ -5,6 +5,7 @@ local tlparser = require "typedlua.tlparser"
 local tltype = require "typedlua.tltype"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
+require "typedlua" -- For the module loader
 
 -- expected result, result, subject
 local e, r, s
@@ -51,6 +52,19 @@ local function generate (my_s)
     return m .. "\n"
   else
     return tlcode.generate(t)
+  end
+end
+
+local function test_loader (s)
+  local ok, ret1, ret2 = pcall(loadstring, s, "test.tl")
+  if not ok then
+    return ret1
+  else
+    if ret1 then
+      return ret1()
+    else
+      return ret2 .. "\n"
+    end
   end
 end
 
@@ -5327,6 +5341,51 @@ circle2:area()
 ]=]
 
 r = generate(s)
+assert(r == e)
+
+print("> testing module loader...")
+
+s = [=[1]=]
+e = [=[
+test.tl:1:1: syntax error, unexpected '1', expecting 'return', '(', 'Name', 'typealias', 'interface', 'goto', 'break', '::', 'local', 'function', 'const', 'repeat', 'for', 'do', 'while', 'if', ';'
+]=]
+
+r = test_loader(s)
+assert(r == e)
+
+s = [=[return 1]=]
+e = 1
+
+r = test_loader(s)
+assert(r == e)
+
+s = [=[
+local function a(b: string, c: string) : string
+  return
+end
+
+return a("b", 2)
+]=]
+e = [=[
+test.tl:1:17: type error, return type '(nil*)' does not match '(string)'
+test.tl:1:18: warning, unused local 'b'
+test.tl:1:29: warning, unused local 'c'
+test.tl:5:8: type error, attempt to pass '(b, 2)' to local 'a' of input type '(string, string)'
+]=]
+
+r = test_loader(s)
+assert(r == e)
+
+s = [=[
+local function a(b: string, c: string) : (string, nil*)
+  return b .. "-" .. c
+end
+
+return a("b", "c")
+]=]
+e = [=[b-c]=]
+
+r = test_loader(s)
 assert(r == e)
 
 print("OK")
