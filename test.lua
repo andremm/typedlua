@@ -3802,9 +3802,11 @@ s = [=[
 local o = { x = 1 }
 const function o:set_x (x:number) self.x = x end
 local x = o.set_x
+x(5, 1) -- first parameter has 'any' type
+x(5)    -- force error
 ]=]
 e = [=[
-test.lua:3:7: type error, attempt to create a method reference
+test.lua:5:1: type error, attempt to pass '(5, nil*)' to local 'x' of input type '(any, number, value*)'
 ]=]
 
 r = typecheck(s)
