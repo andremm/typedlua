@@ -3626,7 +3626,7 @@ s = [=[
 local function f ():(number) end
 ]=]
 e = [=[
-test.lua:1:18: type error, return type '(nil*)' does not match '(number, nil*)'
+test.lua:1:18: type error, return type '()' does not match '(number)'
 ]=]
 
 r = typecheck(s)
@@ -3762,7 +3762,7 @@ test.lua:2:16: type error, attempt to access undeclared global 'y'
 test.lua:2:16: type error, attempt to index 'nil' with 'z'
 test.lua:4:1: type error, attempt to access undeclared global 'z'
 test.lua:4:1: type error, attempt to index 'nil' with 'z'
-test.lua:4:1: type error, attempt to assign '(2, nil*)' to '(nil, value*)'
+test.lua:4:1: type error, attempt to assign '(2)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -3806,14 +3806,14 @@ x(5, 1) -- first parameter has 'any' type
 x(5)    -- force error
 ]=]
 e = [=[
-test.lua:5:1: type error, attempt to pass '(5, nil*)' to local 'x' of input type '(any, number, value*)'
+test.lua:5:1: type error, attempt to pass '(5)' to local 'x' of input type '(any, number, value*)'
 ]=]
 
 r = typecheck(s)
 check(e, r)
 
 s = [=[
-local function f ():(nil*) return end
+local function f ():() return end
 local function g (x:number):(number)?
   if x < 0 then
     return nil, "negative"
@@ -4125,7 +4125,7 @@ local t3:{"foo":number, number:string} = { foo = 1, [1] = true }
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '{1:{1:string, 2:string, 3:string}, 2:{1:string, 2:string, 3:string}, 3:number}' to '{number:({number:(string | nil)} | nil)}'
-test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> (nil*)}' to '{number:(string | nil)}'
+test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> ()}' to '{number:(string | nil)}'
 test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:number, number:(string | nil)}'
 ]=]
 
@@ -4142,7 +4142,7 @@ r = t
 r.foo = nil
 ]=]
 e = [=[
-test.lua:6:1: type error, attempt to assign '({const foo:(string | nil)}, nil*)' to '({foo:(string | nil)}, value*)'
+test.lua:6:1: type error, attempt to assign '({const foo:(string | nil)})' to '({foo:(string | nil)}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4166,7 +4166,7 @@ local t = { ... }
 t[1] = 1
 ]=]
 e = [=[
-test.lua:2:1: type error, attempt to assign '(1, nil*)' to '((string | nil), value*)'
+test.lua:2:1: type error, attempt to assign '(1)' to '((string | nil), value*)'
 ]=]
 
 r = typecheck(s)
@@ -4239,8 +4239,8 @@ print(greet(user3))
 print(greet(user4))
 ]=]
 e = [=[
-test.lua:14:7: type error, attempt to pass '({firstname:string}, nil*)' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
-test.lua:16:7: type error, attempt to pass '({1:string, 2:string}, nil*)' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
+test.lua:14:7: type error, attempt to pass '({firstname:string})' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
+test.lua:16:7: type error, attempt to pass '({1:string, 2:string})' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4381,9 +4381,9 @@ person.lastname = "Reed"
 ]=]
 e = [=[
 test.lua:3:1: type error, attempt to use 'firstname' to index closed table
-test.lua:3:1: type error, attempt to assign '(Lou, nil*)' to '(nil, value*)'
+test.lua:3:1: type error, attempt to assign '(Lou)' to '(nil, value*)'
 test.lua:4:1: type error, attempt to use 'lastname' to index closed table
-test.lua:4:1: type error, attempt to assign '(Reed, nil*)' to '(nil, value*)'
+test.lua:4:1: type error, attempt to assign '(Reed)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4398,7 +4398,7 @@ person.lastname = "Reed"
 ]=]
 e = [=[
 test.lua:3:1: type error, attempt to use 'firstname' to index closed table
-test.lua:3:1: type error, attempt to assign '(1, nil*)' to '(nil, value*)'
+test.lua:3:1: type error, attempt to assign '(1)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4417,10 +4417,10 @@ end
 ]=]
 e = [=[
 test.lua:4:3: type error, attempt to use 'firstname' to index closed table
-test.lua:4:3: type error, attempt to assign '(1, nil*)' to '(nil, value*)'
-test.lua:5:3: type error, attempt to assign '({}, nil*)' to '({firstname:number}, value*)'
+test.lua:4:3: type error, attempt to assign '(1)' to '(nil, value*)'
+test.lua:5:3: type error, attempt to assign '({})' to '({firstname:number}, value*)'
 test.lua:8:3: type error, attempt to use 'firstname' to index closed table
-test.lua:8:3: type error, attempt to assign '(Lou, nil*)' to '(nil, value*)'
+test.lua:8:3: type error, attempt to assign '(Lou)' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4521,7 +4521,7 @@ local str = "foo"
 print(str:char())
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to pass '(string, nil*)' to field of input type '(number*)'
+test.lua:2:7: type error, attempt to pass '(string)' to field of input type '(number*)'
 ]=]
 
 r = typecheck(s)
@@ -4537,7 +4537,7 @@ end
 ]=]
 e = [=[
 test.lua:2:9: type error, attempt to assign '{number:({1:string} | nil)}' to '{number:(string | nil)}'
-test.lua:4:1: type error, attempt to assign '((number*) -> (string*), nil*)' to '(({1:string}*) -> (nil*), value*)'
+test.lua:4:1: type error, attempt to assign '((number*) -> (string*))' to '(({1:string}*) -> (), value*)'
 test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
 ]=]
 
@@ -4761,7 +4761,7 @@ check(e, r)
 -- function
 
 s = [=[
-function f ():(nil*) end
+function f ():() end
 ]=]
 e = [=[
 f = function ()  end
@@ -5399,7 +5399,7 @@ end
 return a("b", 2)
 ]=]
 e = [=[
-test.tl:1:17: type error, return type '(nil*)' does not match '(string)'
+test.tl:1:17: type error, return type '()' does not match '(string)'
 test.tl:1:18: warning, unused local 'b'
 test.tl:1:29: warning, unused local 'c'
 test.tl:5:8: type error, attempt to pass '(b, 2)' to local 'a' of input type '(string, string)'

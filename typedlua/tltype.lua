@@ -571,7 +571,7 @@ local function unfold_recursive (tr, t)
       return t
     end
   elseif tltype.isVararg(t) then
-    return tltype.Vararg(unfold_recursive(trec, t[1]))
+    return tltype.Vararg(unfold_recursive(tr, t[1]))
   else
     return t
   end
@@ -1153,8 +1153,11 @@ local function type2str (t, n)
     return "void"
   elseif tltype.isTuple(t) then
     local l = {}
-    for k, v in ipairs(t) do
-      l[k] = type2str(v, n-1)
+    for i = 1, #t-1 do
+      l[i] = type2str(t[i], n-1)
+    end
+    if not tltype.isNil(t[#t][1]) then
+      l[#t] = type2str(t[#t], n-1)
     end
     return "(" .. table.concat(l, ", ") .. ")"
   elseif tltype.isVararg(t) then
