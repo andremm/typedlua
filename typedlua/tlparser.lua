@@ -51,15 +51,13 @@ local G = lpeg.P { "TypedLua";
                  tltype.Function;
   MethodType = lpeg.V("InputType") * tllexer.symb("=>") * lpeg.V("NilableTuple") *
                lpeg.Cc(true) / tltype.Function;
-  InputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")") *
-              lpeg.Carg(2) /
+  InputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")")  /
               tltype.inputTuple;
-  NilableTuple = lpeg.V("UnionlistType") * (tllexer.symb("?") * lpeg.Carg(2))^-1 /
+  NilableTuple = lpeg.V("UnionlistType") * (tllexer.symb("?") * lpeg.Cc(true))^-1 /
                  tltype.UnionlistNil;
   UnionlistType = lpeg.V("OutputType") * (lpeg.Cg(tllexer.symb("|") * lpeg.V("OutputType"))^0) /
                   tltype.Unionlist;
-  OutputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")") *
-               lpeg.Carg(2) /
+  OutputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")") /
                tltype.outputTuple;
   TupleType = lpeg.Ct(lpeg.V("Type") * (tllexer.symb(",") * lpeg.V("Type"))^0) *
               (tllexer.symb("*") * lpeg.Cc(true))^-1 /
@@ -82,7 +80,7 @@ local G = lpeg.P { "TypedLua";
   FieldType = lpeg.V("Type") * lpeg.Cc(tltype.Nil()) / tltype.Union;
   VariableType = tllexer.token(tllexer.Name, "Type") / tltype.Variable;
   RetType = lpeg.V("NilableTuple") +
-            lpeg.V("Type") * lpeg.Carg(2) / tltype.retType;
+            lpeg.V("Type") / tltype.retType;
   Id = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") / tlast.ident;
   TypeDecId = (tllexer.kw("const") * lpeg.V("Id") / tlast.setConst) +
               lpeg.V("Id");

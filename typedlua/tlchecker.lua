@@ -233,11 +233,7 @@ end
 local function infer_return_type (env)
   local l = tlst.get_return_type(env)
   if #l == 0 then
-    if env.strict then
-      return tltype.Void()
-    else
-      return tltype.Tuple({ Nil }, true)
-    end
+    return tltype.Tuple({ Nil }, true)
   else
     local r = tltype.Unionlist(table.unpack(l))
     if tltype.isAny(r) then r = tltype.Tuple({ Any }, true) end
@@ -652,7 +648,7 @@ local function check_parameters (env, parlist, pos)
   local len = #parlist
   if len == 0 then
     if env.strict then
-      return tltype.Void()
+      return tltype.Tuple({ Nil }, true)
     else
       return tltype.Tuple({ Value }, true)
     end
@@ -672,7 +668,8 @@ local function check_parameters (env, parlist, pos)
       return tltype.Tuple(l, true)
     else
       if env.strict then
-        return tltype.Tuple(l)
+        l[len + 1] = Nil
+        return tltype.Tuple(l, true)
       else
         l[len + 1] = Value
         return tltype.Tuple(l, true)
@@ -832,27 +829,19 @@ local function explist2typegen (explist)
   end
 end
 
-local function arglist2type (explist, strict)
+local function arglist2type (explist)
   local len = #explist
   if len == 0 then
-    if strict then
-      return tltype.Void()
-    else
-      return tltype.Tuple({ Nil }, true)
-    end
+    return tltype.Tuple({ Nil }, true)
   else
     local l = {}
     for i = 1, len do
       l[i] = tltype.first(get_type(explist[i]))
     end
-    if strict then
-      return tltype.Tuple(l)
-    else
-      if not tltype.isVararg(explist[len]) then
-        l[len + 1] = Nil
-      end
-      return tltype.Tuple(l, true)
+    if not tltype.isVararg(explist[len]) then
+      l[len + 1] = Nil
     end
+    return tltype.Tuple(l, true)
   end
 end
 
@@ -948,7 +937,7 @@ local function check_call (env, exp)
     end
   else
     local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
-    local inferred_type = replace_self(env, arglist2type(explist, env.strict), env.self)
+    local inferred_type = replace_self(env, arglist2type(explist), env.self)
     local msg = "attempt to call %s of type '%s'"
     if tltype.isFunction(t) then
       check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
@@ -981,7 +970,7 @@ local function check_invoke (env, exp)
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
-    local inferred_type = replace_self(env, arglist2type(explist, env.strict), env.self)
+    local inferred_type = replace_self(env, arglist2type(explist), env.self)
     local t3
     if tltype.isTable(t1) then
       t3 = replace_self(env, tltype.getField(t2, t1), t1)

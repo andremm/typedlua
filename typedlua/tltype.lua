@@ -178,18 +178,6 @@ function tltype.isSelf (t)
   return t.tag == "TSelf"
 end
 
--- void type
-
--- Void : () -> (type)
-function tltype.Void ()
-  return { tag = "TVoid", name = "void" }
-end
-
--- isVoid : (type) -> (boolean)
-function tltype.isVoid (t)
-  return t.tag == "TVoid"
-end
-
 -- union types
 
 -- Union : (type*) -> (type)
@@ -303,6 +291,18 @@ function tltype.Tuple (l, is_vararg)
   return { tag = "TTuple", table.unpack(l) }
 end
 
+-- void type
+
+-- Void : () -> (type)
+function tltype.Void ()
+  return { tag = "TVoid", name = "void" }
+end
+
+-- isVoid : (type) -> (boolean)
+function tltype.isVoid (t)
+  return t.tag == "TVoid"
+end
+
 -- inputTuple : (type?, boolean) -> (type)
 function tltype.inputTuple (t, strict)
   if not strict then
@@ -316,17 +316,6 @@ function tltype.inputTuple (t, strict)
     end
   else
     if not t then
-      return tltype.Void()
-    else
-      return t
-    end
-  end
-end
-
--- outputTuple : (type?, boolean) -> (type)
-function tltype.outputTuple (t, strict)
-  if not strict then
-    if not t then
       return tltype.Tuple({ tltype.Nil() }, true)
     else
       if not tltype.isVararg(t[#t]) then
@@ -334,18 +323,24 @@ function tltype.outputTuple (t, strict)
       end
       return t
     end
+  end
+end
+
+-- outputTuple : (type?, boolean) -> (type)
+function tltype.outputTuple (t)
+  if not t then
+    return tltype.Tuple({ tltype.Nil() }, true)
   else
-    if not t then
-      return tltype.Void()
-    else
-      return t
+    if not tltype.isVararg(t[#t]) then
+      table.insert(t, tltype.Vararg(tltype.Nil()))
     end
+    return t
   end
 end
 
 -- retType : (type, boolean) -> (type)
-function tltype.retType (t, strict)
-  return tltype.outputTuple(tltype.Tuple({ t }), strict)
+function tltype.retType (t)
+  return tltype.outputTuple(tltype.Tuple({ t }))
 end
 
 -- isTuple : (type) -> (boolean)
@@ -371,7 +366,7 @@ end
 function tltype.UnionlistNil (t, is_union_nil)
   if type(is_union_nil) == "boolean" then
     local u = tltype.Tuple({ tltype.Nil(), tltype.String() })
-    return tltype.Unionlist(t, tltype.outputTuple(u, is_union_nil))
+    return tltype.Unionlist(t, tltype.outputTuple(u))
   else
     return t
   end
@@ -382,11 +377,7 @@ end
 -- Function : (type, type, true?) -> (type)
 function tltype.Function (t1, t2, is_method)
   if is_method then
-    if tltype.isVoid(t1) then
-      t1 = tltype.Tuple({ tltype.Self() })
-    else
-      table.insert(t1, 1, tltype.Self())
-    end
+    table.insert(t1, 1, tltype.Self())
   end
   return { tag = "TFunction", [1] = t1, [2] = t2 }
 end
@@ -1159,7 +1150,7 @@ local function type2str (t, n)
   elseif tltype.isRecursive(t) then
     return t[1] .. "." .. type2str(t[2], n-1)
   elseif tltype.isVoid(t) then
-    return "(void)"
+    return "void"
   elseif tltype.isTuple(t) then
     local l = {}
     for k, v in ipairs(t) do
