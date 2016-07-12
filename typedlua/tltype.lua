@@ -1008,6 +1008,7 @@ function tltype.general (t)
     local n = tltype.Table(table.unpack(l))
     n.unique = t.unique
     n.open = t.open
+    n.name = t.name
     return n
   elseif tltype.isTuple(t) then
     local l = {}
@@ -1120,6 +1121,10 @@ local function type2str (t, n)
     return "any"
   elseif tltype.isSelf(t) then
     return "self"
+  elseif tltype.isUnion(t) and #t == 2 and tltype.isNil(t[1]) then
+    return tltype.tostring(t[2], n-1) .. "?"
+  elseif tltype.isUnion(t) and #t == 2 and tltype.isNil(t[2]) then
+    return tltype.tostring(t[1], n-1) .. "?"
   elseif tltype.isUnion(t) or
          tltype.isUnionlist(t) then
     local l = {}

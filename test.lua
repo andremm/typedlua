@@ -3352,7 +3352,7 @@ local x:string, y:number|string = 1 and 2, "foo" and nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
-test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+test.lua:1:17: type error, attempt to assign 'foo?' to '(number | string)'
 ]=]
 
 r = typecheck(s)
@@ -3377,7 +3377,7 @@ local x:string, y:number|string = 1 or 2, "foo" or nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
-test.lua:1:17: type error, attempt to assign '(foo | nil)' to '(number | string)'
+test.lua:1:17: type error, attempt to assign 'foo?' to '(number | string)'
 ]=]
 
 r = typecheck(s)
@@ -3388,7 +3388,7 @@ local x:number?
 local y:number = x or nil
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
+test.lua:2:7: type error, attempt to assign 'number?' to 'number'
 ]=]
 
 r = typecheck(s)
@@ -3520,8 +3520,8 @@ y = y .. "hello"
 e = [=[
 test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
 test.lua:10:7: type error, attempt to perform arithmetic on a 'nil'
-test.lua:13:5: type error, attempt to perform arithmetic on a '(number | nil)'
-test.lua:14:5: type error, attempt to concatenate a '(string | nil)'
+test.lua:13:5: type error, attempt to perform arithmetic on a 'number?'
+test.lua:14:5: type error, attempt to concatenate a 'string?'
 ]=]
 
 r = typecheck(s)
@@ -3870,7 +3870,7 @@ local function distance(x, y)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "abs":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "n":`TBase number }, { `If{ `Op{ "lt", `Id "n", `Number "0" }, { `Return{ `Op{ "unm", `Id "n" } } }, { `Return{ `Id "n" } } } } } } }, `Localrec{ { `Id "distance":`TFunction{ `TTuple{ `TAny, `TAny, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "x":`TAny, `Id "y":`TAny }, { `Return{ `Call{ `Id "abs", `Op{ "sub", `Id "x", `Id "y" } } } } } } } }
+{ `Localrec{ { `Id "abs":`TFunction{ `TTuple{ `TBase number, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "n":`TBase number }, { `If{ `Op{ "lt", `Id "n", `Number "0" }, { `Return{ `Op{ "unm", `Id "n" } } }, { `Return{ `Id "n" } } } } } } }, `Localrec{ { `Id "distance":`TFunction{ `TTuple{ `TAny, `TAny, `TVararg{ `TValue } }, `TTuple{ `TBase number, `TVararg{ `TNil } } } }, { `Function{ { `Id "x":`TAny, `Id "y":`TAny }, { `Return{ `Call{ `Id "abs", `Op{ "sub", `Id "x", `Id "y" } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3932,7 +3932,7 @@ local function f (s:string?)
 end
 ]=]
 e = [=[
-test.lua:6:7: type error, attempt to concatenate a '(string | nil)'
+test.lua:6:7: type error, attempt to concatenate a 'string?'
 ]=]
 
 r = typecheck(s)
@@ -3948,7 +3948,7 @@ end
 s = s .. "bar"
 ]=]
 e = [=[
-test.lua:7:5: type error, attempt to concatenate a '(string | nil)'
+test.lua:7:5: type error, attempt to concatenate a 'string?'
 ]=]
 
 r = typecheck(s)
@@ -3973,7 +3973,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i", `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "rep":`TFunction{ `TTuple{ `TBase string, `TBase number, `TUnion{ `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s":`TBase string, `Id "n":`TBase number, `Id "sep":`TUnion{ `TBase string, `TNil } }:`TTuple{ `TBase string, `TVararg{ `TNil } }, { `Set{ { `Id "sep" }, { `Op{ "or", `Id "sep", `String "" } } }, `Local{ { `Id "r" }, { `String "" } }, `Fornum{ `Id "i", `Number "1", `Op{ "sub", `Id "n", `Number "1" }, { `Set{ { `Id "r" }, { `Op{ "concat", `Id "r", `Op{ "concat", `Id "s", `Id "sep" } } } } } }, `Return{ `Op{ "concat", `Id "r", `Id "s" } } } } } }, `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Id "rep", `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3989,7 +3989,7 @@ local function overload (s1:string, s2:string|number)
 end
 ]=]
 e = [=[
-{ `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TNil, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
+{ `Localrec{ { `Id "overload":`TFunction{ `TTuple{ `TBase string, `TUnion{ `TBase string, `TBase number }, `TVararg{ `TValue } }, `TTuple{ `TBase string, `TVararg{ `TNil } } } }, { `Function{ { `Id "s1":`TBase string, `Id "s2":`TUnion{ `TBase string, `TBase number } }, { `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "s2" }, `String "string" }, { `Return{ `Op{ "concat", `Id "s1", `Id "s2" } } }, { `Return{ `Call{ `Index{ `Index{ `Id "_ENV", `String "string" }, `String "rep" }, `Id "s1", `Id "s2" } } } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -4062,7 +4062,7 @@ local y:number = t.bar or 0
 local z:number? = t["bar"]
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign '(number | nil)' to 'number'
+test.lua:2:7: type error, attempt to assign 'number?' to 'number'
 ]=]
 
 r = typecheck(s)
@@ -4073,7 +4073,7 @@ local t1:{"foo":number} = { foo = 1, bar = "foo" }
 local t2:{string:number} = t1
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:(number | nil)}'
+test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number?}'
 ]=]
 
 r = typecheck(s)
@@ -4111,8 +4111,8 @@ local t2:{string?} = days
 t2 = t1
 ]=]
 e = [=[
-test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
-test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:(string | nil)}'
+test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:string?}'
+test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:string?}'
 ]=]
 
 r = typecheck(s)
@@ -4124,9 +4124,9 @@ local t2:{string} = { "foo", "bar", "z", function () end }
 local t3:{"foo":number, number:string} = { foo = 1, [1] = true }
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '{1:{1:string, 2:string, 3:string}, 2:{1:string, 2:string, 3:string}, 3:number}' to '{number:({number:(string | nil)} | nil)}'
-test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> ()}' to '{number:(string | nil)}'
-test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:number, number:(string | nil)}'
+test.lua:1:7: type error, attempt to assign '{1:{1:string, 2:string, 3:string}, 2:{1:string, 2:string, 3:string}, 3:number}' to '{number:{number:string?}?}'
+test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> ()}' to '{number:string?}'
+test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:number, number:string?}'
 ]=]
 
 r = typecheck(s)
@@ -4142,7 +4142,7 @@ r = t
 r.foo = nil
 ]=]
 e = [=[
-test.lua:6:1: type error, attempt to assign '({const foo:(string | nil)})' to '({foo:(string | nil)}, value*)'
+test.lua:6:1: type error, attempt to assign '({const foo:string?})' to '({foo:string?}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4166,7 +4166,7 @@ local t = { ... }
 t[1] = 1
 ]=]
 e = [=[
-test.lua:2:1: type error, attempt to assign '(1)' to '((string | nil), value*)'
+test.lua:2:1: type error, attempt to assign '(1)' to '(string?, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4478,7 +4478,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-test.lua:11:7: type error, attempt to assign '{firstname:string, middlename:string, lastname:string}' to '{firstname:string, middlename:(string | nil), lastname:string}'
+test.lua:11:7: type error, attempt to assign '{firstname:string, middlename:string, lastname:string}' to '{firstname:string, middlename:string?, lastname:string}'
 ]=]
 
 r = typecheck(s)
@@ -4536,7 +4536,7 @@ f = function (...:number):(string*)
 end
 ]=]
 e = [=[
-test.lua:2:9: type error, attempt to assign '{number:({1:string} | nil)}' to '{number:(string | nil)}'
+test.lua:2:9: type error, attempt to assign '{number:{1:string}?}' to '{number:string?}'
 test.lua:4:1: type error, attempt to assign '((number*) -> (string*))' to '(({1:string}*) -> (), value*)'
 test.lua:4:14: type error, return type '(number*)' does not match '(string*)'
 ]=]

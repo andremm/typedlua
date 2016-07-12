@@ -1,0 +1,13 @@
+-- bug45.tld
+userdata S
+end
+
+userdata T
+end
+
+userdata R
+   makeT: (S) => (T) | (nil, string)
+end
+
+makeS: () -> (S) | (nil, string)
+makeR: () -> (R) | (nil, string)

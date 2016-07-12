@@ -303,6 +303,9 @@ local function check_userdata (env, stm)
     msg = string.format(msg, name)
     typeerror(env, "alias", msg, stm.pos)
   else
+    check_self(env, t, t, stm.pos)
+    t.name = name
+    local t = replace_names(env, t, stm.pos)
     tlst.set_userdata(env, name, t, is_local)
   end
 end
@@ -1142,12 +1145,16 @@ local function explist2typelist (explist)
     end
     if tltype.isTuple(last_type) then
       for _, v in ipairs(last_type) do
-        table.insert(l, tltype.first(v))
+        if not tltype.isVararg(v) then
+          table.insert(l, tltype.first(v))
+        else
+          table.insert(l, v)
+        end
       end
     else
       table.insert(l, last_type)
     end
-    if not tltype.isVararg(last_type) then
+    if not tltype.isVararg(l[#l]) then
       table.insert(l, tltype.Vararg(Nil))
     end
     return tltype.Tuple(l)
