@@ -51,7 +51,7 @@ local G = lpeg.P { "TypedLua";
                  tltype.Function;
   MethodType = lpeg.V("InputType") * tllexer.symb("=>") * lpeg.V("NilableTuple") *
                lpeg.Cc(true) / tltype.Function;
-  InputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")")  /
+  InputType = tllexer.symb("(") * (lpeg.V("TupleType") + lpeg.Cc(nil)) * tllexer.symb(")") * lpeg.Carg(2) /
               tltype.inputTuple;
   NilableTuple = lpeg.V("UnionlistType") * (tllexer.symb("?") * lpeg.Cc(true))^-1 /
                  tltype.UnionlistNil;
