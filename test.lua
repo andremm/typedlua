@@ -76,10 +76,10 @@ local failed_tests = 0
 local function check (e, r)
   r = r or e
   if type(e) == "string" then
-    e = e:gsub("%s+\n", "\n")
+    e = e:gsub("%s+(%s)", "%1"):gsub("([^%w]) ([%w{(\"\'])", "%1%2")
   end
   if type(r) == "string" then
-    r = r:gsub("%s+\n", "\n")
+    r = r:gsub("%s+(%s)", "%1"):gsub("([^%w]) ([%w{(\"\'])", "%1%2")
   end
   if e == r then
     passed_tests = passed_tests + 1
@@ -3351,8 +3351,8 @@ s = [=[
 local x:string, y:number|string = 1 and 2, "foo" and nil
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
-test.lua:1:17: type error, attempt to assign 'foo?' to '(number | string)'
+test.lua:1:7: type error, attempt to assign '1 | 2' to 'string'
+test.lua:1:17: type error, attempt to assign 'foo?' to 'number | string'
 ]=]
 
 r = typecheck(s)
@@ -3376,8 +3376,8 @@ s = [=[
 local x:string, y:number|string = 1 or 2, "foo" or nil
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign '(1 | 2)' to 'string'
-test.lua:1:17: type error, attempt to assign 'foo?' to '(number | string)'
+test.lua:1:7: type error, attempt to assign '1 | 2' to 'string'
+test.lua:1:17: type error, attempt to assign 'foo?' to 'number | string'
 ]=]
 
 r = typecheck(s)
@@ -3541,7 +3541,7 @@ end
 x = x + 1
 ]=]
 e = [=[
-test.lua:11:5: type error, attempt to perform arithmetic on a '(boolean | number | string | nil)'
+test.lua:11:5: type error, attempt to perform arithmetic on a 'boolean | number | string | nil'
 ]=]
 
 r = typecheck(s)
@@ -4037,7 +4037,7 @@ if foo then
 end
 ]=]
 e = [=[
-test.lua:11:16: type error, attempt to concatenate a '(number | string)'
+test.lua:11:16: type error, attempt to concatenate a 'number | string'
 ]=]
 
 r = typecheck(s)
