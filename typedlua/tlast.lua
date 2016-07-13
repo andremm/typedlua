@@ -73,6 +73,8 @@ base: 'boolean' | 'number' | 'string'
 field: `TField{ <string> type }
 ]]
 
+local tltype = require "typedlua.tltype"
+
 local tlast = {}
 
 -- namelist : (number, ident, ident*) -> (namelist)
@@ -774,23 +776,35 @@ function tlast.tostring (block)
 end
 
 -- dump : (block, number?) -> ()
-function tlast.dump (t, i)
-  if i == nil then i = 0 end
-  io.write(string.format("{\n"))
+function tlast.dump (out, t, i)
+  if type(out) == "table" then
+    i = t
+    t = out
+    out = io.stdout
+  end
+  i = i or 0
+  out:write(string.format("{\n"))
   for k, v in pairs(t) do
     if type(k) == "string" then
-      io.write(string.format("%s[%s] = %s\n", string.rep(" ", i + 2), k, tostring(v)))
+      out:write(string.format("%s[%q] = ", string.rep(" ", i + 2), tostring(k)))
+      if type(v) == "table" then
+        tlast.dump(out, v, i + 2)
+      else
+        out:write(string.format("%q", tostring(v)))
+      end
+      out:write(",\n")
     end
   end
   for k, v in ipairs(t) do
-    io.write(string.format("%s[%s] = ", string.rep(" ", i + 2), tostring(k)))
+    out:write(string.format("%s[%q] = ", string.rep(" ", i + 2), tostring(k)))
     if type(v) == "table" then
-      tlast.dump(v, i + 2)
+      tlast.dump(out, v, i + 2)
     else
-      io.write(string.format("%s\n", tostring(v)))
+      out:write(string.format("%q", tostring(v)))
     end
+    out:write(",\n")
   end
-  io.write(string.format("%s}\n", string.rep(" ", i)))
+  out:write(string.format("%s}", string.rep(" ", i)))
 end
 
 return tlast

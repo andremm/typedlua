@@ -2,12 +2,15 @@
 
 local abort_on_error = false
 
+local loadstring = loadstring or load
+
 local tlast = require "typedlua.tlast"
 local tlparser = require "typedlua.tlparser"
 local tltype = require "typedlua.tltype"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode = require "typedlua.tlcode"
-require "typedlua" -- For the module loader
+
+local typedlua = require "typedlua" -- For the module loader
 
 -- expected result, result, subject
 local e, r, s
