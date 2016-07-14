@@ -1109,6 +1109,8 @@ local function type2str (t, n)
   n = n or 0
   if n > 0 and t.name then
     return t.name
+  elseif tltype.isTrue() or tltype.isFalse() or tltype.isNum() then
+    return tostring(t[1])
   elseif tltype.isLiteral(t) then
     return string.format("%q", t[1])
   elseif tltype.isBase(t) then
