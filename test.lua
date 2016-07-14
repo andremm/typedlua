@@ -35,7 +35,7 @@ local function typecheck (my_s)
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,my_s,filename,false,false)
+  m = tlchecker.typecheck(t,my_s,filename,false,false,false)
   m = tlchecker.error_msgs(m,false)
   if m then
     my_r = m
@@ -51,7 +51,7 @@ local function generate (my_s)
     error(m)
     os.exit(1)
   end
-  m = tlchecker.typecheck(t,my_s,filename,false,false)
+  m = tlchecker.typecheck(t,my_s,filename,false,false,false)
   m = tlchecker.error_msgs(m,false)
   if m then
     return m .. "\n"
@@ -3716,7 +3716,7 @@ for w in ("foo bar"):gmatch("(%w+)") do
 end
 ]=]
 e = [=[
-test.lua:1:5: type error, attempt to iterate over 1
+test.lua:1:5: type error, attempt to iterate over '1'
 ]=]
 
 r = typecheck(s)
