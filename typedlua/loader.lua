@@ -12,6 +12,8 @@ local tlparser  = require "typedlua.tlparser"
 local tlchecker = require "typedlua.tlchecker"
 local tlcode    = require "typedlua.tlcode"
 
+local COLOR = false
+
 local tlloader = {}
 
 local opts =
@@ -23,11 +25,13 @@ local opts =
 if _VERSION == "Lua 5.3" then opts.INTEGER = true end
 
 -- Compiles Typed Lua into Lua code
-function tlloader.compile (code, chunkname)
+function tlloader.compile (code, chunkname, color)
   local code_t = type(code)
   if code_t ~= "string" then
     return nil, "expecting string (got " .. code_t .. ")"
   end
+
+  COLOR = color
 
   -- Parse
   local ast, err = tlparser.parse(code, chunkname, opts.STRICT, opts.INTEGER)
@@ -36,7 +40,7 @@ function tlloader.compile (code, chunkname)
   end
 
   -- Typecheck
-  local messages = tlchecker.typecheck(ast, code, chunkname, opts.STRICT, opts.INTEGER)
+  local messages = tlchecker.typecheck(ast, code, chunkname, opts.STRICT, opts.INTEGER, color)
 
   -- Check if there were errors
   local has_errors = tlchecker.error_msgs(messages, false)
@@ -151,7 +155,7 @@ end
 
 function tlloader.loadstring (string, chunkname, ...)
   chunkname = chunkname or "=(typedlua.loadstring)"
-  local lua_code, err = tlloader.compile(string, chunkname)
+  local lua_code, err = tlloader.compile(string, chunkname, COLOR)
   if not lua_code then
     return nil, err
   end

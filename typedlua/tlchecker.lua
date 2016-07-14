@@ -25,6 +25,13 @@ local Integer = tltype.Integer(false)
 
 local check_block, check_stm, check_exp, check_var
 
+local acolor = {
+  red     = "\27[31m",
+  magenta = "\27[35m",
+  bold    = "\27[1m",
+  reset   = "\27[0m"
+}
+
 local function lineno (s, i)
   if i == 1 then return 1, 1 end
   local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
@@ -55,7 +62,8 @@ end
 local check_self_field
 
 local function check_self (env, torig, t, pos)
-  local msg = string.format("self type appearing in a place that is not a first parameter or a return type inside type '%s', replacing with 'any'", tltype.tostring(torig))
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = string.format("self type appearing in a place that is not a first parameter or a return type inside type " .. bold_token, tltype.tostring(torig))
   if tltype.isSelf(t) then
     typeerror(env, "self", msg, pos)
     return tltype.Any()
@@ -95,7 +103,8 @@ local function check_self (env, torig, t, pos)
 end
 
 function check_self_field(env, torig, t, pos)
-  local msg = string.format("self type cannot appear in declaration of type '%s', replacing with 'any'", tltype.tostring(torig))
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = string.format("self type cannot appear in declaration of type " .. bold_token .. ", replacing with " .. bold_token, tltype.tostring(torig), "any")
   if tltype.isRecursive(t) then
     local r = tltype.Recursive(t[1], check_self_field(env, torig, t[2], pos))
     r.name = t.name
@@ -246,7 +255,8 @@ local function check_masking (env, local_name, pos)
   local masked_local = tlst.masking(env, local_name)
   if masked_local then
     local l, c = lineno(env.subject, masked_local.pos)
-    local msg = "masking previous declaration of local %s on line %d"
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = "masking previous declaration of local " .. bold_token .. " on line %d"
     msg = string.format(msg, local_name, l)
     typeerror(env, "mask", msg, pos)
   end
@@ -255,7 +265,8 @@ end
 local function check_unused_locals (env)
   local l = tlst.unused(env)
   for k, v in pairs(l) do
-    local msg = string.format("unused local '%s'", k)
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = string.format("unused local " .. bold_token, k)
     typeerror(env, "unused", msg, v.pos)
   end
 end
@@ -284,7 +295,8 @@ end
 local function check_interface (env, stm)
   local name, t, is_local = stm[1], stm[2], stm.is_local
   if tlst.get_interface(env, name) then
-    local msg = "attempt to redeclare interface '%s'"
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = "attempt to redeclare interface " .. bold_token
     msg = string.format(msg, name)
     typeerror(env, "alias", msg, stm.pos)
   else
@@ -299,7 +311,8 @@ end
 local function check_userdata (env, stm)
   local name, t, is_local = stm[1], stm[2], stm.is_local
   if tlst.get_userdata(env, name) then
-    local msg = "attempt to redeclare userdata '%s'"
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = "attempt to redeclare userdata " .. bold_token
     msg = string.format(msg, name)
     typeerror(env, "alias", msg, stm.pos)
   else
@@ -373,7 +386,8 @@ local function check_arith (env, exp, op)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  local msg = "attempt to perform arithmetic on a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to perform arithmetic on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) and
      tltype.subtype(t2, tltype.Integer(true)) then
     if op == "div" or op == "pow" then
@@ -411,7 +425,8 @@ local function check_bitwise (env, exp, op)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  local msg = "attempt to perform bitwise on a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to perform bitwise on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) and
      tltype.subtype(t2, tltype.Integer(true)) then
     set_type(exp, Integer)
@@ -439,7 +454,8 @@ local function check_concat (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  local msg = "attempt to concatenate a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to concatenate a " .. bold_token
   if tltype.subtype(t1, String) and tltype.subtype(t2, String) then
     set_type(exp, String)
   elseif tltype.isAny(t1) then
@@ -473,7 +489,8 @@ local function check_order (env, exp)
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  local msg = "attempt to compare '%s' with '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to compare " .. bold_token .. " with " .. bold_token
   if tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
     set_type(exp, Boolean)
   elseif tltype.subtype(t1, String) and tltype.subtype(t2, String) then
@@ -562,7 +579,8 @@ local function check_bnot (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
   local t1 = tltype.first(get_type(exp1))
-  local msg = "attempt to perform bitwise on a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to perform bitwise on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) then
     set_type(exp, Integer)
   elseif tltype.isAny(t1) then
@@ -580,7 +598,8 @@ local function check_minus (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
   local t1 = tltype.first(get_type(exp1))
-  local msg = "attempt to perform arithmetic on a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to perform arithmetic on a " .. bold_token
   if tltype.subtype(t1, Integer) then
     set_type(exp, Integer)
   elseif tltype.subtype(t1, Number) then
@@ -601,7 +620,8 @@ local function check_len (env, exp)
   local exp1 = exp[2]
   check_exp(env, exp1)
   local t1 = tltype.first(get_type(exp1))
-  local msg = "attempt to get length of a '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to get length of a " .. bold_token
   if tltype.subtype(t1, String) or
      tltype.subtype(t1, tltype.Table()) then
     set_type(exp, Integer)
@@ -689,7 +709,8 @@ local function check_explist (env, explist, lselfs)
 end
 
 local function check_return_type (env, inf_type, dec_type, pos)
-  local msg = "return type '%s' does not match '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "return type " .. bold_token .. " does not match " .. bold_token
   if tltype.isUnionlist(dec_type) then
     dec_type = tltype.unionlist2tuple(dec_type)
   end
@@ -789,15 +810,16 @@ local function check_table (env, exp)
   set_type(exp, t)
 end
 
-local function var2name (var)
+local function var2name (env, var)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local tag = var.tag
   if tag == "Id" then
-    return string.format("local '%s'", var[1])
+    return string.format("local " .. bold_token, var[1])
   elseif tag == "Index" then
     if var[1].tag == "Id" and var[1][1] == "_ENV" and var[2].tag == "String" then
-      return string.format("global '%s'", var[2][1])
+      return string.format("global " .. bold_token, var[2][1])
     else
-      return string.format("field '%s'", var[2][1])
+      return string.format("field " .. bold_token, var[2][1])
     end
   else
     return "value"
@@ -849,7 +871,8 @@ local function arglist2type (explist)
 end
 
 local function check_arguments (env, func_name, dec_type, infer_type, pos)
-  local msg = "attempt to pass '%s' to %s of input type '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to pass " .. bold_token .. " to %s of input type " .. bold_token
   if tltype.subtype(infer_type, dec_type) then
   elseif tltype.consistent_subtype(infer_type, dec_type) then
     msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
@@ -941,17 +964,18 @@ local function check_call (env, exp)
   else
     local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
     local inferred_type = replace_self(env, arglist2type(explist), env.self)
-    local msg = "attempt to call %s of type '%s'"
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = "attempt to call %s of type " .. bold_token
     if tltype.isFunction(t) then
-      check_arguments(env, var2name(exp1), t[1], inferred_type, exp.pos)
+      check_arguments(env, var2name(env, exp1), t[1], inferred_type, exp.pos)
       set_type(exp, t[2])
     elseif tltype.isAny(t) then
       set_type(exp, Any)
-      msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+      msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
       typeerror(env, "any", msg, exp.pos)
     else
       set_type(exp, Nil)
-      msg = string.format(msg, var2name(exp1), tltype.tostring(t))
+      msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
       typeerror(env, "call", msg, exp.pos)
     end
   end
@@ -959,6 +983,7 @@ local function check_call (env, exp)
 end
 
 local function check_invoke (env, exp)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local exp1, exp2 = exp[1], exp[2]
   local explist = {}
   for i = 3, #exp do
@@ -984,7 +1009,7 @@ local function check_invoke (env, exp)
       t3 = replace_self(env, tltype.getField(t2, string_userdata), t1)
       inferred_type[1] = String
     end
-    local msg = "attempt to call method '%s' of type '%s'"
+    local msg = "attempt to call method " .. bold_token .. " of type " .. bold_token
     if tltype.isFunction(t3) then
       check_arguments(env, "field", t3[1], inferred_type, exp.pos)
       set_type(exp, t3[2])
@@ -999,12 +1024,12 @@ local function check_invoke (env, exp)
     end
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    local msg = "attempt to index '%s' with '%s'"
+    local msg = "attempt to index " .. bold_token .. " with " .. bold_token
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, "any", msg, exp.pos)
   else
     set_type(exp, Nil)
-    local msg = "attempt to index '%s' with '%s'"
+    local msg = "attempt to index " .. bold_token .. " with " .. bold_token
     msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
     typeerror(env, "index", msg, exp.pos)
   end
@@ -1033,7 +1058,8 @@ local function check_local_var (env, id, inferred_type, close_local)
   else
     check_self(env, local_type, local_type, pos)
     local_type = replace_names(env, local_type, pos)
-    local msg = "attempt to assign '%s' to '%s'"
+    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+    local msg = "attempt to assign " .. bold_token .. " to " .. bold_token
     local local_type = tltype.unfold(local_type)
     msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
     if tltype.subtype(inferred_type, local_type) then
@@ -1186,7 +1212,8 @@ local function check_assignment (env, varlist, explist)
   end
   table.insert(l, tltype.Vararg(Value))
   local var_type, exp_type = tltype.Tuple(l), explist2typelist(explist)
-  local msg = "attempt to assign '%s' to '%s'"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to assign " .. bold_token .. " to " .. bold_token
   if tltype.subtype(exp_type, var_type) then
   elseif tltype.consistent_subtype(exp_type, var_type) then
     msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
@@ -1400,7 +1427,8 @@ local function check_fornum (env, stm)
   local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
   check_exp(env, exp1)
   local t1 = get_type(exp1)
-  local msg = "'for' initial value must be a number"
+  local for_text = env.color and acolor.bold .. "'for'" .. acolor.reset or "'for'"
+  local msg = for_text .. " initial value must be a number"
   if tltype.subtype(t1, Number) then
   elseif tltype.consistent_subtype(t1, Number) then
     typeerror(env, "any", msg, exp1.pos)
@@ -1409,7 +1437,7 @@ local function check_fornum (env, stm)
   end
   check_exp(env, exp2)
   local t2 = get_type(exp2)
-  msg = "'for' limit must be a number"
+  msg = for_text .. " limit must be a number"
   if tltype.subtype(t2, Number) then
   elseif tltype.consistent_subtype(t2, Number) then
     typeerror(env, "any", msg, exp2.pos)
@@ -1420,7 +1448,7 @@ local function check_fornum (env, stm)
   if block then
     check_exp(env, exp3)
     local t3 = get_type(exp3)
-    msg = "'for' step must be a number"
+    msg = for_text .. " step must be a number"
     if not infer_int(t3) then
       int_step = false
     end
@@ -1451,7 +1479,8 @@ local function check_forin (env, idlist, explist, block)
   check_explist(env, explist)
   local t = tltype.first(get_type(explist[1]))
   local tuple = explist2typegen({})
-  local msg = "attempt to iterate over %s"
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to iterate over " .. bold_token
   if tltype.isFunction(t) then
     local l = {}
     for k, v in ipairs(t[2]) do
@@ -1488,11 +1517,12 @@ local function check_id (env, exp)
 end
 
 local function check_index (env, exp)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local exp1, exp2 = exp[1], exp[2]
   check_exp(env, exp1)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-  local msg = "attempt to index '%s' with '%s'"
+  local msg = "attempt to index " .. bold_token .. " with " .. bold_token
   t1 = replace_self(env, t1, env.self)
   if tltype.isTable(t1) then
     -- FIX: methods should not leave objects, this is unsafe!
@@ -1501,7 +1531,7 @@ local function check_index (env, exp)
       set_type(exp, field_type)
     else
       if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
-        msg = "attempt to access undeclared global '%s'"
+        msg = "attempt to access undeclared global " .. bold_token
         msg = string.format(msg, exp2[1])
       else
         msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
@@ -1521,6 +1551,7 @@ local function check_index (env, exp)
 end
 
 function check_var (env, var, exp)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
@@ -1533,7 +1564,7 @@ function check_var (env, var, exp)
     check_exp(env, exp1)
     check_exp(env, exp2)
     local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
-    local msg = "attempt to index '%s' with '%s'"
+    local msg = "attempt to index " .. bold_token .. " with " .. bold_token
     t1 = replace_self(env, t1, env.self)
     if tltype.isTable(t1) then
       local oself = env.self
@@ -1551,7 +1582,7 @@ function check_var (env, var, exp)
             if tltype.subtype(t, t1) then
               table.insert(t1, tltype.Field(var.const, t2, t3))
             else
-              msg = "could not include field '%s'"
+              msg = "could not include field " .. bold_token
               msg = string.format(msg, tltype.tostring(t2))
               typeerror(env, "open", msg, var.pos)
             end
@@ -1562,10 +1593,10 @@ function check_var (env, var, exp)
           end
         else
           if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
-            msg = "attempt to access undeclared global '%s'"
+            msg = "attempt to access undeclared global " .. bold_token
             msg = string.format(msg, exp2[1])
           else
-            msg = "attempt to use '%s' to index closed table"
+            msg = "attempt to use " .. bold_token .. " to index closed table"
             msg = string.format(msg, tltype.tostring(t2))
           end
           typeerror(env, "open", msg, var.pos)
@@ -1713,12 +1744,13 @@ local function load_lua_env (env)
   tlst.get_local(env, "_ENV")
 end
 
-function tlchecker.typecheck (ast, subject, filename, strict, integer)
+function tlchecker.typecheck (ast, subject, filename, strict, integer, color)
   assert(type(ast) == "table")
   assert(type(subject) == "string")
   assert(type(filename) == "string")
   assert(type(strict) == "boolean")
-  local env = tlst.new_env(subject, filename, strict)
+  assert(type(color) == "boolean")
+  local env = tlst.new_env(subject, filename, strict, color)
   if integer and _VERSION == "Lua 5.3" then
     Integer = tltype.Integer(true)
     env.integer = true
@@ -1737,11 +1769,11 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer)
   return env.messages
 end
 
-function tlchecker.error_msgs (messages, warnings)
+function tlchecker.error_msgs (messages, warnings, color)
   assert(type(messages) == "table")
   assert(type(warnings) == "boolean")
   local l = {}
-  local msg = "%s:%d:%d: %s, %s"
+  local msg = color and acolor.bold .. "%s:%d:%d:" .. acolor.reset .. " %s, %s" or "%s:%d:%d: %s, %s"
   local skip_error = { any = true,
     mask = true,
     unused = true,
@@ -1750,10 +1782,12 @@ function tlchecker.error_msgs (messages, warnings)
     local tag = v.tag
     if skip_error[tag] then
       if warnings then
-        table.insert(l, string.format(msg, v.filename, v.l, v.c, "warning", v.msg))
+        local warning_text = color and acolor.magenta .. "warning" .. acolor.reset or "warning"
+        table.insert(l, string.format(msg, v.filename, v.l, v.c, warning_text, v.msg))
       end
     else
-      table.insert(l, string.format(msg, v.filename, v.l, v.c, "type error", v.msg))
+      local error_text = color and acolor.red .. "type error" .. acolor.reset or "type error"
+      table.insert(l, string.format(msg, v.filename, v.l, v.c, error_text, v.msg))
     end
   end
   local n = #l
