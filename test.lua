@@ -3264,7 +3264,7 @@ local x:boolean, y:boolean, z:number = 1, "foo"
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1' to 'boolean'
-test.lua:1:18: type error, attempt to assign 'foo' to 'boolean'
+test.lua:1:18: type error, attempt to assign '"foo"' to 'boolean'
 test.lua:1:29: type error, attempt to assign 'nil' to 'number'
 ]=]
 
@@ -3355,7 +3355,7 @@ local x:string, y:number|string = 1 and 2, "foo" and nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1 | 2' to 'string'
-test.lua:1:17: type error, attempt to assign 'foo?' to 'number | string'
+test.lua:1:17: type error, attempt to assign '"foo"?' to 'number | string'
 ]=]
 
 r = typecheck(s)
@@ -3380,7 +3380,7 @@ local x:string, y:number|string = 1 or 2, "foo" or nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1 | 2' to 'string'
-test.lua:1:17: type error, attempt to assign 'foo?' to 'number | string'
+test.lua:1:17: type error, attempt to assign '"foo"?' to 'number | string'
 ]=]
 
 r = typecheck(s)
@@ -3477,7 +3477,7 @@ s = [=[
 if 1 then local x:number = 1 else local x:number = "foo" end
 ]=]
 e = [=[
-test.lua:1:41: type error, attempt to assign 'foo' to 'number'
+test.lua:1:41: type error, attempt to assign '"foo"' to 'number'
 ]=]
 
 r = typecheck(s)
@@ -3762,9 +3762,9 @@ z.z = 2
 ]=]
 e = [=[
 test.lua:2:16: type error, attempt to access undeclared global 'y'
-test.lua:2:16: type error, attempt to index 'nil' with 'z'
+test.lua:2:16: type error, attempt to index 'nil' with '"z"'
 test.lua:4:1: type error, attempt to access undeclared global 'z'
-test.lua:4:1: type error, attempt to index 'nil' with 'z'
+test.lua:4:1: type error, attempt to index 'nil' with '"z"'
 test.lua:4:1: type error, attempt to assign '(2)' to '(nil, value*)'
 ]=]
 
@@ -3795,7 +3795,7 @@ y:x()
 ]=]
 e = [=[
 test.lua:5:1: type error, attempt to call method 'y' of type 'nil'
-test.lua:7:1: type error, attempt to index 'number' with 'x'
+test.lua:7:1: type error, attempt to index 'number' with '"x"'
 ]=]
 
 r = typecheck(s)
@@ -4076,7 +4076,7 @@ local t1:{"foo":number} = { foo = 1, bar = "foo" }
 local t2:{string:number} = t1
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign '{foo:number}' to '{string:number?}'
+test.lua:2:7: type error, attempt to assign '{"foo":number}' to '{string:number?}'
 ]=]
 
 r = typecheck(s)
@@ -4129,7 +4129,7 @@ local t3:{"foo":number, number:string} = { foo = 1, [1] = true }
 e = [=[
 test.lua:1:7: type error, attempt to assign '{1:{1:string, 2:string, 3:string}, 2:{1:string, 2:string, 3:string}, 3:number}' to '{number:{number:string?}?}'
 test.lua:2:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:(value*) -> ()}' to '{number:string?}'
-test.lua:3:7: type error, attempt to assign '{foo:number, 1:boolean}' to '{foo:number, number:string?}'
+test.lua:3:7: type error, attempt to assign '{"foo":number, 1:boolean}' to '{"foo":number, number:string?}'
 ]=]
 
 r = typecheck(s)
@@ -4145,7 +4145,7 @@ r = t
 r.foo = nil
 ]=]
 e = [=[
-test.lua:6:1: type error, attempt to assign '({const foo:string?})' to '({foo:string?}, value*)'
+test.lua:6:1: type error, attempt to assign '({const "foo":string?})' to '({"foo":string?}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4217,7 +4217,7 @@ local person:Person = { firstname = "Lou", lastname = "Reed" }
 ]=]
 e = [=[
 test.lua:1:7: type error, type alias 'Person' is not defined
-test.lua:1:7: type error, attempt to assign '{firstname:string, lastname:string}' to 'nil'
+test.lua:1:7: type error, attempt to assign '{"firstname":string, "lastname":string}' to 'nil'
 ]=]
 
 r = typecheck(s)
@@ -4242,8 +4242,8 @@ print(greet(user3))
 print(greet(user4))
 ]=]
 e = [=[
-test.lua:14:7: type error, attempt to pass '({firstname:string})' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
-test.lua:16:7: type error, attempt to pass '({1:string, 2:string})' to local 'greet' of input type '({firstname:string, lastname:string}, value*)'
+test.lua:14:7: type error, attempt to pass '({"firstname":string})' to local 'greet' of input type '({"firstname":string, "lastname":string}, value*)'
+test.lua:16:7: type error, attempt to pass '({1:string, 2:string})' to local 'greet' of input type '({"firstname":string, "lastname":string}, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4383,10 +4383,10 @@ person.firstname = "Lou"
 person.lastname = "Reed"
 ]=]
 e = [=[
-test.lua:3:1: type error, attempt to use 'firstname' to index closed table
-test.lua:3:1: type error, attempt to assign '(Lou)' to '(nil, value*)'
-test.lua:4:1: type error, attempt to use 'lastname' to index closed table
-test.lua:4:1: type error, attempt to assign '(Reed)' to '(nil, value*)'
+test.lua:3:1: type error, attempt to use '"firstname"' to index closed table
+test.lua:3:1: type error, attempt to assign '("Lou")' to '(nil, value*)'
+test.lua:4:1: type error, attempt to use '"lastname"' to index closed table
+test.lua:4:1: type error, attempt to assign '("Reed")' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4400,7 +4400,7 @@ person.firstname = "Lou"
 person.lastname = "Reed"
 ]=]
 e = [=[
-test.lua:3:1: type error, attempt to use 'firstname' to index closed table
+test.lua:3:1: type error, attempt to use '"firstname"' to index closed table
 test.lua:3:1: type error, attempt to assign '(1)' to '(nil, value*)'
 ]=]
 
@@ -4419,11 +4419,11 @@ do
 end
 ]=]
 e = [=[
-test.lua:4:3: type error, attempt to use 'firstname' to index closed table
+test.lua:4:3: type error, attempt to use '"firstname"' to index closed table
 test.lua:4:3: type error, attempt to assign '(1)' to '(nil, value*)'
-test.lua:5:3: type error, attempt to assign '({})' to '({firstname:number}, value*)'
-test.lua:8:3: type error, attempt to use 'firstname' to index closed table
-test.lua:8:3: type error, attempt to assign '(Lou)' to '(nil, value*)'
+test.lua:5:3: type error, attempt to assign '({})' to '({"firstname":number}, value*)'
+test.lua:8:3: type error, attempt to use '"firstname"' to index closed table
+test.lua:8:3: type error, attempt to assign '("Lou")' to '(nil, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4481,7 +4481,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-test.lua:11:7: type error, attempt to assign '{firstname:string, middlename:string, lastname:string}' to '{firstname:string, middlename:string?, lastname:string}'
+test.lua:11:7: type error, attempt to assign '{"firstname":string, "middlename":string, "lastname":string}' to '{"firstname":string, "middlename":string?, "lastname":string}'
 ]=]
 
 r = typecheck(s)
