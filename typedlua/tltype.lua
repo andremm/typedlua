@@ -194,7 +194,10 @@ function tltype.Union (...)
       table.insert(l2, l1[i])
     end
   end
-  -- remove duplicated types
+  if #l2 == 1 then -- short circuit
+    return l2[1]
+  end
+  -- remove duplicates
   local l3 = {}
   for i = 1, #l2 do
     local enter = true
@@ -206,12 +209,15 @@ function tltype.Union (...)
     end
     if enter then table.insert(l3, l2[i]) end
   end
+  if #l3 == 1 then -- short circuit
+    return l3[1]
+  end
   -- simplify union
   local t = { tag = "TUnion" }
   for i = 1, #l3 do
     local enter = true
     for j = 1, #l3 do
-      if i ~= j and tltype.consistent_subtype(l3[i], l3[j]) then
+      if i ~= j and not tltype.isAny(l3[i]) and tltype.consistent_subtype(l3[i], l3[j]) then
         enter = false
         break
       end
@@ -219,7 +225,7 @@ function tltype.Union (...)
     if enter then table.insert(t, l3[i]) end
   end
   if #t == 0 then
-    return tltype.Any()
+    return tltype.Void()
   elseif #t == 1 then
     return t[1]
   else
@@ -1109,7 +1115,7 @@ local function type2str (t, n)
   n = n or 0
   if n > 0 and t.name then
     return t.name
-  elseif tltype.isTrue() or tltype.isFalse() or tltype.isNum() then
+  elseif tltype.isTrue(t) or tltype.isFalse(t) or tltype.isNum(t) then
     return tostring(t[1])
   elseif tltype.isLiteral(t) then
     return string.format("%q", t[1])
