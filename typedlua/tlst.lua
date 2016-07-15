@@ -2,6 +2,8 @@
 This module implements Typed Lua symbol table.
 ]]
 
+local tltype = require "typedlua.tltype"
+
 local tlst = {}
 
 -- new_env : (string, string, boolean) -> (env)
@@ -22,7 +24,22 @@ function tlst.new_env (subject, filename, strict, color)
   env["interface"] = {}
   env["userdata"] = {}
   env["loaded"] = {}
+  env["projections"] = {}
   return env
+end
+
+function tlst.new_projection(env, t)
+  local label = {}
+  env["projections"][label] = t
+  return label
+end
+
+function tlst.get_projection(env, label)
+  return env["projections"][label]
+end
+
+function tlst.set_projection(env, label, t)
+  env["projections"][label] = t
 end
 
 -- new_scope : () -> (senv)
@@ -39,6 +56,7 @@ local function new_scope ()
 end
 
 function tlst.add_filtered(env, var, t)
+  if not var.otype then var.otype = t end
   if not env[env.scope].filtered[var] then -- ignore if twice in the same scope filtered
     env[env.scope].filtered[var] = true
     var.bkp[env.scope] = t
@@ -67,7 +85,12 @@ end
 function tlst.end_scope (env)
   for v, _ in pairs(env[env.scope].filtered) do
     if v.bkp and v.bkp[env.scope] then
-      v["type"] = v.bkp[env.scope]
+      local t = v.bkp[env.scope]
+      if tltype.isUnionlist(t) or tltype.isTuple(t) then
+        tlst.set_projection(env, v["type"][1], t)
+      else
+        v["type"] = t
+      end
     end
   end
   env.scope = env.scope - 1

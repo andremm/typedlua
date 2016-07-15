@@ -1,0 +1,4 @@
+-- bug47.tld
+userdata U
+end
+foo: () -> (U, nil) | (nil, string)

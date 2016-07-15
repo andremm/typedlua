@@ -53,9 +53,6 @@ local function typeerror (env, tag, msg, pos)
 end
 
 local function set_type (node, t)
-  if node["type"] then
-    node["otype"] = node["otype"] or node["type"]
-  end
   node["type"] = t
 end
 
@@ -1079,7 +1076,7 @@ local function check_local_var (env, id, inferred_type, close_local)
       local_type = Any
     else
       local_type = tltype.general(inferred_type)
-      if not local_type.name then local_type.name = local_name end
+      --if not local_type.name then local_type.name = local_name end
       if inferred_type.unique then
         local_type.unique = nil
         local_type.open = true
@@ -1106,6 +1103,9 @@ local function check_local_var (env, id, inferred_type, close_local)
 end
 
 local function unannotated_idlist (idlist, start)
+  if start > #idlist then
+    return false
+  end
   for i = start, #idlist do
     if idlist[i][2] then return false end
   end
@@ -1135,9 +1135,10 @@ local function check_local (env, idlist, explist)
      unannotated_idlist(idlist, #explist) and
      match_unionlist(get_type(explist[#explist]), #idlist - #explist) then
     local t = get_type(explist[#explist])
-    for k, v in ipairs(idlist) do
-      set_type(v, t)
-      v.i = k
+    local label = tlst.new_projection(env, t)
+    for i = #explist, #idlist do
+      local v = idlist[i]
+      set_type(v, tltype.Proj(label, i - #explist + 1))
       check_masking(env, v[1], v.pos)
       tlst.set_local(env, v)
     end
@@ -1241,13 +1242,48 @@ end
 
 local function assign_upvalue(env, var) -- clear all filters and mark if as unfilterable
   var.assigned = true
-  var["type"] = var.otype or var["type"]
+  local t = var.otype
   var.otype = nil
+  if t then
+    if tltype.isProj(var["type"]) then
+      tlst.set_projection(env, var["type"][1], t)
+    else
+      var["type"] = t
+    end
+  end
   var.bkp = {}
+end
+
+local function check_revert_proj(env, var, t)
+  local tprj = get_type(var)
+  local label, idx = tprj[1], tprj[2]
+  local tv = tltype.unionlist2union(tlst.get_projection(env, label), idx)
+  local s = env.scope
+  repeat
+    if tv and tltype.subtype(t, tv) then break end
+    tv = tltype.unionlist2union(var.bkp[s], idx)
+    s = s - 1
+  until s == 0 or env[s+1].loop
+  if tv then
+    for i = env.scope,s+1,-1 do
+      var.bkp[i] = nil
+    end
+    tlst.set_projection(env, label, tv)
+  else
+    tv = tltype.unionlist2union(var.otype, idx)
+    if tv and tltype.subtype(t, tv) then
+      tlst.set_projection(env, label, tv)
+      tv.otype = nil
+      tv.bkp = {}
+    end
+  end
 end
 
 local function check_revert(env, var, t)
   local tv = get_type(var)
+  if tltype.isProj(tv) then
+    return check_revert_proj(env, var, t)
+  end
   local s = env.scope
   repeat
     if tv and tltype.subtype(t, tv) then break end
@@ -1262,7 +1298,7 @@ local function check_revert(env, var, t)
   else
     tv = var.otype
     if tv and tltype.subtype(t, tv) then
-      set_type(tv, t)
+      set_type(var, tv)
       tv.otype = nil
       tv.bkp = {}
     end
@@ -1292,7 +1328,7 @@ local function check_assignment (env, varlist, explist)
           local t1, t2 = get_type(exp), get_type(l)
           if tltype.subtype(t1, t2) then
             set_type(l, t1)
-            tlst.add_filtered(env, l, l.bkp[env.scope] or t2)
+            tlst.add_filtered(env, l, t2)
           end
         else
           check_revert(env, l, get_type(exp))
@@ -1329,12 +1365,45 @@ end
 local function apply_filters(env, inout, fset)
   local has_void = false
   for var, filter in pairs(fset) do
-    if not tltype.isUnionlist(get_type(var)) then
+    if not tltype.isProj(get_type(var)) then
       local tin, tout = filter(get_type(var))
       local tf = inout and tin or tout
       has_void = has_void or tltype.isVoid(tf)
       tlst.add_filtered(env, var, get_type(var))
       if not tltype.isVoid(tf) then set_type(var, tf) end
+    else
+      local t = get_type(var)
+      local proj, idx = tlst.get_projection(env, t[1]), t[2]
+      if tltype.isUnionlist(proj) then
+        local nproj = {}
+        for _, tup in ipairs(proj) do
+          local tv = tup[idx]
+          local tin, tout = filter(tv)
+          local tf = inout and tin or tout
+          if not tltype.isVoid(tf) then
+            local ntup = tltype.Tuple(tup)
+            ntup[idx] = tf
+            nproj[#nproj+1] = ntup
+          end
+        end
+        local nproj = tltype.Unionlist(table.unpack(nproj))
+        has_void = has_void or tltype.isVoid(nproj)
+        tlst.add_filtered(env, var, proj)
+        if not tltype.isVoid(nproj) then tlst.set_projection(env, t[1], tltype.Unionlist(nproj)) end
+      elseif tltype.isTuple(proj) then
+        local tv = proj[idx]
+        local tin, tout = filter(tv)
+        local tf = inout and tin or tout
+        has_void = has_void or tltype.isVoid(tf)
+        if not tltype.isVoid(tf) then
+          local nproj = tltype.Tuple(proj)
+          nproj[idx] = tf
+          tlst.add_filtered(env, var, proj)
+          tlst.set_projection(env, t[1], nproj)
+        end
+      else
+        error("BUG: projection for variable " .. var[1] .. " has type " .. tltype.tostring(proj))
+      end
     end
   end
   return has_void
@@ -1519,10 +1588,14 @@ local function check_id (env, exp)
   local name = exp[1]
   local l, floc, _ = tlst.get_local(env, name)
   local t = get_type(l)
-  if not floc then t = l.otype or t end -- unfiltered type if upvalue
-  if tltype.isUnionlist(t) and l.i then
-    set_type(exp, tltype.unionlist2union(t, l.i))
+  if tltype.isProj(t) then
+    if floc then
+      set_type(exp, tltype.unionlist2union(tlst.get_projection(env, t[1]), t[2]))
+    else -- unfiltered type if upvalue
+      set_type(exp, tltype.unionlist2union(l.otype or tlst.get_projection(env, t[1]), t[2]))
+    end
   else
+    if not floc then t = l.otype or t end -- unfiltered type if upvalue
     set_type(exp, t)
   end
   if l and not l.assigned then

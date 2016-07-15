@@ -12,7 +12,7 @@ tltype.integer = false
 
 -- Literal : (boolean|number|string) -> (type)
 function tltype.Literal (l)
-  return { tag = "TLiteral", [1] = l, name = tostring(l) }
+  return { tag = "TLiteral", [1] = l }
 end
 
 -- False : () -> (type)
@@ -78,11 +78,15 @@ function tltype.isStr (t)
   return tltype.isLiteral(t) and type(t[1]) == "string"
 end
 
+function tltype.isProj (t)
+  return t.tag == "TProj"
+end
+
 -- base types
 
 -- Base : ("boolean"|"number"|"string") -> (type)
 function tltype.Base (s)
-  return { tag = "TBase", [1] = s, name = s }
+  return { tag = "TBase", [1] = s }
 end
 
 -- Boolean : () -> (type)
@@ -134,7 +138,7 @@ end
 
 -- Nil : () -> (type)
 function tltype.Nil ()
-  return { tag = "TNil", name = "nil" }
+  return { tag = "TNil" }
 end
 
 -- isNil : (type) -> (boolean)
@@ -146,7 +150,7 @@ end
 
 -- Value : () -> (type)
 function tltype.Value ()
-  return { tag = "TValue", name = "value" }
+  return { tag = "TValue" }
 end
 
 -- isValue : (type) -> (boolean)
@@ -158,7 +162,7 @@ end
 
 -- Any : () -> (type)
 function tltype.Any ()
-  return { tag = "TAny", name = "any" }
+  return { tag = "TAny" }
 end
 
 -- isAny : (type) -> (boolean)
@@ -170,7 +174,7 @@ end
 
 -- Self : () -> (type)
 function tltype.Self ()
-  return { tag = "TSelf", name = "self" }
+  return { tag = "TSelf" }
 end
 
 -- isSelf : (type) -> (boolean)
@@ -301,7 +305,7 @@ end
 
 -- Void : () -> (type)
 function tltype.Void ()
-  return { tag = "TVoid", name = "void" }
+  return { tag = "TVoid" }
 end
 
 -- isVoid : (type) -> (boolean)
@@ -366,6 +370,10 @@ end
 -- isUnionlist : (type) -> (boolean)
 function tltype.isUnionlist (t)
   return t.tag == "TUnionlist"
+end
+
+function tltype.Proj(label, idx)
+  return { tag = "TProj", label, idx }
 end
 
 -- UnionlistNil : (type, boolean?) -> (type)
@@ -933,6 +941,8 @@ end
 function subtype (env, t1, t2, relation)
   if tltype.isVoid(t1) and tltype.isVoid(t2) then
     return true
+  elseif tltype.isProj(t1) and tltype.isProj(t2) then
+      return t1[1] == t2[1] and t1[2] == t2[2]
   elseif tltype.isUnionlist(t1) then
     for _, v in ipairs(t1) do
       if not subtype(env, v, t2, relation) then
@@ -1085,6 +1095,9 @@ function tltype.unionlist2tuple (t)
 end
 
 function tltype.unionlist2union (t, i)
+  if tltype.isTuple(t) then
+    return t[i]
+  end
   local l = {}
   for _, v in ipairs(t) do
     l[#l + 1] = v[i]
@@ -1113,7 +1126,7 @@ end
 -- type2str (type) -> (string)
 local function type2str (t, n)
   n = n or 0
-  if n > 0 and t.name then
+  if n <= 0 and t.name then
     return t.name
   elseif tltype.isTrue(t) or tltype.isFalse(t) or tltype.isNum(t) then
     return tostring(t[1])
