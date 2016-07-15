@@ -1166,14 +1166,14 @@ local function check_localrec (env, id, exp)
     ret_type = tltype.Tuple({ Nil }, true)
     infer_return = true
   end
+  tlst.set_local(env, id)
   tlst.begin_function(env)
+  tlst.begin_scope(env)
   local input_type = check_parameters(env, idlist, exp.pos)
   local t = tltype.Function(input_type, ret_type)
   id[2] = t
   set_type(id, t)
   check_masking(env, id[1], id.pos)
-  tlst.set_local(env, id)
-  tlst.begin_scope(env)
   local len = #idlist
   if len > 0 and idlist[len].tag == "Dots" then len = len - 1 end
   for k = 1, len do
@@ -1192,12 +1192,12 @@ local function check_localrec (env, id, exp)
     ret_type = inferred_type
     t = tltype.Function(input_type, ret_type)
     id[2] = t
-    set_type(id, t)
-    tlst.set_local(env, id)
+    id["type"] = t
     set_type(exp, t)
   end
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
+  local abs = tlst.get_local(env, "abs")
   return false
 end
 
@@ -1253,7 +1253,7 @@ local function check_revert(env, var, t)
     repeat
       tv = var.bkp[s]
       s = s - 1
-    until tv or (s == 0)
+    until tv or (s <= 0)
   end
   if tv then
     for i = env.scope-1,s+1,-1 do
@@ -1345,7 +1345,7 @@ end
 
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
-  local sf = check_exp(env, exp1)
+  local sf = check_exp(env, exp1) or {}
   if apply_filters(env, true, sf, {}) then
     return false
   else -- while block is unreacheable
@@ -1396,16 +1396,18 @@ local function check_if (env, stm)
   local l = {}
   local rl = {}
   local isallret = true
-  local lastsf = {}
+  local prevfs = {}
   local bkps = {}
   for i = 1, #stm, 2 do
-    if apply_filters(env, false, lastsf) then break end -- rest of the if is unreacheable
+    for _, pfs in ipairs(prevfs) do
+      if apply_filters(env, false, pfs) then break end -- rest of the if is unreacheable
+    end
     local exp, block = stm[i], stm[i + 1]
     local has_void
     if block then
       local sf = check_exp(env, exp) or {}
       has_void = apply_filters(env, true, sf, bkps)
-      lastsf = sf
+      prevfs[#prevfs+1] = sf
     else
       block = exp
     end
