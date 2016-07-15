@@ -39,8 +39,10 @@ local function new_scope ()
 end
 
 function tlst.add_filtered(env, var, t)
-  env[env.scope].filtered[var] = true
-  var.bkp[env.scope] = t
+  if not env[env.scope].filtered[var] then -- ignore if twice in the same scope filtered
+    env[env.scope].filtered[var] = true
+    var.bkp[env.scope] = t
+  end
 end
 
 -- begin_scope : (env) -> ()
@@ -63,14 +65,14 @@ end
 
 -- end_scope : (env) -> ()
 function tlst.end_scope (env)
+  for v, _ in pairs(env[env.scope].filtered) do
+    if v.bkp and v.bkp[env.scope] then
+      v["type"] = v.bkp[env.scope]
+    end
+  end
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
-    for v, _ in pairs(env[scope].filtered) do
-      if v.bkp and v.bkp[scope] then
-        v["type"] = v.bkp[scope]
-      end
-    end
     for _, v in pairs(env[scope]["local"]) do
       if v["type"] and v["type"].reopen then
         v["type"].reopen = nil
@@ -131,12 +133,12 @@ function tlst.get_local (env, local_name)
   local currfunc = env[env.scope]["function"]
   local no_loop = true
   for s = scope, 1, -1 do
+    no_loop = no_loop and (not env[s].loop)
     local l = env[s]["local"][local_name]
     if l then
       env[s]["unused"][local_name] = nil
-      return l, env[s]["function"] == currfunc, env[s]["function"] == currfunc and no_loop
+      return l, env[s]["function"] == currfunc, no_loop
     end
-    no_loop = no_loop and (not env[env.scope].loop)
   end
   return nil, false, false
 end

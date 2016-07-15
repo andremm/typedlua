@@ -494,18 +494,18 @@ local function check_equal (env, exp)
   set_type(exp, Boolean)
   if exp1.tag == "Index" and exp1[1].tag == "Id" and
      exp1[2].tag == "String" and tltype.isStr(get_type(exp2)) then
-    local var, _, lloc = tlst.get_local(env, exp1[1][1])
-    if lloc and not var.assigned then
+    local var, _, _ = tlst.get_local(env, exp1[1][1])
+    if var and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_fieldliteral(exp1[2][1], get_type(exp2)))
     end
   elseif is_global_function_call(exp1, "type") and exp1[2].tag == "Id" and exp2.tag == "String" then
-    local var, _, lloc = tlst.get_local(env, exp1[2][1])
-    if lloc and not var.assigned then
+    local var, _, _ = tlst.get_local(env, exp1[2][1])
+    if var and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_tag(exp2[1]))
     end
   elseif exp1.tag == "Id" and exp2.tag == "Nil" then
-    local var, _, lloc = tlst.get_local(env, exp1[1])
-    if lloc and not var.assigned then
+    local var, _, _ = tlst.get_local(env, exp1[1])
+    if var and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_nil)
     end
   end
@@ -1248,15 +1248,14 @@ end
 
 local function check_revert(env, var, t)
   local tv = get_type(var)
-  local s = env.scope-1
-  while tv and not tltype.subtype(t, tv) do
-    repeat
-      tv = var.bkp[s]
-      s = s - 1
-    until tv or (s <= 0)
-  end
+  local s = env.scope
+  repeat
+    if tv and tltype.subtype(t, tv) then break end
+    tv = var.bkp[s]
+    s = s - 1
+  until s == 0 or env[s+1].loop
   if tv then
-    for i = env.scope-1,s+1,-1 do
+    for i = env.scope,s+1,-1 do
       var.bkp[i] = nil
     end
     set_type(var, tv)
@@ -1275,10 +1274,17 @@ local function check_assignment (env, varlist, explist)
   for k, v in ipairs(varlist) do
     if v.tag == "Id" then -- may be local variable
       local name = v[1]
-      local l, floc, bloc = tlst.get_local(env, name)
+      local l, floc, lloc = tlst.get_local(env, name)
       if l and not floc then -- mark assigned upvalue and remove all filters
-        assign_upvalue(env, l)
-      elseif l and bloc then
+        if not lloc then -- cannot revert across loop
+          local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+          local msg = "attempt to assign to filtered upvalue " .. bold_token .. " across a loop"
+          msg = string.format(msg, l[1])
+          typeerror(env, "set", msg, varlist[k].pos)
+        else
+          assign_upvalue(env, l) -- revert to original type
+        end
+      elseif l then
         local exp = explist[k]
         check_exp(env, exp)
         if exp and exp.tag == "Op" and exp[1] == "or" and
@@ -1291,10 +1297,6 @@ local function check_assignment (env, varlist, explist)
         else
           check_revert(env, l, get_type(exp))
         end
-      else
-        local exp = explist[k]
-        check_exp(env, exp)
-        check_revert(env, l, get_type(exp))
       end
     elseif v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
@@ -1324,19 +1326,14 @@ local function check_assignment (env, varlist, explist)
   return false
 end
 
-local function apply_filters(env, inout, fset, bkps)
+local function apply_filters(env, inout, fset)
   local has_void = false
   for var, filter in pairs(fset) do
     if not tltype.isUnionlist(get_type(var)) then
       local tin, tout = filter(get_type(var))
       local tf = inout and tin or tout
       has_void = has_void or tltype.isVoid(tf)
-      if bkps then
-        if not bkps[var] then
-          bkps[var] = get_type(var)
-        end
-        tlst.add_filtered(env, var, get_type(var))
-      end
+      tlst.add_filtered(env, var, get_type(var))
       if not tltype.isVoid(tf) then set_type(var, tf) end
     end
   end
@@ -1345,11 +1342,14 @@ end
 
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
+  tlst.begin_scope(env, true) -- filter scope
   local sf = check_exp(env, exp1) or {}
-  if apply_filters(env, true, sf, {}) then
+  if apply_filters(env, true, sf) then -- while block is unreacheable
+    tlst.end_scope(env)
     return false
-  else -- while block is unreacheable
-    local r, _, didgoto = check_block(env, stm1, true)
+  else
+    local r, _, didgoto = check_block(env, stm1)
+    tlst.end_scope(env)
     return false, _, didgoto -- while always can not return if does not execute once
   end
 end
@@ -1398,15 +1398,17 @@ local function check_if (env, stm)
   local isallret = true
   local prevfs = {}
   local bkps = {}
+  tlst.begin_scope(env) -- filter scope for whole if
   for i = 1, #stm, 2 do
     for _, pfs in ipairs(prevfs) do
       if apply_filters(env, false, pfs) then break end -- rest of the if is unreacheable
     end
     local exp, block = stm[i], stm[i + 1]
+    tlst.begin_scope(env) -- filter scope for current block
     local has_void
     if block then
       local sf = check_exp(env, exp) or {}
-      has_void = apply_filters(env, true, sf, bkps)
+      has_void = apply_filters(env, true, sf)
       prevfs[#prevfs+1] = sf
     else
       block = exp
@@ -1416,10 +1418,9 @@ local function check_if (env, stm)
       table.insert(rl, r)
       isallret = isallret and isret
     end
+    tlst.end_scope(env) -- revert filters for current block
   end
-  for var, t in pairs(bkps) do -- restore types
-    set_type(var, t)
-  end
+  tlst.end_scope(env) -- revert filters for whole if
   if #stm % 2 == 0 then table.insert(rl, false) end
   local r = true
   for _, v in ipairs(rl) do
@@ -1516,7 +1517,7 @@ end
 
 local function check_id (env, exp)
   local name = exp[1]
-  local l, floc, lloc = tlst.get_local(env, name)
+  local l, floc, _ = tlst.get_local(env, name)
   local t = get_type(l)
   if not floc then t = l.otype or t end -- unfiltered type if upvalue
   if tltype.isUnionlist(t) and l.i then
@@ -1524,7 +1525,7 @@ local function check_id (env, exp)
   else
     set_type(exp, t)
   end
-  if lloc and not l.assigned then
+  if l and not l.assigned then
     return tlfilter.set_single(l, tlfilter.filter_truthy)
   else
     return {}
@@ -1564,8 +1565,8 @@ local function check_index (env, exp)
     typeerror(env, "index", msg, exp.pos)
   end
   if exp1.tag == "Id" and exp2.tag == "String" then
-    local var, _, lloc = tlst.get_local(env, exp[1])
-    if lloc and not var.assigned then
+    local var, _, _ = tlst.get_local(env, exp[1])
+    if var and not var.assigned then
       return tlfilter.set_single(exp1[1], tlfilter.filter_field(exp2[1]))
     end
   end
