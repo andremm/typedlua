@@ -1778,6 +1778,7 @@ function tlchecker.error_msgs (messages, warnings, color)
     mask = true,
     unused = true,
   }
+  local n = 0
   for _, v in ipairs(messages) do
     local tag = v.tag
     if skip_error[tag] then
@@ -1788,10 +1789,10 @@ function tlchecker.error_msgs (messages, warnings, color)
     else
       local error_text = color and acolor.red .. "type error" .. acolor.reset or "type error"
       table.insert(l, string.format(msg, v.filename, v.l, v.c, error_text, v.msg))
+      n = n + 1
     end
   end
-  local n = #l
-  if n == 0 then
+  if #l == 0 then
     return nil, n
   else
     return table.concat(l, "\n"), n
