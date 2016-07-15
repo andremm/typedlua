@@ -4242,8 +4242,8 @@ print(greet(user3))
 print(greet(user4))
 ]=]
 e = [=[
-test.lua:14:7: type error, attempt to pass '({"firstname":string})' to local 'greet' of input type '({"firstname":string, "lastname":string}, value*)'
-test.lua:16:7: type error, attempt to pass '({1:string, 2:string})' to local 'greet' of input type '({"firstname":string, "lastname":string}, value*)'
+test.lua:14:7: type error, attempt to pass '({"firstname":string})' to local 'greet' of input type '(Person, value*)'
+test.lua:16:7: type error, attempt to pass '({1:string, 2:string})' to local 'greet' of input type '(Person, value*)'
 ]=]
 
 r = typecheck(s)
@@ -4481,7 +4481,7 @@ user.lastname = "Reed"
 local person:Person = user
 ]=]
 e = [=[
-test.lua:11:7: type error, attempt to assign '{"firstname":string, "middlename":string, "lastname":string}' to '{"firstname":string, "middlename":string?, "lastname":string}'
+test.lua:11:7: type error, attempt to assign '{"firstname":string, "middlename":string, "lastname":string}' to 'Person'
 ]=]
 
 r = typecheck(s)

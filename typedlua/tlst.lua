@@ -2,6 +2,8 @@
 This module implements Typed Lua symbol table.
 ]]
 
+local tltype = require "typedlua.tltype"
+
 local tlst = {}
 
 -- new_env : (string, string, boolean) -> (env)
@@ -22,7 +24,22 @@ function tlst.new_env (subject, filename, strict, color)
   env["interface"] = {}
   env["userdata"] = {}
   env["loaded"] = {}
+  env["projections"] = {}
   return env
+end
+
+function tlst.new_projection(env, t)
+  local label = {}
+  env["projections"][label] = t
+  return label
+end
+
+function tlst.get_projection(env, label)
+  return env["projections"][label]
+end
+
+function tlst.set_projection(env, label, t)
+  env["projections"][label] = t
 end
 
 -- new_scope : () -> (senv)
@@ -31,14 +48,23 @@ local function new_scope ()
   senv["goto"] = {}
   senv["label"] = {}
   senv["local"] = {}
+  senv["filtered"] = {}
   senv["unused"] = {}
   senv["interface"] = {}
   senv["userdata"] = {}
   return senv
 end
 
+function tlst.add_filtered(env, var, t)
+  if not var.otype then var.otype = t end
+  if not env[env.scope].filtered[var] then -- ignore if twice in the same scope filtered
+    env[env.scope].filtered[var] = true
+    var.bkp[env.scope] = t
+  end
+end
+
 -- begin_scope : (env) -> ()
-function tlst.begin_scope (env)
+function tlst.begin_scope (env, loop)
   local scope = env.scope
   if scope > 0 then
     for _, v in pairs(env[scope]["local"]) do
@@ -51,17 +77,26 @@ function tlst.begin_scope (env)
   env.scope = scope + 1
   env.maxscope = env.scope
   env[env.scope] = new_scope()
+  env[env.scope]["function"] = env["function"][env.fscope]
+  env[env.scope].loop = loop
 end
 
 -- end_scope : (env) -> ()
 function tlst.end_scope (env)
+  for v, _ in pairs(env[env.scope].filtered) do
+    if v.bkp and v.bkp[env.scope] then
+      local t = v.bkp[env.scope]
+      if tltype.isUnionlist(t) or tltype.isTuple(t) then
+        tlst.set_projection(env, v["type"][1], t)
+      else
+        v["type"] = t
+      end
+    end
+  end
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
     for _, v in pairs(env[scope]["local"]) do
-      if v.assigned and v.bkp then
-        v["type"] = v.bkp
-      end
       if v["type"] and v["type"].reopen then
         v["type"].reopen = nil
         v["type"].open = true
@@ -109,21 +144,26 @@ end
 function tlst.set_local (env, id)
   local scope = env.scope
   local local_name = id[1]
+  id.bkp = {}
   env[scope]["local"][local_name] = id
   env[scope]["unused"][local_name] = id
 end
 
--- get_local : (env, string) -> (id)
+-- get_local : (env, string) -> (id, boolean, boolean)
+--   second return value is boolean indicating if is local to this function
 function tlst.get_local (env, local_name)
   local scope = env.scope
+  local currfunc = env[env.scope]["function"]
+  local no_loop = true
   for s = scope, 1, -1 do
+    no_loop = no_loop and (not env[s].loop)
     local l = env[s]["local"][local_name]
     if l then
       env[s]["unused"][local_name] = nil
-      return l
+      return l, env[s]["function"] == currfunc, no_loop
     end
   end
-  return nil
+  return nil, false, false
 end
 
 -- masking : (env, string) -> (id|nil)

@@ -24,6 +24,7 @@ build = {
     ["typedlua.tlast"] = "typedlua/tlast.lua",
     ["typedlua.tlchecker"] = "typedlua/tlchecker.lua",
     ["typedlua.tlcode"] = "typedlua/tlcode.lua",
+    ["typedlua.tlfilter"] = "typedlua/tlfilter.lua",
     ["typedlua.tllexer"] = "typedlua/tllexer.lua",
     ["typedlua.tlparser"] = "typedlua/tlparser.lua",
     ["typedlua.tlst"] = "typedlua/tlst.lua",
