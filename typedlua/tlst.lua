@@ -31,14 +31,20 @@ local function new_scope ()
   senv["goto"] = {}
   senv["label"] = {}
   senv["local"] = {}
+  senv["filtered"] = {}
   senv["unused"] = {}
   senv["interface"] = {}
   senv["userdata"] = {}
   return senv
 end
 
+function tlst.add_filtered(env, var, t)
+  env[env.scope].filtered[var] = true
+  var.bkp[env.scope] = t
+end
+
 -- begin_scope : (env) -> ()
-function tlst.begin_scope (env)
+function tlst.begin_scope (env, loop)
   local scope = env.scope
   if scope > 0 then
     for _, v in pairs(env[scope]["local"]) do
@@ -51,6 +57,8 @@ function tlst.begin_scope (env)
   env.scope = scope + 1
   env.maxscope = env.scope
   env[env.scope] = new_scope()
+  env[env.scope]["function"] = env["function"][env.fscope]
+  env[env.scope].loop = loop
 end
 
 -- end_scope : (env) -> ()
@@ -58,10 +66,12 @@ function tlst.end_scope (env)
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
-    for _, v in pairs(env[scope]["local"]) do
-      if v.assigned and v.bkp then
-        v["type"] = v.bkp
+    for v, _ in pairs(env[scope].filtered) do
+      if v.bkp and v.bkp[scope] then
+        v["type"] = v.bkp[scope]
       end
+    end
+    for _, v in pairs(env[scope]["local"]) do
       if v["type"] and v["type"].reopen then
         v["type"].reopen = nil
         v["type"].open = true
@@ -109,21 +119,26 @@ end
 function tlst.set_local (env, id)
   local scope = env.scope
   local local_name = id[1]
+  id.bkp = {}
   env[scope]["local"][local_name] = id
   env[scope]["unused"][local_name] = id
 end
 
--- get_local : (env, string) -> (id)
+-- get_local : (env, string) -> (id, boolean, boolean)
+--   second return value is boolean indicating if is local to this function
 function tlst.get_local (env, local_name)
   local scope = env.scope
+  local currfunc = env[env.scope]["function"]
+  local no_loop = true
   for s = scope, 1, -1 do
     local l = env[s]["local"][local_name]
     if l then
       env[s]["unused"][local_name] = nil
-      return l
+      return l, env[s]["function"] == currfunc, env[s]["function"] == currfunc and no_loop
     end
+    no_loop = no_loop and (not env[env.scope].loop)
   end
-  return nil
+  return nil, false, false
 end
 
 -- masking : (env, string) -> (id|nil)
