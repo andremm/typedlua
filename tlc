@@ -144,8 +144,10 @@ local status
 error_msg, status = tlchecker.error_msgs(error_msg, WARNINGS, COLOR)
 if error_msg then print(error_msg) end
 
-local generated_code = tlcode.generate(ast)
-setcontents(generated_code, OUTPUT)
+if status == 0 then
+  local generated_code = tlcode.generate(ast)
+  setcontents(generated_code, OUTPUT)
+end
 
 if DUMPAST then
   local out = assert(io.open(DUMPAST, "w+"))
