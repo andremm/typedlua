@@ -1457,16 +1457,14 @@ local function check_if (env, stm)
   local exitfs = {}
   tlst.begin_scope(env) -- filter scope for whole if
   for i = 1, #stm, 2 do
-    for _, pfs in ipairs(prevfs) do
-      if apply_filters(env, false, pfs) then break end -- rest of the if is unreacheable
-    end
+    if apply_filters(env, false, prevfs) then break end -- rest of the if is unreacheable
     local exp, block = stm[i], stm[i + 1]
     tlst.begin_scope(env) -- filter scope for current block
     local has_void, sf
     if block then
       sf = check_exp(env, exp) or {}
       has_void = apply_filters(env, true, sf)
-      prevfs[#prevfs+1] = sf
+      prevfs = sf
     else
       block = exp
     end
@@ -1474,15 +1472,7 @@ local function check_if (env, stm)
       local r, didgoto = check_block(env, block)
       rl[#rl+1] = didgoto and false or r
       dg[#dg+1] = didgoto
-      if #rl == 1 then
-          exitfs = r and tlfilter.set_not(sf) or sf
-      else
-        if rl[#rl-1] then
-          exitfs = tlfilter.set_and(exitfs, r and tlfilter.set_not(sf) or sf)
-        else
-          exitfs = tlfilter.set_or(exitfs, r and tlfilter.set_not(sf) or sf)
-        end
-      end
+      if r then exitfs[#exitfs+1] = sf end
     end
     tlst.end_scope(env) -- revert filters for current block
   end
@@ -1491,15 +1481,14 @@ local function check_if (env, stm)
   for _, v in ipairs(rl) do
     r = r and v
   end
+  if r then
+    for _, fs in ipairs(exitfs) do
+      apply_filters(env, false, fs)
+    end
+  end
   if #stm % 2 == 0 then
      r = false
-     if rl[#rl] then
-       exitfs = tlfilter.set_and(exitfs, {})
-     else
-       exitfs = tlfilter.set_or(exitfs, {})
-     end
   end
-  apply_filters(env, true, exitfs)
   local didgoto = false
   for _, v in ipairs(dg) do
     didgoto = didgoto or v
