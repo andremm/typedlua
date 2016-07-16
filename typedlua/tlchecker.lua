@@ -1454,7 +1454,7 @@ local function check_if (env, stm)
   local l = {}
   local rl, dg = {}, {}
   local prevfs = {}
-  local nexitfs, exitfs = {}, {}
+  local exitfs = {}
   tlst.begin_scope(env) -- filter scope for whole if
   for i = 1, #stm, 2 do
     for _, pfs in ipairs(prevfs) do
@@ -1474,10 +1474,14 @@ local function check_if (env, stm)
       local r, didgoto = check_block(env, block)
       rl[#rl+1] = didgoto and false or r
       dg[#dg+1] = didgoto
-      if r then
-        exitfs[#exitfs+1] = tlfilter.set_not(sf)
+      if #rl == 1 then
+          exitfs = r and tlfilter.set_not(sf) or sf
       else
-        nexitfs[#nexitfs+1] = sf or {}
+        if rl[#rl-1] then
+          exitfs = tlfilter.set_and(exitfs, r and tlfilter.set_not(sf) or sf)
+        else
+          exitfs = tlfilter.set_or(exitfs, r and tlfilter.set_not(sf) or sf)
+        end
       end
     end
     tlst.end_scope(env) -- revert filters for current block
@@ -1488,27 +1492,14 @@ local function check_if (env, stm)
     r = r and v
   end
   if #stm % 2 == 0 then
-     if not rl[#rl] then
-       nexitfs[#nexitfs+1] = {}
-     end
      r = false
+     if rl[#rl] then
+       exitfs = tlfilter.set_and(exitfs, {})
+     else
+       exitfs = tlfilter.set_or(exitfs, {})
+     end
   end
-  local fs
-  if #exitfs > 0 then
-    fs = exitfs[1]
-    for i = 2, #exitfs do
-      fs = tlfilter.set_and(fs, exitfs[i])
-    end
-    for i = 1, #nexitfs do
-      fs = tlfilter.set_or(fs, nexitfs[i])
-    end
-  else
-    fs = nexitfs[1] or {}
-    for i = 2, #nexitfs do
-      fs = tlfilter.set_or(fs, nexitfs[i])
-    end
-  end
-  apply_filters(env, true, fs)
+  apply_filters(env, true, exitfs)
   local didgoto = false
   for _, v in ipairs(dg) do
     didgoto = didgoto or v
