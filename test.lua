@@ -3539,12 +3539,14 @@ elseif type(x) == "string" then
   x = x .. "hello"
 elseif type(x) == "boolean" then
   x = false
+elseif math.random() > 0.5 then
+  error("break")
 end
 
 x = x + 1
 ]=]
 e = [=[
-test.lua:11:5: type error, attempt to perform arithmetic on a 'boolean | number | string | nil'
+test.lua:13:5: type error, attempt to perform arithmetic on a 'boolean | number | string | nil'
 ]=]
 
 r = typecheck(s)
