@@ -141,7 +141,7 @@ end
 
 error_msg = tlchecker.typecheck(ast, subject, filename, STRICT, INTEGER, COLOR)
 local status
-error_msg, status = tlchecker.error_msgs(error_msg, WARNINGS, COLOR)
+error_msg, status = tlchecker.error_msgs(error_msg, WARNINGS, COLOR, true)
 if error_msg then print(error_msg) end
 
 if status == 0 then
