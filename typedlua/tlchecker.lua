@@ -1881,7 +1881,7 @@ local function get_source_line(filename, l)
   local i = 1
   for source_line in io.lines(filename) do
     if i == l then
-      return (string.gsub(source_line, "\t", "  "))
+      return (string.gsub(source_line, "\t", " "))
     end
     i = i + 1
   end
