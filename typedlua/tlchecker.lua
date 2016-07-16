@@ -1452,7 +1452,7 @@ local function check_if (env, stm)
   local l = {}
   local rl, dg = {}, {}
   local prevfs = {}
-  local bkps = {}
+  local exitfs = {}
   tlst.begin_scope(env) -- filter scope for whole if
   for i = 1, #stm, 2 do
     for _, pfs in ipairs(prevfs) do
@@ -1460,9 +1460,9 @@ local function check_if (env, stm)
     end
     local exp, block = stm[i], stm[i + 1]
     tlst.begin_scope(env) -- filter scope for current block
-    local has_void
+    local has_void, sf
     if block then
-      local sf = check_exp(env, exp) or {}
+      sf = check_exp(env, exp) or {}
       has_void = apply_filters(env, true, sf)
       prevfs[#prevfs+1] = sf
     else
@@ -1472,10 +1472,14 @@ local function check_if (env, stm)
       local r, didgoto = check_block(env, block)
       rl[#rl+1] = didgoto and false or r
       dg[#dg+1] = didgoto
+      if r then exitfs[#exitfs+1] = sf end -- block returns it condition was true
     end
     tlst.end_scope(env) -- revert filters for current block
   end
   tlst.end_scope(env) -- revert filters for whole if
+  for _, fs in ipairs(exitfs) do -- apply out filters for blocks that return
+    apply_filters(env, false, fs)
+  end
   if #stm % 2 == 0 then table.insert(rl, false) end
   local r = true
   for _, v in ipairs(rl) do

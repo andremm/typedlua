@@ -1,7 +1,7 @@
 local x: number | string | nil = 10
 local y: number | string = 20
 
-if type(x) == "number" then --and type(y) ~= "number" then
+if type(x) == "number" and type(y) ~= "number" then
   print(x + 10) -- ok
   print(x + y)  -- error, y: string
   local function f()
