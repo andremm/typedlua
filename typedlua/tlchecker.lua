@@ -1404,17 +1404,17 @@ local function check_while (env, stm)
     tlst.end_scope(env)
     return false
   else
-    local r, _, didgoto = check_block(env, stm1)
+    local r, didgoto = check_block(env, stm1)
     tlst.end_scope(env)
-    return false, _, didgoto -- while always can not return if does not execute once
+    return false, didgoto -- while always can not return if does not execute once
   end
 end
 
 local function check_repeat (env, stm)
   local stm1, exp1 = stm[1], stm[2]
-  local r, _, didgoto = check_block(env, stm1, true)
+  local r, didgoto = check_block(env, stm1, true)
   check_exp(env, exp1)
-  return r, _, didgoto
+  return r, didgoto
 end
 
 local function tag2type (t)
@@ -1451,7 +1451,6 @@ end
 local function check_if (env, stm)
   local l = {}
   local rl = {}
-  local isallret = true
   local prevfs = {}
   local bkps = {}
   tlst.begin_scope(env) -- filter scope for whole if
@@ -1470,9 +1469,8 @@ local function check_if (env, stm)
       block = exp
     end
     if not has_void then -- "then" block of this condition is reacheable
-      local r, isret = check_block(env, block)
-      table.insert(rl, r)
-      isallret = isallret and isret
+      local r, didgoto = check_block(env, block)
+      table.insert(rl, didgoto and false or r)
     end
     tlst.end_scope(env) -- revert filters for current block
   end
@@ -1534,10 +1532,10 @@ local function check_fornum (env, stm)
   else
     set_type(id, Number)
   end
-  local r, _, didgoto = check_block(env, block, true)
+  local r, didgoto = check_block(env, block, true)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r, _, didgoto
+  return r, didgoto
 end
 
 local function check_forin (env, idlist, explist, block)
@@ -1565,10 +1563,10 @@ local function check_forin (env, idlist, explist, block)
     local t = tltype.filterUnion(tuple(k), Nil)
     check_local_var(env, v, t, false)
   end
-  local r, _, didgoto = check_block(env, block, true)
+  local r, didgoto = check_block(env, block, true)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r, _, didgoto
+  return r, didgoto
 end
 
 local function check_id (env, exp)
@@ -1759,7 +1757,7 @@ function check_stm (env, stm)
   elseif tag == "Localrec" then
     return check_localrec(env, stm[1][1], stm[2][1])
   elseif tag == "Goto" then
-    return false, nil, true
+    return false, true
   elseif tag == "Label" then
     return false
   elseif tag == "Return" then
@@ -1787,17 +1785,15 @@ function check_block (env, block, loop)
   tlst.begin_scope(env, loop)
   local r = false
   local bkp = env.self
-  local endswithret = true
-  local didgoto, _ = false, nil
+  local didgoto = false
   for _, v in ipairs(block) do
-    r, _, didgoto = check_stm(env, v)
+    r, didgoto = check_stm(env, v)
     env.self = bkp
-    if didgoto then endswithret = false end
+    if didgoto then r = false end
   end
-  endswithret = endswithret and is_exit_point(block)
   check_unused_locals(env)
   tlst.end_scope(env)
-  return r, endswithret, didgoto
+  return r, didgoto
 end
 
 local function load_lua_env (env)
