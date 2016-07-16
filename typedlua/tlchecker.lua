@@ -1007,7 +1007,7 @@ local function check_call (env, exp)
       typeerror(env, "call", msg, exp.pos)
     end
   end
-  return false
+  return is_global_function_call(exp, "error")
 end
 
 local function check_invoke (env, exp)
@@ -1450,7 +1450,7 @@ end
 
 local function check_if (env, stm)
   local l = {}
-  local rl = {}
+  local rl, dg = {}, {}
   local prevfs = {}
   local bkps = {}
   tlst.begin_scope(env) -- filter scope for whole if
@@ -1470,7 +1470,8 @@ local function check_if (env, stm)
     end
     if not has_void then -- "then" block of this condition is reacheable
       local r, didgoto = check_block(env, block)
-      table.insert(rl, didgoto and false or r)
+      rl[#rl+1] = didgoto and false or r
+      dg[#dg+1] = didgoto
     end
     tlst.end_scope(env) -- revert filters for current block
   end
@@ -1480,7 +1481,11 @@ local function check_if (env, stm)
   for _, v in ipairs(rl) do
     r = r and v
   end
-  return r
+  local didgoto = false
+  for _, v in ipairs(dg) do
+    didgoto = didgoto or v
+  end
+  return r, didgoto
 end
 
 local function infer_int(t)
@@ -1787,10 +1792,13 @@ function check_block (env, block, loop)
   local bkp = env.self
   local didgoto = false
   for _, v in ipairs(block) do
-    r, didgoto = check_stm(env, v)
+    local isret, isgoto = check_stm(env, v)
+    r = r or isret
+    didgoto = didgoto or isgoto
     env.self = bkp
-    if didgoto then r = false end
+    if r and not didgoto then break end -- rest of the block is unreacheable
   end
+  if didgoto then r = false end
   check_unused_locals(env)
   tlst.end_scope(env)
   return r, didgoto
