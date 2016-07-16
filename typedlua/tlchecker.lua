@@ -1242,8 +1242,7 @@ end
 
 local function assign_upvalue(env, var) -- clear all filters and mark if as unfilterable
   var.assigned = true
-  local t = var.otype
-  var.otype = nil
+  local t = var.bkp[1] and var.bkp[1][1] -- first saved type is original
   if t then
     if tltype.isProj(var["type"]) then
       tlst.set_projection(env, var["type"][1], t)
@@ -1258,23 +1257,16 @@ local function check_revert_proj(env, var, t)
   local tprj = get_type(var)
   local label, idx = tprj[1], tprj[2]
   local tv = tltype.unionlist2union(tlst.get_projection(env, label), idx)
-  local s = env.scope
-  repeat
-    if tv and tltype.subtype(t, tv) then break end
-    tv = tltype.unionlist2union(var.bkp[s], idx)
-    s = s - 1
-  until s == 0 or env[s+1].loop
-  if tv then
-    for i = env.scope,s+1,-1 do
-      var.bkp[i] = nil
-    end
-    tlst.set_projection(env, label, tv)
-  else
-    tv = tltype.unionlist2union(var.otype, idx)
-    if tv and tltype.subtype(t, tv) then
+  if tltype.subtype(t, tv) then return end
+  for i = #var.bkp, 1, -1 do
+    local tv, s = tltype.unionlist2union(var.bkp[i][1], idx), var.bkp[i][2]
+    if s < env.scope and env[s+1].loop then return end -- crossed loop, abort
+    if tltype.subtype(t, tv) then -- found subtype, revert
+      for j = #var.bkp, i, -1 do
+        var.bkp[j] = nil
+      end
       tlst.set_projection(env, label, tv)
-      tv.otype = nil
-      tv.bkp = {}
+      return
     end
   end
 end
@@ -1284,23 +1276,16 @@ local function check_revert(env, var, t)
   if tltype.isProj(tv) then
     return check_revert_proj(env, var, t)
   end
-  local s = env.scope
-  repeat
-    if tv and tltype.subtype(t, tv) then break end
-    tv = var.bkp[s]
-    s = s - 1
-  until s == 0 or env[s+1].loop
-  if tv then
-    for i = env.scope,s+1,-1 do
-      var.bkp[i] = nil
-    end
-    set_type(var, tv)
-  else
-    tv = var.otype
-    if tv and tltype.subtype(t, tv) then
+  if tltype.subtype(t, tv) then return end
+  for i = #var.bkp, 1, -1 do
+    local tv, s = var.bkp[i][1], var.bkp[i][2]
+    if s < env.scope and env[s+1].loop then return end -- crossed loop, abort
+    if tltype.subtype(t, tv) then -- found subtype, revert
+      for j = #var.bkp, i, -1 do
+        var.bkp[j] = nil
+      end
       set_type(var, tv)
-      tv.otype = nil
-      tv.bkp = {}
+      return
     end
   end
 end
@@ -1592,10 +1577,11 @@ local function check_id (env, exp)
     if floc then
       set_type(exp, tltype.unionlist2union(tlst.get_projection(env, t[1]), t[2]))
     else -- unfiltered type if upvalue
-      set_type(exp, tltype.unionlist2union(l.otype or tlst.get_projection(env, t[1]), t[2]))
+      local ulist = l.bkp[1] and l.bkp[1][1] or tlst.get_projection(env, t[1])
+      set_type(exp, tltype.unionlist2union(ulist, t[2]))
     end
   else
-    if not floc then t = l.otype or t end -- unfiltered type if upvalue
+    if not floc then t = l.bkp[1] and l.bkp[1][1] or t end -- unfiltered type if upvalue
     set_type(exp, t)
   end
   if l and not l.assigned then

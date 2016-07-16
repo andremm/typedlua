@@ -56,11 +56,8 @@ local function new_scope ()
 end
 
 function tlst.add_filtered(env, var, t)
-  if not var.otype then var.otype = t end
-  if not env[env.scope].filtered[var] then -- ignore if twice in the same scope filtered
-    env[env.scope].filtered[var] = true
-    var.bkp[env.scope] = t
-  end
+  env[env.scope].filtered[var] = true
+  var.bkp[#var.bkp+1] = { t, env.scope }
 end
 
 -- begin_scope : (env) -> ()
@@ -81,18 +78,25 @@ function tlst.begin_scope (env, loop)
   env[env.scope].loop = loop
 end
 
+local function revert_filters(env)
+  for v, _ in pairs(env[env.scope].filtered) do
+    repeat
+      local pair = v.bkp[#v.bkp]
+      if pair[2] == env.scope then
+        v.bkp[#v.bkp] = nil
+        local t = pair[1]
+        if tltype.isUnionlist(t) or tltype.isTuple(t) then
+          tlst.set_projection(env, v["type"][1], t)
+        else
+          v["type"] = t
+        end
+      end
+    until pair[2] < env.scope or #v.bkp == 0
+  end
+end
 -- end_scope : (env) -> ()
 function tlst.end_scope (env)
-  for v, _ in pairs(env[env.scope].filtered) do
-    if v.bkp and v.bkp[env.scope] then
-      local t = v.bkp[env.scope]
-      if tltype.isUnionlist(t) or tltype.isTuple(t) then
-        tlst.set_projection(env, v["type"][1], t)
-      else
-        v["type"] = t
-      end
-    end
-  end
+  revert_filters(env)
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
