@@ -27,8 +27,8 @@ local Integer = tltype.Integer(false)
 local check_block, check_stm, check_exp, check_var
 
 local acolor = {
-  red     = "\27[31m",
-  magenta = "\27[35m",
+  red     = "\27[31;1m",
+  magenta = "\27[35;1m",
   bold    = "\27[1m",
   reset   = "\27[0m"
 }
@@ -1890,7 +1890,26 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer, color)
   return env.messages
 end
 
-function tlchecker.error_msgs (messages, warnings, color)
+local function get_source_line(filename, l)
+  local i = 1
+  for source_line in io.lines(filename) do
+    if i == l then
+      return (string.gsub(source_line, "\t", "  "))
+    end
+    i = i + 1
+  end
+end
+
+local function get_source_arrow(c, color, is_warning)
+  if color then
+    local color_code = is_warning and acolor.magenta or acolor.red
+    return string.rep(" ", c - 1) .. color_code .. "^" .. acolor.reset
+  else
+    return string.rep(" ", c - 1) .. "^"
+  end
+end
+
+function tlchecker.error_msgs (messages, warnings, color, line_preview)
   assert(type(messages) == "table")
   assert(type(warnings) == "boolean")
   local l = {}
@@ -1906,10 +1925,18 @@ function tlchecker.error_msgs (messages, warnings, color)
       if warnings then
         local warning_text = color and acolor.magenta .. "warning" .. acolor.reset or "warning"
         table.insert(l, string.format(msg, v.filename, v.l, v.c, warning_text, v.msg))
+        if line_preview then
+          table.insert(l, get_source_line(v.filename, v.l))
+          table.insert(l, get_source_arrow(v.c, color, true))
+        end
       end
     else
       local error_text = color and acolor.red .. "type error" .. acolor.reset or "type error"
       table.insert(l, string.format(msg, v.filename, v.l, v.c, error_text, v.msg))
+      if line_preview then
+        table.insert(l, get_source_line(v.filename, v.l))
+        table.insert(l, get_source_arrow(v.c, color, false))
+      end
       n = n + 1
     end
   end
