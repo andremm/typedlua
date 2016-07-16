@@ -731,9 +731,11 @@ end
 
 local function check_explist (env, explist, lselfs)
   lselfs = lselfs or {}
+  local fsets = {}
   for k, v in ipairs(explist) do
-    check_exp(env, v, lselfs[k])
+    fsets[k] = check_exp(env, v, lselfs[k])
   end
+  return fsets
 end
 
 local function check_return_type (env, inf_type, dec_type, pos)
@@ -945,6 +947,55 @@ local function replace_self (env, t, tself)
   end
 end
 
+local function apply_filters(env, inout, fset)
+  local has_void = false
+  for var, filter in pairs(fset) do
+    if not var.assigned then
+      if not tltype.isProj(get_type(var)) then
+        local tin, tout = filter(get_type(var))
+        local tf = inout and tin or tout
+        has_void = has_void or tltype.isVoid(tf)
+        tlst.add_filtered(env, var, get_type(var))
+        if not tltype.isVoid(tf) then set_type(var, tf) end
+      else
+        local t = get_type(var)
+        local proj, idx = tlst.get_projection(env, t[1]), t[2]
+        if tltype.isUnionlist(proj) then
+          local nproj = {}
+          for _, tup in ipairs(proj) do
+            local tv = tup[idx]
+            local tin, tout = filter(tv)
+            local tf = inout and tin or tout
+            if not tltype.isVoid(tf) then
+              local ntup = tltype.Tuple(tup)
+              ntup[idx] = tf
+              nproj[#nproj+1] = ntup
+            end
+          end
+          local nproj = tltype.Unionlist(table.unpack(nproj))
+          has_void = has_void or tltype.isVoid(nproj)
+          tlst.add_filtered(env, var, proj)
+          if not tltype.isVoid(nproj) then tlst.set_projection(env, t[1], tltype.Unionlist(nproj)) end
+        elseif tltype.isTuple(proj) then
+          local tv = proj[idx]
+          local tin, tout = filter(tv)
+          local tf = inout and tin or tout
+          has_void = has_void or tltype.isVoid(tf)
+          if not tltype.isVoid(tf) then
+            local nproj = tltype.Tuple(proj)
+            nproj[idx] = tf
+            tlst.add_filtered(env, var, proj)
+            tlst.set_projection(env, t[1], nproj)
+          end
+        else
+          error("BUG: projection for variable " .. var[1] .. " has type " .. tltype.tostring(proj))
+        end
+      end
+    end
+  end
+  return has_void
+end
+
 local function check_call (env, exp)
   local exp1 = exp[1]
   local explist = {}
@@ -952,7 +1003,7 @@ local function check_call (env, exp)
     explist[i - 1] = exp[i]
   end
   check_exp(env, exp1)
-  check_explist(env, explist)
+  local fsets = check_explist(env, explist)
   if exp1.tag == "Index" and
      exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
      exp1[2].tag == "String" and exp1[2][1] == "setmetatable" then
@@ -1006,6 +1057,10 @@ local function check_call (env, exp)
       msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
       typeerror(env, "call", msg, exp.pos)
     end
+  end
+  if is_global_function_call(exp, "assert") and fsets[1] then
+    -- apply filters of the first argument of assert
+    apply_filters(env, true, fsets[1])
   end
   return is_global_function_call(exp, "error")
 end
@@ -1345,55 +1400,6 @@ local function check_assignment (env, varlist, explist)
     typeerror(env, "set", msg, varlist[1].pos)
   end
   return false
-end
-
-local function apply_filters(env, inout, fset)
-  local has_void = false
-  for var, filter in pairs(fset) do
-    if not var.assigned then
-      if not tltype.isProj(get_type(var)) then
-        local tin, tout = filter(get_type(var))
-        local tf = inout and tin or tout
-        has_void = has_void or tltype.isVoid(tf)
-        tlst.add_filtered(env, var, get_type(var))
-        if not tltype.isVoid(tf) then set_type(var, tf) end
-      else
-        local t = get_type(var)
-        local proj, idx = tlst.get_projection(env, t[1]), t[2]
-        if tltype.isUnionlist(proj) then
-          local nproj = {}
-          for _, tup in ipairs(proj) do
-            local tv = tup[idx]
-            local tin, tout = filter(tv)
-            local tf = inout and tin or tout
-            if not tltype.isVoid(tf) then
-              local ntup = tltype.Tuple(tup)
-              ntup[idx] = tf
-              nproj[#nproj+1] = ntup
-            end
-          end
-          local nproj = tltype.Unionlist(table.unpack(nproj))
-          has_void = has_void or tltype.isVoid(nproj)
-          tlst.add_filtered(env, var, proj)
-          if not tltype.isVoid(nproj) then tlst.set_projection(env, t[1], tltype.Unionlist(nproj)) end
-        elseif tltype.isTuple(proj) then
-          local tv = proj[idx]
-          local tin, tout = filter(tv)
-          local tf = inout and tin or tout
-          has_void = has_void or tltype.isVoid(tf)
-          if not tltype.isVoid(tf) then
-            local nproj = tltype.Tuple(proj)
-            nproj[idx] = tf
-            tlst.add_filtered(env, var, proj)
-            tlst.set_projection(env, t[1], nproj)
-          end
-        else
-          error("BUG: projection for variable " .. var[1] .. " has type " .. tltype.tostring(proj))
-        end
-      end
-    end
-  end
-  return has_void
 end
 
 local function check_while (env, stm)

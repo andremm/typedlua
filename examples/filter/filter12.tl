@@ -4,3 +4,9 @@ local function double_number(x: number?)
   end
   return 2 * x -- x is filtered to number
 end
+
+local x: number? = 10
+assert(x)
+x = x + 10
+x = nil -- revert
+x = x + 10
