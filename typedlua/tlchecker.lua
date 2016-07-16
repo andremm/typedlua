@@ -1487,9 +1487,15 @@ local function check_if (env, stm)
     tlst.end_scope(env) -- revert filters for current block
   end
   tlst.end_scope(env) -- revert filters for whole if
+  local r = true
+  for _, v in ipairs(rl) do
+    r = r and v
+  end
   if #stm % 2 == 0 then
-     table.insert(rl, false)
-     nexitfs[#nexitfs+1] = {}
+     if not r then
+       nexitfs[#nexitfs+1] = {}
+     end
+     r = false
   end
   local fs
   if #exitfs > 0 then
@@ -1507,10 +1513,6 @@ local function check_if (env, stm)
     end
   end
   apply_filters(env, true, fs)
-  local r = true
-  for _, v in ipairs(rl) do
-    r = r and v
-  end
   local didgoto = false
   for _, v in ipairs(dg) do
     didgoto = didgoto or v
