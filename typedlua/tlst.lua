@@ -80,9 +80,10 @@ end
 
 local function revert_filters(env)
   for v, _ in pairs(env[env.scope].filtered) do
+    env[env.scope].filtered[v] = nil
     repeat
       local pair = v.bkp[#v.bkp]
-      if pair[2] == env.scope then
+      if pair and (pair[2] == env.scope) then
         v.bkp[#v.bkp] = nil
         local t = pair[1]
         if tltype.isUnionlist(t) or tltype.isTuple(t) then
@@ -91,7 +92,7 @@ local function revert_filters(env)
           v["type"] = t
         end
       end
-    until pair[2] < env.scope or #v.bkp == 0
+    until #v.bkp == 0 or pair[2] < env.scope
   end
 end
 -- end_scope : (env) -> ()
