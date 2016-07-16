@@ -1295,42 +1295,27 @@ local function check_return (env, stm)
   return true
 end
 
-local function assign_upvalue(env, var) -- clear all filters and mark if as unfilterable
-  var.assigned = true
+local function assign_upvalue(env, var) -- clear all filters and mark it as unfilterable
   local t = var.bkp[1] and var.bkp[1][1] -- first saved type is original
-  if t then
-    if tltype.isProj(var["type"]) then
+  if tltype.isProj(var["type"]) then
+    if t then
       tlst.set_projection(env, var["type"][1], t)
+      t.assigned = true
     else
+      local tproj = tlst.get_projection(env, var["type"][1])
+      tproj.assigned = true
+    end
+  else
+    var.assigned = true
+    if t then
       var["type"] = t
     end
   end
   var.bkp = {}
 end
 
-local function check_revert_proj(env, var, t)
-  local tprj = get_type(var)
-  local label, idx = tprj[1], tprj[2]
-  local tv = tltype.unionlist2union(tlst.get_projection(env, label), idx)
-  if tltype.subtype(t, tv) then return end
-  for i = #var.bkp, 1, -1 do
-    local tv, s = tltype.unionlist2union(var.bkp[i][1], idx), var.bkp[i][2]
-    if s < env.scope and env[s+1].loop then return end -- crossed loop, abort
-    if tltype.subtype(t, tv) then -- found subtype, revert
-      for j = #var.bkp, i, -1 do
-        var.bkp[j] = nil
-      end
-      tlst.set_projection(env, label, tv)
-      return
-    end
-  end
-end
-
 local function check_revert(env, var, t)
   local tv = get_type(var)
-  if tltype.isProj(tv) then
-    return check_revert_proj(env, var, t)
-  end
   if tltype.subtype(t, tv) then return end
   for i = #var.bkp, 1, -1 do
     local tv, s = var.bkp[i][1], var.bkp[i][2]
@@ -1343,6 +1328,14 @@ local function check_revert(env, var, t)
       return
     end
   end
+end
+
+local function break_projection (env, var)
+  local label, idx = var["type"][1], var["type"][2]
+  for i = #var.bkp, 1, -1 do
+    var.bkp[i] = tltype.unionlist2union(var.bkp[i], idx)
+  end
+  var["type"] = tltype.unionlist2union(tlst.get_projection(env, label), idx)
 end
 
 local function check_assignment (env, varlist, explist)
@@ -1361,6 +1354,9 @@ local function check_assignment (env, varlist, explist)
           assign_upvalue(env, l) -- revert to original type
         end
       elseif l then
+        if tltype.isProj(l["type"]) then
+          break_projection(env, l)
+        end
         local exp = explist[k]
         check_exp(env, exp)
         if exp and exp.tag == "Op" and exp[1] == "or" and
@@ -1492,7 +1488,7 @@ local function check_if (env, stm)
     r = r and v
   end
   if #stm % 2 == 0 then
-     if not r then
+     if not rl[#rl] then
        nexitfs[#nexitfs+1] = {}
      end
      r = false
