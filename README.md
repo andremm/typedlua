@@ -24,14 +24,14 @@ Typed Lua must be installed in a standard location; [LuaRocks](http://luarocks.o
 
 # Compiler options
 
-        h       print this help
-        d name  dump the AST (after typechecking) to file 'name'
-        o name  output to file 'name' (default is 'tlc.lua')
-        c       ansi colors on
-        p       print the AST in Metalua format (before typechecking)
-        s       strict mode on
-        v       print current version
-        w       warnings on (consistent-subtyping, unused locals)
+        -h       print this help
+        -d name  dump the AST (after typechecking) to file 'name'
+        -o name  output to file 'name' (default is 'tlc.lua')
+        -c       ansi colors on
+        -p       print the AST in Metalua format (before typechecking)
+        -s       strict mode on
+        -v       print current version
+        -w       warnings on (consistent-subtyping, unused locals)
 
 # Runtime module loader
 
