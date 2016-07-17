@@ -24,24 +24,28 @@ Typed Lua must be installed in a standard location; [LuaRocks](http://luarocks.o
 
 # Compiler options
 
-        -d      dump the AST
-        -g      generate code without type checking
-        -h      print this help
-        -o name output to file 'name' (default is 'tlc.lua')
-        -p      print the AST
-        -v      print current version
+        h       print this help
+        d name  dump the AST (after typechecking) to file 'name'
+        o name  output to file 'name' (default is 'tlc.lua')
+        c       ansi colors on
+        p       print the AST in Metalua format (before typechecking)
+        s       strict mode on
+        v       print current version
+        w       warnings on (consistent-subtyping, unused locals)
 
 # Runtime module loader
 
 Typed Lua also provides a runtime loader to use Typed Lua modules on any
 standard Lua virtual machine:
 
-        require "typedlua"
-        package.path = "./?.tl;" .. package.path
+```lua
+require "typedlua"
+package.path = "./?.tl;" .. package.path
 
-        -- It will load my_module.tl if it exists:
-        local my_module = require "my_module"
-        local my_file = loadfile "my_file.tl"
+-- It will load my_module.tl if it exists:
+local my_module = require "my_module"
+local my_file = loadfile "my_file.tl"
+```
 
 The loader functions use the file extension (chunk name extension in the cases
 of load and loadstring) to decide whether it contains Typed Lua (.tl) or plain
@@ -49,11 +53,13 @@ Lua. If you want to force loading the chunks as Typed Lua you can use the
 functions provided by the typedlua module (these work like their standard Lua
 counterparts):
 
-        local typedlua = require "typedlua"
-        typedlua.loadstring(string, chunkname)
-        typedlua.load(func, chunkname)
-        typedlua.loadfile(filename)
-        typedlua.dofile(filename)
+```lua
+local typedlua = require "typedlua"
+typedlua.loadstring(string, chunkname)
+typedlua.load(func, chunkname)
+typedlua.loadfile(filename)
+typedlua.dofile(filename)
+```
 
 # License
 
