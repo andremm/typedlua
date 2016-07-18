@@ -20,7 +20,8 @@ local G = lpeg.P { "TypedLuaDescription";
                 tltype.UnionNil;
   UnionType = lpeg.V("PrimaryType") * (lpeg.Cg(tllexer.symb("|") * lpeg.V("PrimaryType"))^0) /
               tltype.Union;
-  PrimaryType = lpeg.V("LiteralType") +
+  PrimaryType = lpeg.V("PrimType") +
+                lpeg.V("LiteralType") +
                 lpeg.V("BaseType") +
                 lpeg.V("NilType") +
                 lpeg.V("ValueType") +
@@ -29,6 +30,7 @@ local G = lpeg.P { "TypedLuaDescription";
                 lpeg.V("FunctionType") +
                 lpeg.V("TableType") +
                 lpeg.V("VariableType");
+  PrimType    = tllexer.symb("$") * tllexer.token(tllexer.Name, "Name") / tltype.Prim;
   LiteralType = ((tllexer.token("false", "Type") * lpeg.Cc(false)) +
                 (tllexer.token("true", "Type") * lpeg.Cc(true)) +
                 tllexer.token(tllexer.Number, "Type") +

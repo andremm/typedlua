@@ -100,6 +100,31 @@ function tlfilter.filter_number(t)
   end
 end
 
+function tlfilter.filter_integer(t)
+  if tltype.isValue(t) or tltype.isAny(t) or tltype.isNumber(t) then
+    return tltype.Integer(), t
+  elseif (tltype.isNum(t) and math.type(t[1]) == "integer") or tltype.isInteger(t) then
+    return t, tltype.Void()
+  elseif tltype.isUnion(t) then
+    local l, tn = {}, nil
+    for _, tt in ipairs(t) do
+      if tltype.isNumber(tt) then
+        tn = tt
+      elseif tltype.isNum(tt) or tltype.isInteger(tt) then
+        tn = tn or tt
+      else
+        l[#l+1] = tt
+      end
+    end
+    tn = tn or tltype.Void()
+    return tn, tltype.Union(table.unpack(l))
+  elseif tltype.isGlobalVariable(t) then
+    return tltype.filter_integer(tltype.unfold(t))
+  else
+    return tltype.Void(), t
+  end
+end
+
 function tlfilter.filter_string(t)
   if tltype.isValue(t) or tltype.isAny(t) then
     return tltype.String(), t

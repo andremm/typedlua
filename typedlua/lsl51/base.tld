@@ -4,10 +4,10 @@ Typed Lua description file for basic functions
 
 arg : {string}
 
-assert : (value, string?) -> (any, string?, any*)
+assert : $assert
 collectgarbage : (string?, number?) -> (number) | (number, number) | (boolean)
 dofile : (string?) -> (any*)
-error : (string, number?) -> ()
+error : $error
 _G : { string:any }
 getfenv : (nil|(value*) -> (value*)) -> (any)
 getmetatable : (value) -> (any)
@@ -25,13 +25,13 @@ rawlen : ({}|string) -> (number)
 rawset : ({any:any}, any, any) -> ({any:any})
 select : (number|string, value*) -> (any*)
 setfenv : ((value*) -> (value*), {}) -> ((value) -> (value*))
-setmetatable : ({any:any}, {any:any}|nil) -> ({any:any}) -- it is a primitive in Typed Lua
+setmetatable : $setmetatable
 tonumber : (value, number|string?) -> (number) | (nil)
 tostring : (value) -> (string)
-type : (value) -> (string) -- it is a primitive in Typed Lua
+type : $type
 unpack : ({any}, number?, number?) -> (any*)
 _VERSION : string
 xpcall : ((any*) -> (any*), any, any*) -> (boolean, any*)
 
 module : (string, value*) -> (any) -- is a primitive in Typed Lua
-require : (string) -> (any) -- is a primitive in Typed Lua
+require : $require

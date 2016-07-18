@@ -3607,10 +3607,9 @@ local z = require(x)
 local w = require()
 ]=]
 e = [=[
-test.lua:1:11: type error, second argument of setmetatable must be { __index = e }
-test.lua:2:11: type error, setmetatable must have two arguments
-test.lua:3:11: type error, the argument of require must be a literal string
-test.lua:4:11: type error, require must have one argument
+test.lua:2:11: type error, attempt to pass '()' to global 'setmetatable' of input type '({any:any},{any:any}?,value*)'
+test.lua:3:11: type error, attempt to pass '({any:any})' to global 'require' of input type '(string,value*)'
+test.lua:4:11: type error, attempt to pass '()' to global 'require' of input type '(string,value*)'
 ]=]
 
 r = typecheck(s)

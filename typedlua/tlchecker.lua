@@ -221,9 +221,11 @@ local function close_type (t)
 end
 
 local function is_global_function_call (exp, fn_name)
-   return exp.tag == "Call" and exp[1].tag == "Index" and
-          exp[1][1].tag == "Id" and exp[1][1][1] == "_ENV" and
-          exp[1][2].tag == "String" and exp[1][2][1] == fn_name
+  if exp.tag == "Call" then
+      local t = tltype.first(get_type(exp[1]))
+      return tltype.isPrim(t) and t[1] == fn_name
+  end
+  return false
 end
 
 local function searchpath (name, path)
@@ -495,10 +497,16 @@ local function check_equal (env, exp)
     if var and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_fieldliteral(exp1[2][1], get_type(exp2)))
     end
-  elseif is_global_function_call(exp1, "type") and exp1[2].tag == "Id" and exp2.tag == "String" then
+  elseif is_global_function_call(exp1, "type") and exp1[2].tag == "Id" and tltype.isStr(get_type(exp2)) then
     local var, _, _ = tlst.get_local(env, exp1[2][1])
     if var and not var.assigned then
-      return tlfilter.set_single(var, tlfilter.filter_tag(exp2[1]))
+      return tlfilter.set_single(var, tlfilter.filter_tag(get_type(exp2)[1]))
+    end
+  elseif is_global_function_call(exp1, "math_type") and exp1[2].tag == "Id"
+      and tltype.isStr(get_type(exp2)) and get_type(exp2)[1] == "integer" then
+    local var, _, _ = tlst.get_local(env, exp1[2][1])
+    if var and not var.assigned then
+      return tlfilter.set_single(var, tlfilter.filter_integer)
     end
   elseif exp1.tag == "Id" and exp2.tag == "Nil" then
     local var, _, _ = tlst.get_local(env, exp1[1])
@@ -1004,65 +1012,44 @@ local function check_call (env, exp)
   end
   check_exp(env, exp1)
   local fsets = check_explist(env, explist)
-  if exp1.tag == "Index" and
-     exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
-     exp1[2].tag == "String" and exp1[2][1] == "setmetatable" then
-    if explist[1] and explist[2] then
+  local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
+  local inferred_type = replace_self(env, arglist2type(explist), env.self)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local msg = "attempt to call %s of type " .. bold_token
+  if tltype.isPrim(t) then
+    if t[1] == "assert" then
+      if fsets[1] then
+        apply_filters(env, true, fsets[1])
+      end
+      set_type(exp, arglist2type(explist))
+      return false
+    elseif t[1] == "require" and #explist == 1 and tltype.isStr(get_type(explist[1])) then
+      set_type(exp, check_require(env, get_type(explist[1])[1], exp.pos))
+      return false
+    elseif t[1] == "setmetatable" and #explist == 2 and
+        not tltype.isNil(tltype.getField(tltype.Literal("__index"), get_type(explist[2]))) then
       local t1, t2 = get_type(explist[1]), get_type(explist[2])
       local t3 = tltype.getField(tltype.Literal("__index"), t2)
-      if not tltype.isNil(t3) then
-        if tltype.isTable(t3) then t3.open = true end
-        set_type(exp, t3)
-      else
-        local msg = "second argument of setmetatable must be { __index = e }"
-        typeerror(env, "call", msg, exp.pos)
-        set_type(exp, Any)
-      end
+      if tltype.isTable(t3) then t3.open = true end
+      set_type(exp, t3)
+      return false
     else
-      local msg = "setmetatable must have two arguments"
-      typeerror(env, "call", msg, exp.pos)
-      set_type(exp, Any)
+      t = t[2]
     end
-  elseif exp1.tag == "Index" and
-         exp1[1].tag == "Id" and exp1[1][1] == "_ENV" and
-         exp1[2].tag == "String" and exp1[2][1] == "require" then
-    if explist[1] then
-      local t1 = get_type(explist[1])
-      if tltype.isStr(t1) then
-        set_type(exp, check_require(env, explist[1][1], exp.pos))
-      else
-        local msg = "the argument of require must be a literal string"
-        typeerror(env, "call", msg, exp.pos)
-        set_type(exp, Any)
-      end
-    else
-      local msg = "require must have one argument"
-      typeerror(env, "call", msg, exp.pos)
-      set_type(exp, Any)
-    end
+  end
+  if tltype.isFunction(t) then
+    check_arguments(env, var2name(env, exp1), t[1], inferred_type, exp.pos)
+    set_type(exp, t[2])
+  elseif tltype.isAny(t) then
+    set_type(exp, Any)
+    msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
+    typeerror(env, "any", msg, exp.pos)
   else
-    local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
-    local inferred_type = replace_self(env, arglist2type(explist), env.self)
-    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-    local msg = "attempt to call %s of type " .. bold_token
-    if tltype.isFunction(t) then
-      check_arguments(env, var2name(env, exp1), t[1], inferred_type, exp.pos)
-      set_type(exp, t[2])
-    elseif tltype.isAny(t) then
-      set_type(exp, Any)
-      msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
-      typeerror(env, "any", msg, exp.pos)
-    else
-      set_type(exp, Nil)
-      msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
-      typeerror(env, "call", msg, exp.pos)
-    end
+    set_type(exp, Nil)
+    msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
+    typeerror(env, "call", msg, exp.pos)
   end
-  if is_global_function_call(exp, "assert") and fsets[1] then
-    -- apply filters of the first argument of assert
-    apply_filters(env, true, fsets[1])
-  end
-  return is_global_function_call(exp, "error")
+  return tltype.isVoid(get_type(exp))
 end
 
 local function check_invoke (env, exp)
@@ -1291,7 +1278,9 @@ end
 local function check_return (env, stm)
   check_explist(env, stm)
   local t = explist2typelist(stm)
-  tlst.set_return_type(env, tltype.general(t))
+  if not tltype.isVoid(t) then
+    tlst.set_return_type(env, tltype.general(t))
+  end
   return true
 end
 
@@ -1457,7 +1446,7 @@ local function check_if (env, stm)
   local exitfs = {}
   tlst.begin_scope(env) -- filter scope for whole if
   for i = 1, #stm, 2 do
-    if apply_filters(env, false, prevfs) then break end -- rest of the if is unreacheable
+    if apply_filters(env, false, prevfs) then break end -- rest of the if is unreacheable (previous condition is always true)
     local exp, block = stm[i], stm[i + 1]
     tlst.begin_scope(env) -- filter scope for current block
     local has_void, sf
@@ -1786,12 +1775,6 @@ function check_stm (env, stm)
   else
     error("cannot type check statement " .. tag)
   end
-end
-
-local function is_exit_point (block)
-  if #block == 0 then return false end
-  local last = block[#block]
-  return last.tag == "Return" or is_global_function_call(last, "error")
 end
 
 function check_block (env, block, loop)

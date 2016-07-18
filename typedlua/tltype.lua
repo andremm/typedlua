@@ -655,6 +655,16 @@ function tltype.checkRecursive (t, name)
   return check_recursive(t, name)
 end
 
+-- Primitive functions
+
+function tltype.Prim (name)
+  return { tag = "TPrim", [1] = name, [2] = tltype.primtypes[name] }
+end
+
+function tltype.isPrim (t)
+  return t.tag == "TPrim"
+end
+
 -- subtyping and consistent-subtyping
 
 local subtype
@@ -942,7 +952,11 @@ function subtype (env, t1, t2, relation)
   if tltype.isVoid(t1) and tltype.isVoid(t2) then
     return true
   elseif tltype.isProj(t1) and tltype.isProj(t2) then
-      return t1[1] == t2[1] and t1[2] == t2[2]
+    return t1[1] == t2[1] and t1[2] == t2[2]
+  elseif tltype.isPrim(t1) and tltype.isPrim(t2) then
+    return t1[1] == t2[1]
+  elseif tltype.isPrim(t1) then
+    return subtype(env, t1[2], t2, relation)
   elseif tltype.isUnionlist(t1) then
     for _, v in ipairs(t1) do
       if not subtype(env, v, t2, relation) then
@@ -1128,6 +1142,8 @@ local function type2str (t, n)
   n = n or 0
   if n <= 0 and t.name then
     return t.name
+  elseif tltype.isPrim(t) then
+    return "built-in function " .. t[1]
   elseif tltype.isTrue(t) or tltype.isFalse(t) or tltype.isNum(t) then
     return tostring(t[1])
   elseif tltype.isLiteral(t) then
@@ -1197,5 +1213,18 @@ end
 function tltype.tostring (t, n)
   return type2str(t, n)
 end
+
+-- Built-in functions
+
+local tanyany = tltype.Table(tltype.Field(false, tltype.Any(), tltype.Any()))
+
+tltype.primtypes = {
+  ["type"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tltype.Value()}), tltype.outputTuple(tltype.Tuple{tltype.String()})),
+  ["math_type"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tltype.Value()}), tltype.outputTuple(tltype.Tuple{tltype.Union(tltype.String(),tltype.Nil())})),
+  ["assert"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tltype.Value(), tltype.Vararg(tltype.Value())}), tltype.outputTuple(tltype.Tuple{tltype.Vararg(tltype.Value())})),
+  ["error"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tltype.Value(), tltype.Union(tltype.Integer(), tltype.Nil())}), tltype.Void()),
+  ["require"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tltype.String()}), tltype.outputTuple(tltype.Tuple{tltype.Value()})),
+  ["setmetatable"] = tltype.Function(tltype.inputTuple(tltype.Tuple{tanyany, tltype.Union(tanyany, tltype.Nil())}), tltype.outputTuple(tltype.Tuple{tanyany}))
+}
 
 return tltype

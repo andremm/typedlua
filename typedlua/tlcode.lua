@@ -183,14 +183,6 @@ function code_exp (exp, fmt)
   elseif tag == "Op" then
     local str = ""
     if exp[3] then
-      if _VERSION == "Lua 5.3" then
-        if exp[2].tag == "Call" and exp[2][1].tag == "Index" and
-           exp[2][1][1].tag == "Id" and exp[2][1][1][1] == "_ENV" and
-           exp[2][1][2].tag == "String" and exp[2][1][2][1] == "type" and
-           exp[3].tag == "String" and exp[3][1] == "integer" then
-          str = "math."
-        end
-      end
       str = str .. code_exp(exp[2], fmt) .. op[exp[1]] .. code_exp(exp[3], fmt)
     else
       str = str .. op[exp[1]] .. "(" .. code_exp(exp[2], fmt) .. ")"

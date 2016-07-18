@@ -29,5 +29,5 @@ sin : (number) -> (number)
 sqrt : (number) -> (number)
 tan : (number) -> (number)
 tointeger : (value) -> (integer?)
-type : (value) -> (string?)
+type : $math_type
 ult : (integer, integer) -> (boolean)
