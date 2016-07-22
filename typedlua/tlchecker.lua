@@ -33,31 +33,22 @@ local acolor = {
   reset   = "\27[0m"
 }
 
-local function lineno (s, i)
-  if i == 1 then return 1, 1 end
-  local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
-  local r = #rest
-  return 1 + num, r ~= 0 and r or 1
-end
-
-local function typeerror (env, tag, msg, pos)
-  local l, c = lineno(env.subject, pos)
-  local error_msg = { tag = tag, filename = env.filename, msg = msg, l = l, c = c }
-  for i, v in ipairs(env.messages) do
-    if l < v.l or (l == v.l and c < v.c) then
-      table.insert(env.messages, i, error_msg)
-      return
-    end
-  end
-  table.insert(env.messages, error_msg)
-end
+local typeerror = tltype.typeerror
 
 local function set_type (node, t)
   node["type"] = t
 end
 
+local function set_ubound (var, t)
+  var.ubound = t
+end
+
 local function get_type (node)
   return node and tltype.unfold(node["type"]) or Nil
+end
+
+local function get_ubound (node)
+  return node and tltype.unfold(node.ubound) or Nil
 end
 
 local check_self_field
@@ -261,6 +252,13 @@ local function infer_return_type (env)
 end
 
 local function check_masking (env, local_name, pos)
+  local function lineno (s, i)
+    if i == 1 then return 1, 1 end
+    local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+    local r = #rest
+    return 1 + num, r ~= 0 and r or 1
+  end
+
   local masked_local = tlst.masking(env, local_name)
   if masked_local then
     local l, c = lineno(env.subject, masked_local.pos)
@@ -493,24 +491,24 @@ local function check_equal (env, exp)
   set_type(exp, Boolean)
   if exp1.tag == "Index" and exp1[1].tag == "Id" and
      exp1[2].tag == "String" and tltype.isStr(get_type(exp2)) then
-    local var, _, _ = tlst.get_local(env, exp1[1][1])
-    if var and not var.assigned then
+    local var, floc, _ = tlst.get_local(env, exp1[1][1])
+    if var and floc and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_fieldliteral(exp1[2][1], get_type(exp2)))
     end
   elseif is_global_function_call(exp1, "type") and exp1[2].tag == "Id" and tltype.isStr(get_type(exp2)) then
-    local var, _, _ = tlst.get_local(env, exp1[2][1])
-    if var and not var.assigned then
+    local var, floc, _ = tlst.get_local(env, exp1[2][1])
+    if var and floc and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_tag(get_type(exp2)[1]))
     end
   elseif is_global_function_call(exp1, "math_type") and exp1[2].tag == "Id"
       and tltype.isStr(get_type(exp2)) and get_type(exp2)[1] == "integer" then
-    local var, _, _ = tlst.get_local(env, exp1[2][1])
-    if var and not var.assigned then
+    local var, floc, _ = tlst.get_local(env, exp1[2][1])
+    if var and floc and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_integer)
     end
   elseif exp1.tag == "Id" and exp2.tag == "Nil" then
-    local var, _, _ = tlst.get_local(env, exp1[1])
-    if var and not var.assigned then
+    local var, floc, _ = tlst.get_local(env, exp1[1])
+    if var and floc and not var.assigned then
       return tlfilter.set_single(var, tlfilter.filter_nil)
     end
   end
@@ -783,6 +781,7 @@ local function check_function (env, exp, tself)
     local v = idlist[k]
     v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
+    set_ubound(v, v[2])
     check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
@@ -955,19 +954,23 @@ local function replace_self (env, t, tself)
   end
 end
 
-local function apply_filters(env, inout, fset)
+local function apply_filters (env, inout, fset, pos)
   local has_void = false
   for var, filter in pairs(fset) do
-    if not var.assigned then
-      if not tltype.isProj(get_type(var)) then
-        local tin, tout = filter(get_type(var))
+    if not var.assigned and not tlst.isupvalue(env, var) then
+      local t = get_type(var)
+      if not tltype.isProj(t) then
+        local tin, tout = filter(t)
         local tf = inout and tin or tout
         has_void = has_void or tltype.isVoid(tf)
-        tlst.add_filtered(env, var, get_type(var))
-        if not tltype.isVoid(tf) then set_type(var, tf) end
+        if not tltype.isVoid(tf) then
+          tlst.backup_vartype(env, var, pos)
+          set_type(var, tf)
+        end
       else
-        local t = get_type(var)
-        local proj, idx = tlst.get_projection(env, t[1]), t[2]
+        local label, idx = t[1], t[2]
+        local vproj = tlst.get_local(env, label)
+        local proj = vproj.type
         if tltype.isUnionlist(proj) then
           local nproj = {}
           for _, tup in ipairs(proj) do
@@ -982,8 +985,10 @@ local function apply_filters(env, inout, fset)
           end
           local nproj = tltype.Unionlist(table.unpack(nproj))
           has_void = has_void or tltype.isVoid(nproj)
-          tlst.add_filtered(env, var, proj)
-          if not tltype.isVoid(nproj) then tlst.set_projection(env, t[1], tltype.Unionlist(nproj)) end
+          if not tltype.isVoid(nproj) then
+            tlst.backup_vartype(env, vproj, pos)
+            set_type(vproj, nproj)
+          end
         elseif tltype.isTuple(proj) then
           local tv = proj[idx]
           local tin, tout = filter(tv)
@@ -992,8 +997,10 @@ local function apply_filters(env, inout, fset)
           if not tltype.isVoid(tf) then
             local nproj = tltype.Tuple(proj)
             nproj[idx] = tf
-            tlst.add_filtered(env, var, proj)
-            tlst.set_projection(env, t[1], nproj)
+            if not tltype.isVoid(nproj) then
+              tlst.backup_vartype(env, vproj, pos)
+              set_type(vproj, nproj)
+            end
           end
         else
           error("BUG: projection for variable " .. var[1] .. " has type " .. tltype.tostring(proj))
@@ -1019,7 +1026,7 @@ local function check_call (env, exp)
   if tltype.isPrim(t) then
     if t[1] == "assert" then
       if fsets[1] then
-        apply_filters(env, true, fsets[1])
+        apply_filters(env, true, fsets[1], exp.pos)
       end
       set_type(exp, arglist2type(explist))
       return false
@@ -1114,8 +1121,10 @@ local function check_local_var (env, id, inferred_type, close_local)
     inferred_type = Nil
   end
   if not local_type then
-    if tltype.isNil(inferred_type) then
-      local_type = Any
+    if tltype.isNil(inferred_type) then -- pretend that the user declared it as value
+      set_type(id, inferred_type)
+      set_ubound(id, tltype.Value())
+      id.narrow = true -- we should narrow this if we get the chance
     else
       local_type = tltype.general(inferred_type)
       --if not local_type.name then local_type.name = local_name end
@@ -1124,22 +1133,41 @@ local function check_local_var (env, id, inferred_type, close_local)
         local_type.open = true
       end
       if close_local then local_type.open = nil end
+      set_type(id, local_type)
+      set_ubound(id, local_type)
     end
   else
     check_self(env, local_type, local_type, pos)
     local_type = replace_names(env, local_type, pos)
-    local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-    local msg = "attempt to assign " .. bold_token .. " to " .. bold_token
     local local_type = tltype.unfold(local_type)
-    msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
     if tltype.subtype(inferred_type, local_type) then
-    elseif tltype.consistent_subtype(inferred_type, local_type) then
-      typeerror(env, "any", msg, pos)
+      if tltype.isUnion(local_type) then -- downcast, but leave option to upcast later
+        set_type(id, tltype.general(inferred_type))
+        set_ubound(id, local_type)
+        id.narrow = true -- we should narrow this if we get the chance
+      else
+        set_type(id, local_type)
+        set_ubound(id, local_type)
+      end
     else
-      typeerror(env, "local", msg, pos)
+      local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+      local msg = "attempt to assign " .. bold_token .. " to " .. bold_token
+      msg = string.format(msg, tltype.tostring(inferred_type), tltype.tostring(local_type))
+      if tltype.consistent_subtype(inferred_type, local_type) then
+        typeerror(env, "any", msg, pos)
+        set_type(id, local_type)
+        set_ubound(id, local_type)
+      elseif tltype.isNil(inferred_type) then -- pretend that the user declared it as t|nil
+        set_type(id, inferred_type)
+        set_ubound(id, tltype.Union(local_type, Nil))
+        id.narrow = true -- we should narrow this if we get the chance
+      else
+        typeerror(env, "local", msg, pos)
+        set_type(id, inferred_type)
+        set_ubound(id, inferred_type)
+      end
     end
   end
-  set_type(id, local_type)
   check_masking(env, id[1], id.pos)
   tlst.set_local(env, id)
 end
@@ -1177,12 +1205,13 @@ local function check_local (env, idlist, explist)
      unannotated_idlist(idlist, #explist) and
      match_unionlist(get_type(explist[#explist]), #idlist - #explist) then
     local t = get_type(explist[#explist])
-    local label = tlst.new_projection(env, t)
+    local label = "$PROJ" .. tostring({})
     for i = #explist, #idlist do
       local v = idlist[i]
       set_type(v, tltype.Proj(label, i - #explist + 1))
       check_masking(env, v[1], v.pos)
       tlst.set_local(env, v)
+      tlst.set_local(env, { label, type = t, ubound = t }, 1)
     end
     local tuple = explist2typegen(explist, #explist-1)
     for k = 1, #explist-1 do
@@ -1216,6 +1245,7 @@ local function check_localrec (env, id, exp)
   local t = tltype.Function(input_type, ret_type)
   id[2] = t
   set_type(id, t)
+  set_ubound(id, t)
   check_masking(env, id[1], id.pos)
   local len = #idlist
   if len > 0 and idlist[len].tag == "Dots" then len = len - 1 end
@@ -1223,6 +1253,7 @@ local function check_localrec (env, id, exp)
     local v = idlist[k]
     v[2] = replace_names(env, v[2], exp.pos)
     set_type(v, v[2])
+    set_ubound(v, v[2])
     check_masking(env, v[1], v.pos)
     tlst.set_local(env, v)
   end
@@ -1235,7 +1266,8 @@ local function check_localrec (env, id, exp)
     ret_type = inferred_type
     t = tltype.Function(input_type, ret_type)
     id[2] = t
-    id["type"] = t
+    set_type(id, t)
+    set_ubound(id, t)
     set_type(exp, t)
   end
   check_return_type(env, inferred_type, ret_type, exp.pos)
@@ -1284,82 +1316,10 @@ local function check_return (env, stm)
   return true
 end
 
-local function assign_upvalue(env, var) -- clear all filters and mark it as unfilterable
-  local t = var.bkp[1] and var.bkp[1][1] -- first saved type is original
-  if tltype.isProj(var["type"]) then
-    if t then
-      tlst.set_projection(env, var["type"][1], t)
-      t.assigned = true
-    else
-      local tproj = tlst.get_projection(env, var["type"][1])
-      tproj.assigned = true
-    end
-  else
-    var.assigned = true
-    if t then
-      var["type"] = t
-    end
-  end
-  var.bkp = {}
-end
-
-local function check_revert(env, var, t)
-  local tv = get_type(var)
-  if tltype.subtype(t, tv) then return end
-  for i = #var.bkp, 1, -1 do
-    local tv, s = var.bkp[i][1], var.bkp[i][2]
-    if s < env.scope and env[s+1].loop then return end -- crossed loop, abort
-    if tltype.subtype(t, tv) then -- found subtype, revert
-      for j = #var.bkp, i, -1 do
-        var.bkp[j] = nil
-      end
-      set_type(var, tv)
-      return
-    end
-  end
-end
-
-local function break_projection (env, var)
-  local label, idx = var["type"][1], var["type"][2]
-  for i = #var.bkp, 1, -1 do
-    var.bkp[i] = tltype.unionlist2union(var.bkp[i], idx)
-  end
-  var["type"] = tltype.unionlist2union(tlst.get_projection(env, label), idx)
-end
-
 local function check_assignment (env, varlist, explist)
   local lselfs = {}
   for k, v in ipairs(varlist) do
-    if v.tag == "Id" then -- may be local variable
-      local name = v[1]
-      local l, floc, lloc = tlst.get_local(env, name)
-      if l and not floc then -- mark assigned upvalue and remove all filters
-        if not lloc then -- cannot revert across loop
-          local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-          local msg = "attempt to assign to filtered upvalue " .. bold_token .. " across a loop"
-          msg = string.format(msg, l[1])
-          typeerror(env, "set", msg, varlist[k].pos)
-        else
-          assign_upvalue(env, l) -- revert to original type
-        end
-      elseif l then
-        if tltype.isProj(l["type"]) then
-          break_projection(env, l)
-        end
-        local exp = explist[k]
-        check_exp(env, exp)
-        if exp and exp.tag == "Op" and exp[1] == "or" and
-           exp[2].tag == "Id" and exp[2][1] == name and not l.assigned then
-          local t1, t2 = get_type(exp), get_type(l)
-          if tltype.subtype(t1, t2) then
-            set_type(l, t1)
-            tlst.add_filtered(env, l, t2)
-          end
-        else
-          check_revert(env, l, get_type(exp))
-        end
-      end
-    elseif v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
+    if v.tag == "Index" and v[1].tag == "Id" and v[2].tag == "String" then
       local l = tlst.get_local(env, v[1][1])
       local t = get_type(l)
       -- a brittle hack to type a method definition in the right-hand side?
@@ -1389,22 +1349,46 @@ end
 
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
-  tlst.begin_scope(env, true) -- filter scope
-  local sf = check_exp(env, exp1) or {}
-  if apply_filters(env, true, sf) then -- while block is unreacheable
-    tlst.end_scope(env)
+  tlst.push_backup(env, true)
+  local fs = check_exp(env, exp1) or {}
+  tlst.push_break(env)
+  if apply_filters(env, true, fs, exp1.pos) then -- while block is unreacheable
+    typeerror(env, "dead", "'while' body is unreacheable", stm.pos)
+    tlst.pop_backup(env)
     return false
   else
-    local r, didgoto = check_block(env, stm1)
-    tlst.end_scope(env)
+    local r, didgoto = check_block(env, stm1, true)
+    local frame = tlst.pop_backup(env)
+    local snapshots = tlst.pop_break(env)
+    if not r then
+      snapshots[#snapshots+1] = frame
+    end
+    snapshots[#snapshots+1] = {}
+    local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+    for var, tyub in pairs(newtypes) do
+      tlst.commit_type(env, var, tyub, stm.pos)
+    end
     return false, didgoto -- while always can not return if does not execute once
   end
 end
 
 local function check_repeat (env, stm)
   local stm1, exp1 = stm[1], stm[2]
+  tlst.push_backup(env, true)
+  tlst.push_break(env)
   local r, didgoto = check_block(env, stm1, true)
-  check_exp(env, exp1)
+  local fs = check_exp(env, exp1) or {}
+  local snapshots = tlst.pop_break(env)
+  if r or apply_filters(env, true, fs, exp1.pos) then
+    tlst.pop_backup(env)
+  else
+    local frame = tlst.pop_backup(env)
+    snapshots[#snapshots+1] = frame
+  end
+  local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+  for var, tyub in pairs(newtypes) do
+    tlst.commit_type(env, var, tyub, stm.pos)
+  end
   return r, didgoto
 end
 
@@ -1443,40 +1427,60 @@ local function check_if (env, stm)
   local l = {}
   local rl, dg = {}, {}
   local prevfs = {}
-  local exitfs = {}
-  tlst.begin_scope(env) -- filter scope for whole if
-  for i = 1, #stm, 2 do
-    if apply_filters(env, false, prevfs) then break end -- rest of the if is unreacheable (previous condition is always true)
+  local snapshots = {}
+  local last = #stm % 2 == 0 and #stm + 1 or #stm
+  for i = 1, last, 2 do
+    tlst.push_backup(env, false)
+    local has_void = false
+    for i, fs_pos in ipairs(prevfs) do
+      has_void = has_void or apply_filters(env, false, fs_pos[1], fs_pos[2])
+    end
+    if has_void then -- rest of the if is unreacheable (previous condition is always true)
+      if stm[i] then
+        if i == last then
+          typeerror(env, "dead", "'else' block is unreacheable", stm[i].pos)
+        elseif i == last - 1 then
+          typeerror(env, "dead", "this arm of the 'if' is unreacheable", stm[i].pos)
+        end
+      end
+      tlst.pop_backup(env)
+      break
+    end
     local exp, block = stm[i], stm[i + 1]
-    tlst.begin_scope(env) -- filter scope for current block
-    local has_void, sf
+    local has_void, fs = false, {}
     if block then
-      sf = check_exp(env, exp) or {}
-      has_void = apply_filters(env, true, sf)
-      prevfs = sf
+      fs = check_exp(env, exp) or {}
+      has_void = apply_filters(env, true, fs, exp.pos)
+      prevfs[#prevfs+1] = { fs, exp.pos }
     else
       block = exp
     end
+    local r, didgoto = true, false
     if not has_void then -- "then" block of this condition is reacheable
-      local r, didgoto = check_block(env, block)
+      if block then
+        r, didgoto = check_block(env, block)
+      else
+        r, didgoto = false, false
+      end
       rl[#rl+1] = didgoto and false or r
       dg[#dg+1] = didgoto
-      if r then exitfs[#exitfs+1] = sf end
+    else
+      if exp then
+        typeerror(env, "dead", "this arm of the 'if' is unreacheable", exp.pos)
+      end
     end
-    tlst.end_scope(env) -- revert filters for current block
+    local frame = tlst.pop_backup(env)
+    if not r then
+      snapshots[#snapshots+1] = frame
+    end
   end
-  tlst.end_scope(env) -- revert filters for whole if
+  local newtypes = tlst.join_snapshots(env, snapshots, stm[1].pos)
+  for var, tyub in pairs(newtypes) do
+    tlst.commit_type(env, var, tyub, stm[1].pos)
+  end
   local r = true
   for _, v in ipairs(rl) do
     r = r and v
-  end
-  if r then
-    for _, fs in ipairs(exitfs) do
-      apply_filters(env, false, fs)
-    end
-  end
-  if #stm % 2 == 0 then
-     r = false
   end
   local didgoto = false
   for _, v in ipairs(dg) do
@@ -1527,20 +1531,36 @@ local function check_fornum (env, stm)
   else
     block = exp3
   end
+  tlst.push_backup(env, true)
+  tlst.push_break(env)
   tlst.begin_scope(env)
   tlst.set_local(env, id)
   if infer_int(t1) and infer_int(t2) and int_step then
     set_type(id, Integer)
+    set_ubound(id, Integer)
   else
     set_type(id, Number)
+    set_ubound(id, Number)
   end
   local r, didgoto = check_block(env, block, true)
   check_unused_locals(env)
   tlst.end_scope(env)
+  local snapshots = tlst.pop_break(env)
+  local frame = tlst.pop_backup(env)
+  if not r then
+    snapshots[#snapshots+1] = frame
+  end
+  snapshots[#snapshots+1] = {} -- can run 0 times
+  local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+  for var, tyub in pairs(newtypes) do
+    tlst.commit_type(env, var, tyub, stm.pos)
+  end
   return r, didgoto
 end
 
 local function check_forin (env, idlist, explist, block)
+  tlst.push_backup(env, true)
+  tlst.push_break(env)
   tlst.begin_scope(env)
   check_explist(env, explist)
   local t = tltype.first(get_type(explist[1]))
@@ -1568,25 +1588,37 @@ local function check_forin (env, idlist, explist, block)
   local r, didgoto = check_block(env, block, true)
   check_unused_locals(env)
   tlst.end_scope(env)
+  local snapshots = tlst.pop_break(env)
+  local frame = tlst.pop_backup(env)
+  if not r then
+    snapshots[#snapshots+1] = frame
+  end
+  snapshots[#snapshots+1] = {} -- can run 0 times
+  local newtypes = tlst.join_snapshots(env, snapshots, block.pos)
+  for var, tyub in pairs(newtypes) do
+    tlst.commit_type(env, var, tyub, block.pos)
+  end
   return r, didgoto
 end
 
 local function check_id (env, exp)
   local name = exp[1]
-  local l, floc, _ = tlst.get_local(env, name)
+  local l, floc, lloc = tlst.get_local(env, name)
   local t = get_type(l)
   if tltype.isProj(t) then
-    if floc then
-      set_type(exp, tltype.unionlist2union(tlst.get_projection(env, t[1]), t[2]))
-    else -- unfiltered type if upvalue
-      local ulist = l.bkp[1] and l.bkp[1][1] or tlst.get_projection(env, t[1])
-      set_type(exp, tltype.unionlist2union(ulist, t[2]))
-    end
-  else
-    if not floc then t = l.bkp[1] and l.bkp[1][1] or t end -- unfiltered type if upvalue
-    set_type(exp, t)
+    local label, idx = t[1], t[2]
+    l = tlst.get_local(env, label)
+    t = tltype.unionlist2union(get_type(l), idx)
   end
-  if l and not l.assigned then
+  if not lloc then -- across loop, constrain current ubound
+    tlst.constrain_ubound(env, l, exp.pos)
+  end
+  if not floc then -- upvalue, type is greatest ubound of the var
+    t = tlst.get_first_ubound(env, l)
+  end
+  set_type(exp, t)
+  local l, floc, lloc = tlst.get_local(env, name)
+  if l and floc and not l.assigned then
     return tlfilter.set_single(l, tlfilter.filter_truthy)
   else
     return {}
@@ -1626,8 +1658,8 @@ local function check_index (env, exp)
     typeerror(env, "index", msg, exp.pos)
   end
   if exp1.tag == "Id" and exp2.tag == "String" then
-    local var, _, _ = tlst.get_local(env, exp[1])
-    if var and not var.assigned then
+    local var, floc, _ = tlst.get_local(env, exp[1])
+    if var and floc and not var.assigned then
       return tlfilter.set_single(exp1[1], tlfilter.filter_field(exp2[1]))
     end
   end
@@ -1639,8 +1671,43 @@ function check_var (env, var, exp)
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
-    local l, mylocal = tlst.get_local(env, name)
+    local l, floc, lloc = tlst.get_local(env, name)
     local t = get_type(l)
+    if tltype.isProj(t) then
+      tlst.break_projection(env, l)
+      t = get_type(l)
+    end
+    if not lloc then
+      tlst.constrain_ubound(env, l, var.pos)
+    end
+    if not floc then -- upvalue
+      l.assigned = true
+      t = tlst.get_first_ubound(env, l)
+      if not lloc and not tltype.subtype(t, l.type) then
+        local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+        local msg = "attempt to assign to filtered upvalue " .. bold_token .. " across a loop"
+        msg = string.format(msg, l[1])
+        typeerror(env, "set", msg, var.pos)
+      end
+      set_type(l, t)
+    end
+    if not l.assigned then
+      local tr = get_type(exp)
+      if tltype.subtype(tr, t) then
+        if tltype.isUnion(t) and (not tltype.subtype(t, tr)) then
+          t = tltype.general(tr)
+          tlst.commit_type(env, l, { type = t }, var.pos)
+        end
+      else
+        local ubound = get_ubound(l)
+        if tltype.subtype(tr, ubound) then
+          t = tltype.general(tr)
+          tlst.commit_type(env, l, { type = t }, var.pos)
+        else
+          t = ubound
+        end
+      end
+    end
     if exp and exp.tag == "Id" and tltype.isTable(t) then t.open = nil end
     set_type(var, t)
   elseif tag == "Index" then
@@ -1765,6 +1832,7 @@ function check_stm (env, stm)
   elseif tag == "Return" then
     return check_return(env, stm)
   elseif tag == "Break" then
+    tlst.push_break_snapshot(env)
     return false
   elseif tag == "Call" then
     return check_call(env, stm)
@@ -1777,20 +1845,30 @@ function check_stm (env, stm)
   end
 end
 
-function check_block (env, block, loop)
-  tlst.begin_scope(env, loop)
+local function check_stms (env, block)
   local r = false
   local bkp = env.self
   local didgoto = false
-  for _, v in ipairs(block) do
+  for i, v in ipairs(block) do
     local isret, isgoto = check_stm(env, v)
     r = r or isret
     didgoto = didgoto or isgoto
     env.self = bkp
-    if r and not didgoto then break end -- rest of the block is unreacheable
+    if r and not didgoto then
+      if i ~= #block then
+        typeerror(env, "dead", "unreacheable statement", block[i+1].pos)
+      end
+      break
+    end -- rest of the block is unreacheable
   end
   if didgoto then r = false end
   check_unused_locals(env)
+  return r, didgoto
+end
+
+function check_block (env, block, loop)
+  tlst.begin_scope(env, loop)
+  local r, didgoto = check_stms(env, block)
   tlst.end_scope(env)
   return r, didgoto
 end
@@ -1820,6 +1898,7 @@ local function load_lua_env (env)
   t.open = true
   local lua_env = tlast.ident(0, "_ENV", t)
   set_type(lua_env, t)
+  set_ubound(lua_env, t)
   tlst.set_local(env, lua_env)
   tlst.get_local(env, "_ENV")
 end
@@ -1840,10 +1919,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer, color)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
   load_lua_env(env)
-  for _, v in ipairs(ast) do
-    check_stm(env, v)
-  end
-  check_unused_locals(env)
+  local r, didgoto = check_stms(env, ast)
   tlst.end_scope(env)
   tlst.end_function(env)
   return env.messages

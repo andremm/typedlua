@@ -190,7 +190,7 @@ function tltype.Union (...)
   -- remove unions of unions
   local l2 = {}
   for i = 1, #l1 do
-    if tltype.isUnion(l1[i]) then
+    if tltype.isUnion(l1[i]) or tltype.isUnionlist(l1[i]) then
       for j = 1, #l1[i] do
         table.insert(l2, l1[i][j])
       end
@@ -233,6 +233,9 @@ function tltype.Union (...)
   elseif #t == 1 then
     return t[1]
   else
+    if tltype.isTuple(t[1]) then
+      t.tag = "TUnionlist"
+    end
     return t
   end
 end
@@ -1137,6 +1140,20 @@ end
 
 -- tostring
 
+local function dumptable(t)
+  local out = {}
+  for k, v in pairs(t) do
+    if type(v) == "table" and v.tag then
+      out[#out+1] = tostring(k) .. " = " .. tltype.tostring(v)
+    elseif type(v) == "table" then
+      out[#out+1] = tostring(k) .. " = " .. dumptable(v)
+    else
+      out[#out+1] = tostring(k) .. " = " .. tostring(v)
+    end
+  end
+  return "{" .. table.concat(out, ", ") .. "}"
+end
+
 -- type2str (type) -> (string)
 local function type2str (t, n)
   n = n or 0
@@ -1158,17 +1175,19 @@ local function type2str (t, n)
     return "any"
   elseif tltype.isSelf(t) then
     return "self"
-  elseif tltype.isUnion(t) and #t == 2 and tltype.isNil(t[1]) then
-    return tltype.tostring(t[2], n-1) .. "?"
-  elseif tltype.isUnion(t) and #t == 2 and tltype.isNil(t[2]) then
-    return tltype.tostring(t[1], n-1) .. "?"
   elseif tltype.isUnion(t) or
          tltype.isUnionlist(t) then
     local l = {}
+    local nullable = ""
     for k, v in ipairs(t) do
-      l[k] = type2str(v, n-1)
+      if tltype.isNil(v) then
+        nullable = #t == 2 and "?" or " | nil"
+      else
+        l[#l+1] = type2str(v, n-1)
+      end
     end
-    return table.concat(l, " | ")
+    table.sort(l)
+    return table.concat(l, " | ") .. nullable
   elseif tltype.isFunction(t) then
     return type2str(t[1], n-1) .. " -> " .. type2str(t[2], n-1)
   elseif tltype.isTable(t) then
@@ -1205,13 +1224,32 @@ local function type2str (t, n)
   elseif tltype.isVararg(t) then
     return type2str(t[1], n-1) .. "*"
   else
-    error("trying to convert type to string but got " .. t.tag)
+    error("trying to convert type to string but got " .. dumptable(t))
   end
 end
 
 -- tostring : (type) -> (string)
 function tltype.tostring (t, n)
   return type2str(t, n)
+end
+
+function tltype.typeerror (env, tag, msg, pos)
+  local function lineno (s, i)
+    if i == 1 then return 1, 1 end
+    local rest, num = s:sub(1,i):gsub("[^\n]*\n", "")
+    local r = #rest
+    return 1 + num, r ~= 0 and r or 1
+  end
+
+  local l, c = lineno(env.subject, pos)
+  local error_msg = { tag = tag, filename = env.filename, msg = msg, l = l, c = c }
+  for i, v in ipairs(env.messages) do
+    if l < v.l or (l == v.l and c < v.c) then
+      table.insert(env.messages, i, error_msg)
+      return
+    end
+  end
+  table.insert(env.messages, error_msg)
 end
 
 -- Built-in functions

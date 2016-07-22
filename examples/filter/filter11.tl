@@ -13,6 +13,8 @@ local q, r = idiv(n1, n2)
 local x:number, msg:string = 0, ""
 if q then
   x = q + r
+  print(r .. "foo") -- error, r number
 else
   msg = r
+  print(r + 10) -- error, r string
 end

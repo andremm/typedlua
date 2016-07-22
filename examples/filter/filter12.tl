@@ -10,9 +10,9 @@ end
 local x: number? = 10
 A(x)
 x = x + 10
-x = nil -- revert
-x = x + 10
+x = nil
+x = x + 10 -- error, x mil
 
-if math.type(x) == "integer" then
+if math.type(x) == "integer" then -- dead
   print(x + 10)
 end

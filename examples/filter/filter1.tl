@@ -1,5 +1,4 @@
-local x: number | string | nil = 10
-local y: number | string = 20
+local function foo(x: number|string|nil, y: number|string)
 
 if type(x) == "number" and type(y) ~= "number" then
   print(x + 10) -- ok
@@ -18,3 +17,5 @@ else
 end
 
 x = x + 10 -- error, x: number|string|nil
+
+end

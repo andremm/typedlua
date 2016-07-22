@@ -8,3 +8,5 @@ if r then
     s = r:makeT(s) -- crashes setting s, or a new global. Doesn't crash if using `local`
   end
 end
+
+print(nil + 5) -- just to supress generation of .lua

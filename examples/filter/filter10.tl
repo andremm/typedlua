@@ -1,5 +1,4 @@
-local x: number | string | nil = 10
-local y: number | string = 20
+local function f(x: number | string | nil, y: number | string)
 
 while type(x) == "number" and type(y) ~= "number" do
   print(x + 10) -- ok
@@ -9,3 +8,4 @@ while type(x) == "number" and type(y) ~= "number" do
 end
 
 x = x + 10 -- error, x: number|string|nil
+end

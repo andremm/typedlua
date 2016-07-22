@@ -8,6 +8,6 @@ end
 
 local baz, foo, bar = 10, x()
 if foo then
-   local bla = foo .. " world"
+   local bla = foo .. " world" -- error, foo is i|s
 end
 baz = baz + 10

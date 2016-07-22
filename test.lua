@@ -88,6 +88,7 @@ local function check (e, r)
     passed_tests = passed_tests + 1
   else
     failed_tests = failed_tests + 1
+    print("AT LINE: ", debug.getinfo(2, "l").currentline)
     print("e:")
     print(e)
     print("r:")
@@ -3118,67 +3119,72 @@ r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number?
+function f(x:number?)
 if x then
   x = x + 1
 else
   print("x is nil")
 end
+end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Id "x", { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
+{ `Set{{ `Index{ `Id "_ENV", `String "f" } },{ `Function{{ `Id "x":`TUnion{ `TBase number, `TNil } },{ `If{ `Id "x",{ `Set{{ `Id "x" },{ `Op{"add", `Id "x", `Number "1" } } } },{ `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } } } } } }
 ]=]
 
 r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number?
+function f(x:number?)
 if not x then
   print("x is nil")
 else
   x = x + 1
 end
+end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "not", `Id "x" }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+{ `Set{{ `Index{ `Id "_ENV", `String "f" } },{ `Function{{ `Id "x":`TUnion{ `TBase number, `TNil } },{ `If{ `Op{"not", `Id "x" },{ `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } },{ `Set{{ `Id "x" },{ `Op{"add", `Id "x", `Number "1" } } } } } } } } } }
 ]=]
 
 r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number?
+function f(x:number?)
 if type(x) == "number" then
   x = x + 1
 else
   print("x is nil")
 end
+end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } }
+{ `Set{{ `Index{ `Id "_ENV", `String "f" } },{ `Function{{ `Id "x":`TUnion{ `TBase number, `TNil } },{ `If{ `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" },{ `Set{{ `Id "x" },{ `Op{"add", `Id "x", `Number "1" } } } },{ `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } } } } } } } }
 ]=]
 
 r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number?
+function f(x:number?)
 if type(x) ~= "number" then
   print("x is nil")
 else
   x = x + 1
 end
+end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TUnion{ `TBase number, `TNil } }, {  } }, `If{ `Op{ "not", `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" } }, { `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } } } }
+{ `Set{{ `Index{ `Id "_ENV", `String "f" } },{ `Function{{ `Id "x":`TUnion{ `TBase number, `TNil } },{ `If{ `Op{"not", `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" },
+ `Id "x" }, `String "number" } },{ `Call{ `Index{ `Id "_ENV", `String "print" }, `String "x is nil" } },{ `Set{{ `Id "x" },{ `Op{"add", `Id "x", `Number "1" } } } } } } } } } }
 ]=]
 
 r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number|string?
+local function f(x:number|string?)
 local y = x
 if type(x) == "number" then
   x = x + 1
@@ -3191,9 +3197,10 @@ elseif type(y) == "number" then
 end
 x = y
 y = x
+end
 ]=]
 e = [=[
-{ `Local{ { `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } }, {  } }, `Local{ { `Id "y" }, { `Id "x" } }, `If{ `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" }, { `Set{ { `Id "x" }, { `Op{ "add", `Id "x", `Number "1" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "string" }, { `Set{ { `Id "y" }, { `Op{ "concat", `Id "y", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" }, { `Set{ { `Id "x" }, { `Op{ "concat", `Id "x", `String "hello" } } } }, `Op{ "eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" }, { `Set{ { `Id "y" }, { `Op{ "add", `Id "y", `Number "1" } } } } }, `Set{ { `Id "x" }, { `Id "y" } }, `Set{ { `Id "y" }, { `Id "x" } } }
+{ `Localrec{{ `Id "f":`TFunction{ `TTuple{ `TUnion{ `TBase number, `TBase string, `TNil }, `TVararg{ `TValue } }, `TTuple{ `TVararg{ `TNil } } } },{ `Function{{ `Id "x":`TUnion{ `TBase number, `TBase string, `TNil } },{ `Local{{ `Id "y" },{ `Id "x" } }, `If{ `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "number" },{ `Set{{ `Id "x" },{ `Op{"add", `Id "x", `Number "1" } } } }, `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "string" },{ `Set{{ `Id "y" },{ `Op{"concat", `Id "y", `String "hello" } } } }, `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "x" }, `String "string" },{ `Set{{ `Id "x" },{ `Op{"concat", `Id "x", `String "hello" } } } }, `Op{"eq", `Call{ `Index{ `Id "_ENV", `String "type" }, `Id "y" }, `String "number" },{ `Set{{ `Id "y" },{ `Op{"add", `Id "y", `Number "1" } } } } }, `Set{{ `Id "x" },{ `Id "y" } }, `Set{{ `Id "y" },{ `Id "x" } } } } } } }
 ]=]
 
 r = typecheck(s)
@@ -3261,11 +3268,13 @@ check(e, r)
 
 s = [=[
 local x:boolean, y:boolean, z:number = 1, "foo"
+z = 10
+z = nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign '1' to 'boolean'
 test.lua:1:18: type error, attempt to assign '"foo"' to 'boolean'
-test.lua:1:29: type error, attempt to assign 'nil' to 'number'
+test.lua:3:1: type error, attempt to assign '(nil)' to '(number,value*)'
 ]=]
 
 r = typecheck(s)
@@ -3273,11 +3282,13 @@ check(e, r)
 
 s = [=[
 local x:number, y:number, z:string = false, true
+z = "foo"
+z = nil
 ]=]
 e = [=[
 test.lua:1:7: type error, attempt to assign 'false' to 'number'
 test.lua:1:17: type error, attempt to assign 'true' to 'number'
-test.lua:1:27: type error, attempt to assign 'nil' to 'string'
+test.lua:3:1: type error, attempt to assign '(nil)' to '(string,value*)'
 ]=]
 
 r = typecheck(s)
@@ -3343,7 +3354,6 @@ a = a and 1
 b = b and 1
 ]=]
 e = [=[
-test.lua:1:7: type error, attempt to assign 'nil' to 'number'
 test.lua:1:17: type error, attempt to assign 'false' to 'number'
 ]=]
 
@@ -3389,9 +3399,11 @@ check(e, r)
 s = [=[
 local x:number?
 local y:number = x or nil
+y = 10
+y = nil
 ]=]
 e = [=[
-test.lua:2:7: type error, attempt to assign 'number?' to 'number'
+test.lua:4:1: type error, attempt to assign '(nil)'to '(number,value*)'
 ]=]
 
 r = typecheck(s)
@@ -3505,8 +3517,8 @@ r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:number?
-local y:string?
+function f(x:number?, y:string?)
+
 
 if type(x) == "number" then
   x = x + 1
@@ -3519,6 +3531,7 @@ end
 
 x = x + 1
 y = y .. "hello"
+end
 ]=]
 e = [=[
 test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
@@ -3531,7 +3544,7 @@ r = typecheck(s)
 check(e, r)
 
 s = [=[
-local x:boolean|number|string?
+function f(x:boolean|number|string?)
 
 if type(x) == "number" then
   x = x + 1
@@ -3544,6 +3557,7 @@ elseif math.random() > 0.5 then
 end
 
 x = x + 1
+end
 ]=]
 e = [=[
 test.lua:13:5: type error, attempt to perform arithmetic on a 'boolean | number | string | nil'
@@ -3618,9 +3632,11 @@ check(e, r)
 s = [=[
 local function f ():(number, number) return 1, 2 end
 local x:number, y:number, z:number = f()
+z = 10
+z = nil
 ]=]
 e = [=[
-test.lua:2:27: type error, attempt to assign 'nil' to 'number'
+test.lua:4:1: type error, attempt to assign '(nil)'to '(number,value*)'
 ]=]
 
 r = typecheck(s)
@@ -3762,8 +3778,11 @@ x.z = 1
 z.z = 2
 ]=]
 e = [=[
+test.lua:2:11:type error,attempt to index 'nil'with '"z"'
 test.lua:2:16: type error, attempt to access undeclared global 'y'
 test.lua:2:16: type error, attempt to index 'nil' with '"z"'
+test.lua:3:1:type error,attempt to index 'nil'with '"z"'
+test.lua:3:1:type error,attempt to assign '(1)'to '(nil,value*)'
 test.lua:4:1: type error, attempt to access undeclared global 'z'
 test.lua:4:1: type error, attempt to index 'nil' with '"z"'
 test.lua:4:1: type error, attempt to assign '(2)' to '(nil, value*)'
@@ -3779,6 +3798,7 @@ x()
 y()
 ]=]
 e = [=[
+test.lua:3:1:type error,attempt to call local 'x'of type 'nil'
 test.lua:4:1: type error, attempt to call local 'y' of type 'number'
 ]=]
 
@@ -3943,13 +3963,14 @@ r = typecheck(s)
 check(e, r)
 
 s = [=[
-local s:string?
+function f(s:string?)
 
 while true do
   s = s or "foo"
 end
 
 s = s .. "bar"
+end
 ]=]
 e = [=[
 test.lua:7:5: type error, attempt to concatenate a 'string?'
@@ -5033,14 +5054,16 @@ r = generate(s)
 check(e, r)
 
 s = [=[
-local x:number?
-if not x then print("error") else x = x + 1 end
-if type(x) == "nil" then print("error") else x = x + 1 end
+local function f(x:number?)
+  if not x then print("error") else x = x + 1 end
+  if type(x) == "nil" then print("error") else x = x + 1 end
+end
 ]=]
 e = [=[
-local x
-if not (x) then print("error") else x = x + 1 end
-if type(x) == "nil" then print("error") else x = x + 1 end
+local function f (x)
+  if not (x) then print("error") else x = x + 1 end
+  if type(x) == "nil" then print("error") else x = x + 1 end
+end
 
 ]=]
 

@@ -7,7 +7,7 @@ do
     print(f + 10) -- f is still file
   end
 end
-print(f + 10) -- f is file?
+print(f + 10) -- f is file
 print(err + 10) -- err is string?
 if f then
   print(err + 10) -- err is still string?
