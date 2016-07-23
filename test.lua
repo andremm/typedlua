@@ -5429,6 +5429,25 @@ test.lua:16:5: type error, attempt to perform arithmetic on a 'number | string |
 r = typecheck(s)
 check(e, r)
 
+-- filter25.tl
+
+s = [=[
+local function f(t: { "foo": string }?)
+  local x: string = t and t.foo or "bar"
+  print(x + 10)
+  local t = t or error("nil!")
+  print(t.foo + 10)
+end
+]=]
+
+e = [=[
+test.lua:3:9: type error, attempt to perform arithmetic on a 'string'
+test.lua:5:9: type error, attempt to perform arithmetic on a 'string'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
 -- issue96.tl
 
 s = [=[
