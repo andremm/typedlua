@@ -5131,7 +5131,7 @@ if x then
     x = "foo" -- x now is string
     print(x + 10) -- error, x string
     x = nil   -- error, x was string|number when entered loop
-    print(x + 10) -- error, x string
+    print(x + 10) -- error
   end
 end
 x = x + 10 -- error, x: number|string|nil
@@ -5144,8 +5144,8 @@ test.lua:6:15: type error, attempt to perform arithmetic on a 'string'
 test.lua:7:11: type error, attempt to concatenate a 'number'
 test.lua:9:30: type error, attempt to perform arithmetic on a 'number | string | nil'
 test.lua:11:11: type error, attempt to perform arithmetic on a 'string'
-test.lua:12:5: type error, attempt to assign '(nil)' to '(number | string, value*)'
-test.lua:13:11: type error, attempt to perform arithmetic on a 'string'
+test.lua:12:5: type error,variable 'x' is looping back with type 'nil' incompatible with type 'number | string' that it entered loop
+test.lua:13:11: type error, attempt to perform arithmetic on a 'nil'
 test.lua:16:5: type error, attempt to perform arithmetic on a 'number | string | nil'
 ]=]
 
@@ -5419,6 +5419,7 @@ x = x + 10 -- error, x n|s|nil because of f
 ]=]
 
 e = [=[
+test.lua:4:7: type error,variable 'x' is looping back with type 'number | string | nil' incompatible with type 'number'that it entered loop
 test.lua:6:5: type error, attempt to assign to filtered upvalue 'x' across a loop
 test.lua:8:9: type error, attempt to perform arithmetic on a 'number | string | nil'
 test.lua:9:6: type error, this arm of the 'if' is unreacheable

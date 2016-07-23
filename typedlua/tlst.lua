@@ -296,26 +296,28 @@ end
 
 -- pushes a frame for backing up types for filters/refinement
 -- (env, boolean) -> (frame)
-function tlst.push_backup(env, loop)
+function tlst.push_backup(env)
   local bkps = env["backups"]
-  local frame = { scope = env.scope + 1, loop = loop }
+  local frame = { scope = env.scope + 1 }
   bkps[#bkps+1] = frame
   return frame
 end
 
--- revert types and ubounds of backed-up vars (returns frame with the types and ubounds before reversal)
+-- revert types of backed-up vars (returns frame with the types before reversal)
 function tlst.revert_types(env, frame)
   local curr = {}
-  for var, tyub in pairs(frame) do
-    if var ~= "loop" and var ~= "scope" then
-      curr[var] = { type = var.type, ubound = var.ubound, pos = tyub.pos }
-      var.type, var.ubound = tyub.type, tyub.ubound
+  for var, ty in pairs(frame) do
+    if var ~= "scope" then
+      if var.scope <= env.scope then
+        curr[var] = { type = var.type, pos = ty.pos }
+      end
+      var.type = ty.type
     end
   end
   return curr
 end
 
--- pops a backup frame, reverting the types, returns another frame with the current types and ubounds
+-- pops a backup frame, reverting the types, returns another frame with the current types
 function tlst.pop_backup(env)
   local bkps = env["backups"]
   local frame = bkps[#bkps]
@@ -323,7 +325,7 @@ function tlst.pop_backup(env)
   return tlst.revert_types(env, frame)
 end
 
--- backup current type and ubound of var, return false is there is no
+-- backup current type of var, return false is there is no
 --   active backup frame for var
 function tlst.backup_vartype(env, var, pos)
   assert(pos, "position must not be nil")
@@ -337,41 +339,11 @@ function tlst.backup_vartype(env, var, pos)
       frame[var].pos = pos
       return true
     else
-      frame[var] = { type = var.type, ubound = var.ubound, pos = pos }
+      frame[var] = { type = var.type, pos = pos }
       return true
     end
   end
   return false
-end
-
--- get ubound saved in first backup frame where var is saved (or current ubound)
-function tlst.get_first_ubound(env, var)
-  for _, frame in ipairs(env["backups"]) do
-    if frame[var] then return frame[var].ubound end
-  end
-  return var.ubound
-end
-
--- return type on entrance the most recent loop
-function tlst.get_loop_type(env, var)
-  local bkps = env["backups"]
-  local t
-  for i = #bkps, 1, -1 do
-    local frame = bkps[i]
-    if frame[var] then t = frame[var].type end
-    if frame.loop then break end -- reached the loop
-  end
-  return t or var.type
-end
-
--- constrain ubound to type when entered current loop
-function tlst.constrain_ubound(env, var, pos)
-  assert(pos, "position must not be nil")
-  local ltype = tlst.get_loop_type(env, var)
-  if var.ubound ~= ltype and not tltype.subtype(var.ubound, ltype) then
-    tlst.backup_vartype(env, var, pos)
-    var.ubound = ltype
-  end
 end
 
 -- breaks link of var with other variables in the same projection
@@ -380,8 +352,8 @@ function tlst.break_projection (env, var)
   local proj = tlst.get_local(env, label)
   for _, frame in ipairs(env["backups"]) do
     if frame[proj] then
-      local t, ub, pos = frame[proj].type, frame[proj].ubound, frame[proj].pos
-      frame[var] = { type = tltype.unionlist2union(t, idx), ubound = tltype.unionlist2union(ub, idx), pos = pos }
+      local t, pos = frame[proj].type, frame[proj].pos
+      frame[var] = { type = tltype.unionlist2union(t, idx), pos = pos }
     end
   end
   var.type = tltype.unionlist2union(proj.type, idx)
@@ -389,47 +361,30 @@ function tlst.break_projection (env, var)
 end
 
 -- join two sets of saved types
-function tlst.join_types(env, var, tyub1, tyub2, pos)
-  local joined = { type = tltype.Union(tyub1.type, tyub2.type), ubound = var.ubound, pos = pos }
-  if not tltype.subtype(joined.type, joined.ubound) then
-    local msg = "conflicting types for variable '%s', current type '%s' is not a subtype of '%s'"
-    msg = string.format(msg, var[1], tltype.tostring(joined.type), tltype.tostring(joined.ubound))
-    local pos
-    if tltype.subtype(tyub1.type, joined.ubound) then
-      pos = tyub2.pos
-      joined.type = tyub1.type
-    elseif tltype.subtype(tyub2.type, joined.ubound) then
-      pos = tyub1.pos
-      joined.typed = tyub2.type
-    else
-      assert(false, string.format("BUG in join: type1: %s type2: %s ubound: %s"),
-        tltype.tostring(tyub1.type), tltype.tostring(tyub2.type), tltype.tostring(joined.ubound))
-    end
-    tltype.typeerror(env, "join", msg, pos)
-  end
-  return joined
+function tlst.join_types(env, var, type1, type2, pos)
+  return { type = tltype.Union(type1.type, type2.type), pos = pos }
 end
 
--- join all the snapshots of types and ubounds
--- (if a variable is not present in a snapshot its current type and ubound is taken)
+-- join all the snapshots of types
+-- (if a variable is not present in a snapshot its current type is taken)
 function tlst.join_snapshots(env, snaps, pos)
   assert(pos, "position must not be null")
   if #snaps == 0 then return {} end
   local joined = {}
-  for var, tyub in pairs(snaps[1]) do
-    joined[var] = tyub
+  for var, ty in pairs(snaps[1]) do
+    joined[var] = ty
   end
   for i = 2, #snaps do
-    for var, tyub in pairs(joined) do
+    for var, ty in pairs(joined) do
       if not snaps[i][var] then
-        joined[var] = tlst.join_types(env, var, { type = var.type, ubound = var.ubound, pos = var.pos }, tyub, pos)
+        joined[var] = tlst.join_types(env, var, { type = var.type, pos = var.pos }, ty, pos)
       else
-        joined[var] = tlst.join_types(env, var, snaps[i][var], tyub, pos)
+        joined[var] = tlst.join_types(env, var, snaps[i][var], ty, pos)
       end
     end
-    for var, tyub in pairs(snaps[i]) do
+    for var, ty in pairs(snaps[i]) do
       if not joined[var] then
-        joined[var] = tlst.join_types(env, var, { type = var.type, ubound = var.ubound, pos = var.pos }, tyub, pos)
+        joined[var] = tlst.join_types(env, var, { type = var.type, pos = var.pos }, ty, pos)
       end
     end
   end
@@ -440,10 +395,10 @@ function tlst.isupvalue(env, var)
   return env[env.scope]["function"] ~= env[var.scope]["function"]
 end
 
-function tlst.commit_type(env, var, tyub, pos)
+function tlst.commit_type(env, var, ty, pos)
   assert(pos, "position must not be nil")
   local inframe = tlst.backup_vartype(env, var, pos)
-  var.type = tyub.type
+  var.type = ty.type
   if var.narrow and not inframe then
     var.narrow = false
     var.ubound = var.type
@@ -475,9 +430,9 @@ function tlst.push_break_snapshot(env)
   for i = #bkps, 1, -1 do
     if bkps[i].scope < brk_frame.scope then break end -- we escaped this break's scope
     local frame = bkps[i]
-    for var, tyub in pairs(frame) do
+    for var, ty in pairs(frame) do
       if var ~= "loop" and var ~= "scope" then
-        snap[var] = { type = var.type, ubound = var.ubound, pos = tyub.pos }
+        snap[var] = { type = var.type, pos = ty.pos }
       end
     end
   end

@@ -1359,14 +1359,21 @@ local function check_while (env, stm)
   else
     local r, didgoto = check_block(env, stm1, true)
     local frame = tlst.pop_backup(env)
+    for var, ty in pairs(frame) do
+      if not tltype.subtype(ty.type, var.type) then
+        local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+        local msg = "variable " .. bold_token .. " is looping back with type " .. bold_token .. " incompatible with type " .. bold_token .. " that it entered loop"
+        typeerror(env, "loop", string.format(msg, var[1], tltype.tostring(ty.type), tltype.tostring(var.type)), ty.pos)
+      end
+    end
     local snapshots = tlst.pop_break(env)
     if not r then
       snapshots[#snapshots+1] = frame
     end
     snapshots[#snapshots+1] = {}
     local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
-    for var, tyub in pairs(newtypes) do
-      tlst.commit_type(env, var, tyub, stm.pos)
+    for var, ty in pairs(newtypes) do
+      tlst.commit_type(env, var, ty, stm.pos)
     end
     return false, didgoto -- while always can not return if does not execute once
   end
@@ -1383,11 +1390,18 @@ local function check_repeat (env, stm)
     tlst.pop_backup(env)
   else
     local frame = tlst.pop_backup(env)
+    for var, ty in pairs(frame) do
+      if not tltype.subtype(ty.type, var.type) then
+        local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+        local msg = "variable " .. bold_token .. " is looping back with type " .. bold_token .. " incompatible with type " .. bold_token .. " that it entered loop"
+        typeerror(env, "loop", string.format(msg, var[1], tltype.tostring(ty.type), tltype.tostring(var.type)), ty.pos)
+      end
+    end
     snapshots[#snapshots+1] = frame
   end
   local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
-  for var, tyub in pairs(newtypes) do
-    tlst.commit_type(env, var, tyub, stm.pos)
+  for var, ty in pairs(newtypes) do
+    tlst.commit_type(env, var, ty, stm.pos)
   end
   return r, didgoto
 end
@@ -1548,12 +1562,19 @@ local function check_fornum (env, stm)
   local snapshots = tlst.pop_break(env)
   local frame = tlst.pop_backup(env)
   if not r then
+    for var, ty in pairs(frame) do
+      if not tltype.subtype(ty.type, var.type) then
+        local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+        local msg = "variable " .. bold_token .. " is looping back with type " .. bold_token .. " incompatible with type " .. bold_token .. " that it entered loop"
+        typeerror(env, "loop", string.format(msg, var[1], tltype.tostring(ty.type), tltype.tostring(var.type)), ty.pos)
+      end
+    end
     snapshots[#snapshots+1] = frame
   end
   snapshots[#snapshots+1] = {} -- can run 0 times
   local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
-  for var, tyub in pairs(newtypes) do
-    tlst.commit_type(env, var, tyub, stm.pos)
+  for var, ty in pairs(newtypes) do
+    tlst.commit_type(env, var, ty, stm.pos)
   end
   return r, didgoto
 end
@@ -1591,12 +1612,19 @@ local function check_forin (env, idlist, explist, block)
   local snapshots = tlst.pop_break(env)
   local frame = tlst.pop_backup(env)
   if not r then
+    for var, ty in pairs(frame) do
+      if not tltype.subtype(ty.type, var.type) then
+        local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+        local msg = "variable " .. bold_token .. " is looping back with type " .. bold_token .. " incompatible with type " .. bold_token .. " that it entered loop"
+        typeerror(env, "loop", string.format(msg, var[1], tltype.tostring(ty.type), tltype.tostring(var.type)), ty.pos)
+      end
+    end
     snapshots[#snapshots+1] = frame
   end
   snapshots[#snapshots+1] = {} -- can run 0 times
   local newtypes = tlst.join_snapshots(env, snapshots, block.pos)
-  for var, tyub in pairs(newtypes) do
-    tlst.commit_type(env, var, tyub, block.pos)
+  for var, ty in pairs(newtypes) do
+    tlst.commit_type(env, var, ty, block.pos)
   end
   return r, didgoto
 end
@@ -1610,11 +1638,8 @@ local function check_id (env, exp)
     l = tlst.get_local(env, label)
     t = tltype.unionlist2union(get_type(l), idx)
   end
-  if not lloc then -- across loop, constrain current ubound
-    tlst.constrain_ubound(env, l, exp.pos)
-  end
-  if not floc then -- upvalue, type is greatest ubound of the var
-    t = tlst.get_first_ubound(env, l)
+  if not floc then -- upvalue, type is ubound of the var
+    t = get_ubound(l)
   end
   set_type(exp, t)
   local l, floc, lloc = tlst.get_local(env, name)
@@ -1677,13 +1702,10 @@ function check_var (env, var, exp)
       tlst.break_projection(env, l)
       t = get_type(l)
     end
-    if not lloc then
-      tlst.constrain_ubound(env, l, var.pos)
-    end
     if not floc then -- upvalue
       l.assigned = true
-      t = tlst.get_first_ubound(env, l)
-      if not lloc and not tltype.subtype(t, l.type) then
+      t = get_ubound(l)
+      if not lloc and not tltype.subtype(t, get_type(l)) then
         local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
         local msg = "attempt to assign to filtered upvalue " .. bold_token .. " across a loop"
         msg = string.format(msg, l[1])
