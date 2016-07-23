@@ -30,5 +30,6 @@ local function f(o:OBJ)
    local parent = o.parent
    if parent then
       f({atr={x=2}}) -- isn't this structurally equivalent to OBJ?
+      print(parent + 10) -- just to supress generation of .lua file
    end
 end

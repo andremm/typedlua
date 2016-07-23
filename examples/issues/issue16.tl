@@ -25,7 +25,7 @@ function A:arun(name: string)
   print('arun', name)
 end
 
-function A:awrong(x: self)
+function A:awrong(x: self) -- error, self cannot appear here!
 end
 
 function A:abar(obj: SubA)

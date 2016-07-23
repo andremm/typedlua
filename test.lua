@@ -4624,6 +4624,1282 @@ e = [=[
 r = typecheck(s)
 check(e, r)
 
+-- filter20.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+if type(x) == "number" and type(y) ~= "number" then -- dead
+  print(x + 10)
+  print(x + y)
+  local function f()
+    x = 10
+  end
+  print(x .. "foo")
+  print(y .. "bar")
+elseif x then
+  print(x + 10) -- ok
+  if type(x) == "string" then -- dead
+    print(x .. "foo")
+  end
+  print(x .. "foo") -- error, x integer
+else -- dead
+  print(x .. "foo")
+  print(y + 10)
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:4:4: type error, this arm of the 'if' is unreacheable
+test.lua:14:6: type error, this arm of the 'if' is unreacheable
+test.lua:17:9: type error, attempt to concatenate a 'number'
+test.lua:19:3: type error, 'else' block is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter12.tl
+
+s = [=[
+local A = assert -- now works!
+
+local function double_number(x: number?)
+  if not x then
+    error("Not giving p1 to double_number is deprecated")
+  end
+  return 2 * x -- x is filtered to number
+end
+
+local x: number? = 10
+A(x)
+x = x + 10
+x = nil
+x = x + 10 -- error, x mil
+
+if math.type(x) == "integer" then -- dead
+  print(x + 10)
+end
+]=]
+
+e = [=[
+test.lua:14:5: type error, attempt to perform arithmetic on a 'nil'
+test.lua:16:4: type error, this arm of the 'if' is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter17.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+if x then
+  while type(x) == "number" and type(y) ~= "number" do -- while body unreacheable
+    print(x + 10)
+    print(x + y)
+    print(x .. "foo")
+    print(y .. "bar")
+    x = "foo"
+    x = nil
+    print(x + 10)
+  end
+  print(x .. "foo") -- error, x is integer
+end
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:5:3: type error, 'while' body is unreacheable
+test.lua:14:9: type error, attempt to concatenate a 'number'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter14.tl
+
+s = [=[
+local x: number|string|nil = 10 -- x is actually integer
+local y: number|string = 20 -- y is actually integer
+
+if type(x) == "number" and type(y) ~= "number" then -- this arm is dead
+  print(x + 10)
+  print(x + y)
+  print(x .. "foo")
+  print(y .. "bar")
+elseif x then
+  print(x + 10) -- ok
+  if type(x) == "string" then -- this arm is dead
+    print(x .. "foo")
+  end
+  print(x .. "foo") -- error, x integer
+else -- else block is dead
+  print(x .. "foo")
+  print(y + 10)
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:4:4: type error, this arm of the 'if' is unreacheable
+test.lua:11:6: type error, this arm of the 'if' is unreacheable
+test.lua:14:9: type error, attempt to concatenate a 'number'
+test.lua:16:3: type error, 'else' block is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter22.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+local function f()
+  x = 10
+end
+
+-- the previous function makes x unfilterable
+
+if type(x) == "number" and type(y) ~= "number" then -- dead because of y
+  print(x + 10)
+  print(x + y)
+  print(x .. "foo")
+  print(y .. "bar")
+elseif x then
+  print(x + 10) -- error, x: number|string|nil
+  if type(x) == "string" then
+    print(x .. "foo") -- error, x: number|string|nil
+  end
+  print(x .. "foo") -- error, x: number|string|nil
+else
+  print(x .. "foo") -- error, x: number|string|nil
+  print(y + 10) -- ok
+end
+
+x = x + 10 -- error, x: number|string|nil
+]=]
+
+e = [=[
+test.lua:10:4: type error, this arm of the 'if' is unreacheable
+test.lua:16:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:18:11: type error, attempt to concatenate a 'number | string | nil'
+test.lua:20:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:22:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:26:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter9.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+local function f()
+  x = 10
+end
+
+-- the previous function makes x unfilterable
+
+if type(x) == "number" and type(y) ~= "number" then
+  print(x + 10) -- error, x: number|string|nil
+  print(x + y)  -- error, x: number|string|nil
+  print(x .. "foo") -- error, x: number|string|nil
+  print(y .. "bar") -- ok
+elseif x then
+  print(x + 10) -- error, x: number|string|nil
+  if type(x) == "string" then
+    print(x .. "foo") -- error, x: number|string|nil
+  end
+  print(x .. "foo") -- error, x: number|string|nil
+else
+  print(x .. "foo") -- error, x: number|string|nil
+  print(y + 10) -- error, y: number|string
+end
+
+x = x + 10 -- error, x: number|string|nil
+
+end
+]=]
+
+e = [=[
+test.lua:10:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:11:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:12:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:15:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:17:11: type error, attempt to concatenate a 'number | string | nil'
+test.lua:19:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:21:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:22:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:25:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter18.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+while type(x) == "number" do
+  print(x + 10) -- ok
+  if type(y) == "string" then -- dead
+    print(x + y)
+    print(x .. "foo")
+    print(y .. "bar")
+  end
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:6:6: type error, this arm of the 'if' is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter3.tl
+
+s = [=[
+local x:number? -- we know that x is actually nil
+local y:string? -- ditto for y
+
+if type(x) == "number" then -- dead
+  x = x + 1
+elseif type(y) == "string" then -- dead
+  y = y .. "hello"
+else
+  x = x + 1 -- error, x nil
+  y = y + 1 -- error, y nil
+end
+
+x = x + 1 -- error, x nil
+y = y .. "hello" -- ditto
+]=]
+
+e = [=[
+test.lua:4:4: type error, this arm of the 'if' is unreacheable
+test.lua:6:8: type error, this arm of the 'if' is unreacheable
+test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:10:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:13:5: type error, attempt to perform arithmetic on a 'nil'
+test.lua:14:5: type error, attempt to concatenate a 'nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter21.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+if type(x) == "number" and type(y) ~= "number" then -- dead
+  print(x + 10)
+  print(x + y)
+  local function f()
+    print(x + 10)
+  end
+  print(x .. "foo")
+  print(y .. "bar")
+elseif x then
+  print(x + 10) -- ok
+  if type(x) == "string" then -- dead
+    print(x .. "foo")
+  end
+  print(x .. "foo") -- error, x integer
+else -- dead
+  print(x .. "foo") -- error, x: nil
+  print(y + 10) -- error, y: number|string
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:4:4: type error, this arm of the 'if' is unreacheable
+test.lua:14:6: type error, this arm of the 'if' is unreacheable
+test.lua:17:9: type error, attempt to concatenate a 'number'
+test.lua:19:3: type error, 'else' block is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter24.tl
+
+s = [=[
+local x: number|string|nil = 10
+
+if math.random() > 10 then
+  print(x+10) -- ok
+elseif math.random() > 10 then
+  error("is a number")
+elseif type(x) == "number" then
+    error("is a number")
+end
+
+x = x + 10 -- ok
+
+if not x then -- dead
+  print(x+10) -- error, x is nil
+elseif type(x) == "number" then
+  error("is a number")
+end
+
+-- dead code
+x = x .. "foo"
+]=]
+
+e = [=[
+test.lua:13:8: type error, this arm of the 'if' is unreacheable
+test.lua:20:1: type error, unreacheable statement
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter8.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+if type(x) == "number" and type(y) ~= "number" then
+  print(x + 10) -- ok
+  print(x + y)  -- error, y: string
+  local function f()
+    print(x + 10) -- error, x n|s|nil
+  end
+  print(x .. "foo") -- error, x: number
+  print(y .. "bar") -- ok
+elseif x then
+  print(x + 10) -- error, x: number|string
+  if type(x) == "string" then
+    print(x .. "foo") -- ok
+  end
+  print(x .. "foo") -- error, x: number|string
+else
+  print(x .. "foo") -- error, x: nil
+  print(y + 10) -- error, y: number|string
+end
+
+x = x + 10 -- error, x: number|string|nil
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:7:11: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:9:9: type error, attempt to concatenate a 'number'
+test.lua:12:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:16:9: type error, attempt to concatenate a 'number | string'
+test.lua:18:9: type error, attempt to concatenate a 'nil'
+test.lua:19:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:22:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter1.tl
+
+s = [=[
+local function foo(x: number|string|nil, y: number|string)
+
+if type(x) == "number" and type(y) ~= "number" then
+  print(x + 10) -- ok
+  print(x + y)  -- error, y: string
+  print(x .. "foo") -- error, x: number
+  print(y .. "bar") -- ok
+elseif x then
+  print(x + 10) -- error, x: number|string
+  if type(x) == "string" then
+    print(x .. "foo") -- ok
+  end
+  print(x .. "foo") -- error, x: number|string
+else
+  print(x .. "foo") -- error, x: nil
+  print(y + 10) -- error, y: number|string
+end
+
+x = x + 10 -- error, x: number|string|nil
+
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:6:9: type error, attempt to concatenate a 'number'
+test.lua:9:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:13:9: type error, attempt to concatenate a 'number | string'
+test.lua:15:9: type error, attempt to concatenate a 'nil'
+test.lua:16:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:19:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter6.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+local f = function () end
+
+while type(x) == "number" do
+  f()
+  print(x + 10) -- ok
+  f = function ()
+    x = "foo" -- error, cannot revert across loop
+  end
+  if type(y) == "string" then
+    print(x + y)  -- error, x n|s|nil
+    print(x .. "foo") -- error, x n|s|nil
+    print(y .. "bar") -- ok
+  end
+end
+
+x = x + 10 -- error, x: number|string|nil
+end
+]=]
+
+e = [=[
+test.lua:9:5: type error, attempt to assign to filtered upvalue 'x' across a loop
+test.lua:12:11: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:13:11: type error, attempt to concatenate a 'number | string | nil'
+test.lua:18:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter5.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+while type(x) == "number" do
+  print(x + 10) -- ok
+  if type(y) == "string" then
+    print(x + y)  -- error, y: string
+    print(x .. "foo") -- error, x: number
+    print(y .. "bar") -- ok
+  end
+end
+
+x = x + 10 -- error, x: number|string|nil
+end
+]=]
+
+e = [=[
+test.lua:6:15: type error, attempt to perform arithmetic on a 'string'
+test.lua:7:11: type error, attempt to concatenate a 'number'
+test.lua:12:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter4.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+if x then
+  while type(x) == "number" and type(y) ~= "number" do
+    print(x + 10) -- ok
+    print(x + y)  -- error, y: string
+    print(x .. "foo") -- error, x: number
+    print(y .. "bar") -- ok
+    local function g() print(x+10) end -- error, x string|number|nil
+    x = "foo" -- x now is string
+    print(x + 10) -- error, x string
+    x = nil   -- error, x was string|number when entered loop
+    print(x + 10) -- error, x string
+  end
+end
+x = x + 10 -- error, x: number|string|nil
+
+end
+]=]
+
+e = [=[
+test.lua:6:15: type error, attempt to perform arithmetic on a 'string'
+test.lua:7:11: type error, attempt to concatenate a 'number'
+test.lua:9:30: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:11:11: type error, attempt to perform arithmetic on a 'string'
+test.lua:12:5: type error, attempt to assign '(nil)' to '(number | string, value*)'
+test.lua:13:11: type error, attempt to perform arithmetic on a 'string'
+test.lua:16:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter7.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+if type(x) == "number" and type(y) ~= "number" then
+  print(x + 10) -- ok
+  print(x + y)  -- error, y: string
+  local function f()
+    x = 10 -- ok, x is now n|s|nil
+  end
+  print(x .. "foo") -- error, x is n|s|nil
+  print(y .. "bar") -- ok
+elseif x then -- x cannot downcast anymore because of f
+  print(x + 10) -- error, x: number|string|nil
+  if type(x) == "string" then
+    print(x .. "foo") -- error, x: number|string|nil
+  end
+  print(x .. "foo") -- error, x: number|string|nil
+else
+  print(x .. "foo") -- error, x: number|string|nil
+  print(y + 10) -- error, y: number|string
+end
+
+x = x + 10 -- error, x: number|string|nil
+
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:9:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:12:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:14:11: type error, attempt to concatenate a 'number | string | nil'
+test.lua:16:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:18:9: type error, attempt to concatenate a 'number | string | nil'
+test.lua:19:9: type error, attempt to perform arithmetic on a 'number | string'
+test.lua:22:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter16.tl
+
+s = [=[
+local function f(x:number?, y:string?)
+
+if type(x) == "number" then
+  x = x + 1
+elseif type(y) == "string" then
+  y = y .. "hello"
+else
+  x = x + 1 -- error, x nil
+  y = y + 1 -- error, y nil
+end
+
+x = x + 1 -- error, x number?
+y = y .. "hello" -- error, y string?
+
+end
+]=]
+
+e = [=[
+test.lua:8:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:9:7: type error, attempt to perform arithmetic on a 'nil'
+test.lua:12:5: type error, attempt to perform arithmetic on a 'number?'
+test.lua:13:5: type error, attempt to concatenate a 'string?'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter13.tl
+
+s = [=[
+local function f(x: number|string|nil)
+
+if math.random() > 0.5 then
+  print(x+10) -- error, x number|string|nil
+elseif math.random() > 0.5 then
+  error("random")
+elseif type(x) == "number" then
+  error("is a number")
+end
+
+x = x + 10 -- error, x n|s|nil (math.random > 0.5)
+
+if not x then
+  print(x+10) -- error, x is nil
+elseif type(x) == "number" then
+  error("is a number")
+end
+
+-- x cannot be number here
+
+x = x + 10 -- error, x string?
+end
+]=]
+
+e = [=[
+test.lua:4:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:11:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:14:9: type error, attempt to perform arithmetic on a 'nil'
+test.lua:21:5: type error, attempt to perform arithmetic on a 'string?'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter2.tl
+
+s = [=[
+local function foo(x: number|string|nil, y: number|string)
+
+while type(x) == "number" and type(y) ~= "number" do
+  print(x + 10) -- ok
+  print(x + y) -- error, y is string
+  print(x .. "foo") -- error, x is number
+  print(y .. "bar") -- ok
+  x = "foo" -- ok, x is now string
+  print(x + 10) -- error, x is string
+end
+
+x = x + 10 -- error, x is number|string|nil
+
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:6:9: type error, attempt to concatenate a 'number'
+test.lua:9:9: type error, attempt to perform arithmetic on a 'string'
+test.lua:12:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter23.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+while type(x) == "number" and type(y) ~= "number" do -- dead
+  print(x + 10) -- ok
+  print(x + y)  -- error, y: string
+  print(x .. "foo") -- error, x: number
+  print(y .. "bar") -- ok
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:4:1: type error, 'while' body is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter15.tl
+
+s = [=[
+local x: number | string | nil = 10 -- x is actually integer
+local y: number | string = 20 -- y is actually integer
+
+while type(x) == "number" and type(y) ~= "number" do -- while block unreacheable
+  print(x + 10)
+  print(x + y)
+  print(x .. "foo")
+  print(y .. "bar")
+  x = "foo"
+  print(x + 10)
+end
+
+x = x + 10 -- ok
+]=]
+
+e = [=[
+test.lua:4:1: type error, 'while' body is unreacheable
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter11.tl
+
+s = [=[
+local function idiv (d1:number, d2:number):(number, number) | (nil, string)
+  if d2 == 0 then
+    return nil, "division by zero"
+  else
+    local r = d1 % d2
+    local q = (d1 - r) / d2
+    return q, r
+  end
+end
+
+local n1, n2 = 4, 4
+local q, r = idiv(n1, n2)
+local x:number, msg:string = 0, ""
+if q then
+  x = q + r
+  print(r .. "foo") -- error, r number
+else
+  msg = r
+  print(r + 10) -- error, r string
+end
+]=]
+
+e = [=[
+test.lua:16:9: type error, attempt to concatenate a 'number'
+test.lua:19:9: type error, attempt to perform arithmetic on a 'string'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter10.tl
+
+s = [=[
+local function f(x: number | string | nil, y: number | string)
+
+while type(x) == "number" and type(y) ~= "number" do
+  print(x + 10) -- ok
+  print(x + y)  -- error, y: string
+  print(x .. "foo") -- error, x: number
+  print(y .. "bar") -- ok
+end
+
+x = x + 10 -- error, x: number|string|nil
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:6:9: type error, attempt to concatenate a 'number'
+test.lua:10:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- filter19.tl
+
+s = [=[
+local x: number | string | nil = 10
+local y: number | string = 20
+
+while type(x) == "number" do
+  local function f()
+    x = 10 -- error, assigning to filtered upvalue across loop
+  end
+  print(x + 10) -- error, x n|s|nil
+  if type(y) == "string" then -- dead
+    print(x + y)
+    print(x .. "foo")
+    print(y .. "bar")
+  end
+end
+
+x = x + 10 -- error, x n|s|nil because of f
+]=]
+
+e = [=[
+test.lua:6:5: type error, attempt to assign to filtered upvalue 'x' across a loop
+test.lua:8:9: type error, attempt to perform arithmetic on a 'number | string | nil'
+test.lua:9:6: type error, this arm of the 'if' is unreacheable
+test.lua:16:5: type error, attempt to perform arithmetic on a 'number | string | nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue96.tl
+
+s = [=[
+local function double_number(x: number?)
+  if not x then
+    error("Not giving p1 to double_number is deprecated")
+  end
+  print(x .. "foo") -- error, x number
+  return 2 * x -- x is filtered to number
+end
+]=]
+
+e = [=[
+test.lua:5:9: type error, attempt to concatenate a 'number'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue58.tl
+
+s = [=[
+typealias Cmd = string|{string}
+
+function f(cmd:Cmd) -- if I change to cmd:string|{string}, it works
+   local c: {string} = {}
+   if type(cmd) == "string" then
+      table.insert(c, cmd)
+      print(cmd + 10) -- error, cmd is string
+   else
+      c = cmd
+      print(cmd + 10) -- error, cmd is array
+   end
+end
+]=]
+
+e = [=[
+test.lua:7:13: type error, attempt to perform arithmetic on a 'string'
+test.lua:10:13: type error, attempt to perform arithmetic on a '{number: string?}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue55.tl
+
+s = [=[
+interface ELEM
+   x: number
+end
+
+interface OBJ
+   parent: OBJ?
+   atr: ELEM -- if you comment this line or change ELEM to a base type like string, it works
+end
+
+local function f(o:OBJ)
+   local parent = o.parent
+   if parent then
+      print(parent + 10) -- just to supress generation of .lua
+      f(parent)
+   end
+end
+]=]
+
+e = [=[
+test.lua:13:13: type error, attempt to perform arithmetic on a '{"parent": OBJ?, "atr": {"x": number}}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue68.tl
+
+s = [=[
+
+-- The following two mutually recursive types are the same structurally
+interface Tree1
+  label: number
+  left: Tree2?
+  right: Tree2?
+end
+
+interface Tree2
+  label: number
+  left: Tree1?
+  right: Tree1?
+end
+
+-- the following type has a forward reference
+interface OBJ
+   parent: OBJ?
+   atr: ELEM
+end
+
+interface ELEM
+   x: number
+end
+
+local function f(o:OBJ)
+   local t1: Tree1 = { label = 2 }
+   local t2: Tree2 = { label = 3 }
+   t1 = t2
+   t2 = t1
+   local parent = o.parent
+   if parent then
+      f({atr={x=2}}) -- isn't this structurally equivalent to OBJ?
+      print(parent + 10) -- just to supress generation of .lua file
+   end
+end
+]=]
+
+e = [=[
+test.lua:33:13: type error, attempt to perform arithmetic on a '{"parent": OBJ?, "atr": ELEM}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue16.tl
+
+s = [=[
+interface SubA
+  subaname: string
+end
+
+local A = {}
+A.aname = '<class A proto>'
+A.child = {subaname='the subaname'}
+
+function A:new(): self
+  local t = {}
+  t.aname = '<class A>'
+  t.child = {subaname='the subaname'}
+
+  local s = setmetatable(t, {__index = self})
+  return s
+end
+
+function A:afoo(): self
+  local s: string = self.aname
+  print('Hello ' .. s)
+  return self
+end
+
+function A:arun(name: string)
+  print('arun', name)
+end
+
+function A:awrong(x: self) -- error, self cannot appear here!
+end
+
+function A:abar(obj: SubA)
+  self:arun(obj.subaname) -- Does not compile cleanly.
+
+  -- This works:
+  local s = obj.subaname
+  self:arun(s)
+
+  -- This also works:
+  self.arun(self, obj.subaname)
+end
+
+return A
+]=]
+
+e = [=[
+test.lua:28:18: type error, self type appearing in a place that is not a first parameter or a return type inside type '(self, self, value*) -> ()'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue98.tl
+
+s = [=[
+local function f(i: number?) -- to force i to be number?
+  print(1 + (i or 0)) -- ok
+  print(i .. "foo") -- error, i number?
+end
+]=]
+
+e = [=[
+test.lua:3:9: type error, attempt to concatenate a 'number?'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue99.tl
+
+s = [=[
+local f, err = io.open("wednesday")
+do
+  f = f or io.stdin -- breaks f out of the projection
+  print(f + 10) -- f is a file
+  print(err + 10) -- err is string?
+  if type(err) == "string" then
+    print(f + 10) -- f is still file
+  end
+end
+print(f + 10) -- f is file
+print(err + 10) -- err is string?
+if f then
+  print(err + 10) -- err is still string?
+end
+]=]
+
+e = [=[
+test.lua:4:9: type error, attempt to perform arithmetic on a 'file'
+test.lua:5:9: type error, attempt to perform arithmetic on a 'string?'
+test.lua:7:11: type error, attempt to perform arithmetic on a 'file'
+test.lua:10:7: type error, attempt to perform arithmetic on a 'file'
+test.lua:11:7: type error, attempt to perform arithmetic on a 'string?'
+test.lua:13:9: type error, attempt to perform arithmetic on a 'string?'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue76.tl
+
+s = [=[
+local Shape = { x = 0.0, y = 0.0 }
+
+const function Shape:new (x:number, y:number):self
+  local s = setmetatable({}, { __index = self })
+  s.x = x
+  s.y = y
+  return s
+end
+
+const function Shape:move (dx:number, dy:number):()
+  self.x = self.x + dx
+  self.y = self.y + dy
+end
+
+local s = Shape:new(3,2)
+s:move(20,25)
+print(s + 10) -- to supress generation of .lua
+]=]
+
+e = [=[
+test.lua:17:7: type error, attempt to perform arithmetic on a '{"x": number, "y": number, const "new": (self, number, number, value*) -> (self), const "move": (self, number, number, value*) -> ()}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue45.tl
+
+s = [=[
+-- bug45driver.tl
+local bug45 = require("examples.issues.bug45")
+
+local r = bug45.makeR()
+local s, err = bug45.makeS()
+if r then
+  if s then
+    s = r:makeT(s) -- crashes setting s, or a new global. Doesn't crash if using `local`
+  end
+end
+
+print(nil + 5) -- just to supress generation of .lua
+]=]
+
+e = [=[
+test.lua:12:7: type error, attempt to perform arithmetic on a 'nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue69.tl
+
+s = [=[
+local person:Person = { firstname = "Lou", lastname = "Reed" }
+]=]
+
+e = [=[
+test.lua:1:7: type error, type alias 'Person' is not defined
+test.lua:1:7: type error, attempt to assign '{"firstname": string, "lastname": string}' to 'nil'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue84.tl
+
+s = [=[
+local input = io.open("test")
+
+if input then
+  local stuff = input:read("a")
+  input:close()
+  print(input + 10) -- error, input is file
+end
+]=]
+
+e = [=[
+test.lua:6:9: type error, attempt to perform arithmetic on a 'file'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue88.tl
+
+s = [=[
+local diag_test: {number: string|number|nil} = {"HI", 1, {"another table"}}
+]=]
+
+e = [=[
+test.lua:1:7: type error, attempt to assign '{1: string, 2: number, 3: {1: string}}' to '{number: number | string | nil}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue87.tl
+
+s = [=[
+local my_lambda: () -> () = function () end
+
+my_lambda()
+print(my_lambda + 10) -- just to force an error
+]=]
+
+e = [=[
+test.lua:4:7: type error, attempt to perform arithmetic on a '(value*) -> ()'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- pr82.tl
+
+s = [=[
+
+local function factorial(n: number): number
+  if n == 0 then
+    return 1
+  else
+    return n * factorial(n - 1)
+  end
+end
+local x = 5
+
+print(factorial(x))
+print(factorial(x, nil))
+print(factorial(x, 5))
+
+print(factorial + 10) -- just to force an error
+]=]
+
+e = [=[
+test.lua:15:7: type error, attempt to perform arithmetic on a '(number, value*) -> (number)'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue50.tl
+
+s = [=[
+interface IStackOverflow
+   const my_method: (IStackOverflow) -> ()
+end
+
+function new(): IStackOverflow
+   local obj: IStackOverflow = {}
+   obj.my_method = my_method
+   return obj
+end
+]=]
+
+e = [=[
+test.lua:5:13: type error, return type '({})' does not match '(IStackOverflow)'
+test.lua:6:10: type error, attempt to assign '{}' to '{const "my_method": (IStackOverflow, value*) -> ()}'
+test.lua:7:4: type error, attempt to use '"my_method"' to index closed table
+test.lua:7:20: type error, attempt to access undeclared global 'my_method'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue52.tl
+
+s = [=[
+function x() : (number, boolean)|(string, number)
+   if 0 > 1 then
+      return 1, true
+   else
+      return "wat", 9
+   end
+end
+
+local baz, foo, bar = 10, x()
+if foo then
+   local bla = foo .. " world" -- error, foo is i|s
+end
+baz = baz + 10
+]=]
+
+e = [=[
+test.lua:11:16: type error, attempt to concatenate a 'number | string'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- pr56.tl
+
+s = [=[
+interface ELEM
+   x: number
+end
+
+interface OBJ
+   parent: OBJ?
+   atr: ELEM -- if I change ELEM to {"x":number}, I no longer get an error
+end
+
+local function f(o:OBJ)
+   local parent = o.parent
+   if parent then
+      f({atr={x=2}}) -- isn't this structurally equivalent to OBJ?
+      print(parent + 10) -- just to force an error
+   end
+end
+]=]
+
+e = [=[
+test.lua:14:13: type error, attempt to perform arithmetic on a '{"parent": OBJ?, "atr": {"x": number}}'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue47.tl
+
+s = [=[
+local bug47 = require("examples.issues.bug47")
+local function main()
+   local maybe_u, rerr = bug47.foo()
+   print(maybe_u + 10) -- maybe_u is U?
+   if type(maybe_u) == "nil" then
+      print(maybe_u + 10) -- maybe_u is nil
+      print(rerr .. "foo")
+      if type(rerr) == "string" then
+         error("error - "..rerr, nil)
+      end
+      return -- unreacheable
+   end
+   -- maybe_u is a U here
+   local u = maybe_u
+   print(u + 10)
+end
+main()
+]=]
+
+e = [=[
+test.lua:4:10: type error, attempt to perform arithmetic on a 'U?'
+test.lua:6:13: type error, attempt to perform arithmetic on a 'nil'
+test.lua:11:7: type error, unreacheable statement
+test.lua:15:10: type error, attempt to perform arithmetic on a 'U'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+
 print("> testing code generation...")
 
 -- assignments

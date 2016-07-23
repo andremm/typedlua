@@ -11,3 +11,5 @@ local x = 5
 print(factorial(x))
 print(factorial(x, nil))
 print(factorial(x, 5))
+
+print(factorial + 10) -- just to force an error

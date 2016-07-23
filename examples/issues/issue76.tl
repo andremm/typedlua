@@ -14,3 +14,4 @@ end
 
 local s = Shape:new(3,2)
 s:move(20,25)
+print(s + 10) -- to supress generation of .lua
