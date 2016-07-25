@@ -24,7 +24,7 @@ local Number = tltype.Number()
 local String = tltype.String()
 local Integer = tltype.Integer(false)
 
-local check_block, check_stm, check_exp, check_var
+local check_block, check_stm, check_exp, check_var, check_var_exps
 
 local acolor = {
   red     = "\27[31;1m",
@@ -1339,9 +1339,14 @@ local function check_assignment (env, varlist, explist)
   end
   check_explist(env, explist, lselfs)
   local l = {}
+  -- evaluation of expressions in lvalues goes left-to-right, but the
+  -- actual assignment is right-to-left, so this needs two passes
   for k, v in ipairs(varlist) do
-    check_var(env, v, explist[k])
-    table.insert(l, get_type(v))
+    check_var_exps(env, v)
+  end
+  for i = #varlist, 1, -1 do
+    check_var(env, varlist[i], explist[i])
+    l[i] = get_type(varlist[i])
   end
   table.insert(l, tltype.Vararg(Value))
   local var_type, exp_type = tltype.Tuple(l), explist2typelist(explist)
@@ -1702,6 +1707,18 @@ local function check_index (env, exp)
   return {}
 end
 
+-- only checks the r-values that appear in l-values, but does
+-- not check the actual assignment
+function check_var_exps (env, var)
+  local tag = var.tag
+  if tag == "Index" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1)
+    check_exp(env, exp2)
+  end
+end
+
+-- check the assignment to an lvalue, rvalues inside the lvalue have already been checked
 function check_var (env, var, exp)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local tag = var.tag
@@ -1745,8 +1762,6 @@ function check_var (env, var, exp)
     set_type(var, t)
   elseif tag == "Index" then
     local exp1, exp2 = var[1], var[2]
-    check_exp(env, exp1)
-    check_exp(env, exp2)
     local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
     local msg = "attempt to index " .. bold_token .. " with " .. bold_token
     t1 = replace_self(env, t1, env.self)
