@@ -804,6 +804,8 @@ end
 local function check_explist (env, explist, lselfs)
   lselfs = lselfs or {}
   local fsets = {}
+  local snaps = {}
+  -- Lua (and LuaJIT) evaluates an expression list left-to-right
   for k, v in ipairs(explist) do
     fsets[k] = check_exp(env, v, lselfs[k])
   end
@@ -1038,17 +1040,17 @@ local function check_call (env, exp)
         apply_filters(env, true, fsets[1], exp.pos)
       end
       set_type(exp, arglist2type(explist))
-      return false
+      return {}
     elseif t[1] == "require" and #explist == 1 and tltype.isStr(get_type(explist[1])) then
       set_type(exp, check_require(env, get_type(explist[1])[1], exp.pos))
-      return false
+      return {}
     elseif t[1] == "setmetatable" and #explist == 2 and
         not tltype.isNil(tltype.getField(tltype.Literal("__index"), get_type(explist[2]))) then
       local t1, t2 = get_type(explist[1]), get_type(explist[2])
       local t3 = tltype.getField(tltype.Literal("__index"), t2)
       if tltype.isTable(t3) then t3.open = true end
       set_type(exp, t3)
-      return false
+      return {}
     else
       t = t[2]
     end
@@ -1065,7 +1067,7 @@ local function check_call (env, exp)
     msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
     typeerror(env, "call", msg, exp.pos)
   end
-  return tltype.isVoid(get_type(exp))
+  return {}
 end
 
 local function check_invoke (env, exp)
@@ -1866,7 +1868,12 @@ function check_stm (env, stm)
     tlst.push_break_snapshot(env)
     return false
   elseif tag == "Call" then
-    return check_call(env, stm)
+    check_call(env, stm)
+    if tltype.isVoid(get_type(stm)) then
+      return true
+    else
+      return false
+    end
   elseif tag == "Invoke" then
     return check_invoke(env, stm)
   elseif tag == "Interface" then
