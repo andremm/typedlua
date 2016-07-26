@@ -50,16 +50,10 @@ local function new_scope ()
   senv["goto"] = {}
   senv["label"] = {}
   senv["local"] = {}
-  senv["filtered"] = {}
   senv["unused"] = {}
   senv["interface"] = {}
   senv["userdata"] = {}
   return senv
-end
-
-function tlst.add_filtered(env, var, t)
-  env[env.scope].filtered[var] = true
-  var.bkp[#var.bkp+1] = { t, env.scope }
 end
 
 -- begin_scope : (env, boolean) -> ()
@@ -81,26 +75,8 @@ function tlst.begin_scope (env, loop)
   env[env.scope].loop = loop
 end
 
-local function revert_filters(env)
-  for v, _ in pairs(env[env.scope].filtered) do
-    env[env.scope].filtered[v] = nil
-    repeat
-      local pair = v.bkp[#v.bkp]
-      if pair and (pair[2] == env.scope) then
-        v.bkp[#v.bkp] = nil
-        local t = pair[1]
-        if tltype.isUnionlist(t) or tltype.isTuple(t) then
-          tlst.set_projection(env, v["type"][1], t)
-        else
-          v["type"] = t
-        end
-      end
-    until #v.bkp == 0 or pair[2] < env.scope
-  end
-end
 -- end_scope : (env) -> ()
 function tlst.end_scope (env)
-  revert_filters(env)
   env.scope = env.scope - 1
   local scope = env.scope
   if scope > 0 then
@@ -150,7 +126,7 @@ end
 
 -- set_local : (env, id, integer) -> ()
 function tlst.set_local (env, id, scope)
-  local scope = scope or env.scope
+  scope = scope or env.scope
   local local_name = id[1]
   id.scope = scope
   id.bkp = {}
@@ -330,20 +306,18 @@ end
 function tlst.backup_vartype(env, var, pos)
   assert(pos, "position must not be nil")
   local bkps = env["backups"]
-  for i = #bkps, 1, -1 do
-    local frame = bkps[i]
-    if frame.scope < var.scope then
-      return false
-    end
-    if frame[var] then -- keep current backup but update position
-      frame[var].pos = pos
-      return true
-    else
-      frame[var] = { type = var.type, pos = pos }
-      return true
-    end
+  if #bkps == 0 then return false end
+  local frame = bkps[#bkps]
+  if frame.scope < var.scope then
+    return false
   end
-  return false
+  if frame[var] then -- keep current backup but update position
+    frame[var].pos = pos
+    return true
+  else
+    frame[var] = { type = var.type, pos = pos }
+    return true
+  end
 end
 
 -- breaks link of var with other variables in the same projection
@@ -361,13 +335,13 @@ function tlst.break_projection (env, var)
 end
 
 -- join two sets of saved types
-function tlst.join_types(env, var, type1, type2, pos)
+function tlst.join_types(type1, type2, pos)
   return { type = tltype.Union(type1.type, type2.type), pos = pos }
 end
 
 -- join all the snapshots of types
 -- (if a variable is not present in a snapshot its current type is taken)
-function tlst.join_snapshots(env, snaps, pos)
+function tlst.join_snapshots(snaps, pos)
   assert(pos, "position must not be null")
   if #snaps == 0 then return {} end
   local joined = {}
@@ -377,14 +351,14 @@ function tlst.join_snapshots(env, snaps, pos)
   for i = 2, #snaps do
     for var, ty in pairs(joined) do
       if not snaps[i][var] then
-        joined[var] = tlst.join_types(env, var, { type = var.type, pos = var.pos }, ty, pos)
+        joined[var] = tlst.join_types({ type = var.type, pos = var.pos }, ty, pos)
       else
-        joined[var] = tlst.join_types(env, var, snaps[i][var], ty, pos)
+        joined[var] = tlst.join_types(snaps[i][var], ty, pos)
       end
     end
     for var, ty in pairs(snaps[i]) do
       if not joined[var] then
-        joined[var] = tlst.join_types(env, var, { type = var.type, pos = var.pos }, ty, pos)
+        joined[var] = tlst.join_types({ type = var.type, pos = var.pos }, ty, pos)
       end
     end
   end

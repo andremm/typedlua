@@ -2,7 +2,7 @@
 This file implements Typed Lua type checker
 ]]
 
-if not table.unpack then table.unpack = unpack end
+local unpack = table.unpack or unpack
 
 local tlchecker = {}
 
@@ -85,7 +85,7 @@ local function check_self (env, torig, t, pos)
     for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
     end
-    local r = tltype.Table(table.unpack(l))
+    local r = tltype.Table(unpack(l))
     r.unique = t.unique
     r.open = t.open
     return r
@@ -95,8 +95,6 @@ local function check_self (env, torig, t, pos)
 end
 
 function check_self_field(env, torig, t, pos)
-  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-  local msg = string.format("self type cannot appear in declaration of type " .. bold_token .. ", replacing with " .. bold_token, tltype.tostring(torig), "any")
   if tltype.isRecursive(t) then
     local r = tltype.Recursive(t[1], check_self_field(env, torig, t[2], pos))
     r.name = t.name
@@ -131,7 +129,7 @@ function check_self_field(env, torig, t, pos)
     for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], check_self_field(env, torig, v[2], pos)))
     end
-    local r = tltype.Table(table.unpack(l))
+    local r = tltype.Table(unpack(l))
     r.unique = t.unique
     r.open = t.open
     return r
@@ -244,7 +242,7 @@ local function infer_return_type (env)
   if #l == 0 then
     return tltype.Tuple({ Nil }, true)
   else
-    local r = tltype.Unionlist(table.unpack(l))
+    local r = tltype.Unionlist(unpack(l))
     if tltype.isAny(r) then r = tltype.Tuple({ Any }, true) end
     close_type(r)
     return r
@@ -261,7 +259,7 @@ local function check_masking (env, local_name, pos)
 
   local masked_local = tlst.masking(env, local_name)
   if masked_local then
-    local l, c = lineno(env.subject, masked_local.pos)
+    local l = lineno(env.subject, masked_local.pos)
     local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
     local msg = "masking previous declaration of local " .. bold_token .. " on line %d"
     msg = string.format(msg, local_name, l)
@@ -433,17 +431,17 @@ local function check_bitwise (env, exp, op)
   check_exp(env, exp2)
   local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-  local msg = "attempt to perform bitwise on a " .. bold_token
+  local msg = "attempt to perform bitwise %s on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) and
      tltype.subtype(t2, tltype.Integer(true)) then
     set_type(exp, Integer)
   elseif tltype.isAny(t1) then
     set_type(exp, Any)
-    msg = string.format(msg, tltype.tostring(t1))
+    msg = string.format(msg, op or "", tltype.tostring(t1))
     typeerror(env, "any", msg, exp1.pos)
   elseif tltype.isAny(t2) then
     set_type(exp, Any)
-    msg = string.format(msg, tltype.tostring(t2))
+    msg = string.format(msg, op or "", tltype.tostring(t2))
     typeerror(env, "any", msg, exp2.pos)
   else
     set_type(exp, Any)
@@ -451,7 +449,7 @@ local function check_bitwise (env, exp, op)
     if tltype.subtype(t1, Number) or tltype.isAny(t1) then
       wrong_type, wrong_pos = tltype.general(t2), exp2.pos
     end
-    msg = string.format(msg, tltype.tostring(wrong_type))
+    msg = string.format(msg, op or "", tltype.tostring(wrong_type))
     typeerror(env, "arith", msg, wrong_pos)
   end
 end
@@ -571,7 +569,7 @@ local function apply_filters (env, inout, fset, pos)
               nproj[#nproj+1] = ntup
             end
           end
-          local nproj = tltype.Unionlist(table.unpack(nproj))
+          local nproj = tltype.Unionlist(unpack(nproj))
           has_void = has_void or tltype.isVoid(nproj)
           if not tltype.isVoid(nproj) then
             tlst.backup_vartype(env, vproj, pos)
@@ -804,7 +802,6 @@ end
 local function check_explist (env, explist, lselfs)
   lselfs = lselfs or {}
   local fsets = {}
-  local snaps = {}
   -- Lua (and LuaJIT) evaluates an expression list left-to-right
   for k, v in ipairs(explist) do
     fsets[k] = check_exp(env, v, lselfs[k])
@@ -820,6 +817,7 @@ local function check_return_type (env, inf_type, dec_type, pos)
   end
   dec_type = tltype.unfold(dec_type)
   if tltype.subtype(inf_type, dec_type) then
+    return
   elseif tltype.consistent_subtype(inf_type, dec_type) then
     msg = string.format(msg, tltype.tostring(inf_type), tltype.tostring(dec_type))
     typeerror(env, "any", msg, pos)
@@ -910,7 +908,7 @@ local function check_table (env, exp)
     t2 = tltype.first(t2)
     l[k] = tltype.Field(v.const, t1, t2)
   end
-  local t = tltype.Table(table.unpack(l))
+  local t = tltype.Table(unpack(l))
   t.unique = true
   set_type(exp, t)
 end
@@ -979,6 +977,7 @@ local function check_arguments (env, func_name, dec_type, infer_type, pos)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to pass " .. bold_token .. " to %s of input type " .. bold_token
   if tltype.subtype(infer_type, dec_type) then
+    return
   elseif tltype.consistent_subtype(infer_type, dec_type) then
     msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
     typeerror(env, "any", msg, pos)
@@ -1046,7 +1045,7 @@ local function check_call (env, exp)
       return {}
     elseif t[1] == "setmetatable" and #explist == 2 and
         not tltype.isNil(tltype.getField(tltype.Literal("__index"), get_type(explist[2]))) then
-      local t1, t2 = get_type(explist[1]), get_type(explist[2])
+      local _, t2 = get_type(explist[1]), get_type(explist[2])
       local t3 = tltype.getField(tltype.Literal("__index"), t2)
       if tltype.isTable(t3) then t3.open = true end
       set_type(exp, t3)
@@ -1194,7 +1193,7 @@ local function unannotated_idlist (idlist, start)
 end
 
 local function match_unionlist (t, max)
-  local max = (max or 0) + 1
+  max = (max or 0) + 1
   for _, tt in ipairs(t) do
     if #tt > max then
       max = #tt
@@ -1283,7 +1282,6 @@ local function check_localrec (env, id, exp)
   end
   check_return_type(env, inferred_type, ret_type, exp.pos)
   tlst.end_function(env)
-  local abs = tlst.get_local(env, "abs")
   return false
 end
 
@@ -1341,7 +1339,7 @@ local function check_assignment (env, varlist, explist)
   local l = {}
   -- evaluation of expressions in lvalues goes left-to-right, but the
   -- actual assignment is right-to-left, so this needs two passes
-  for k, v in ipairs(varlist) do
+  for _, v in ipairs(varlist) do
     check_var_exps(env, v)
   end
   for i = #varlist, 1, -1 do
@@ -1353,6 +1351,7 @@ local function check_assignment (env, varlist, explist)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to assign " .. bold_token .. " to " .. bold_token
   if tltype.subtype(exp_type, var_type) then
+    return
   elseif tltype.consistent_subtype(exp_type, var_type) then
     msg = string.format(msg, tltype.tostring(exp_type), tltype.tostring(var_type))
     typeerror(env, "any", msg, varlist[1].pos)
@@ -1387,7 +1386,7 @@ local function check_while (env, stm)
       snapshots[#snapshots+1] = frame
     end
     snapshots[#snapshots+1] = {}
-    local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+    local newtypes = tlst.join_snapshots(snapshots, stm.pos)
     for var, ty in pairs(newtypes) do
       tlst.commit_type(env, var, ty, stm.pos)
     end
@@ -1415,46 +1414,14 @@ local function check_repeat (env, stm)
     end
     snapshots[#snapshots+1] = frame
   end
-  local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+  local newtypes = tlst.join_snapshots(snapshots, stm.pos)
   for var, ty in pairs(newtypes) do
     tlst.commit_type(env, var, ty, stm.pos)
   end
   return r, didgoto
 end
 
-local function tag2type (t)
-  if tltype.isLiteral(t) then
-    local tag = t[1]
-    if tag == "nil" then
-      return Nil
-    elseif tag == "boolean" then
-      return Boolean
-    elseif tag == "number" then
-      return Number
-    elseif tag == "string" then
-      return String
-    elseif tag == "integer" then
-      return Integer
-    else
-      return t
-    end
-  else
-    return t
-  end
-end
-
-local function get_index (u, t, i)
-  if tltype.isUnionlist(u) then
-    for k, v in ipairs(u) do
-      if tltype.subtype(v[i], t) and tltype.subtype(t, v[i]) then
-        return k
-      end
-    end
-  end
-end
-
 local function check_if (env, stm)
-  local l = {}
   local rl, dg = {}, {}
   local prevfs = {}
   local snapshots = {}
@@ -1462,7 +1429,7 @@ local function check_if (env, stm)
   for i = 1, last, 2 do
     tlst.push_backup(env, false)
     local has_void = false
-    for i, fs_pos in ipairs(prevfs) do
+    for _, fs_pos in ipairs(prevfs) do
       has_void = has_void or apply_filters(env, false, fs_pos[1], fs_pos[2])
     end
     if has_void then -- rest of the if is unreacheable (previous condition is always true)
@@ -1504,7 +1471,7 @@ local function check_if (env, stm)
       snapshots[#snapshots+1] = frame
     end
   end
-  local newtypes = tlst.join_snapshots(env, snapshots, stm[1].pos)
+  local newtypes = tlst.join_snapshots(snapshots, stm[1].pos)
   for var, tyub in pairs(newtypes) do
     tlst.commit_type(env, var, tyub, stm[1].pos)
   end
@@ -1529,20 +1496,22 @@ local function check_fornum (env, stm)
   local t1 = get_type(exp1)
   local for_text = env.color and acolor.bold .. "'for'" .. acolor.reset or "'for'"
   local msg = for_text .. " initial value must be a number"
-  if tltype.subtype(t1, Number) then
-  elseif tltype.consistent_subtype(t1, Number) then
-    typeerror(env, "any", msg, exp1.pos)
-  else
-    typeerror(env, "fornum", msg, exp1.pos)
+  if not tltype.subtype(t1, Number) then
+    if tltype.consistent_subtype(t1, Number) then
+      typeerror(env, "any", msg, exp1.pos)
+    else
+      typeerror(env, "fornum", msg, exp1.pos)
+    end
   end
   check_exp(env, exp2)
   local t2 = get_type(exp2)
   msg = for_text .. " limit must be a number"
-  if tltype.subtype(t2, Number) then
-  elseif tltype.consistent_subtype(t2, Number) then
-    typeerror(env, "any", msg, exp2.pos)
-  else
-    typeerror(env, "fornum", msg, exp2.pos)
+  if not tltype.subtype(t2, Number) then
+    if tltype.consistent_subtype(t2, Number) then
+      typeerror(env, "any", msg, exp2.pos)
+    else
+      typeerror(env, "fornum", msg, exp2.pos)
+    end
   end
   local int_step = true
   if block then
@@ -1552,11 +1521,12 @@ local function check_fornum (env, stm)
     if not infer_int(t3) then
       int_step = false
     end
-    if tltype.subtype(t3, Number) then
-    elseif tltype.consistent_subtype(t3, Number) then
-      typeerror(env, "any", msg, exp3.pos)
-    else
-      typeerror(env, "fornum", msg, exp3.pos)
+    if not tltype.subtype(t3, Number) then
+      if tltype.consistent_subtype(t3, Number) then
+        typeerror(env, "any", msg, exp3.pos)
+      else
+        typeerror(env, "fornum", msg, exp3.pos)
+      end
     end
   else
     block = exp3
@@ -1588,7 +1558,7 @@ local function check_fornum (env, stm)
     snapshots[#snapshots+1] = frame
   end
   snapshots[#snapshots+1] = {} -- can run 0 times
-  local newtypes = tlst.join_snapshots(env, snapshots, stm.pos)
+  local newtypes = tlst.join_snapshots(snapshots, stm.pos)
   for var, ty in pairs(newtypes) do
     tlst.commit_type(env, var, ty, stm.pos)
   end
@@ -1638,7 +1608,7 @@ local function check_forin (env, idlist, explist, block)
     snapshots[#snapshots+1] = frame
   end
   snapshots[#snapshots+1] = {} -- can run 0 times
-  local newtypes = tlst.join_snapshots(env, snapshots, block.pos)
+  local newtypes = tlst.join_snapshots(snapshots, block.pos)
   for var, ty in pairs(newtypes) do
     tlst.commit_type(env, var, ty, block.pos)
   end
@@ -1647,7 +1617,7 @@ end
 
 local function check_id (env, exp)
   local name = exp[1]
-  local l, floc, lloc = tlst.get_local(env, name)
+  local l, floc, _ = tlst.get_local(env, name)
   local t = get_type(l)
   if tltype.isProj(t) then
     local label, idx = t[1], t[2]
@@ -1658,7 +1628,7 @@ local function check_id (env, exp)
     t = get_ubound(l)
   end
   set_type(exp, t)
-  local l, floc, lloc = tlst.get_local(env, name)
+  local l, floc, _ = tlst.get_local(env, name)
   if l and floc and not l.assigned then
     return tlfilter.set_single(l, tlfilter.filter_truthy)
   else
@@ -1972,7 +1942,7 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer, color)
   tlst.begin_scope(env)
   tlst.set_vararg(env, String)
   load_lua_env(env)
-  local r, didgoto = check_stms(env, ast)
+  check_stms(env, ast)
   tlst.end_scope(env)
   tlst.end_function(env)
   return env.messages
