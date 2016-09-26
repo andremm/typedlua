@@ -11,7 +11,7 @@ function tlst.new_env (subject, filename, strict, color)
   local env = {}
   env.subject = subject
   env.filename = filename
-  env.parent = filename
+  env.parent = {}
   env.strict = strict
   env.color = color
   env.integer = false

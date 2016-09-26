@@ -356,11 +356,12 @@ local function check_require (env, name, pos, extra_path)
     local path = string.gsub(package.path..";", "[.]lua;", ".tl;")
     local filepath, msg1 = searchpath(extra_path .. name, path)
     if filepath then
-      if string.find(filepath, env.parent) then
-        env["loaded"][name] = Any
-        typeerror(env, "load", "circular require", pos)
-      else
+      if not env.parent[name] then
+        env.parent[name] = true
         env["loaded"][name] = check_tl(env, name, filepath, pos)
+      else
+        typeerror(env, "load", "circular require", pos)
+        env["loaded"][name] = Any
       end
     else
       path = string.gsub(package.path..";", "[.]lua;", ".tld;")

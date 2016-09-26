@@ -5919,6 +5919,40 @@ test.lua:15:10: type error, attempt to perform arithmetic on a 'U'
 r = typecheck(s)
 check(e, r)
 
+-- issue71
+
+s = [=[
+require "examples.issues.bug71.a"
+]=]
+
+e = [=[
+./examples/issues/bug71/b.tl:1:1: type error, circular require
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+s = [=[
+require "examples.issues.bug71.testfile1"
+]=]
+
+e = [=[
+./examples/issues/bug71/testfile3.tl:1:1: type error, circular require
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+s = [=[
+require "examples.issues.bug71.ok1"
+]=]
+
+e = [=[
+{ `Call{ `Index{ `Id "_ENV", `String "require" }, `String "examples.issues.bug71.ok1" } }
+]=]
+
+r = typecheck(s)
+check(e, r)
 
 print("> testing code generation...")
 
