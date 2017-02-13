@@ -44,11 +44,11 @@ local function set_ubound (var, t)
 end
 
 local function get_type (node)
-  return node and tltype.unfold(node["type"]) or Nil
+  return node and node["type"] and tltype.unfold(node["type"])
 end
 
 local function get_ubound (node)
-  return node and tltype.unfold(node.ubound) or Nil
+  return node and node.ubound and tltype.unfold(node.ubound)
 end
 
 local check_self_field
@@ -386,11 +386,11 @@ local function check_require (env, name, pos, extra_path)
   return env["loaded"][name]
 end
 
-local function check_arith (env, exp, op)
+local function check_arith (env, exp, op, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  check_exp(env, exp1, tctx)
+  check_exp(env, exp2, tctx)
+  local t1, t2 = get_type(exp1), get_type(exp2)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to perform arithmetic on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) and
@@ -425,11 +425,11 @@ local function check_arith (env, exp, op)
   end
 end
 
-local function check_bitwise (env, exp, op)
+local function check_bitwise (env, exp, op, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  check_exp(env, exp1, tctx)
+  check_exp(env, exp2, tctx)
+  local t1, t2 = get_type(exp1), get_type(exp2)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to perform bitwise %s on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) and
@@ -454,11 +454,11 @@ local function check_bitwise (env, exp, op)
   end
 end
 
-local function check_concat (env, exp)
+local function check_concat (env, exp, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  check_exp(env, exp1, tctx)
+  check_exp(env, exp2, tctx)
+  local t1, t2 = get_type(exp1), get_type(exp2)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to concatenate a " .. bold_token
   if tltype.subtype(t1, String) and tltype.subtype(t2, String) then
@@ -482,16 +482,16 @@ local function check_concat (env, exp)
   end
 end
 
-local function check_equal (env, exp)
+local function check_equal (env, exp, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
+  check_exp(env, exp1, Value)
+  check_exp(env, exp2, Value)
   set_type(exp, Boolean)
   if exp1.tag == "Index" and exp1[1].tag == "Id" and
-     exp1[2].tag == "String" and tltype.isStr(get_type(exp2)) then
+     tltype.isStr(get_type(exp1[2])) and tltype.isStr(get_type(exp2)) then
     local var, floc, _ = tlst.get_local(env, exp1[1][1])
     if var and floc and not var.assigned then
-      return tlfilter.set_single(var, tlfilter.filter_fieldliteral(exp1[2][1], get_type(exp2)))
+      return tlfilter.set_single(var, tlfilter.filter_fieldliteral(get_type(exp1[2])[1], get_type(exp2)))
     end
   elseif is_global_function_call(exp1, "type") and exp1[2].tag == "Id" and tltype.isStr(get_type(exp2)) then
     local var, floc, _ = tlst.get_local(env, exp1[2][1])
@@ -513,11 +513,11 @@ local function check_equal (env, exp)
   return {}
 end
 
-local function check_order (env, exp)
+local function check_order (env, exp, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  check_exp(env, exp1, Value)
+  check_exp(env, exp2, Value)
+  local t1, t2 = get_type(exp1), get_type(exp2)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to compare " .. bold_token .. " with " .. bold_token
   if tltype.subtype(t1, Number) and tltype.subtype(t2, Number) then
@@ -597,14 +597,14 @@ local function apply_filters (env, inout, fset, pos)
   return has_void
 end
 
-local function check_and (env, exp)
+local function check_and (env, exp, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  local sf1 = check_exp(env, exp1)
+  local sf1 = check_exp(env, exp1, tctx)
   tlst.push_backup(env)
   apply_filters(env, true, sf1 or {}, exp.pos)
-  local sf2 = check_exp(env, exp2)
+  local sf2 = check_exp(env, exp2, tctx)
   tlst.pop_backup(env)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  local t1, t2 = get_type(exp1), get_type(exp2)
   if tltype.isNil(t1) or tltype.isFalse(t1) then
     set_type(exp, t1)
   elseif tltype.isUnion(t1, Nil) then
@@ -619,14 +619,14 @@ local function check_and (env, exp)
   return tlfilter.set_and(sf1, sf2)
 end
 
-local function check_or (env, exp)
+local function check_or (env, exp, tctx)
   local exp1, exp2 = exp[2], exp[3]
-  local sf1 = check_exp(env, exp1)
+  local sf1 = check_exp(env, exp1, tctx)
   tlst.push_backup(env)
   apply_filters(env, false, sf1 or {}, exp.pos)
-  local sf2 = check_exp(env, exp2)
+  local sf2 = check_exp(env, exp2, tctx)
   tlst.pop_backup(env)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  local t1, t2 = get_type(exp1), get_type(exp2)
   if tltype.isNil(t1) or tltype.isFalse(t1) then
     set_type(exp, t2)
   elseif tltype.isUnion(t1, Nil) and tltype.isVoid(t2) then
@@ -642,43 +642,43 @@ local function check_or (env, exp)
   return tlfilter.set_or(sf1, sf2)
 end
 
-local function check_binary_op (env, exp)
+local function check_binary_op (env, exp, tctx)
   local op = exp[1]
   if op == "add" or op == "sub" or
      op == "mul" or op == "idiv" or op == "div" or op == "mod" or
      op == "pow" then
-    check_arith(env, exp, op)
+    return check_arith(env, exp, op, tctx)
   elseif op == "concat" then
-    check_concat(env, exp)
+    return check_concat(env, exp, tctx)
   elseif op == "eq" then
-    return check_equal(env, exp)
+    return check_equal(env, exp, tctx)
   elseif op == "lt" or op == "le" then
-    check_order(env, exp)
+    return check_order(env, exp, tctx)
   elseif op == "and" then
-    return check_and(env, exp)
+    return check_and(env, exp, tctx)
   elseif op == "or" then
-    return check_or(env, exp)
+    return check_or(env, exp, tctx)
   elseif op == "band" or op == "bor" or op == "bxor" or
          op == "shl" or op == "shr" then
-    check_bitwise(env, exp)
+    return check_bitwise(env, exp, op, tctx)
   else
     error("cannot type check binary operator " .. op)
   end
 end
 
-local function check_not (env, exp)
+local function check_not (env, exp, tctx)
   local exp1 = exp[2]
-  local sf = check_exp(env, exp1)
+  local sf = check_exp(env, exp1, Value)
   set_type(exp, Boolean)
   return tlfilter.set_not(sf)
 end
 
-local function check_bnot (env, exp)
+local function check_bnot (env, exp, tctx)
   local exp1 = exp[2]
-  check_exp(env, exp1)
-  local t1 = tltype.first(get_type(exp1))
+  check_exp(env, exp1, tctx)
+  local t1 = get_type(exp1)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
-  local msg = "attempt to perform bitwise on a " .. bold_token
+  local msg = "attempt to perform bitwise 'not' on a " .. bold_token
   if tltype.subtype(t1, tltype.Integer(true)) then
     set_type(exp, Integer)
   elseif tltype.isAny(t1) then
@@ -692,10 +692,10 @@ local function check_bnot (env, exp)
   end
 end
 
-local function check_minus (env, exp)
+local function check_minus (env, exp, tctx)
   local exp1 = exp[2]
-  check_exp(env, exp1)
-  local t1 = tltype.first(get_type(exp1))
+  check_exp(env, exp1, tctx)
+  local t1 = get_type(exp1)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to perform arithmetic on a " .. bold_token
   if tltype.subtype(t1, Integer) then
@@ -714,10 +714,10 @@ local function check_minus (env, exp)
   end
 end
 
-local function check_len (env, exp)
+local function check_len (env, exp, tctx)
   local exp1 = exp[2]
-  check_exp(env, exp1)
-  local t1 = tltype.first(get_type(exp1))
+  check_exp(env, exp1, tctx)
+  local t1 = get_type(exp1)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to get length of a " .. bold_token
   if tltype.subtype(t1, String) or
@@ -735,34 +735,33 @@ local function check_len (env, exp)
   end
 end
 
-local function check_unary_op (env, exp)
+local function check_unary_op (env, exp, tctx)
   local op = exp[1]
   if op == "not" then
-    return check_not(env, exp)
+    return check_not(env, exp, tctx)
   elseif op == "bnot" then
-    check_bnot(env, exp)
+    return check_bnot(env, exp, tctx)
   elseif op == "unm" then
-    check_minus(env, exp)
+    return check_minus(env, exp, tctx)
   elseif op == "len" then
-    check_len(env, exp)
+    return check_len(env, exp, tctx)
   else
     error("cannot type check unary operator " .. op)
   end
 end
 
-local function check_op (env, exp)
+local function check_op (env, exp, tctx)
   if exp[3] then
-    return check_binary_op(env, exp)
+    return check_binary_op(env, exp, tctx)
   else
-    return check_unary_op(env, exp)
+    return check_unary_op(env, exp, tctx)
   end
 end
 
-local function check_paren (env, exp)
+local function check_paren (env, exp, tctx, tself)
   local exp1 = exp[1]
-  check_exp(env, exp1)
-  local t1 = get_type(exp1)
-  set_type(exp, tltype.first(t1))
+  check_exp(env, exp1, tctx)
+  set_type(exp, get_type(exp1))
 end
 
 local function check_parameters (env, parlist, pos)
@@ -799,12 +798,14 @@ local function check_parameters (env, parlist, pos)
   end
 end
 
-local function check_explist (env, explist, lselfs)
-  lselfs = lselfs or {}
+local function check_explist (env, explist, tctxs, tselfs)
+  tselfs = tselfs or {}
+  tctxs = tctxs or {}
   local fsets = {}
   -- Lua (and LuaJIT) evaluates an expression list left-to-right
+  local last = #explist
   for k, v in ipairs(explist) do
-    fsets[k] = check_exp(env, v, lselfs[k])
+    fsets[k] = check_exp(env, v, tctxs[k], tselfs[k], k == last)
   end
   return fsets
 end
@@ -827,7 +828,7 @@ local function check_return_type (env, inf_type, dec_type, pos)
   end
 end
 
-local function check_function (env, exp, tself)
+local function check_function (env, exp, tctx, tself)
   local oself = env.self
   env.self = tself
   local idlist, ret_type, block = exp[1], replace_names(env, exp[2], exp.pos), exp[3]
@@ -872,44 +873,50 @@ local function check_function (env, exp, tself)
   env.self = oself
 end
 
-local function check_table (env, exp)
+local function check_table (env, exp, tctx)
   local l = {}
   local i = 1
   local len = #exp
   for k, v in ipairs(exp) do
     local tag = v.tag
-    local t1, t2
     if tag == "Pair" then
       local exp1, exp2 = v[1], v[2]
-      check_exp(env, exp1)
-      check_exp(env, exp2)
-      t1, t2 = get_type(exp1), tltype.general(get_type(exp2))
-      if tltype.subtype(Nil, t1) then
-        t1 = Any
-        local msg = "table index can be nil"
-        typeerror(env, "table", msg, exp1.pos)
-      elseif not (tltype.subtype(t1, Boolean) or
-                  tltype.subtype(t1, Number) or
-                  tltype.subtype(t1, String)) then
-        t1 = Any
-        local msg = "table index is dynamic"
-        typeerror(env, "any", msg, exp1.pos)
-      end
+      check_exp(env, exp1, Value)
+      local t1 = get_type(exp1)
+      local vt = tltype.getField(t1, tctx) or Value
+      check_exp(env, exp2, vt)
+      local t2 = tltype.general(get_type(exp2))
+      if not tltype.isLiteral(t1) then t2 = tltype.Union(t2, Nil) end
+      l[k] = tltype.Field(v.const, t1, t2)
     else
       local exp1 = v
-      check_exp(env, exp1)
-      t1, t2 = tltype.Literal(i), tltype.general(get_type(exp1))
-      if k == len and tltype.isVararg(t2) then
-        t1 = Integer
+      local t1 = tltype.Literal(i)
+      local vt = tltype.getField(t1, tctx) or Value
+      if k == len then
+        check_exp(env, exp1, vt, nil, true)
+        local t2 = get_type(exp1)
+        local last = #t2
+        for j, t in ipairs(t2) do
+          if j == last and not tltype.isNil(t[1]) then
+            t1 = Integer
+            l[k] = tltype.Field(v.const, tltype.Union(t[1], Nil))
+          elseif j ~= last then
+            local t1 = tltype.Literal(i)
+            l[k] = tltype.Field(v.const, t1, tltype.general(t))
+            k = k + 1
+          end
+        end
+      else
+        check_exp(env, exp1, vt)
+        local t2 = tltype.general(get_type(exp1))
+        l[k] = tltype.Field(v.const, t1, t2)
       end
       i = i + 1
     end
-    if t2.open then t2.open = nil end
-    t2 = tltype.first(t2)
-    l[k] = tltype.Field(v.const, t1, t2)
   end
   local t = tltype.Table(unpack(l))
   t.unique = true
+  t.open = true
   set_type(exp, t)
 end
 
@@ -929,32 +936,40 @@ local function var2name (env, var)
   end
 end
 
-local function explist2typegen (explist, limit)
-  local len = limit or #explist
+local function explist2typegen (explist)
+  local len = #explist
   return function (i)
-    if i <= len then
-      local t = get_type(explist[i])
-      return tltype.first(t)
+    if len == 0 then return Nil end
+    if i < len then
+      return get_type(explist[i])
     else
-      local t = Nil
-      if len > 0 then t = get_type(explist[len]) end
-      if tltype.isTuple(t) then
-        if i <= #t then
-          t = t[i]
-        else
-          t = t[#t]
-          if not tltype.isVararg(t) then t = Nil end
-        end
+      i = i - len + 1
+      local t = get_type(explist[len])
+      assert(tltype.isTuple(t), t.tag)
+      if i < #t then
+        return t[i]
       else
-        t = Nil
-      end
-      if tltype.isVararg(t) then
-        return tltype.first(t)
-      else
-        return t
+        return tltype.Union(t[#t][1], Nil)
       end
     end
   end
+end
+
+local function match_unionlist (t, max)
+  max = (max or 0) + 1
+  for _, tt in ipairs(t) do
+    if #tt > max then
+      max = #tt
+    end
+  end
+  for _, tt in ipairs(t) do
+    while #tt < max do
+      local last = tt[#tt]
+      tt[#tt] = tltype.Union(last[1], Nil)
+      tt[#tt+1] = last
+    end
+  end
+  return max
 end
 
 local function arglist2type (explist)
@@ -963,26 +978,66 @@ local function arglist2type (explist)
     return tltype.Tuple({ Nil }, true)
   else
     local l = {}
-    for i = 1, len do
+    for i = 1, len-1 do
       l[i] = tltype.first(get_type(explist[i]))
     end
-    if not tltype.isVararg(explist[len]) then
-      l[len + 1] = Nil
+    local tlast = get_type(explist[len])
+    if tltype.isTuple(tlast) then
+      for i = 1, #tlast do
+        l[#l+1] = tlast[i]
+      end
+    elseif tltype.isUnionlist(tlast) then
+      local max = match_unionlist(tlast)
+      for i = 1, max-1 do
+        local ul = {}
+        for _, t in ipairs(tlast) do
+          ul[#ul+1] = t[i]
+        end
+        l[#l+1] = tltype.Union(unpack(ul))
+      end
+      local ul = {}
+      for _, t in ipairs(tlast) do
+        ul[#ul+1] = t[max][1]
+      end
+      l[#l+1] = tltype.Vararg(tltype.Union(unpack(ul)))
+    else
+      l[#l+1] = tlast
     end
-    return tltype.Tuple(l, true)
+    if not tltype.isVararg(l[#l]) then
+      l[len + 1] = Nil
+      return tltype.Tuple(l, true)
+    else
+      return tltype.Tuple(l)
+    end
   end
 end
 
-local function check_arguments (env, func_name, dec_type, infer_type, pos)
+-- adjust tuple type t to have at least size non-vararg types
+local function adjust_tuple (t, size)
+  if #t <= size then
+    local nt = tltype.Tuple({ unpack(t) })
+    local tail = t[#t]
+    local last = tail[1]
+    for i = #t, size do
+      nt[i] = last
+    end
+    nt[#nt+1] = tail
+    return nt
+  else
+    return t
+  end
+end
+
+local function check_arguments (env, func_name, ptypes, argtypes, pos)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to pass " .. bold_token .. " to %s of input type " .. bold_token
-  if tltype.subtype(infer_type, dec_type) then
+  if tltype.subtype(argtypes, ptypes) then
     return
-  elseif tltype.consistent_subtype(infer_type, dec_type) then
-    msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
+  elseif tltype.consistent_subtype(argtypes, ptypes) then
+    msg = string.format(msg, tltype.tostring(argtypes), func_name, tltype.tostring(ptypes))
     typeerror(env, "any", msg, pos)
   else
-    msg = string.format(msg, tltype.tostring(infer_type), func_name, tltype.tostring(dec_type))
+    msg = string.format(msg, tltype.tostring(argtypes), func_name, tltype.tostring(ptypes))
     typeerror(env, "args", msg, pos)
   end
 end
@@ -1021,104 +1076,153 @@ local function replace_self (env, t, tself)
   end
 end
 
-local function check_call (env, exp)
+local function check_call (env, exp, tctx, tail)
   local exp1 = exp[1]
   local explist = {}
   for i = 2, #exp do
     explist[i - 1] = exp[i]
   end
-  check_exp(env, exp1)
-  local fsets = check_explist(env, explist)
-  local t = replace_self(env, tltype.first(get_type(exp1)), env.self)
-  local inferred_type = replace_self(env, arglist2type(explist), env.self)
+  check_exp(env, exp1, Value)
+  local t = replace_self(env, get_type(exp1), env.self)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to call %s of type " .. bold_token
   if tltype.isPrim(t) then
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = Value end
+    local fsets = check_explist(env, explist, tctxs)
     if t[1] == "assert" then
       if fsets[1] then
         apply_filters(env, true, fsets[1], exp.pos)
       end
-      set_type(exp, arglist2type(explist))
+      if tail then
+        set_type(exp, arglist2type(explist))
+      else
+        set_type(exp, tltype.first(arglist2type(explist)))
+      end
       return {}
-    elseif t[1] == "require" and #explist == 1 and tltype.isStr(get_type(explist[1])) then
-      set_type(exp, check_require(env, get_type(explist[1])[1], exp.pos))
+    elseif t[1] == "require" and #explist == 1 and tltype.isStr(tltype.first(get_type(explist[1]))) then
+      if tail then
+        set_type(exp, tltype.Tuple({ check_require(env, tltype.first(get_type(explist[1]))[1], exp.pos), tltype.Vararg(Nil) }))
+      else
+        set_type(exp, check_require(env, tltype.first(get_type(explist[1]))[1], exp.pos))
+      end
       return {}
     elseif t[1] == "setmetatable" and #explist == 2 and
-        not tltype.isNil(tltype.getField(tltype.Literal("__index"), get_type(explist[2]))) then
-      local _, t2 = get_type(explist[1]), get_type(explist[2])
+        tltype.isTable(tltype.getField(tltype.Literal("__index"), tltype.first(get_type(explist[2])))) then
+      local _, t2 = get_type(explist[1]), tltype.first(get_type(explist[2]))
       local t3 = tltype.getField(tltype.Literal("__index"), t2)
-      if tltype.isTable(t3) then t3.open = true end
-      set_type(exp, t3)
+      if tail then
+        set_type(exp, tltype.Tuple({t3, tltype.Vararg(Nil)}))
+      else
+        set_type(exp, t3)
+      end
       return {}
     else
       t = t[2]
     end
   end
   if tltype.isFunction(t) then
-    check_arguments(env, var2name(env, exp1), t[1], inferred_type, exp.pos)
-    set_type(exp, t[2])
+    local ptypes = adjust_tuple(t[1], #explist) -- gurantee that we have at least #explist types for tctxs
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = ptypes[i] end
+    check_explist(env, explist, tctxs)
+    local argtypes = replace_self(env, arglist2type(explist), env.self)
+    check_arguments(env, var2name(env, exp1), ptypes, argtypes, exp.pos)
+    if tail then set_type(exp, t[2]) else set_type(exp, tltype.first(t[2])) end
   elseif tltype.isAny(t) then
-    set_type(exp, Any)
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = Value end
+    check_explist(env, explist, tctxs)
+    if tail then set_type(exp, tltype.Tuple({ tltype.Vararg(Any) })) else set_type(exp, Any) end
     msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
     typeerror(env, "any", msg, exp.pos)
   else
-    set_type(exp, Nil)
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = Value end
+    check_explist(env, explist, tctxs)
+    if tail then set_type(exp, tltype.Tuple({ tltype.Vararg(Nil) })) else set_type(exp, Nil) end
     msg = string.format(msg, var2name(env, exp1), tltype.tostring(t))
     typeerror(env, "call", msg, exp.pos)
   end
   return {}
 end
 
-local function check_invoke (env, exp)
+local function check_invoke (env, exp, tctx, tail)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local exp1, exp2 = exp[1], exp[2]
   local explist = {}
   for i = 3, #exp do
     explist[i - 2] = exp[i]
   end
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  check_explist(env, explist)
+  check_exp(env, exp1) -- in lvalue context
+  assert(exp2.tag == "String")
+  check_exp(env, exp2) -- always a string literal
   local t1, t2 = get_type(exp1), get_type(exp2)
   t1 = replace_self(env, t1, env.self)
-  table.insert(explist, 1, { type = t1 })
   if tltype.isTable(t1) or
      tltype.isString(t1) or
      tltype.isStr(t1) then
-    local inferred_type = replace_self(env, arglist2type(explist), env.self)
     local t3
     if tltype.isTable(t1) then
-      t3 = replace_self(env, tltype.getField(t2, t1), t1)
+      t3 = tltype.getField(t2, t1)
       --local s = env.self or Nil
       --if not tltype.subtype(s, t1) then env.self = t1 end
     else
       local string_userdata = env["loaded"]["string"] or tltype.Table()
-      t3 = replace_self(env, tltype.getField(t2, string_userdata), t1)
-      inferred_type[1] = String
+      t3 = tltype.getField(t2, string_userdata)
+      t1 = String
     end
-    local msg = "attempt to call method " .. bold_token .. " of type " .. bold_token
-    if tltype.isFunction(t3) then
-      check_arguments(env, "field", t3[1], inferred_type, exp.pos)
-      set_type(exp, t3[2])
+    if not t3 then
+      local tctxs = {}
+      for i = 1, #explist do tctxs[i] = Value end
+      check_explist(env, explist, tctxs)
+      if tail then set_type(exp, tltype.Tuple({tltype.Vararg(Nil)})) else set_type(exp, Nil) end
+      local msg = "attempt to call non-existing method " .. bold_token .. " on type " .. bold_token
+      msg = string.format(msg, exp2[1], tltype.tostring(t1))
+      typeerror(env, "invoke", msg, exp.pos)
+    elseif tltype.isFunction(t3) then
+      t3 = replace_self(env, t3, t1)
+      local ptypes = adjust_tuple(t3[1], #explist) -- gurantee that we have at least #explist types for tctxs
+      local tctxs = {}
+      for i = 1, #explist do tctxs[i] = ptypes[i] end
+      check_explist(env, explist, tctxs)
+      local argtypes = replace_self(env, arglist2type(explist), env.self)
+      table.insert(argtypes, 1, t1)
+      check_arguments(env, "field", ptypes, argtypes, exp.pos)
+      if tail then set_type(exp, t3[2]) else set_type(exp, tltype.first(t3[2])) end
     elseif tltype.isAny(t3) then
-      set_type(exp, Any)
-      msg = string.format(msg, exp2[1], tltype.tostring(t3))
+      local tctxs = {}
+      for i = 1, #explist do tctxs[i] = Value end
+      check_explist(env, explist, tctxs)
+      if tail then set_type(exp, tltype.Tuple({tltype.Vararg(Any)})) else set_type(exp, Any) end
+      local msg = "calling dynamic value as method " .. bold_token .. " on type " .. bold_token
+      msg = string.format(msg, exp2[1], tltype.tostring(t1))
       typeerror(env, "any", msg, exp.pos)
     else
-      set_type(exp, Nil)
-      msg = string.format(msg, exp2[1], tltype.tostring(t3))
+      local tctxs = {}
+      for i = 1, #explist do tctxs[i] = Value end
+      check_explist(env, explist, tctxs)
+      if tail then set_type(exp, tltype.Tuple({tltype.Vararg(Nil)})) else set_type(exp, Nil) end
+      local msg = "attempt to call value of type " .. bold_token .. " as method " .. bold_token .. " on type " .. bold_token
+      msg = string.format(msg, tltype.tostring(t3), exp2[1], tltype.tostring(t1))
       typeerror(env, "invoke", msg, exp.pos)
     end
   elseif tltype.isAny(t1) then
-    set_type(exp, Any)
-    local msg = "attempt to index " .. bold_token .. " with " .. bold_token
-    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = Value end
+    check_explist(env, explist, tctxs)
+    if tail then set_type(exp, tltype.Tuple({tltype.Vararg(Any)})) else set_type(exp, Any) end
+    local msg = "calling method " .. bold_token .. " on dynamic value"
+    msg = string.format(msg, exp2[1])
     typeerror(env, "any", msg, exp.pos)
   else
-    set_type(exp, Nil)
-    local msg = "attempt to index " .. bold_token .. " with " .. bold_token
-    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
-    typeerror(env, "index", msg, exp.pos)
+    local tctxs = {}
+    for i = 1, #explist do tctxs[i] = Value end
+    check_explist(env, explist, tctxs)
+    if tail then set_type(exp, tltype.Tuple({tltype.Vararg(Nil)})) else set_type(exp, Nil) end
+    local msg = "attempt to call method " .. bold_token .. " on non-object type " .. bold_token
+    msg = string.format(msg, exp2[1], tltype.tostring(t1))
+    typeerror(env, "invoke", msg, exp.pos)
   end
   return false
 end
@@ -1138,11 +1242,13 @@ local function check_local_var (env, id, inferred_type, close_local)
     else
       local_type = tltype.general(inferred_type)
       --if not local_type.name then local_type.name = local_name end
-      if inferred_type.unique then
+      if close_local then
         local_type.unique = nil
-        local_type.open = true
+        local_type.open = nil
       end
-      if close_local then local_type.open = nil end
+      if local_type.unique or local_type.open then
+        id.narrow = true
+      end
       set_type(id, local_type)
       set_ubound(id, local_type)
     end
@@ -1192,25 +1298,12 @@ local function unannotated_idlist (idlist, start)
   return true
 end
 
-local function match_unionlist (t, max)
-  max = (max or 0) + 1
-  for _, tt in ipairs(t) do
-    if #tt > max then
-      max = #tt
-    end
-  end
-  for _, tt in ipairs(t) do
-    while #tt < max do
-      local last = tt[#tt]
-      tt[#tt] = tltype.Union(last[1], Nil)
-      tt[#tt+1] = last
-    end
-  end
-  return true
-end
-
 local function check_local (env, idlist, explist)
-  check_explist(env, explist)
+  local tctxs = {}
+  for i, id in ipairs(idlist) do
+    tctxs[i] = id[2]
+  end
+  check_explist(env, explist, tctxs)
   if tltype.isUnionlist(get_type(explist[#explist])) and
      unannotated_idlist(idlist, #explist) and
      match_unionlist(get_type(explist[#explist]), #idlist - #explist) then
@@ -1223,7 +1316,7 @@ local function check_local (env, idlist, explist)
       tlst.set_local(env, v)
       tlst.set_local(env, { label, type = t, ubound = t }, 1)
     end
-    local tuple = explist2typegen(explist, #explist-1)
+    local tuple = explist2typegen(explist)
     for k = 1, #explist-1 do
       local t = tuple(k)
       local close_local = explist[k] and explist[k].tag == "Id" and tltype.isTable(t)
@@ -1335,13 +1428,15 @@ local function check_assignment (env, varlist, explist)
       if tltype.isTable(t) then lselfs[k] = t end
     end
   end
-  check_explist(env, explist, lselfs)
-  local l = {}
   -- evaluation of expressions in lvalues goes left-to-right, but the
   -- actual assignment is right-to-left, so this needs two passes
-  for _, v in ipairs(varlist) do
+  local tctxs = {}
+  for i, v in ipairs(varlist) do
     check_var_exps(env, v)
+    tctxs[i] = get_type(v)
   end
+  check_explist(env, explist, tctxs, lselfs)
+  local l = {}
   for i = #varlist, 1, -1 do
     check_var(env, varlist[i], explist[i])
     l[i] = get_type(varlist[i])
@@ -1365,7 +1460,7 @@ end
 local function check_while (env, stm)
   local exp1, stm1 = stm[1], stm[2]
   tlst.push_backup(env, true)
-  local fs = check_exp(env, exp1) or {}
+  local fs = check_exp(env, exp1, Value) or {}
   tlst.push_break(env)
   if apply_filters(env, true, fs, exp1.pos) then -- while block is unreacheable
     typeerror(env, "dead", "'while' body is unreacheable", stm.pos)
@@ -1399,7 +1494,7 @@ local function check_repeat (env, stm)
   tlst.push_backup(env, true)
   tlst.push_break(env)
   local r, didgoto = check_block(env, stm1, true)
-  local fs = check_exp(env, exp1) or {}
+  local fs = check_exp(env, exp1, Value) or {}
   local snapshots = tlst.pop_break(env)
   if r or apply_filters(env, true, fs, exp1.pos) then
     tlst.pop_backup(env)
@@ -1446,7 +1541,7 @@ local function check_if (env, stm)
     local exp, block = stm[i], stm[i + 1]
     local has_void, fs = false, {}
     if block then
-      fs = check_exp(env, exp) or {}
+      fs = check_exp(env, exp, Value) or {}
       has_void = apply_filters(env, true, fs, exp.pos)
       prevfs[#prevfs+1] = { fs, exp.pos }
     else
@@ -1492,7 +1587,7 @@ end
 
 local function check_fornum (env, stm)
   local id, exp1, exp2, exp3, block = stm[1], stm[2], stm[3], stm[4], stm[5]
-  check_exp(env, exp1)
+  check_exp(env, exp1, Number)
   local t1 = get_type(exp1)
   local for_text = env.color and acolor.bold .. "'for'" .. acolor.reset or "'for'"
   local msg = for_text .. " initial value must be a number"
@@ -1503,7 +1598,7 @@ local function check_fornum (env, stm)
       typeerror(env, "fornum", msg, exp1.pos)
     end
   end
-  check_exp(env, exp2)
+  check_exp(env, exp2, Number)
   local t2 = get_type(exp2)
   msg = for_text .. " limit must be a number"
   if not tltype.subtype(t2, Number) then
@@ -1515,7 +1610,7 @@ local function check_fornum (env, stm)
   end
   local int_step = true
   if block then
-    check_exp(env, exp3)
+    check_exp(env, exp3, Number)
     local t3 = get_type(exp3)
     msg = for_text .. " step must be a number"
     if not infer_int(t3) then
@@ -1565,22 +1660,20 @@ local function check_fornum (env, stm)
   return r, didgoto
 end
 
+-- FIXME: this should check for ipairs and pairs
 local function check_forin (env, idlist, explist, block)
   tlst.push_backup(env, true)
   tlst.push_break(env)
   tlst.begin_scope(env)
-  check_explist(env, explist)
+  local tctxs = {}
+  for i = 1, #explist do tctxs[i] = Value end
+  check_explist(env, explist, tctxs)
   local t = tltype.first(get_type(explist[1]))
-  local tuple = explist2typegen({})
+  local tuple = explist2typegen({{ type = tltype.Tuple({tltype.Vararg(Nil)}) }})
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local msg = "attempt to iterate over " .. bold_token
   if tltype.isFunction(t) then
-    local l = {}
-    for k, v in ipairs(t[2]) do
-      l[k] = {}
-      set_type(l[k], v)
-    end
-    tuple = explist2typegen(l)
+    tuple = explist2typegen({{ type = t[2] }})
   elseif tltype.isAny(t) then
     msg = string.format(msg, tltype.tostring(t))
     typeerror(env, "any", msg, idlist.pos)
@@ -1589,6 +1682,7 @@ local function check_forin (env, idlist, explist, block)
     typeerror(env, "forin", msg, idlist.pos)
   end
   for k, v in ipairs(idlist) do
+    -- FIXME: this is unsound in the general case
     local t = tltype.filterUnion(tuple(k), Nil)
     check_local_var(env, v, t, false)
   end
@@ -1615,7 +1709,7 @@ local function check_forin (env, idlist, explist, block)
   return r, didgoto
 end
 
-local function check_id (env, exp)
+local function check_id (env, exp, tctx)
   local name = exp[1]
   local l, floc, _ = tlst.get_local(env, name)
   local t = get_type(l)
@@ -1627,6 +1721,21 @@ local function check_id (env, exp)
   if not floc then -- upvalue, type is ubound of the var
     t = get_ubound(l)
   end
+  if tltype.isTable(t) and (t.unique or t.open) and tctx then
+    if tltype.subtype(t, tctx) then
+      tlst.commit_type(env, l, { type = tltype.openType(tctx) }, exp.pos)
+      t = tctx
+    else
+      tlst.commit_type(env, l, { type = tltype.openType(t) }, exp.pos)
+      t = tltype.closeType(t)
+    end
+  end
+  if not floc then
+    if tltype.isTable(t) and t.unique then
+      tlst.commit_type(env, l, { type = tltype.openType(t) }, exp.pos)
+      t = tltype.closeType(t)
+    end
+  end
   set_type(exp, t)
   local l, floc, _ = tlst.get_local(env, name)
   if l and floc and not l.assigned then
@@ -1636,19 +1745,20 @@ local function check_id (env, exp)
   end
 end
 
-local function check_index (env, exp)
+local function check_index (env, exp, tctx)
   local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local exp1, exp2 = exp[1], exp[2]
-  check_exp(env, exp1)
-  check_exp(env, exp2)
-  local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+  check_exp(env, exp1) -- this is in lvalue context
+  check_exp(env, exp2, Value)
+  local t1, t2 = get_type(exp1), get_type(exp2)
   local msg = "attempt to index " .. bold_token .. " with " .. bold_token
   t1 = replace_self(env, t1, env.self)
   if tltype.isTable(t1) then
     -- FIX: methods should not leave objects, this is unsafe!
-    local field_type = tltype.unfold(replace_self(env, tltype.getField(t2, t1), tltype.Any()))
-    if not tltype.isNil(field_type) then
-      set_type(exp, field_type)
+    local tfield = tltype.getField(t2, t1)
+    if tfield then
+      tfield = tltype.coerceTable(env, tfield, tctx)
+      set_type(exp, replace_self(env, tfield, tltype.Any()))
     else
       if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
         msg = "attempt to access undeclared global " .. bold_token
@@ -1660,8 +1770,9 @@ local function check_index (env, exp)
       set_type(exp, Nil)
     end
   elseif tltype.isAny(t1) then
+    local msg = "indexing dynamic value with " .. bold_token
     set_type(exp, Any)
-    msg = string.format(msg, tltype.tostring(t1), tltype.tostring(t2))
+    msg = string.format(msg, tltype.tostring(t2))
     typeerror(env, "any", msg, exp.pos)
   else
     set_type(exp, Nil)
@@ -1680,17 +1791,6 @@ end
 -- only checks the r-values that appear in l-values, but does
 -- not check the actual assignment
 function check_var_exps (env, var)
-  local tag = var.tag
-  if tag == "Index" then
-    local exp1, exp2 = var[1], var[2]
-    check_exp(env, exp1)
-    check_exp(env, exp2)
-  end
-end
-
--- check the assignment to an lvalue, rvalues inside the lvalue have already been checked
-function check_var (env, var, exp)
-  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
   local tag = var.tag
   if tag == "Id" then
     local name = var[1]
@@ -1711,8 +1811,28 @@ function check_var (env, var, exp)
       end
       set_type(l, t)
     end
+    set_type(var, t) -- provisional type
+  elseif tag == "Index" then
+    local exp1, exp2 = var[1], var[2]
+    check_exp(env, exp1) -- in lvalue context
+    local t1 = tltype.unfold(replace_self(env, get_type(exp1), env.self))
+    check_exp(env, exp2, Value)
+    set_type(var, tltype.getField(get_type(exp2), t1))
+  else
+    error("cannot type check variable " .. tag)
+  end
+end
+
+-- check the assignment to an lvalue
+function check_var (env, var, exp)
+  local bold_token = env.color and acolor.bold .. "'%s'" .. acolor.reset or "'%s'"
+  local tag = var.tag
+  if tag == "Id" then
+    local name = var[1]
+    local l = tlst.get_local(env, name)
+    local t = get_type(l)
     if not l.assigned then
-      local tr = get_type(exp)
+      local tr = tltype.first(get_type(exp))
       if tltype.subtype(tr, t) then
         if tltype.isUnion(t) and (not tltype.subtype(t, tr)) then
           t = tltype.general(tr)
@@ -1728,44 +1848,40 @@ function check_var (env, var, exp)
         end
       end
     end
-    if exp and exp.tag == "Id" and tltype.isTable(t) then t.open = nil end
-    set_type(var, t)
+    set_type(var, t) -- assignment may have changed the type
   elseif tag == "Index" then
     local exp1, exp2 = var[1], var[2]
-    local t1, t2 = tltype.first(get_type(exp1)), tltype.first(get_type(exp2))
+    local t1, t2 = get_type(exp1), get_type(exp2)
     local msg = "attempt to index " .. bold_token .. " with " .. bold_token
-    t1 = replace_self(env, t1, env.self)
+    t1 = tltype.unfold(replace_self(env, t1, env.self))
     if tltype.isTable(t1) then
       local oself = env.self
-      -- another brittle hack for defining methods
+      -- another hack for defining methods
       if exp1.tag == "Id" and exp1[1] ~= "_ENV" then env.self = t1 end
-      local field_type = tltype.getField(t2, t1)
-      if not tltype.isNil(field_type) then
-        set_type(var, field_type)
+      local tfield = tltype.getField(t2, t1)
+      if tfield then
+        if t1.unique then -- we can still update the type
+          assert(exp1.tag == "Id")
+          local t3 = tltype.general(tltype.first(get_type(exp)))
+          local l = tlst.get_local(env, exp1[1])
+          t1, tfield = tltype.updateField(t1, t2, t3)
+          tlst.commit_type(env, l, { type = t1 }, var.pos)
+          set_type(var, tfield)
+        end
       else
-        if t1.open then
-          if exp then
-            local t3 = tltype.general(get_type(exp))
-            local t = tltype.general(t1)
-            table.insert(t, tltype.Field(var.const, t2, t3))
-            if tltype.subtype(t, t1) then
-              table.insert(t1, tltype.Field(var.const, t2, t3))
-            else
-              msg = "could not include field " .. bold_token
-              msg = string.format(msg, tltype.tostring(t2))
-              typeerror(env, "open", msg, var.pos)
-            end
-            if t3.open then t3.open = nil end
-            set_type(var, t3)
-          else
-            set_type(var, Nil)
-          end
+        if t1.unique or t1.open then
+          assert(exp1.tag == "Id")
+          local t3 = tltype.general(tltype.first(get_type(exp)))
+          local l = tlst.get_local(env, exp1[1])
+          t1, tfield = tltype.addField(t1, t2, t3)
+          tlst.commit_type(env, l, { type = t1 }, var.pos)
+          set_type(var, tfield)
         else
           if exp1.tag == "Id" and exp1[1] == "_ENV" and exp2.tag == "String" then
             msg = "attempt to access undeclared global " .. bold_token
             msg = string.format(msg, exp2[1])
           else
-            msg = "attempt to use " .. bold_token .. " to index closed table"
+            msg = "attempt to assign to missing field of type " .. bold_token
             msg = string.format(msg, tltype.tostring(t2))
           end
           typeerror(env, "open", msg, var.pos)
@@ -1787,13 +1903,19 @@ function check_var (env, var, exp)
   end
 end
 
-function check_exp (env, exp, tself)
+function check_exp (env, exp, tctx, tself, tail)
   if exp.type then return end
   local tag = exp.tag
+  local fset = {}
   if tag == "Nil" then
     set_type(exp, Nil)
   elseif tag == "Dots" then
-    set_type(exp, tltype.Vararg(tlst.get_vararg(env)))
+    if tail then
+      set_type(exp, tltype.Tuple({tltype.Vararg(tlst.get_vararg(env))}))
+    else
+      set_type(exp, tltype.Union(tlst.get_vararg(env), Nil))
+    end
+    return fset
   elseif tag == "True" then
     set_type(exp, True)
   elseif tag == "False" then
@@ -1803,24 +1925,28 @@ function check_exp (env, exp, tself)
   elseif tag == "String" then
     set_type(exp, tltype.Literal(exp[1]))
   elseif tag == "Function" then
-    check_function(env, exp, tself)
+    check_function(env, exp, tctx, tself)
   elseif tag == "Table" then
-    check_table(env, exp)
+    check_table(env, exp, tctx)
   elseif tag == "Op" then
-    return check_op(env, exp)
+    fset = check_op(env, exp, tctx)
   elseif tag == "Paren" then
-    check_paren(env, exp)
+    fset = check_paren(env, exp, tctx, tself)
   elseif tag == "Call" then
-    check_call(env, exp)
+    return check_call(env, exp, tctx, tail)
   elseif tag == "Invoke" then
-    check_invoke(env, exp)
+    return check_invoke(env, exp, tctx, tail)
   elseif tag == "Id" then
-    return check_id(env, exp)
+    fset = check_id(env, exp, tctx)
   elseif tag == "Index" then
-    check_index(env, exp)
+    fset = check_index(env, exp, tctx)
   else
     error("cannot type check expression " .. tag)
   end
+  if tail then
+    set_type(exp, tltype.Tuple({ get_type(exp), tltype.Vararg(Nil) }))
+  end
+  return fset
 end
 
 function check_stm (env, stm)

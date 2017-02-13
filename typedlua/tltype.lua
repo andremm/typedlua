@@ -2,7 +2,7 @@
 This module implements Typed Lua tltype.
 ]]
 
-if not table.unpack then table.unpack = unpack end
+local unpack = table.unpack or unpack
 
 local tltype = {}
 
@@ -37,7 +37,7 @@ end
 
 -- isLiteral : (type) -> (boolean)
 function tltype.isLiteral (t)
-  return t.tag == "TLiteral"
+  return t and t.tag == "TLiteral"
 end
 
 -- isFalse : (type) -> (boolean)
@@ -79,7 +79,7 @@ function tltype.isStr (t)
 end
 
 function tltype.isProj (t)
-  return t.tag == "TProj"
+  return t and t.tag == "TProj"
 end
 
 -- base types
@@ -111,7 +111,7 @@ end
 
 -- isBase : (type) -> (boolean)
 function tltype.isBase (t)
-  return t.tag == "TBase"
+  return t and t.tag == "TBase"
 end
 
 -- isBoolean : (type) -> (boolean)
@@ -143,7 +143,7 @@ end
 
 -- isNil : (type) -> (boolean)
 function tltype.isNil (t)
-  return t.tag == "TNil"
+  return t and t.tag == "TNil"
 end
 
 -- value type
@@ -155,7 +155,7 @@ end
 
 -- isValue : (type) -> (boolean)
 function tltype.isValue (t)
-  return t.tag == "TValue"
+  return t and t.tag == "TValue"
 end
 
 -- dynamic type
@@ -167,7 +167,7 @@ end
 
 -- isAny : (type) -> (boolean)
 function tltype.isAny (t)
-  return t.tag == "TAny"
+  return t and t.tag == "TAny"
 end
 
 -- self type
@@ -179,7 +179,7 @@ end
 
 -- isSelf : (type) -> (boolean)
 function tltype.isSelf (t)
-  return t.tag == "TSelf"
+  return t and t.tag == "TSelf"
 end
 
 -- union types
@@ -243,7 +243,7 @@ end
 -- isUnion : (type, type?) -> (boolean)
 function tltype.isUnion (t1, t2)
   if not t2 then
-    return t1.tag == "TUnion"
+    return t1 and t1.tag == "TUnion"
   else
     if t1.tag == "TUnion" then
       for _, v in ipairs(t1) do
@@ -267,7 +267,7 @@ function tltype.filterUnion (u, t)
         table.insert(l, v)
       end
     end
-    return tltype.Union(table.unpack(l))
+    return tltype.Union(unpack(l))
   else
     return u
   end
@@ -291,7 +291,7 @@ end
 
 -- isVararg : (type) -> (boolean)
 function tltype.isVararg (t)
-  return t.tag == "TVararg"
+  return t and t.tag == "TVararg"
 end
 
 -- tuple types
@@ -301,7 +301,7 @@ function tltype.Tuple (l, is_vararg)
   if is_vararg then
     l[#l] = tltype.Vararg(l[#l])
   end
-  return { tag = "TTuple", table.unpack(l) }
+  return { tag = "TTuple", unpack(l) }
 end
 
 -- void type
@@ -313,7 +313,7 @@ end
 
 -- isVoid : (type) -> (boolean)
 function tltype.isVoid (t)
-  return t.tag == "TVoid"
+  return t and t.tag == "TVoid"
 end
 
 -- inputTuple : (type?, boolean) -> (type)
@@ -358,7 +358,7 @@ end
 
 -- isTuple : (type) -> (boolean)
 function tltype.isTuple (t)
-  return t.tag == "TTuple"
+  return t and t.tag == "TTuple"
 end
 
 -- union of tuple types
@@ -372,7 +372,7 @@ end
 
 -- isUnionlist : (type) -> (boolean)
 function tltype.isUnionlist (t)
-  return t.tag == "TUnionlist"
+  return t and t.tag == "TUnionlist"
 end
 
 function tltype.Proj(label, idx)
@@ -400,18 +400,11 @@ function tltype.Function (t1, t2, is_method)
 end
 
 function tltype.isFunction (t)
-  return t.tag == "TFunction"
+  return t and t.tag == "TFunction"
 end
 
 function tltype.isMethod (t)
-  if tltype.isFunction(t) then
-    for _, v in ipairs(t[1]) do
-      if tltype.isSelf(v) then return true end
-    end
-    return false
-  else
-    return false
-  end
+  return tltype.isFunction(t) and tltype.isSelf(t[1][1])
 end
 
 -- table types
@@ -443,7 +436,7 @@ end
 
 -- isTable : (type) -> (boolean)
 function tltype.isTable (t)
-  return t.tag == "TTable"
+  return t and t.tag == "TTable"
 end
 
 -- getField : (type, type) -> (type)
@@ -454,10 +447,73 @@ function tltype.getField (f, t)
         return v[2]
       end
     end
-    return tltype.Nil()
+    return nil
   else
-    return tltype.Nil()
+    return tltype.Any()
   end
+end
+
+-- getField : (type, type) -> (type)
+function tltype.updateField (tt, tk, tv)
+  assert(tltype.isTable(tt) and tt.unique)
+  local ntt = tltype.Table()
+  ntt.name = tt.name
+  ntt.unique = tt.unique
+  ntt.open = tt.open
+  local ntv = tv
+  for i, v in ipairs(tt) do
+    if tltype.consistent_subtype(tk, v[1]) then
+      if not tltype.isLiteral(v[1]) then ntv = tltype.Union(tv, tltype.Nil()) end
+      ntt[i] = { v[1], ntv, const = v.const }
+    else
+      ntt[i] = v
+    end
+  end
+  return ntt, ntv
+end
+
+-- getField : (type, type) -> (type)
+function tltype.addField (tt, tk, tv)
+  assert(tltype.isTable(tt) and (tt.unique or tt.open))
+  local ntt = tltype.Table()
+  ntt.name = tt.name
+  ntt.unique = tt.unique
+  ntt.open = tt.open
+  for i, v in ipairs(tt) do
+    ntt[i] = v
+  end
+  if not tltype.isLiteral(tk) then
+    tv = tltype.Union(tv, tltype.Nil())
+  end
+  ntt[#ntt+1] = { tk, tv, const = tltype.isMethod(tv) }
+  return ntt, tv
+end
+
+function tltype.closeType(t)
+  local nt = tltype.Table()
+  nt.open = false
+  nt.unique = false
+  for i, v in ipairs(t) do
+    nt[i] = v
+  end
+  return nt
+end
+
+function tltype.openType(t)
+  local nt = tltype.Table()
+  nt.open = true
+  nt.unique = false
+  for i, v in ipairs(t) do
+    nt[i] = v
+  end
+  return nt
+end
+
+function tltype.coerceTable (env, from, to)
+  -- TODO: refine types inside of subtables, needs a new indirect table type
+  from = tltype.unfold(from)
+  to = tltype.unfold(to)
+  return from
 end
 
 -- fieldlist : ({ident}, type) -> (field*)
@@ -466,7 +522,7 @@ function tltype.fieldlist (idlist, t)
   for _, v in ipairs(idlist) do
     table.insert(l, tltype.Field(v.const, tltype.Literal(v[1]), t))
   end
-  return table.unpack(l)
+  return unpack(l)
 end
 
 -- checkTypeDec : (string, type) -> (true)?
@@ -516,7 +572,7 @@ end
 
 -- isVariable : (type) -> (boolean)
 function tltype.isVariable (t)
-  return t.tag == "TVariable"
+  return t and t.tag == "TVariable"
 end
 
 -- global type variables
@@ -528,7 +584,7 @@ end
 
 -- isVariable : (type) -> (boolean)
 function tltype.isGlobalVariable (t)
-  return t.tag == "TGlobalVariable"
+  return t and t.tag == "TGlobalVariable"
 end
 
 -- recursive types
@@ -540,7 +596,7 @@ end
 
 -- isRecursive : (type) -> (boolean)
 function tltype.isRecursive (t)
-  return t.tag == "TRecursive"
+  return t and t.tag == "TRecursive"
 end
 
 local function unfold_recursive (tr, t)
@@ -577,7 +633,7 @@ local function unfold_recursive (tr, t)
     for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], unfold_recursive(tr, v[2])))
     end
-    local r = tltype.Table(table.unpack(l))
+    local r = tltype.Table(unpack(l))
     r.unique = t.unique
     r.open = t.open
     return r
@@ -665,7 +721,7 @@ function tltype.Prim (name)
 end
 
 function tltype.isPrim (t)
-  return t.tag == "TPrim"
+  return t and t.tag == "TPrim"
 end
 
 -- subtyping and consistent-subtyping
@@ -1030,7 +1086,7 @@ function tltype.general (t)
     for _, v in ipairs(t) do
       table.insert(l, tltype.general(v))
     end
-    return tltype.Union(table.unpack(l))
+    return tltype.Union(unpack(l))
   elseif tltype.isFunction(t) then
     return tltype.Function(tltype.general(t[1]), tltype.general(t[2]))
   elseif tltype.isTable(t) then
@@ -1038,7 +1094,7 @@ function tltype.general (t)
     for _, v in ipairs(t) do
       table.insert(l, tltype.Field(v.const, v[1], tltype.general(v[2])))
     end
-    local n = tltype.Table(table.unpack(l))
+    local n = tltype.Table(unpack(l))
     n.unique = t.unique
     n.open = t.open
     n.name = t.name
@@ -1054,7 +1110,7 @@ function tltype.general (t)
     for _, v in ipairs(t) do
       table.insert(l, tltype.general(v))
     end
-    return tltype.Unionlist(table.unpack(l))
+    return tltype.Unionlist(unpack(l))
   elseif tltype.isVararg(t) then
     return tltype.Vararg(tltype.general(t[1]))
   else
@@ -1074,7 +1130,7 @@ local function resize_tuple (t, n)
     if tltype.isNil(vararg) then
       tuple[i] = vararg
     else
-      tuple[i] = tltype.Union(vararg, Nil)
+      tuple[i] = tltype.Union(vararg, tltype.Nil())
     end
   end
   tuple[n] = tltype.Vararg(vararg)
@@ -1103,7 +1159,7 @@ function tltype.unionlist2tuple (t)
   end
   local n = { tag = "TTuple" }
   for i = 1, #l do
-    n[i] = tltype.Union(table.unpack(l[i]))
+    n[i] = tltype.Union(unpack(l[i]))
   end
   if not tltype.isVararg(n[#n]) then
     n[#n + 1] = tltype.Vararg(tltype.Nil())
@@ -1119,20 +1175,20 @@ function tltype.unionlist2union (t, i)
   for _, v in ipairs(t) do
     l[#l + 1] = v[i]
   end
-  return tltype.Union(table.unpack(l))
+  return tltype.Union(unpack(l))
 end
 
 function tltype.first (t)
   if tltype.isTuple(t) then
-    return tltype.first(t[1])
+    return tltype.unfold(tltype.first(t[1]))
   elseif tltype.isUnionlist(t) then
     local l = {}
     for _, v in ipairs(t) do
       table.insert(l, tltype.first(v))
     end
-    return tltype.Union(table.unpack(l))
+    return tltype.Union(unpack(l))
   elseif tltype.isVararg(t) then
-    return tltype.Union(t[1], tltype.Nil())
+    return tltype.Union(tltype.unfold(t[1]), tltype.Nil())
   else
     return t
   end
@@ -1141,6 +1197,7 @@ end
 -- tostring
 
 local function dumptable(t)
+  if type(t) ~= "table" then return tostring(t) end
   local out = {}
   for k, v in pairs(t) do
     if type(v) == "table" and v.tag then
@@ -1157,6 +1214,7 @@ end
 -- type2str (type) -> (string)
 local function type2str (t, n)
   n = n or 0
+  if not t then return "error: t is nil" end
   if n <= 0 and t.name then
     return t.name
   elseif tltype.isPrim(t) then
@@ -1224,7 +1282,7 @@ local function type2str (t, n)
   elseif tltype.isVararg(t) then
     return type2str(t[1], n-1) .. "*"
   else
-    error("trying to convert type to string but got " .. dumptable(t))
+    return "trying to convert type to string but got " .. dumptable(t)
   end
 end
 

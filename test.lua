@@ -3665,9 +3665,10 @@ check(e, r)
 s = [=[
 local x:number?
 local t = { [function () end] = 1, [x] = 2 }
+print(t[function () end] + 1)
 ]=]
 e = [=[
-test.lua:2:37: type error, table index can be nil
+test.lua:3:7: type error, attempt to perform arithmetic on a 'number?'
 ]=]
 
 r = typecheck(s)
@@ -3815,8 +3816,8 @@ x:y()
 y:x()
 ]=]
 e = [=[
-test.lua:5:1: type error, attempt to call method 'y' of type 'nil'
-test.lua:7:1: type error, attempt to index 'number' with '"x"'
+test.lua:5:1: type error, attempt to call non-existing method 'y' on type '{"x": any}'
+test.lua:7:1: type error, attempt to call method 'x' on non-object type 'number'
 ]=]
 
 r = typecheck(s)
@@ -4134,10 +4135,10 @@ local days = { "Sunday", "Monday", "Tuesday", "Wednesday",
 local t1:{string} = days
 local t2:{string?} = days
 t2 = t1
+print(days[1] + 10)
 ]=]
 e = [=[
-test.lua:3:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:string?}'
-test.lua:4:7: type error, attempt to assign '{1:string, 2:string, 3:string, 4:string, 5:string, 6:string, 7:string}' to '{number:string?}'
+test.lua:6:7: type error, attempt to perform arithmetic on a 'string?'
 ]=]
 
 r = typecheck(s)
@@ -4501,6 +4502,7 @@ user.firstname = "Lewis"
 user.middlename = "Allan"
 user.lastname = "Reed"
 local person:Person = user
+print(user.middlename + 10)
 ]=]
 e = [=[
 test.lua:11:7: type error, attempt to assign '{"firstname":string, "middlename":string, "lastname":string}' to 'Person'
