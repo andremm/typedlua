@@ -1,9 +1,6 @@
 local lexer = {}
 
-interface Token
-  tipo:string
-  lexema:number?
-end
+local typealias Token = { "tipo":string, "lexama":number? }
 
 function lexer.scan (input:string):({Token})?
   local i:integer = 1
