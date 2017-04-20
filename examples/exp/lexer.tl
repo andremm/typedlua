@@ -1,12 +1,12 @@
 local lexer = {}
 
-local typealias Token = { "tipo":string, "lexama":number? }
+typealias Token = { "tipo":string, "lexama":number? }
 
 function lexer.scan (input:string):({Token})?
   local i:integer = 1
   local l:{Token} = {}
-  local t:Token?
   while i <= #input do
+    local t:Token?
     local b:integer = string.byte(input, i) or 0
     local c:string = string.char(b)
     if c == ' ' or
@@ -60,7 +60,7 @@ function lexer.scanner (input:string):(() -> (Token))?
   local scanner, msg = lexer.scan(input)
   if scanner then
     local i:integer = 1
-    return function ():Token -- get_Token
+    return function ():Token -- get_token
       local t:Token = { tipo = "EOF" }
       if i <= #scanner then
         t = scanner[i]

@@ -121,6 +121,8 @@ function fator ():(Exp)?
     else
       return nil, msg
     end
+  else
+    return nil, string.format("expressao invalida: li '%s', mas esperava 'Exp', 'Num' ou '('", token.tipo)
   end
 end
 

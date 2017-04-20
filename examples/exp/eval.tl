@@ -3,14 +3,14 @@ local parser = require "parser"
 local function eval (exp:Exp):number
   if exp.tag == "Num" then
     return exp[1]
-   elseif exp.tag == "Add" then
-     return eval(exp[1]) + eval(exp[2])
-   elseif exp.tag == "Sub" then
-     return eval(exp[1]) - eval(exp[2])
-   elseif exp.tag == "Mul" then
-     return eval(exp[1]) * eval(exp[2])
-   elseif exp.tag == "Div" then
-     return eval(exp[1]) / eval(exp[2])
+  elseif exp.tag == "Add" then
+    return eval(exp[1]) + eval(exp[2])
+  elseif exp.tag == "Sub" then
+    return eval(exp[1]) - eval(exp[2])
+  elseif exp.tag == "Mul" then
+    return eval(exp[1]) * eval(exp[2])
+  elseif exp.tag == "Div" then
+    return eval(exp[1]) / eval(exp[2])
   end
 end
 
