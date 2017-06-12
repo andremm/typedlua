@@ -3,10 +3,10 @@ local parser = {}
 local lexer = require "lexer"
 
 typealias Exp = { "tag":"Num", 1:number }
-              | { "tag":"Add", 1:number, 2:number }
-              | { "tag":"Sub", 1:number, 2:number }
-              | { "tag":"Mul", 1:number, 2:number }
-              | { "tag":"Div", 1:number, 2:number }
+              | { "tag":"Add", 1:Exp, 2:Exp }
+              | { "tag":"Sub", 1:Exp, 2:Exp }
+              | { "tag":"Mul", 1:Exp, 2:Exp }
+              | { "tag":"Div", 1:Exp, 2:Exp }
 
 local token:Token, get_token:() -> (Token)
 
@@ -126,7 +126,7 @@ function fator ():(Exp)?
   end
 end
 
-function parser.parse (input:string)
+function parser.parse (input:string):(Exp)?
   local scanner, msg = lexer.scanner(input)
   if scanner then
     get_token = scanner
