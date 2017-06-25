@@ -134,7 +134,7 @@ function tlst.set_local (env, id, scope)
   env[scope]["unused"][local_name] = id
 end
 
--- get_local : (env, string) -> (id, boolean, boolean)
+-- get_local : (env, string) -> (id, boolean, boolean, scope)
 --   second return value is boolean indicating if is local to this function
 --   third return value indicates if the function definition is crossing a loop
 function tlst.get_local (env, local_name)
@@ -145,11 +145,11 @@ function tlst.get_local (env, local_name)
     local l = env[s]["local"][local_name]
     if l then
       env[s]["unused"][local_name] = nil
-      return l, env[s]["function"] == currfunc, no_loop
+      return l, env[s]["function"] == currfunc, no_loop, s
     end
     no_loop = no_loop and (not env[s].loop)
   end
-  return nil, false, false
+  return nil, false, false, 0
 end
 
 -- masking : (env, string) -> (id|nil)

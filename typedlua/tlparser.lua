@@ -497,12 +497,15 @@ end
 function traverse_var (env, var)
   local tag = var.tag
   if tag == "Id" then
-    if not tlst.get_local(env, var[1]) then
+    local id, loc, loop, scope = tlst.get_local(env, var[1])
+    if not id then
       local e1 = tlast.ident(var.pos, "_ENV")
       local e2 = tlast.exprString(var.pos, var[1])
       var.tag = "Index"
       var[1] = e1
       var[2] = e2
+    else
+      var.scope = scope
     end
     return true
   elseif tag == "Index" then
