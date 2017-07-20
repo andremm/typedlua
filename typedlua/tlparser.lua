@@ -16,6 +16,13 @@ local function chainl1 (pat, sep)
   return lpeg.Cf(pat * lpeg.Cg(sep * pat)^0, tlast.exprBinaryOp)
 end
 
+local function exprFunction(...)
+  local func = tlast.exprFunction(...)
+  func.comment = table.concat(tllexer.comments, "\n")
+  tllexer.comments = {}
+  return func
+end
+
 local G = lpeg.P { "TypedLua";
   TypedLua = tllexer.Shebang^-1 * tllexer.Skip * lpeg.V("Chunk") * -1 +
              tllexer.report_error();
@@ -217,7 +224,7 @@ local G = lpeg.P { "TypedLua";
                 tlast.identDots;
   FuncBody = lpeg.Cp() * tllexer.symb("(") * lpeg.V("ParList") * tllexer.symb(")") *
              (tllexer.symb(":") * lpeg.V("RetType"))^-1 *
-             lpeg.V("Block") * tllexer.kw("end") / tlast.exprFunction;
+             lpeg.V("Block") * tllexer.kw("end") / exprFunction;
   FuncStat = lpeg.Cp() * (tllexer.kw("const") * lpeg.Cc(true) + lpeg.Cc(false)) *
              tllexer.kw("function") * lpeg.V("FuncName") * lpeg.V("FuncBody") /
              tlast.statFuncSet;
