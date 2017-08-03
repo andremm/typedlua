@@ -55,8 +55,7 @@ function visit_var (visitor, var)
   if tag == "Id" then
     visitor:id(var)
   elseif tag == "Index" then
-    visitor:expression(var[1])
-    visitor:expression(var[2])
+    visitor:index(var)
   else
     error("expecting a variable, but got a " .. tag)
   end
@@ -247,6 +246,10 @@ end
 function tlvisitor.visit(block, visitor)
   local function nop(visitor) end
   visitor.id = visitor.id or nop
+  visitor.index = visitor.id or function(visitor, var)
+    visitor:expression(var[1])
+    visitor:expression(var[2])
+  end
   visitor.label = visitor.label or nop
   visitor.block = visitor.block or visit_block
   visitor.statement = visitor.statement or visit_stm
