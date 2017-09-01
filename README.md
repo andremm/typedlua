@@ -1,6 +1,9 @@
 # Typed Lua
 [![Build Status](https://travis-ci.org/andremm/typedlua.svg?branch=master)](https://travis-ci.org/andremm/typedlua)
 
+**Typed Lua is now part of the Titan Programming Language.
+Please, visit [www.titan-lang.org](www.titan-lang.org) for more information.**
+
 Typed Lua is a typed superset of Lua that compiles to plain Lua.
 It provides optional type annotations, compile-time type checking, and
 class-based object oriented programming through the definition of classes,
