@@ -1,0 +1,26 @@
+draw : () -> ()
+update : (number) -> ()
+
+event : {
+  "quit" : () -> (),
+}
+
+graphics : {
+  "circle" : (string, number, number, number) -> (),
+  "setColor" : (number, number, number, number?) -> (),
+}
+
+keyboard : {
+  "isDown" : (string) -> (boolean),
+}
+
+typealias flags = { "fullscreen":boolean, "fullscreentype": string,
+  "vsync":boolean, "msaa":number, "resizeable":boolean,
+  "borderless":boolean, "centered":boolean, "display":number,
+  "minwidth":number, "minheight":number, "highdpi":boolean,
+  "refreshrate":number, "x":number, "y":number }
+
+window : {
+  "getMode": () -> (number, number, flags),
+  "setTitle": (string) -> (),
+}

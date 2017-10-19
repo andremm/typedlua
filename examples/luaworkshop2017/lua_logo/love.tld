@@ -1,0 +1,20 @@
+draw : () -> ()
+update : (number) -> ()
+
+event : {
+  "quit" : () -> (),
+}
+
+graphics : {
+  "circle" : (string, number, number, number) -> (),
+  "setColor" : (number, number, number, number?) -> (),
+}
+
+keyboard : {
+  "isDown" : (string) -> (boolean),
+}
+
+window : {
+  "getMode": () -> (number, number),
+  "setTitle": (string) -> (),
+}
