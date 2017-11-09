@@ -1,0 +1,6 @@
+[submodule "vscode"]
+	path = vscode
+	url = https://gitlab.com/martanne/vscode-typedlua.git
+[submodule "langserver"]
+	path = langserver
+	url = https://gitlab.com/martanne/lua-lsp
