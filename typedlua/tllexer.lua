@@ -4,6 +4,8 @@ This module implements Typed Lua lexer
 
 local tllexer = {}
 
+tllexer.comments = {}
+
 local lpeg = require "lpeg"
 lpeg.locale(lpeg)
 
@@ -58,9 +60,12 @@ local CloseEQ = lpeg.Cmt(Close * lpeg.Cb("init"),
 local LongString = Open * lpeg.C((lpeg.P(1) - CloseEQ)^0) * Close /
                    function (s, o) return s end
 
-local Comment = lpeg.P("--") * LongString /
-                function () return end +
-                lpeg.P("--") * (lpeg.P(1) - lpeg.P("\n"))^0
+local Comment = ((lpeg.P("--") * LongString) +
+                (lpeg.P("--") * lpeg.C((lpeg.P(1) - lpeg.P("\n"))^0))) /
+                function (s)
+                  tllexer.comments[#tllexer.comments+1] = s
+                  return
+                end
 
 tllexer.Skip = (Space + Comment)^0
 
