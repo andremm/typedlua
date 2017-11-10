@@ -61,8 +61,8 @@ function tlfilter.filter_falsy(t)
       if tltype.isNil(tt) or tltype.isFalse(tt) then
         lf[#lf+1] = tt
       elseif tltype.isBoolean(tt) then
-        lf[#lf+1] = tltype.isFalse()
-        l[#l+1] = tltype.isTrue()
+        lf[#lf+1] = tltype.isFalse(tt)
+        l[#l+1] = tltype.isTrue(tt)
       else
         l[#l+1] = tt
       end
