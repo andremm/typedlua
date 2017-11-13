@@ -5448,6 +5448,26 @@ test.lua:5:9: type error, attempt to perform arithmetic on a 'string'
 r = typecheck(s)
 check(e, r)
 
+-- filter26.tl
+
+s = [=[
+local function f(x: boolean?)
+  if x then
+    print(x + 10)
+  else
+    print(x .. "foo")
+  end
+end
+]=]
+
+e = [=[
+test.lua:3:11:type error,attempt to perform arithmetic on a 'boolean'
+test.lua:5:11:type error,attempt to concatenate a 'boolean?'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
 -- issue96.tl
 
 s = [=[
@@ -5914,6 +5934,27 @@ test.lua:4:10: type error, attempt to perform arithmetic on a 'U?'
 test.lua:6:13: type error, attempt to perform arithmetic on a 'nil'
 test.lua:11:7: type error, unreacheable statement
 test.lua:15:10: type error, attempt to perform arithmetic on a 'U'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+-- issue108.tl
+
+s = [=[
+local function w (filename:string, data:string):boolean
+  local scratch = filename .. "~"
+  local fh, open_err = io.open(scratch, "w")
+  if not fh then return false end
+  local write_ok, write_err = fh:write(data)
+  if not write_ok then return false end
+  local close_ok, close_err = fh:close()
+  if not close_ok then return false end
+  return true
+end
+]=]
+e = [=[
+{ `Localrec{{ `Id "w":`TFunction{ `TTuple{ `TBase string, `TBase string, `TVararg{ `TValue } }, `TTuple{ `TBase boolean, `TVararg{ `TNil } } } },{ `Function{{ `Id "filename":`TBase string, `Id "data":`TBase string }:`TTuple{ `TBase boolean, `TVararg{ `TNil } },{ `Local{{ `Id "scratch" },{ `Op{"concat", `Id "filename", `String "~" } } }, `Local{{ `Id "fh", `Id "open_err" },{ `Call{ `Index{ `Index{ `Id "_ENV", `String "io" }, `String "open" }, `Id "scratch", `String "w" } } }, `If{ `Op{"not", `Id "fh" },{ `Return{ `False } } }, `Local{{ `Id "write_ok", `Id "write_err" },{ `Invoke{ `Id "fh", `String "write", `Id "data" } } }, `If{ `Op{"not", `Id "write_ok" },{ `Return{ `False } } }, `Local{{ `Id "close_ok", `Id "close_err" },{ `Invoke{ `Id "fh", `String "close" } } }, `If{ `Op{"not", `Id "close_ok" },{ `Return{ `False } } }, `Return{ `True } } } } } }
 ]=]
 
 r = typecheck(s)
