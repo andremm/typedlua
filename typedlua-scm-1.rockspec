@@ -29,6 +29,7 @@ build = {
     ["typedlua.tlparser"] = "typedlua/tlparser.lua",
     ["typedlua.tlst"] = "typedlua/tlst.lua",
     ["typedlua.tltype"] = "typedlua/tltype.lua",
+    ["typedlua.tlvisitor"] = "typedlua/tlvisitor.lua",
     ["typedlua.tldparser"] = "typedlua/tldparser.lua"
   },
   install = {
