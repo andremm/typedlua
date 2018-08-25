@@ -95,10 +95,16 @@ local G = lpeg.P { "TypedLuaDescription";
               tllexer.token(tllexer.Name, "Name") * tllexer.symb("=") * lpeg.V("Type") /
               tlast.statInterface;
   -- parser
+  Require = lpeg.Cp() * tllexer.kw("require") * lpeg.V("RequireArgs") / tlast.statRequire;
+  RequireArgs = tllexer.symb("(") * tllexer.token(tllexer.String, "String") * tllexer.symb(")") +
+                tllexer.token(tllexer.String, "String");
   Userdata = lpeg.Cp() * tllexer.kw("userdata") * lpeg.V("TypeDec") /
              tlast.statUserdata;
   DescriptionList = lpeg.V("DescriptionItem")^1 / function (...) return {...} end;
-  DescriptionItem = lpeg.V("TypedId") + lpeg.V("Interface") + lpeg.V("Userdata");
+  DescriptionItem = lpeg.V("TypedId") +
+                    lpeg.V("Interface") +
+                    lpeg.V("Require") +
+                    lpeg.V("Userdata");
   TypedId = lpeg.Cp() * tllexer.token(tllexer.Name, "Name") *
             tllexer.symb(":") * lpeg.V("Type") / tlast.ident;
 }
@@ -121,6 +127,8 @@ local function traverse (ast, errorinfo, strict)
       if tltype.checkRecursive(t, name) then
         v[2] = tltype.Recursive(name, t)
       end
+    elseif tag == "Require" then
+      v[1] = tlast.exprString(v.pos, v[1])
     elseif tag == "Userdata" then
       local name, t = v[1], v[2]
       local status, msg = tltype.checkTypeDec(name, t)

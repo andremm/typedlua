@@ -5995,6 +5995,34 @@ e = [=[
 r = typecheck(s)
 check(e, r)
 
+-- issue66
+
+s = [=[
+require "examples.issues.issue66.point"
+require "examples.issues.issue66.colorpoint"
+
+local a:Point
+local b:ColorPoint
+]=]
+
+e = [=[
+{ `Call{ `Index{ `Id "_ENV", `String "require" }, `String "examples.issues.issue66.point" }, `Call{ `Index{ `Id "_ENV", `String "require" }, `String "examples.issues.issue66.colorpoint" }, `Local{{ `Id "a":`TVariable Point },{ } }, `Local{{ `Id "b":`TVariable ColorPoint },{ } } }
+]=]
+
+r = typecheck(s)
+check(e, r)
+
+s = [=[
+require "examples.issues.issue66.3dpoint"
+]=]
+
+e = [=[
+test.lua:1:1:type error,could not load 'examples.issues.issue66.colorponto'	no file '/usr/local/share/lua/5.3/examples/issues/issue66/colorponto.tld'	no file '/usr/local/share/lua/5.3/examples/issues/issue66/colorponto/init.tld'	no file '/usr/local/lib/lua/5.3/examples/issues/issue66/colorponto.tld'	no file '/usr/local/lib/lua/5.3/examples/issues/issue66/colorponto/init.tld'	no file './examples/issues/issue66/colorponto.tld'	no file './examples/issues/issue66/colorponto/init.tld'
+]=]
+
+r = typecheck(s)
+check(e, r)
+
 print("> testing code generation...")
 
 -- assignments

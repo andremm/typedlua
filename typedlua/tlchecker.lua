@@ -24,7 +24,7 @@ local Number = tltype.Number()
 local String = tltype.String()
 local Integer = tltype.Integer(false)
 
-local check_block, check_stm, check_exp, check_var, check_var_exps
+local check_block, check_stm, check_exp, check_var, check_var_exps, check_require
 
 local acolor = {
   red     = "\27[31;1m",
@@ -341,6 +341,9 @@ local function check_tld (env, name, path, pos)
       table.insert(t, tltype.Field(v.const, tltype.Literal(v[1]), replace_names(env, v[2], pos)))
     elseif tag == "Interface" then
       check_interface(env, v)
+    elseif tag == "Require" then
+      -- check only tld files
+      check_require(env, v[1][1], pos, "", true)
     elseif tag == "Userdata" then
       check_userdata(env, v)
     else
@@ -350,12 +353,12 @@ local function check_tld (env, name, path, pos)
   return t
 end
 
-local function check_require (env, name, pos, extra_path)
+function check_require (env, name, pos, extra_path, only_tld)
   extra_path = extra_path or ""
   if not env["loaded"][name] then
     local path = string.gsub(package.path..";", "[.]lua;", ".tl;")
     local filepath, msg1 = searchpath(extra_path .. name, path)
-    if filepath then
+    if filepath and not only_tld then
       if not env.parent[name] then
         env.parent[name] = true
         env["loaded"][name] = check_tl(env, name, filepath, pos)
@@ -368,7 +371,13 @@ local function check_require (env, name, pos, extra_path)
       local msg2
       filepath, msg2 = searchpath(extra_path .. name, path)
       if filepath then
-        env["loaded"][name] = check_tld(env, name, filepath, pos)
+        if not env.parent[name] then
+          env.parent[name] = true
+          env["loaded"][name] = check_tld(env, name, filepath, pos)
+        else
+          typeerror(env, "load", "circular require", pos)
+          env["loaded"][name] = Any
+        end
       else
         env["loaded"][name] = Any
         local s, m = pcall(require, name)
@@ -377,7 +386,11 @@ local function check_require (env, name, pos, extra_path)
             typeerror(env, "syntax", m, pos)
           else
             local msg = "could not load '%s'%s%s%s"
-            msg = string.format(msg, name, msg1, msg2, m)
+            if not only_tld then
+              msg = string.format(msg, name, msg1, msg2, m)
+            else
+              msg = string.format(msg, name, "", msg2, "")
+            end
             typeerror(env, "load", msg, pos)
           end
         end

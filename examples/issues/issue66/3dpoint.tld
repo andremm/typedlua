@@ -1,0 +1,6 @@
+require "examples.issues.issue66.colorponto"
+
+interface Point3D
+  p: ColorPoint
+  z: number
+end

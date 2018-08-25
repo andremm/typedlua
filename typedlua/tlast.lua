@@ -218,6 +218,11 @@ function tlast.statUserdata (pos, name, t)
   return { tag = "Userdata", pos = pos, [1] = name, [2] = t }
 end
 
+-- statRequire : (number, string) -> (stat)
+function tlast.statRequire (pos, modname)
+  return { tag = "Require", pos = pos, [1] = modname }
+end
+
 -- statLocalTypeDec : (stat) -> (stat)
 function tlast.statLocalTypeDec (stat)
   stat.is_local = true
