@@ -6014,10 +6014,12 @@ check(e, r)
 
 s = [=[
 require "examples.issues.issue66.3dpoint"
+
+local p:Ponto3D
 ]=]
 
 e = [=[
-test.lua:1:1:type error,could not load 'examples.issues.issue66.colorponto'	no file '/usr/local/share/lua/5.3/examples/issues/issue66/colorponto.tld'	no file '/usr/local/share/lua/5.3/examples/issues/issue66/colorponto/init.tld'	no file '/usr/local/lib/lua/5.3/examples/issues/issue66/colorponto.tld'	no file '/usr/local/lib/lua/5.3/examples/issues/issue66/colorponto/init.tld'	no file './examples/issues/issue66/colorponto.tld'	no file './examples/issues/issue66/colorponto/init.tld'
+test.lua:3:7: type error, type alias 'Ponto3D' is not defined
 ]=]
 
 r = typecheck(s)

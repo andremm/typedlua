@@ -1,4 +1,4 @@
-require "examples.issues.issue66.colorponto"
+require "examples.issues.issue66.colorpoint"
 
 interface Point3D
   p: ColorPoint
