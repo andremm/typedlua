@@ -1962,9 +1962,14 @@ function tlchecker.typecheck (ast, subject, filename, strict, integer, color)
   return env.messages
 end
 
-local function get_source_line(filename, l)
+local function get_source_line(subject, filename, l)
+  if not subject then
+    local file = io.open(filename)
+    subject = file:read("*a")
+    file:close()
+  end
   local i = 1
-  for source_line in io.lines(filename) do
+  for source_line in subject:gmatch("[^\r\n]*") do
     if i == l then
       return (string.gsub(source_line, "\t", " "))
     end
@@ -1998,7 +2003,7 @@ function tlchecker.error_msgs (messages, warnings, color, line_preview)
         local warning_text = color and acolor.magenta .. "warning" .. acolor.reset or "warning"
         table.insert(l, string.format(msg, v.filename, v.l, v.c, warning_text, v.msg))
         if line_preview then
-          table.insert(l, get_source_line(v.filename, v.l))
+          table.insert(l, get_source_line(v.subject, v.filename, v.l))
           table.insert(l, get_source_arrow(v.c, color, true))
         end
       end
@@ -2006,7 +2011,7 @@ function tlchecker.error_msgs (messages, warnings, color, line_preview)
       local error_text = color and acolor.red .. "type error" .. acolor.reset or "type error"
       table.insert(l, string.format(msg, v.filename, v.l, v.c, error_text, v.msg))
       if line_preview then
-        table.insert(l, get_source_line(v.filename, v.l))
+        table.insert(l, get_source_line(v.subject, v.filename, v.l))
         table.insert(l, get_source_arrow(v.c, color, false))
       end
       n = n + 1

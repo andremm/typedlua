@@ -1242,7 +1242,7 @@ function tltype.typeerror (env, tag, msg, pos)
   end
 
   local l, c = lineno(env.subject, pos)
-  local error_msg = { tag = tag, filename = env.filename, msg = msg, l = l, c = c }
+  local error_msg = { tag = tag, filename = env.filename, subject = env.subject, msg = msg, l = l, c = c }
   for i, v in ipairs(env.messages) do
     if l < v.l or (l == v.l and c < v.c) then
       table.insert(env.messages, i, error_msg)
