@@ -1964,23 +1964,21 @@ end
 
 local function get_source_line(subject, filename, l)
   if not subject then
-    local file = io.open(filename)
+    local file = assert(io.open(filename))
     subject = file:read("*a")
     file:close()
   end
   local i = 1
   repeat
     local lstart = 1
-    local lend = subject:find("\n", lstart) or #subject
+    local lend, lnext = subject:find("\r?\n", lstart) or #subject
     if i == l then
-      local line = subject:sub(lstart, lend or #subject)
-      line = line:gsub("[\r\n]", "")
-      line = line:gsub("\t", " ")
-      return line
+      local line = subject:sub(lstart, lend and lend-1 or #subject)
+      return (line:gsub("\t", " "))
     end
     i = i + 1
-    lstart = lend + 1
-  until lstart > #subject
+    lstart = lnext and lnext+1 or #subject
+  until not lend
 end
 
 local function get_source_arrow(c, color, is_warning)
