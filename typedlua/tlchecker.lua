@@ -1969,12 +1969,18 @@ local function get_source_line(subject, filename, l)
     file:close()
   end
   local i = 1
-  for source_line in subject:gmatch("[^\r\n]*") do
+  repeat
+    local lstart = 1
+    local lend = subject:find("\n", lstart) or #subject
     if i == l then
-      return (string.gsub(source_line, "\t", " "))
+      local line = subject:sub(lstart, lend or #subject)
+      line = line:gsub("[\r\n]", "")
+      line = line:gsub("\t", " ")
+      return line
     end
     i = i + 1
-  end
+    lstart = lend + 1
+  until lstart > #subject
 end
 
 local function get_source_arrow(c, color, is_warning)
