@@ -1969,9 +1969,9 @@ local function get_source_line(subject, filename, l)
     file:close()
   end
   local i = 1
+  local lstart = 1
   repeat
-    local lstart = 1
-    local lend, lnext = subject:find("\r?\n", lstart) or #subject
+    local lend, lnext = subject:find("\r?\n", lstart)
     if i == l then
       local line = subject:sub(lstart, lend and lend-1 or #subject)
       return (line:gsub("\t", " "))
