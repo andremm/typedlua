@@ -1965,7 +1965,7 @@ end
 local function get_source_line(subject, filename, l)
   if not subject then
     local file = assert(io.open(filename))
-    subject = file:read("*a")
+    subject = assert(file:read("*a"))
     file:close()
   end
   local i = 1
