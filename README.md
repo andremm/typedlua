@@ -1,8 +1,7 @@
 # Typed Lua
 [![Build Status](https://travis-ci.org/andremm/typedlua.svg?branch=master)](https://travis-ci.org/andremm/typedlua)
 
-**Please note that Typed Lua is not being actively maintained, as we are now
-working on the [Titan Programming Language](http://www.titan-lang.org).**
+**Please note that Typed Lua is not being actively maintained. For an active type checker for Lua see [tl](https://github.com/hishamhm/tl).**
 
 Typed Lua is a typed superset of Lua that compiles to plain Lua.
 It provides optional type annotations, compile-time type checking, and
